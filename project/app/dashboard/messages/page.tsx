@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
@@ -121,12 +122,18 @@ function MessagesContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingChannelRef = useRef<RealtimeChannel | null>(null);
 
-  const loadConversations = useCallback(async () => {
-    setLoading(true);
+  const loadConversations = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true);
     const data = await getConversations();
     setConversations(data);
-    setLoading(false);
+    if (showLoading) setLoading(false);
+  }, []);
+
+  const refreshMessages = useCallback(async (conversationId: string) => {
+    const latest = await getMessages(conversationId);
+    setMessages(latest);
   }, []);
 
   useEffect(() => {
@@ -212,10 +219,28 @@ function MessagesContent() {
     };
   }, [activeConvId, user?.id]);
 
+  // Realtime remains the fast path. Polling is a read-only fallback for
+  // projects where the messages table is not enabled for Realtime yet.
+  useEffect(() => {
+    if (!activeConvId) return;
+
+    let active = true;
+    const refresh = async () => {
+      if (!active || document.visibilityState === 'hidden') return;
+      await Promise.all([refreshMessages(activeConvId), loadConversations(false)]);
+    };
+    const interval = window.setInterval(refresh, 5000);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [activeConvId, loadConversations, refreshMessages]);
+
   // Typing indicator via realtime presence
   useEffect(() => {
     if (!activeConvId || !user) return;
     const channel = supabase.channel(`typing:${activeConvId}`);
+    typingChannelRef.current = channel;
 
     channel
       .on('broadcast', { event: 'typing' }, (payload: { payload: { userId: string; isTyping: boolean } }) => {
@@ -226,14 +251,14 @@ function MessagesContent() {
       .subscribe();
 
     return () => {
+      if (typingChannelRef.current === channel) typingChannelRef.current = null;
       supabase.removeChannel(channel);
     };
   }, [activeConvId, user]);
 
   const sendTypingEvent = (typing: boolean) => {
     if (!activeConvId || !user) return;
-    const channel = supabase.channel(`typing:${activeConvId}`);
-    channel.send({
+    typingChannelRef.current?.send({
       type: 'broadcast',
       event: 'typing',
       payload: { userId: user.id, isTyping: typing },
@@ -315,7 +340,7 @@ function MessagesContent() {
       setAttachmentPreview(null);
     }
 
-    // Optimistic message
+    // Keep the composer responsive while the secure RPC persists the message.
     if (user) {
       setMessages((prev) => [...prev, {
         id: 'temp-' + Date.now(),
@@ -347,6 +372,10 @@ function MessagesContent() {
     if (result.error) {
       toast({ title: 'Failed to send', description: result.error, variant: 'destructive' });
       setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
+    } else {
+      // Reconcile the optimistic item with the server-authoritative message and
+      // refresh the conversation preview without showing a loading spinner.
+      await Promise.all([refreshMessages(activeConvId), loadConversations(false)]);
     }
 
     setSending(false);
