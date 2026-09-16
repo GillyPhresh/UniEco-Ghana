@@ -27,6 +27,10 @@ const REGIONS = [
   'Volta', 'Northern', 'Upper East', 'Upper West',
 ];
 
+// Radix Select reserves the empty string for clearing a selection. Use an
+// explicit UI value for the "all" option, then map it back to an empty filter.
+const ALL_FILTER_VALUE = '__all__';
+
 export default function DiscoverPage() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
@@ -153,12 +157,15 @@ export default function DiscoverPage() {
               {/* Category filter */}
               <div className="mb-4">
                 <label className="mb-2 block text-xs font-medium text-muted-foreground">Category</label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select
+                  value={category}
+                  onValueChange={(value) => setCategory(value === ALL_FILTER_VALUE ? '' : value)}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All categories</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>All categories</SelectItem>
                     {ALL_CATEGORIES.map((cat) => (
                       <SelectItem key={cat} value={cat}>
                         {CATEGORY_ICONS[cat]} {cat}
@@ -171,12 +178,15 @@ export default function DiscoverPage() {
               {/* University filter */}
               <div className="mb-4">
                 <label className="mb-2 block text-xs font-medium text-muted-foreground">University</label>
-                <Select value={universityFilter} onValueChange={setUniversityFilter}>
+                <Select
+                  value={universityFilter}
+                  onValueChange={(value) => setUniversityFilter(value === ALL_FILTER_VALUE ? '' : value)}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="All universities" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All universities</SelectItem>
+                    <SelectItem value={ALL_FILTER_VALUE}>All universities</SelectItem>
                     {universities.map((uni) => (
                       <SelectItem key={uni.id} value={uni.id}>
                         {uni.short_name}
