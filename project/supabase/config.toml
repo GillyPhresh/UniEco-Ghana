@@ -1,0 +1,14 @@
+[functions.payment-webhook]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = true
+
+[functions.send-whatsapp]
+verify_jwt = true
+
+[functions.send-push]
+verify_jwt = true
+
+[functions.send-sms]
+verify_jwt = true

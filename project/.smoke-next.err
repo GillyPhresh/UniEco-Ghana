@@ -1,0 +1,608 @@
+ ⚠ Port 3000 is in use, trying 3001 instead.
+ ⚠ Port 3001 is in use, trying 3002 instead.
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+request to https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap failed, reason: connect EACCES 216.58.205.74:443
+
+Retrying 1/3...
+request to https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap failed, reason: connect EACCES 216.58.205.74:443
+
+Retrying 2/3...
+FetchError: request to https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap failed, reason: connect EACCES 216.58.205.74:443
+    at ClientRequest.<anonymous> (C:\Users\NGTs\Desktop\UniEco Ghana\project\node_modules\next\dist\compiled\node-fetch\index.js:1:65756)
+    at ClientRequest.emit (node:events:519:28)
+    at emitErrorEvent (node:_http_client:105:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:519:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  type: 'system',
+  errno: 'EACCES',
+  code: 'EACCES'
+}
+ X Failed to download `Inter` from Google Fonts. Using fallback font instead.
+
+Failed to fetch `Inter` from Google Fonts.}
+request to https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap failed, reason: connect EACCES 216.58.205.74:443
+
+Retrying 1/3...
+request to https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap failed, reason: connect EACCES 216.58.205.74:443
+
+Retrying 2/3...
+FetchError: request to https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200..800&display=swap failed, reason: connect EACCES 216.58.205.74:443
+    at ClientRequest.<anonymous> (C:\Users\NGTs\Desktop\UniEco Ghana\project\node_modules\next\dist\compiled\node-fetch\index.js:1:65756)
+    at ClientRequest.emit (node:events:519:28)
+    at emitErrorEvent (node:_http_client:105:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:519:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  type: 'system',
+  errno: 'EACCES',
+  code: 'EACCES'
+}
+ X Failed to download `Plus Jakarta Sans` from Google Fonts. Using fallback font instead.
+
+Failed to fetch `Plus Jakarta Sans` from Google Fonts.}
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+Browserslist: caniuse-lite is outdated. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./lib/auth/auth-context.tsx
+./components/layout/site-header.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+digest: "3990653914"
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+digest: "3990653914"
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./lib/auth/auth-context.tsx
+./components/layout/site-header.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ X app\page.tsx (45:20) @ universities
+ X TypeError: universities is not iterable
+    at Home (./app/page.tsx:59:23)
+digest: "3990653914"
+[0m [90m 43 | [39m[0m
+[0m [90m 44 | [39m  [36mconst[39m vendorCounts[33m:[39m [33mRecord[39m[33m<[39m[33mstring[39m[33m,[39m number[33m>[39m [33m=[39m {}[33m;[39m[0m
+[0m[31m[1m>[22m[39m[90m 45 | [39m  [36mfor[39m ([36mconst[39m uni [36mof[39m universities) {[0m
+[0m [90m    | [39m                   [31m[1m^[22m[39m[0m
+[0m [90m 46 | [39m    vendorCounts[uni[33m.[39mid] [33m=[39m [36mawait[39m getVendorCountByUniversity(uni[33m.[39mid)[33m;[39m[0m
+[0m [90m 47 | [39m  }[0m
+[0m [90m 48 | [39m[0m
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./lib/auth/auth-context.tsx
+./components/layout/site-header.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/search/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/search/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+ ⚠ ./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/client.ts
+./app/discover/page.tsx
+
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/@supabase/realtime-js/dist/main/RealtimeClient.js
+./node_modules/@supabase/realtime-js/dist/main/index.js
+./node_modules/@supabase/supabase-js/dist/main/index.js
+./node_modules/@supabase/ssr/dist/main/createBrowserClient.js
+./node_modules/@supabase/ssr/dist/main/index.js
+./lib/supabase/server.ts
+./lib/data/public-queries.ts
+./app/page.tsx
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: Unable to snapshot resolve dependencies

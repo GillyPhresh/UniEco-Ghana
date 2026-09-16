@@ -1,0 +1,19 @@
+
+> nextjs@0.1.0 dev:staging
+> node scripts/run-staging.mjs dev
+
+  ▲ Next.js 13.5.1
+  - Local:        http://localhost:3002
+  - Environments: .env
+  - Experiments (use at your own risk):
+     · cpus
+
+ ✓ Ready in 6.9s
+ ○ compiling /middleware ...
+ ✓ Compiled /middleware in 3.3s (127 modules)
+ ○ compiling /page ...
+ ✓ Compiled /dashboard/messages/page in 9s (1602 modules)
+ ✓ Compiled in 2.2s (1602 modules)
+ ✓ Compiled in 2.4s (1602 modules)
+ ✓ Compiled in 943ms (1587 modules)
+ ✓ Compiled in 11.4s (1601 modules)

@@ -1,0 +1,4 @@
+# This workspace is intentionally separate from supabase/migrations.
+# It is for the empty staging project only; no project ref or credentials live here.
+project_id = "nyrrhoufgpqpajutatfp"
+
