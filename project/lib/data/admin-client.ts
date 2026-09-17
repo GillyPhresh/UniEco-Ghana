@@ -108,7 +108,6 @@ export async function suspendUser(userId: string, reason: string): Promise<{ err
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('user.suspend', 'users', 'profile', userId, { reason });
   return { error: null };
 }
 
@@ -120,7 +119,6 @@ export async function reactivateUser(userId: string): Promise<{ error: string | 
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('user.reactivate', 'users', 'profile', userId, {});
   return { error: null };
 }
 
@@ -131,7 +129,6 @@ export async function assignUserRole(userId: string, roleId: number): Promise<{ 
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('user.assign_role', 'users', 'profile', userId, { role_id: roleId });
   return { error: null };
 }
 
@@ -170,7 +167,6 @@ export async function approveStudentVerification(studentProfileId: string, note?
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('student.verify', 'verification', 'student_profile', studentProfileId, { note });
   return { error: null };
 }
 
@@ -182,7 +178,6 @@ export async function rejectStudentVerification(studentProfileId: string, reason
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('student.reject', 'verification', 'student_profile', studentProfileId, { reason });
   return { error: null };
 }
 
@@ -224,7 +219,6 @@ export async function approveVendor(vendorId: string, note?: string): Promise<{ 
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('vendor.approve', 'verification', 'vendor', vendorId, { note });
   return { error: null };
 }
 
@@ -236,7 +230,6 @@ export async function rejectVendor(vendorId: string, reason: string): Promise<{ 
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('vendor.reject', 'verification', 'vendor', vendorId, { reason });
   return { error: null };
 }
 
@@ -248,7 +241,6 @@ export async function suspendVendor(vendorId: string, reason: string): Promise<{
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('vendor.suspend', 'businesses', 'vendor', vendorId, { reason });
   return { error: null };
 }
 
@@ -259,7 +251,6 @@ export async function restoreVendor(vendorId: string): Promise<{ error: string |
   });
   if (error) return { error: error.message };
 
-  await logAdminAction('vendor.restore', 'businesses', 'vendor', vendorId, {});
   return { error: null };
 }
 
@@ -323,31 +314,29 @@ export async function createUniversity(data: {
   image_source?: string;
   is_enabled?: boolean;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('universities').insert({
-    ...data,
-    country: data.country || 'Ghana',
-    is_enabled: data.is_enabled ?? false,
+  const { error } = await supabase.rpc('create_admin_university', {
+    p_name: data.name, p_short_name: data.short_name, p_slug: data.slug,
+    p_city: data.city || null, p_region: data.region || null, p_country: data.country || 'Ghana',
+    p_website_url: data.website_url || null, p_description: data.description || null,
+    p_is_enabled: data.is_enabled ?? false,
   });
-  if (error) return { error: error.message };
-
-  await logAdminAction('university.create', 'university', null, null, { name: data.name });
-  return { error: null };
+  return { error: error?.message || null };
 }
 
 export async function updateUniversity(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('universities').update(data).eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('university.update', 'university', 'university', id, data);
-  return { error: null };
+  const { error } = await supabase.rpc('update_admin_university', {
+    p_university_id: id, p_name: data.name, p_short_name: data.short_name, p_slug: data.slug,
+    p_city: data.city || null, p_region: data.region || null, p_country: data.country || null,
+    p_website_url: data.website_url || null, p_description: data.description || null,
+    p_logo_alt_text: data.logo_alt_text || null, p_hero_alt_text: data.hero_alt_text || null,
+    p_image_credit: data.image_credit || null, p_image_source: data.image_source || null,
+  });
+  return { error: error?.message || null };
 }
 
 export async function toggleUniversityEnabled(id: string, enabled: boolean): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('universities').update({ is_enabled: enabled }).eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('university.toggle', 'university', 'university', id, { enabled });
-  return { error: null };
+  const { error } = await supabase.rpc('set_admin_university_enabled', { p_university_id: id, p_enabled: enabled });
+  return { error: error?.message || null };
 }
 
 // ============================================================
@@ -390,34 +379,21 @@ export async function uploadUniversityImage(
 
   if (uploadError) return { url: null, error: uploadError.message };
 
-  const { data } = supabase.storage.from('university-branding').getPublicUrl(path);
-
-  const column = imageType === 'logo' ? 'logo_url' : 'hero_image_url';
-  const { error: updateError } = await supabase
-    .from('universities')
-    .update({ [column]: data.publicUrl, updated_at: new Date().toISOString() })
-    .eq('id', universityId);
-
+  const { error: updateError } = await supabase.rpc('set_admin_university_branding', {
+    p_university_id: universityId, p_image_type: imageType, p_object_path: path,
+  });
   if (updateError) return { url: null, error: updateError.message };
-
-  await logAdminAction('university.image_upload', 'university', 'university', universityId, { image_type: imageType, path });
-  return { url: data.publicUrl, error: null };
+  return { url: supabase.storage.from('university-branding').getPublicUrl(path).data.publicUrl, error: null };
 }
 
 export async function removeUniversityImage(
   universityId: string,
   imageType: 'logo' | 'hero'
 ): Promise<{ error: string | null }> {
-  const column = imageType === 'logo' ? 'logo_url' : 'hero_image_url';
-  const { error } = await supabase
-    .from('universities')
-    .update({ [column]: null, updated_at: new Date().toISOString() })
-    .eq('id', universityId);
-
-  if (error) return { error: error.message };
-
-  await logAdminAction('university.image_remove', 'university', 'university', universityId, { image_type: imageType });
-  return { error: null };
+  const { error } = await supabase.rpc('set_admin_university_branding', {
+    p_university_id: universityId, p_image_type: imageType, p_object_path: null,
+  });
+  return { error: error?.message || null };
 }
 
 // ============================================================
@@ -440,32 +416,26 @@ export async function createCategory(data: {
   sort_order?: number;
   is_visible?: boolean;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('categories').insert({
-    ...data,
-    parent_id: data.parent_id || null,
-    sort_order: data.sort_order ?? 0,
-    is_visible: data.is_visible ?? true,
+  const { error } = await supabase.rpc('create_admin_category', {
+    p_name: data.name, p_slug: data.slug, p_description: data.description || null,
+    p_icon: data.icon || null, p_parent_id: data.parent_id || null,
+    p_sort_order: data.sort_order ?? 0, p_is_visible: data.is_visible ?? true,
   });
-  if (error) return { error: error.message };
-
-  await logAdminAction('category.create', 'categories', null, null, { name: data.name });
-  return { error: null };
+  return { error: error?.message || null };
 }
 
 export async function updateCategory(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('categories').update(data).eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('category.update', 'categories', 'category', id, data);
-  return { error: null };
+  const { error } = await supabase.rpc('update_admin_category', {
+    p_category_id: id, p_name: data.name, p_slug: data.slug, p_description: data.description || null,
+    p_icon: data.icon || null, p_parent_id: data.parent_id || null,
+    p_sort_order: data.sort_order ?? 0, p_is_visible: data.is_visible ?? true,
+  });
+  return { error: error?.message || null };
 }
 
 export async function deleteCategory(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('categories').delete().eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('category.delete', 'categories', 'category', id, {});
-  return { error: null };
+  const { error } = await supabase.rpc('delete_admin_category', { p_category_id: id });
+  return { error: error?.message || null };
 }
 
 // ============================================================
@@ -535,40 +505,19 @@ export async function getAdminAdvertisements(params: {
 }
 
 export async function approveAdvertisement(adId: string, priority: number, featured: boolean, sponsored: boolean): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('advertisements')
-    .update({
-      status: 'approved',
-      reviewed_by: user?.id || null,
-      reviewed_at: new Date().toISOString(),
-      rejection_reason: null,
-      priority,
-      is_featured: featured,
-      is_sponsored: sponsored,
-    })
-    .eq('id', adId);
-  if (error) return { error: error.message };
-
-  await logAdminAction('ad.approve', 'advertisements', 'advertisement', adId, { priority, featured, sponsored });
-  return { error: null };
+  const { error } = await supabase.rpc('review_admin_advertisement', {
+    p_advertisement_id: adId, p_decision: 'approved', p_priority: priority,
+    p_featured: featured, p_sponsored: sponsored, p_rejection_reason: null,
+  });
+  return { error: error?.message || null };
 }
 
 export async function rejectAdvertisement(adId: string, reason: string): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('advertisements')
-    .update({
-      status: 'rejected',
-      reviewed_by: user?.id || null,
-      reviewed_at: new Date().toISOString(),
-      rejection_reason: reason,
-    })
-    .eq('id', adId);
-  if (error) return { error: error.message };
-
-  await logAdminAction('ad.reject', 'advertisements', 'advertisement', adId, { reason });
-  return { error: null };
+  const { error } = await supabase.rpc('review_admin_advertisement', {
+    p_advertisement_id: adId, p_decision: 'rejected', p_priority: 0,
+    p_featured: false, p_sponsored: false, p_rejection_reason: reason,
+  });
+  return { error: error?.message || null };
 }
 
 // ============================================================
@@ -644,20 +593,8 @@ export async function getAdminReports(params: {
 }
 
 export async function resolveReport(reportId: string, note: string): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('reports')
-    .update({
-      status: 'resolved',
-      moderator_id: user?.id || null,
-      resolved_at: new Date().toISOString(),
-      resolution_note: note,
-    })
-    .eq('id', reportId);
-  if (error) return { error: error.message };
-
-  await logAdminAction('report.resolve', 'moderation', 'report', reportId, { note });
-  return { error: null };
+  const { error } = await supabase.rpc('resolve_admin_report', { p_report_id: reportId, p_resolution_note: note });
+  return { error: error?.message || null };
 }
 
 // ============================================================
@@ -714,55 +651,20 @@ export async function getTicketReplies(ticketId: string): Promise<TicketReply[]>
 }
 
 export async function replyToTicket(ticketId: string, body: string, isInternal: boolean): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
-
-  const { error } = await supabase
-    .from('ticket_replies')
-    .insert({
-      ticket_id: ticketId,
-      author_id: user.id,
-      body,
-      is_internal: isInternal,
-    });
-  if (error) return { error: error.message };
-
-  // Update ticket status
-  if (!isInternal) {
-    await supabase
-      .from('support_tickets')
-      .update({ status: 'in_progress' })
-      .eq('id', ticketId);
-  }
-
-  return { error: null };
+  const { error } = await supabase.rpc('add_admin_ticket_reply', {
+    p_ticket_id: ticketId, p_body: body, p_is_internal: isInternal,
+  });
+  return { error: error?.message || null };
 }
 
-export async function assignTicket(ticketId: string, adminId: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('support_tickets')
-    .update({ assigned_to: adminId, status: 'in_progress' })
-    .eq('id', ticketId);
-  if (error) return { error: error.message };
-
-  await logAdminAction('ticket.assign', 'support', 'ticket', ticketId, { admin_id: adminId });
-  return { error: null };
+export async function assignTicket(ticketId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('assign_admin_support_ticket', { p_ticket_id: ticketId });
+  return { error: error?.message || null };
 }
 
 export async function closeTicket(ticketId: string): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase
-    .from('support_tickets')
-    .update({
-      status: 'closed',
-      closed_at: new Date().toISOString(),
-      closed_by: user?.id || null,
-    })
-    .eq('id', ticketId);
-  if (error) return { error: error.message };
-
-  await logAdminAction('ticket.close', 'support', 'ticket', ticketId, {});
-  return { error: null };
+  const { error } = await supabase.rpc('close_admin_support_ticket', { p_ticket_id: ticketId });
+  return { error: error?.message || null };
 }
 
 export async function createTicket(data: {
@@ -816,36 +718,25 @@ export async function createCmsPage(data: {
   meta_description?: string;
   is_published?: boolean;
 }): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  const { error } = await supabase.from('cms_pages').insert({
-    ...data,
-    author_id: user?.id || null,
-    is_published: data.is_published ?? false,
-    published_at: data.is_published ? new Date().toISOString() : null,
+  const { error } = await supabase.rpc('create_admin_cms_page', {
+    p_slug: data.slug, p_title: data.title, p_content: data.content, p_page_type: data.page_type,
+    p_meta_description: data.meta_description || null, p_is_published: data.is_published ?? false, p_sort_order: 0,
   });
-  if (error) return { error: error.message };
-
-  await logAdminAction('cms.create', 'cms', null, null, { slug: data.slug });
-  return { error: null };
+  return { error: error?.message || null };
 }
 
 export async function updateCmsPage(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  if (data.is_published === true && !data.published_at) {
-    data.published_at = new Date().toISOString();
-  }
-  const { error } = await supabase.from('cms_pages').update(data).eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('cms.update', 'cms', 'cms_page', id, data);
-  return { error: null };
+  const { error } = await supabase.rpc('update_admin_cms_page', {
+    p_page_id: id, p_slug: data.slug, p_title: data.title, p_content: data.content,
+    p_page_type: data.page_type, p_meta_description: data.meta_description || null,
+    p_is_published: data.is_published ?? false, p_sort_order: data.sort_order ?? 0,
+  });
+  return { error: error?.message || null };
 }
 
 export async function deleteCmsPage(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('cms_pages').delete().eq('id', id);
-  if (error) return { error: error.message };
-
-  await logAdminAction('cms.delete', 'cms', 'cms_page', id, {});
-  return { error: null };
+  const { error } = await supabase.rpc('delete_admin_cms_page', { p_page_id: id });
+  return { error: error?.message || null };
 }
 
 export async function getAdminFaq(): Promise<CmsFaqEntry[]> {
@@ -857,21 +748,17 @@ export async function getAdminFaq(): Promise<CmsFaqEntry[]> {
 }
 
 export async function createFaqEntry(data: { question: string; answer: string; category?: string }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('cms_faq_entries').insert({
-    ...data,
-    category: data.category || 'General',
-    is_published: true,
-  });
+  const { error } = await supabase.rpc('create_admin_faq', { p_question: data.question, p_answer: data.answer, p_category: data.category || 'General', p_sort_order: 0, p_is_published: true });
   return { error: error?.message || null };
 }
 
 export async function updateFaqEntry(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('cms_faq_entries').update(data).eq('id', id);
+  const { error } = await supabase.rpc('update_admin_faq', { p_faq_id: id, p_question: data.question, p_answer: data.answer, p_category: data.category || 'General', p_sort_order: data.sort_order ?? 0, p_is_published: data.is_published ?? true });
   return { error: error?.message || null };
 }
 
 export async function deleteFaqEntry(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('cms_faq_entries').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_admin_faq', { p_faq_id: id });
   return { error: error?.message || null };
 }
 
@@ -895,25 +782,17 @@ export async function createAnnouncement(data: {
   starts_at?: string;
   ends_at?: string;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('announcements').insert({
-    ...data,
-    university_id: data.university_id || null,
-    starts_at: data.starts_at || new Date().toISOString(),
-    ends_at: data.ends_at || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-  });
-  if (error) return { error: error.message };
-
-  await logAdminAction('announcement.create', 'announcements', null, null, { title: data.title });
-  return { error: null };
+  const { error } = await supabase.rpc('create_admin_announcement', { p_title: data.title, p_body: data.body, p_type: data.type, p_target_audience: data.target_audience, p_university_id: data.university_id || null, p_starts_at: data.starts_at || null, p_ends_at: data.ends_at || null });
+  return { error: error?.message || null };
 }
 
 export async function updateAnnouncement(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('announcements').update(data).eq('id', id);
+  const { error } = await supabase.rpc('update_admin_announcement', { p_announcement_id: id, p_title: data.title, p_body: data.body, p_type: data.type, p_target_audience: data.target_audience, p_university_id: data.university_id || null, p_is_active: data.is_active ?? true, p_starts_at: data.starts_at, p_ends_at: data.ends_at });
   return { error: error?.message || null };
 }
 
 export async function deleteAnnouncement(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('announcements').delete().eq('id', id);
+  const { error } = await supabase.rpc('delete_admin_announcement', { p_announcement_id: id });
   return { error: error?.message || null };
 }
 
@@ -942,27 +821,7 @@ export async function getAdminActions(params: {
   return { actions: (data || []) as unknown as AdminAction[], total: count || 0 };
 }
 
-async function logAdminAction(
-  action: string,
-  module: string,
-  targetType: string | null,
-  targetId: string | null,
-  metadata: Record<string, unknown>
-): Promise<void> {
-  try {
-    await supabase.from('admin_actions').insert({
-      action,
-      module,
-      target_type: targetType,
-      target_id: targetId,
-      metadata,
-      result: 'success',
-    });
-  } catch {
     // Silent fail — logging is best-effort
-  }
-}
-
 // ============================================================
 // Role & Permission Management
 // ============================================================

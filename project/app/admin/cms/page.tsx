@@ -61,7 +61,7 @@ function Content() {
     if (!pageForm.slug || !pageForm.title) { toast.error('Slug and title are required'); return; }
     setSaving(true);
     if (editingPage) {
-      const { error } = await updateCmsPage(editingPage.id, pageForm);
+      const { error } = await updateCmsPage(editingPage.id, { ...editingPage, ...pageForm });
       if (error) { toast.error(error); } else { toast.success('Page updated'); setShowDialog(false); loadData(); }
     } else {
       const { error } = await createCmsPage(pageForm);
@@ -92,7 +92,7 @@ function Content() {
     if (!faqForm.question || !faqForm.answer) { toast.error('Question and answer are required'); return; }
     setSaving(true);
     if (editingFaq) {
-      const { error } = await updateFaqEntry(editingFaq.id, faqForm);
+      const { error } = await updateFaqEntry(editingFaq.id, { ...editingFaq, ...faqForm });
       if (error) { toast.error(error); } else { toast.success('FAQ updated'); setShowFaqDialog(false); loadData(); }
     } else {
       const { error } = await createFaqEntry(faqForm);

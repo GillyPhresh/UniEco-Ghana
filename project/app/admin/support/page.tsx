@@ -14,7 +14,6 @@ import { getAdminTickets, getTicketById, getTicketReplies, replyToTicket, assign
 import type { SupportTicket, TicketReply } from '@/lib/types/admin';
 import { LifeBuoy, Send, UserCog, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/lib/auth/auth-context';
 
 export default function AdminSupportPage() {
   return (
@@ -23,7 +22,6 @@ export default function AdminSupportPage() {
 }
 
 function Content() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [total, setTotal] = useState(0);
@@ -70,8 +68,8 @@ function Content() {
   };
 
   const handleAssign = async () => {
-    if (!selected || !user) return;
-    const { error } = await assignTicket(selected.id, user.id);
+    if (!selected) return;
+    const { error } = await assignTicket(selected.id);
     if (error) { toast.error(error); } else { toast.success('Ticket assigned to you'); const t = await getTicketById(selected.id); if (t) setSelected(t); }
   };
 

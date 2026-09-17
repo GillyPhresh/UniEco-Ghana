@@ -69,7 +69,7 @@ function Content() {
   };
 
   const handleToggleVisibility = async (cat: Category) => {
-    const { error } = await updateCategory(cat.id, { is_visible: !cat.is_visible });
+    const { error } = await updateCategory(cat.id, { ...cat, is_visible: !cat.is_visible });
     if (error) { toast.error(error); } else { loadCategories(); }
   };
 

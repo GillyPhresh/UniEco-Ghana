@@ -55,7 +55,7 @@ function Content() {
     if (!form.title || !form.body) { toast.error('Title and body are required'); return; }
     setSaving(true);
     if (editing) {
-      const { error } = await updateAnnouncement(editing.id, { ...form, university_id: form.university_id || null });
+      const { error } = await updateAnnouncement(editing.id, { ...editing, ...form, university_id: form.university_id || null });
       if (error) { toast.error(error); } else { toast.success('Announcement updated'); setShowDialog(false); loadAnnouncements(); }
     } else {
       const { error } = await createAnnouncement({ ...form, university_id: form.university_id || null });
@@ -71,7 +71,7 @@ function Content() {
   };
 
   const handleToggleActive = async (a: Announcement) => {
-    const { error } = await updateAnnouncement(a.id, { is_active: !a.is_active });
+    const { error } = await updateAnnouncement(a.id, { ...a, is_active: !a.is_active });
     if (error) { toast.error(error); } else { loadAnnouncements(); }
   };
 
