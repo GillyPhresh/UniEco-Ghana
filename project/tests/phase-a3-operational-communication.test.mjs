@@ -12,7 +12,9 @@ test('browser messaging cannot dispatch privileged communication operations', as
   ]);
   assert.doesNotMatch(client, /communication-service/);
   assert.doesNotMatch(client, /\.from\('(communication_events|communication_deliveries|communication_logs)'\)\.(insert|update|upsert|delete)/);
-  assert.match(dispatcher, /External delivery is queued for trusted server-side dispatch/);
+  assert.doesNotMatch(dispatcher, /@\/lib\/supabase\/client|supabase\.functions\.invoke/);
+  assert.doesNotMatch(dispatcher, /\.from\('(communication_events|communication_deliveries|communication_logs|notifications)'\)/);
+  assert.match(dispatcher, /trusted server infrastructure/);
 });
 
 test('broadcast operations use narrow authenticated RPCs and protect operational fields', async () => {

@@ -12,7 +12,7 @@
     "start:staging": "node scripts/run-staging.mjs start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test:security": "node --test tests/phase-a1-authorization.test.mjs tests/phase-a2-financial-authority.test.mjs tests/phase-a3-messaging-security.test.mjs tests/phase-a3-operational-communication.test.mjs tests/phase-a3-notification-announcement-security.test.mjs tests/phase-a3-verification-document-security.test.mjs tests/phase-a3-admin-authority.test.mjs tests/environment-separation.test.mjs",
+    "test:security": "node --test tests/phase-a1-authorization.test.mjs tests/phase-a2-financial-authority.test.mjs tests/phase-a3-messaging-security.test.mjs tests/phase-a3-operational-communication.test.mjs tests/phase-a3-notification-announcement-security.test.mjs tests/phase-a3-verification-document-security.test.mjs tests/phase-a3-admin-authority.test.mjs tests/phase-a3-provider-queue-security.test.mjs tests/environment-separation.test.mjs",
     "validate:staging-bootstrap": "node scripts/validate-staging-bootstrap.mjs",
     "env:check:default": "node scripts/check-default-environment.mjs",
     "env:check:staging": "node scripts/run-staging.mjs check"

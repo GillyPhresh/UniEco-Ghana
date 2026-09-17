@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
+import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,7 @@ Deno.serve(async (req: Request) => {
   }
   const authFailure = requireInternalRequest(req);
   if (authFailure) return authFailure;
+  if (!outboundProvidersEnabled()) return providersDisabledResponse();
 
   try {
     const { recipientId, title, body, actionUrl, eventType } = await req.json();
