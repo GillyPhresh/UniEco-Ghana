@@ -25,8 +25,10 @@ test('private verification signing authenticates then authorizes before service 
   assert.match(signer, /auth\.getUser\(\)/);
   assert.match(signer, /rpc\('authorize_verification_document_access', \{ p_document_id: documentId \}\)/);
   assert.match(signer, /bucket_id !== 'vendor-documents'/);
-  assert.match(signer, /object_path\.startsWith\(`\$\{authorizationData\.owner_id\}\/`\)/);
-  assert.match(signer, /createSignedUrl\(authorizationData\.object_path, URL_TTL_SECONDS\)/);
+  assert.match(signer, /type AuthorizedDocument = \{[\s\S]*bucket_id: string;[\s\S]*object_path: string;[\s\S]*owner_id: string;/);
+  assert.match(signer, /const authorizedDocument = authorizationData as AuthorizedDocument \| null/);
+  assert.match(signer, /object_path\.startsWith\(`\$\{authorizedDocument\.owner_id\}\/`\)/);
+  assert.match(signer, /createSignedUrl\(authorizedDocument\.object_path, URL_TTL_SECONDS\)/);
   assert.match(signer, /const URL_TTL_SECONDS = 300/);
   assert.match(signer, /const \{ documentId \} = await request\.json\(\)\.catch/);
   assert.doesNotMatch(signer, /const \{[^}]*?(?:bucket|objectPath|vendorId|requestId)[^}]*?\} = await request\.json/);
