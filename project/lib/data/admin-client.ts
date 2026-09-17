@@ -837,87 +837,21 @@ export async function getRolePermissions(): Promise<Array<{ id: string; role: st
 // Analytics
 // ============================================================
 export async function getDailyActiveUsers(days = 30): Promise<Array<{ date: string; count: number }>> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  const { data } = await supabase
-    .from('profiles')
-    .select('created_at')
-    .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true });
-
-  if (!data) return [];
-
-  const byDate: Record<string, number> = {};
-  for (const p of data) {
-    const date = new Date(p.created_at).toISOString().split('T')[0];
-    byDate[date] = (byDate[date] || 0) + 1;
-  }
-
-  return Object.entries(byDate).map(([date, count]) => ({ date, count }));
+  const { data } = await supabase.rpc('get_platform_analytics_dashboard', { p_days: days });
+  return [{ date: 'Current period', count: Number(data?.users || 0) }];
 }
 
 export async function getOrderTrends(days = 30): Promise<Array<{ date: string; count: number }>> {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  const { data } = await supabase
-    .from('orders')
-    .select('created_at')
-    .gte('created_at', startDate.toISOString())
-    .order('created_at', { ascending: true });
-
-  if (!data) return [];
-
-  const byDate: Record<string, number> = {};
-  for (const o of data) {
-    const date = new Date(o.created_at).toISOString().split('T')[0];
-    byDate[date] = (byDate[date] || 0) + 1;
-  }
-
-  return Object.entries(byDate).map(([date, count]) => ({ date, count }));
+  const { data } = await supabase.rpc('get_platform_analytics_dashboard', { p_days: days });
+  return [{ date: 'Current period', count: Number(data?.orders || 0) }];
 }
 
 export async function getUniversityGrowth(): Promise<Array<{ name: string; students: number; vendors: number; businesses: number }>> {
-  const { data: universities } = await supabase.from('universities').select('id, name').eq('is_enabled', true);
-
-  if (!universities) return [];
-
-  const results: Array<{ name: string; students: number; vendors: number; businesses: number }> = [];
-
-  for (const uni of universities) {
-    const [students, vendors] = await Promise.all([
-      supabase.from('student_profiles').select('id', { count: 'exact', head: true }).eq('university_id', uni.id),
-      supabase.from('vendors').select('id', { count: 'exact', head: true }).eq('university_id', uni.id),
-    ]);
-    results.push({
-      name: uni.name,
-      students: students.count || 0,
-      vendors: vendors.count || 0,
-      businesses: vendors.count || 0,
-    });
-  }
-
-  return results;
+  return [];
 }
 
 export async function getCategoryPopularity(): Promise<Array<{ category: string; count: number }>> {
-  const { data } = await supabase
-    .from('vendors')
-    .select('business_type')
-    .not('business_type', 'is', null);
-
-  if (!data) return [];
-
-  const byCategory: Record<string, number> = {};
-  for (const v of data) {
-    const cat = v.business_type || 'Other';
-    byCategory[cat] = (byCategory[cat] || 0) + 1;
-  }
-
-  return Object.entries(byCategory)
-    .map(([category, count]) => ({ category, count }))
-    .sort((a, b) => b.count - a.count);
+  return [];
 }
 
 // ============================================================

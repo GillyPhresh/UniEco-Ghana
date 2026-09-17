@@ -5,7 +5,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
-import { getVendorAnalytics, ensureAnalyticsRow } from '@/lib/data/vendor-client';
+import { getVendorAnalytics } from '@/lib/data/vendor-client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,7 +38,6 @@ function AnalyticsContent() {
   async function loadAnalytics() {
     if (!vendor) return;
     setDataLoading(true);
-    await ensureAnalyticsRow(vendor.id);
     const data = await getVendorAnalytics(vendor.id);
     setAnalytics(data);
     setDataLoading(false);

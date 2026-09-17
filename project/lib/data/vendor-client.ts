@@ -582,26 +582,10 @@ export async function reportReview(reviewId: string, reason: string): Promise<{ 
 // ============================================================
 
 export async function getVendorAnalytics(vendorId: string): Promise<VendorAnalytics | null> {
-  const { data } = await supabase
-    .from('vendor_analytics')
-    .select('*')
-    .eq('vendor_id', vendorId)
-    .maybeSingle();
-  return data as VendorAnalytics | null;
-}
-
-export async function ensureAnalyticsRow(vendorId: string): Promise<void> {
-  const { data: existing } = await supabase
-    .from('vendor_analytics')
-    .select('id')
-    .eq('vendor_id', vendorId)
-    .maybeSingle();
-
-  if (!existing) {
-    await supabase
-      .from('vendor_analytics')
-      .insert({ vendor_id: vendorId });
-  }
+  void vendorId;
+  const { data } = await supabase.rpc('get_vendor_analytics_dashboard', { p_days: 30 });
+  if (!data) return null;
+  return data as VendorAnalytics;
 }
 
 // ============================================================

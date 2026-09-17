@@ -7,6 +7,7 @@ import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { UpdateBanner } from '@/components/pwa/update-banner';
 import { MobileBottomNav } from '@/components/pwa/mobile-bottom-nav';
+import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { siteConfig } from '@/lib/constants/site';
 
 const inter = Inter({
@@ -111,6 +112,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <AppProviders>
+          <PageViewTracker />
           <ServiceWorkerRegister />
           <OfflineIndicator />
           <UpdateBanner />
