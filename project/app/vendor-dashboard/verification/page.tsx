@@ -86,8 +86,9 @@ function VerificationContent() {
     if (error) {
       toast.error('Upload failed: ' + error.message);
     } else {
-      const { data: urlData } = supabase.storage.from('vendor-documents').getPublicUrl(path);
-      setUploadedDocs(prev => [...prev, { url: urlData.publicUrl, label: file.name }]);
+      // Keep the opaque private object path. Reviewer viewing is performed later
+      // through the authorized, short-lived signing flow; never create a public URL.
+      setUploadedDocs(prev => [...prev, { url: path, label: file.name }]);
       toast.success('Document uploaded');
     }
     setUploading(false);
@@ -102,14 +103,10 @@ function VerificationContent() {
     setSubmitting(true);
     const requestType = isStudentVendor ? 'student_id' : 'vendor_business';
 
-    const { error } = await supabase
-      .from('verification_requests')
-      .insert({
-        user_id: user.id,
-        request_type: requestType,
-        documents: uploadedDocs,
-        status: 'pending',
-      });
+    const { error } = await supabase.rpc('submit_own_vendor_verification_request', {
+      p_request_type: requestType,
+      p_documents: uploadedDocs,
+    });
 
     if (error) {
       toast.error('Could not submit: ' + error.message);
