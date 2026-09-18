@@ -8,8 +8,8 @@
   - Non-GET requests: Network Only (never cached)
 */
 
-const SHELL_CACHE = 'unieco-shell-v2';
-const CONTENT_CACHE = 'unieco-content-v2';
+const SHELL_CACHE = 'unieco-shell-v3';
+const CONTENT_CACHE = 'unieco-content-v3';
 const OFFLINE_URL = '/offline';
 
 const SHELL_ASSETS = [
@@ -97,6 +97,9 @@ function isStaticAsset(request, url) {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  // Never queue or replay mutations offline. In particular, an order handoff,
+  // payment, delivery confirmation, message, or document action must be made
+  // against the live server so it cannot falsely finalize a transaction.
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);

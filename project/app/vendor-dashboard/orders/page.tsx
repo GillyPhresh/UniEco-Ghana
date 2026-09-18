@@ -78,11 +78,6 @@ function VendorOrdersContent() {
     if (error) { toast.error(error); } else { toast.success('Order marked as out for delivery'); loadOrders(); }
   };
 
-  const handleComplete = async (orderId: string) => {
-    const { error } = await updateOrderStatus(orderId, 'completed', 'Order completed');
-    if (error) { toast.error(error); } else { toast.success('Order completed'); loadOrders(); }
-  };
-
   const handleReject = async () => {
     if (!selectedOrder || !rejectReason.trim()) return;
     setRejecting(true);
@@ -247,9 +242,7 @@ function VendorOrdersContent() {
                         </Button>
                       )}
                       {(order.status === 'ready' || order.status === 'out_for_delivery') && (
-                        <Button size="sm" className="h-7 text-xs" onClick={() => handleComplete(order.id)}>
-                          <CheckCircle className="mr-1 h-3 w-3" /> Complete
-                        </Button>
+                        <span className="text-xs text-muted-foreground">Awaiting customer confirmation</span>
                       )}
                     </div>
                   </div>

@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   getOrderById, getOrderStatusHistory, cancelOrder, generateReceipt,
-  getOrderMessages, sendOrderMessage, markOrderMessagesRead,
+  getOrderMessages, sendOrderMessage, markOrderMessagesRead, confirmOrderHandoff,
 } from '@/lib/data/marketplace-client';
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/lib/types/marketplace';
 import type { OrderWithDetails, OrderStatusHistory, OrderMessage } from '@/lib/types/marketplace';
@@ -46,6 +46,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [confirmingHandoff, setConfirmingHandoff] = useState(false);
 
   useEffect(() => {
     loadOrder();
@@ -100,6 +101,14 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
     const { error } = await sendOrderMessage(orderId, recipientId, messageBody.trim());
     if (error) { toast.error(error); }
     else { setMessageBody(''); loadOrder(); }
+  };
+
+  const handleConfirmHandoff = async () => {
+    setConfirmingHandoff(true);
+    const { error } = await confirmOrderHandoff(orderId);
+    if (error) toast.error(error);
+    else { toast.success('Order completion confirmed'); loadOrder(); }
+    setConfirmingHandoff(false);
   };
 
   if (loading) {
@@ -163,6 +172,12 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
           {canCancel && (
             <Button variant="outline" size="sm" className="text-destructive" onClick={() => setShowCancelDialog(true)}>
               <X className="mr-1.5 h-3.5 w-3.5" /> Cancel
+            </Button>
+          )}
+          {['ready', 'out_for_delivery'].includes(order.status) && (
+            <Button size="sm" onClick={handleConfirmHandoff} disabled={confirmingHandoff}>
+              {confirmingHandoff ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
+              Confirm {order.delivery_method === 'delivery' ? 'delivery' : 'pickup'}
             </Button>
           )}
         </div>

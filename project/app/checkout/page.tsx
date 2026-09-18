@@ -123,7 +123,8 @@ function CheckoutContent() {
     setLoading(false);
   }
 
-  const summary = calculateCartSummary(items, form.deliveryMethod, 10);
+  // The database calculates any delivery fee during secure checkout.
+  const summary = calculateCartSummary(items, form.deliveryMethod, 0);
   const hasServiceItems = items.some(i => i.service_id);
   const hasProductItems = items.some(i => i.product_id);
 
@@ -592,7 +593,7 @@ function CheckoutContent() {
                   </Button>
                   <Button onClick={handlePlaceOrder} disabled={placing} className="flex-1" size="lg">
                     {placing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-                    {placing ? 'Placing order...' : `Place order — GH₵${(summary.total + (form.deliveryMethod === 'delivery' ? 10 : 0)).toFixed(2)}`}
+                    {placing ? 'Placing order...' : `Place order — GH₵${summary.total.toFixed(2)}+`}
                   </Button>
                 </div>
               </CardContent>
@@ -618,13 +619,13 @@ function CheckoutContent() {
                 )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery fee</span>
-                  <span className="font-medium">{form.deliveryMethod === 'delivery' ? 'GH₵10.00' : 'Free'}</span>
+                  <span className="font-medium">{form.deliveryMethod === 'delivery' ? 'Calculated securely at checkout' : 'Free'}</span>
                 </div>
               </div>
               <div className="border-t border-border pt-3 flex justify-between">
                 <span className="font-semibold text-foreground">Total</span>
                 <span className="font-bold text-primary text-lg">
-                  GH₵{(summary.total + (form.deliveryMethod === 'delivery' ? 10 : 0)).toFixed(2)}
+                  GH₵{summary.total.toFixed(2)}{form.deliveryMethod === 'delivery' ? '+' : ''}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">

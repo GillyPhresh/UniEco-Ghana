@@ -546,6 +546,14 @@ export async function cancelOrder(orderId: string, reason: string): Promise<{ er
   return { error: error?.message || null };
 }
 
+export async function confirmOrderHandoff(orderId: string, note?: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('customer_confirm_order_handoff', {
+    p_order_id: orderId,
+    p_note: note || null,
+  });
+  return { error: error?.message || null };
+}
+
 // ============================================================
 // Order Management (Vendor)
 // ============================================================

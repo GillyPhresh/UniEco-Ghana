@@ -9,6 +9,17 @@ interface MapPreviewProps {
   city?: string | null;
 }
 
+function getDirectionsUrl(latitude: number, longitude: number) {
+  // Deployments may choose any maps provider without changing application code.
+  // The template accepts `{lat}` and `{lng}` placeholders. The fallback keeps
+  // current behavior for environments that have not configured a provider.
+  const template = process.env.NEXT_PUBLIC_MAP_DIRECTIONS_URL_TEMPLATE
+    || 'https://www.google.com/maps/dir/?api=1&destination={lat},{lng}';
+  return template
+    .replaceAll('{lat}', encodeURIComponent(String(latitude)))
+    .replaceAll('{lng}', encodeURIComponent(String(longitude)));
+}
+
 export function MapPreview({
   latitude,
   longitude,
@@ -27,7 +38,7 @@ export function MapPreview({
     );
   }
 
-  const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+  const directionsUrl = getDirectionsUrl(latitude, longitude);
 
   return (
     <div className="space-y-3">
