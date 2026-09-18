@@ -469,12 +469,19 @@ export async function createInvoice(params: {
 // ============================================================
 
 export async function getAdRequests(vendorId: string): Promise<AdRequest[]> {
+  void vendorId;
   const { data } = await supabase
-    .from('ad_requests')
+    .from('ad_campaigns')
     .select('*')
-    .eq('vendor_id', vendorId)
     .order('created_at', { ascending: false });
-  return (data || []) as AdRequest[];
+  return (data || []).map((campaign: Record<string, unknown>) => ({
+    ...campaign,
+    ad_type: campaign.placement === 'featured_vendor' ? 'featured_business' : campaign.placement === 'campus_banner' ? 'homepage_banner' : 'search_promotion',
+    requested_duration_days: Math.max(1, Math.ceil((new Date(String(campaign.ends_at)).getTime() - new Date(String(campaign.starts_at)).getTime()) / 86_400_000)),
+    estimated_cost: campaign.requested_budget || 0,
+    estimated_reach: null,
+    admin_note: campaign.rejection_reason || null,
+  })) as unknown as AdRequest[];
 }
 
 export async function createAdRequest(params: {
@@ -488,29 +495,21 @@ export async function createAdRequest(params: {
   estimated_reach?: string;
   estimated_cost: number;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('ad_requests')
-    .insert({
-      vendor_id: params.vendor_id,
-      ad_type: params.ad_type,
-      title: params.title,
-      description: params.description || null,
-      image_url: params.image_url || null,
-      target_url: params.target_url || null,
-      requested_duration_days: params.requested_duration_days,
-      estimated_reach: params.estimated_reach || null,
-      estimated_cost: params.estimated_cost,
-      status: 'pending',
-    });
+  const { data: business } = await supabase.from('businesses').select('id').eq('vendor_id', params.vendor_id).limit(1).maybeSingle();
+  if (!business) return { error: 'Create a business profile before requesting a promotion.' };
+  const placement = params.ad_type === 'featured_business' ? 'featured_vendor' : params.ad_type === 'homepage_banner' ? 'campus_banner' : 'sponsored_listing';
+  const startsAt = new Date().toISOString();
+  const endsAt = new Date(Date.now() + params.requested_duration_days * 86_400_000).toISOString();
+  const { error } = await supabase.rpc('create_own_ad_campaign', {
+    p_listing_type: 'business', p_listing_id: business.id, p_placement: placement,
+    p_title: params.title, p_requested_budget: params.estimated_cost,
+    p_starts_at: startsAt, p_ends_at: endsAt,
+  });
   return { error: error?.message || null };
 }
 
 export async function deleteAdRequest(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('ad_requests')
-    .delete()
-    .eq('id', id)
-    .eq('status', 'pending');
+  const { error } = await supabase.rpc('cancel_own_ad_campaign', { p_campaign_id: id });
   return { error: error?.message || null };
 }
 
