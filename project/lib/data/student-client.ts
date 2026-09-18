@@ -155,41 +155,30 @@ export async function upsertStudentPreferences(
 export async function createReview(params: {
   vendorId?: string;
   productId?: string;
+  serviceId?: string;
   eventId?: string;
   rating: number;
   comment: string;
 }): Promise<{ error: string | null }> {
-  const { data: existing } = await supabase
-    .from('reviews')
-    .select('id')
-    .eq('vendor_id', params.vendorId || null)
-    .eq('reviewer_id', (await supabase.auth.getUser()).data.user?.id)
-    .maybeSingle();
-
-  if (existing) {
-    return { error: 'You have already reviewed this business.' };
-  }
-
-  const { error } = await supabase.from('reviews').insert({
-    reviewer_id: (await supabase.auth.getUser()).data.user?.id,
-    vendor_id: params.vendorId || null,
-    product_id: params.productId || null,
-    event_id: params.eventId || null,
-    rating: params.rating,
-    comment: params.comment,
-    is_approved: true,
+  const target = params.serviceId ? { type: 'service', id: params.serviceId }
+    : params.productId ? { type: 'product', id: params.productId }
+      : params.vendorId ? { type: 'vendor', id: params.vendorId } : null;
+  if (!target || params.eventId) return { error: 'Reviews require a completed product, service, or business order.' };
+  const { error } = await supabase.rpc('create_verified_review', {
+    p_target_type: target.type, p_target_id: target.id,
+    p_rating: params.rating, p_comment: params.comment,
   });
   return { error: error?.message || null };
 }
 
 export async function updateReview(id: string, rating: number, comment: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('reviews').update({ rating, comment }).eq('id', id);
-  return { error: error?.message || null };
+  void id; void rating; void comment;
+  return { error: 'Published reviews cannot be edited. Contact support if a correction is needed.' };
 }
 
 export async function deleteReview(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('reviews').delete().eq('id', id);
-  return { error: error?.message || null };
+  void id;
+  return { error: 'Reviews cannot be deleted from the browser. Contact support if a review must be removed.' };
 }
 
 export async function getMyReviews(): Promise<ReviewWithDetails[]> {

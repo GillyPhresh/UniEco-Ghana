@@ -370,7 +370,10 @@ export interface Review {
   reviewer_id: string;
   vendor_id: string | null;
   product_id: string | null;
+  service_id?: string | null;
   event_id: string | null;
+  order_id?: string | null;
+  university_id?: string | null;
   rating: number;
   comment: string | null;
   is_approved: boolean;

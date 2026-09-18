@@ -903,31 +903,16 @@ export async function createMarketplaceReview(params: {
   rating: number;
   comment?: string;
 }): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
-
-  let canReview = false;
-  if (params.product_id) {
-    canReview = await hasPurchasedProduct(params.product_id);
-  } else if (params.service_id) {
-    canReview = await hasCompletedService(params.service_id);
-  }
-
-  if (!canReview) {
-    return { error: 'You can only review products you have purchased or services you have completed' };
-  }
-
-  const { error } = await supabase
-    .from('reviews')
-    .insert({
-      reviewer_id: user.id,
-      vendor_id: params.vendor_id,
-      product_id: params.product_id || null,
-      service_id: params.service_id || null,
-      rating: params.rating,
-      comment: params.comment || null,
-      is_approved: false,
-    });
+  void params.vendor_id;
+  const target = params.product_id ? { type: 'product', id: params.product_id }
+    : params.service_id ? { type: 'service', id: params.service_id } : null;
+  if (!target) return { error: 'Select a purchased product or completed service to review.' };
+  const { error } = await supabase.rpc('create_verified_review', {
+    p_target_type: target.type,
+    p_target_id: target.id,
+    p_rating: params.rating,
+    p_comment: params.comment || null,
+  });
 
   return { error: error?.message || null };
 }

@@ -536,27 +536,10 @@ export async function respondToReview(
   vendorId: string,
   responseBody: string
 ): Promise<{ error: string | null }> {
-  const { data: existing } = await supabase
-    .from('review_responses')
-    .select('id')
-    .eq('review_id', reviewId)
-    .maybeSingle();
-
-  if (existing) {
-    const { error } = await supabase
-      .from('review_responses')
-      .update({ response_body: responseBody })
-      .eq('id', existing.id);
-    return { error: error?.message || null };
-  }
-
-  const { error } = await supabase
-    .from('review_responses')
-    .insert({
-      review_id: reviewId,
-      vendor_id: vendorId,
-      response_body: responseBody,
-    });
+  void vendorId;
+  const { error } = await supabase.rpc('upsert_own_review_response', {
+    p_review_id: reviewId, p_response_body: responseBody,
+  });
   return { error: error?.message || null };
 }
 
