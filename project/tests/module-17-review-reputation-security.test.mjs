@@ -43,6 +43,13 @@ test('moderation and rating aggregation are trusted', () => {
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.create_verified_review\([\s\S]*FROM PUBLIC,anon,authenticated,service_role/);
 });
 
+test('trusted reputation maintenance helpers cannot be invoked through the API', () => {
+  const correction = readFileSync('supabase/migrations/20260911249000_0045_review_reputation_privilege_correction.sql', 'utf8');
+  assert.match(correction, /REVOKE ALL ON FUNCTION public\.recalculate_vendor_reputation\(uuid\) FROM PUBLIC, anon, authenticated, service_role/);
+  assert.match(correction, /REVOKE ALL ON FUNCTION public\.refresh_review_reputation\(\) FROM PUBLIC, anon, authenticated, service_role/);
+  assert.match(correction, /REVOKE ALL ON FUNCTION public\.refresh_review_moderation_reputation\(\) FROM PUBLIC, anon, authenticated, service_role/);
+});
+
 test('unsupported event participation is not faked', () => {
   assert.match(migration, /p_target_type NOT IN \('vendor','product','service'\)/);
   assert.match(student, /Reviews require a completed product, service, or business order/);

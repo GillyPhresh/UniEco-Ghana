@@ -22,6 +22,13 @@ test('financial workflow is database-authoritative and idempotent', async () => 
   assert.match(migration, /payment_row\.amount <> p_amount/);
 });
 
+test('production defaults leave every payment provider disabled', async () => {
+  const migration = await read('supabase/migrations/20260911248000_0044_provider_defaults_disabled.sql');
+  assert.match(migration, /UPDATE public\.payment_providers/);
+  assert.match(migration, /SET is_enabled = false/);
+  assert.doesNotMatch(migration, /INSERT\s+INTO\s+public\.payment_providers/i);
+});
+
 test('browser payment and checkout clients cannot confirm payments or issue financial records', async () => {
   const [payments, checkout, marketplace, vendors] = await Promise.all([
     read('lib/data/payment-client.ts'),
