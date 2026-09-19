@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { STAGING_PROJECT_REF, validateStagingEnvironment } from '../scripts/environment-validation.mjs';
+import { PRODUCTION_PROJECT_REF, STAGING_PROJECT_REF, validateProductionEnvironment, validateStagingEnvironment } from '../scripts/environment-validation.mjs';
 
 test('staging environment accepts only the approved staging project', () => {
   const valid = validateStagingEnvironment({
@@ -17,6 +17,24 @@ test('staging environment accepts only the approved staging project', () => {
     NEXT_PUBLIC_SUPABASE_ANON_KEY: 'publishable-test-key',
   });
   assert.deepEqual(wrongProject, ['NEXT_PUBLIC_SUPABASE_URL does not target the approved staging project']);
+});
+
+test('production environment accepts only the approved production project', () => {
+  const valid = validateProductionEnvironment({
+    UNIECO_ENV: 'production',
+    NEXT_PUBLIC_SUPABASE_URL: `https://${PRODUCTION_PROJECT_REF}.supabase.co`,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: 'publishable-test-key',
+  });
+  assert.deepEqual(valid, []);
+
+  for (const projectRef of [STAGING_PROJECT_REF, 'elxlrojlnusvybnfwxum']) {
+    const invalid = validateProductionEnvironment({
+      UNIECO_ENV: 'production',
+      NEXT_PUBLIC_SUPABASE_URL: `https://${projectRef}.supabase.co`,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: 'publishable-test-key',
+    });
+    assert.deepEqual(invalid, ['NEXT_PUBLIC_SUPABASE_URL does not target the approved production project']);
+  }
 });
 
 test('staging command validates before invoking Next.js', async () => {

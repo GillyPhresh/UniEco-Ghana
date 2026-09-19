@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
-import { BOLT_PROJECT_REF, STAGING_PROJECT_REF } from './environment-validation.mjs';
+import { BOLT_PROJECT_REF, PRODUCTION_PROJECT_REF, STAGING_PROJECT_REF } from './environment-validation.mjs';
 
 const environment = process.env.UNIECO_ENV;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -27,8 +27,8 @@ if (environment === 'staging' && projectRef !== STAGING_PROJECT_REF) {
   console.error('Staging deployment must use the approved staging Supabase project.');
   process.exit(1);
 }
-if (environment === 'production' && projectRef === STAGING_PROJECT_REF) {
-  console.error('Production deployment must use a dedicated production Supabase project.');
+if (environment === 'production' && projectRef !== PRODUCTION_PROJECT_REF) {
+  console.error('Production deployment must use the approved dedicated production Supabase project.');
   process.exit(1);
 }
 if (!['staging', 'production'].includes(environment)) {

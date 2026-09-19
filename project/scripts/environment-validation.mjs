@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 export const STAGING_PROJECT_REF = 'nyrrhoufgpqpajutatfp';
 export const BOLT_PROJECT_REF = 'elxlrojlnusvybnfwxum';
+export const PRODUCTION_PROJECT_REF = 'inslzwciwhberfpljmod';
 
 export function loadEnvironmentFile(filePath) {
   const values = {};
@@ -33,6 +34,31 @@ export function validateStagingEnvironment(values) {
       const projectRef = new URL(url).hostname.split('.')[0];
       if (projectRef !== STAGING_PROJECT_REF) {
         errors.push('NEXT_PUBLIC_SUPABASE_URL does not target the approved staging project');
+      }
+    } catch {
+      errors.push('NEXT_PUBLIC_SUPABASE_URL is invalid');
+    }
+  }
+
+  if (!publishableKey) errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing');
+  return errors;
+}
+
+export function validateProductionEnvironment(values) {
+  const errors = [];
+  const environment = values.UNIECO_ENV;
+  const url = values.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = values.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (environment !== 'production') errors.push('UNIECO_ENV must be production');
+
+  if (!url) {
+    errors.push('NEXT_PUBLIC_SUPABASE_URL is missing');
+  } else {
+    try {
+      const projectRef = new URL(url).hostname.split('.')[0];
+      if (projectRef !== PRODUCTION_PROJECT_REF) {
+        errors.push('NEXT_PUBLIC_SUPABASE_URL does not target the approved production project');
       }
     } catch {
       errors.push('NEXT_PUBLIC_SUPABASE_URL is invalid');
