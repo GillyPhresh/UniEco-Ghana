@@ -23,6 +23,7 @@ const ICON_MAP: Record<string, typeof Shield> = {
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
 
   if (loading) {
     return (
@@ -45,7 +46,10 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isStaff(user.role)) {
+  const isScopedUniversityAdmin = user.role === 'university_admin';
+  const canAccessRoute = isStaff(user.role) || (isScopedUniversityAdmin && pathname === '/admin/universities');
+
+  if (!canAccessRoute) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -65,6 +69,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { user } = useAuth();
+  const navGroups = user?.role === 'university_admin'
+    ? ADMIN_NAV_GROUPS
+        .map(group => ({ ...group, items: group.items.filter(item => item.href === '/admin/universities') }))
+        .filter(group => group.items.length > 0)
+    : ADMIN_NAV_GROUPS;
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -74,7 +83,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-        {ADMIN_NAV_GROUPS.map(group => (
+        {navGroups.map(group => (
           <div key={group.label}>
             <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">{group.label}</p>
             <div className="space-y-0.5">

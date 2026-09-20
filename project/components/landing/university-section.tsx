@@ -15,6 +15,7 @@ interface UniversitySectionProps {
     logo_url: string | null;
     hero_image_url: string | null;
     logo_alt_text: string | null;
+    hero_alt_text: string | null;
     description: string | null;
   }[];
   vendorCounts: Record<string, number>;
@@ -42,7 +43,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={uni.hero_image_url}
-                    alt={uni.logo_alt_text || `${uni.name} campus`}
+                    alt={uni.hero_alt_text || `${uni.name} campus`}
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />

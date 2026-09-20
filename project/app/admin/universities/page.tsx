@@ -13,8 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Separator } from '@/components/ui/separator';
 import {
   getAdminUniversities, createUniversity, updateUniversity, toggleUniversityEnabled,
-  uploadUniversityImage, removeUniversityImage,
+  uploadUniversityImage, removeUniversityImage, getMyUniversityAdminScopes,
 } from '@/lib/data/admin-client';
+import { useAuth } from '@/lib/auth/auth-context';
 import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,6 +42,8 @@ export default function AdminUniversitiesPage() {
 }
 
 function Content() {
+  const { user } = useAuth();
+  const isUniversityAdmin = user?.role === 'university_admin';
   const [loading, setLoading] = useState(true);
   const [universities, setUniversities] = useState<Uni[]>([]);
   const [showDialog, setShowDialog] = useState(false);
@@ -54,12 +57,15 @@ function Content() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const heroInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { loadUniversities(); }, []);
+  useEffect(() => { loadUniversities(); }, [isUniversityAdmin]);
 
   async function loadUniversities() {
     setLoading(true);
-    const data = await getAdminUniversities();
-    setUniversities(data);
+    const [data, scopeIds] = await Promise.all([
+      getAdminUniversities(),
+      isUniversityAdmin ? getMyUniversityAdminScopes() : Promise.resolve([]),
+    ]);
+    setUniversities(isUniversityAdmin ? data.filter(uni => scopeIds.includes(uni.id)) : data);
     setLoading(false);
   }
 
@@ -177,7 +183,7 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{universities.length} universities</p>
         </div>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Add university</Button>
+        {!isUniversityAdmin && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Add university</Button>}
       </div>
 
       {loading ? (
@@ -209,10 +215,10 @@ function Content() {
                     </div>
                     <p className="text-xs text-muted-foreground">{uni.short_name} | {uni.city || '—'}, {uni.region || '—'}</p>
                     <div className="mt-2 flex gap-1.5">
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(uni)}><Edit className="mr-1 h-3 w-3" /> Edit</Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => handleToggle(uni)}>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openEdit(uni)}><Edit className="mr-1 h-3 w-3" /> {isUniversityAdmin ? 'Update branding' : 'Edit'}</Button>
+                      {!isUniversityAdmin && <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => handleToggle(uni)}>
                         <Power className="mr-1 h-3 w-3" /> {uni.is_enabled ? 'Disable' : 'Enable'}
-                      </Button>
+                      </Button>}
                     </div>
                   </div>
                 </div>
@@ -226,6 +232,9 @@ function Content() {
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editing ? 'Edit University' : 'Add University'}</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
+            {isUniversityAdmin ? (
+              <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">You can update branding for your assigned university only.</p>
+            ) : <>
             <div className="space-y-1.5"><Label>Name</Label><Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="University of Energy and Natural Resources" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Short Name</Label><Input value={form.short_name} onChange={e => setForm(p => ({ ...p, short_name: e.target.value }))} placeholder="UENR" /></div>
@@ -333,10 +342,11 @@ function Content() {
               <input type="checkbox" id="uni_enabled" checked={form.is_enabled} onChange={e => setForm(p => ({ ...p, is_enabled: e.target.checked }))} />
               <Label htmlFor="uni_enabled" className="text-sm">Enabled (visible to public)</Label>
             </div>
+            </>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button disabled={saving} onClick={handleSave}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>{isUniversityAdmin ? 'Close' : 'Cancel'}</Button>
+            {!isUniversityAdmin && <Button disabled={saving} onClick={handleSave}>{saving ? 'Saving...' : 'Save'}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

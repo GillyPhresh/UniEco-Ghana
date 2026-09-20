@@ -25,10 +25,10 @@ export async function getUniversities() {
   const supabase = await createClient();
   const { data } = await supabase
     .from('universities')
-    .select('id, name, short_name, slug, city, region, logo_url, hero_image_url, logo_alt_text, description, is_enabled')
+    .select('id, name, short_name, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, description, is_enabled')
     .eq('is_enabled', true)
     .order('name');
-  return data as Pick<University, 'id' | 'name' | 'short_name' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'description' | 'is_enabled'>[];
+  return data as Pick<University, 'id' | 'name' | 'short_name' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'is_enabled'>[];
 }
 
 export async function getUniversityBySlug(slug: string) {

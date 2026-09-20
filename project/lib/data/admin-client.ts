@@ -297,6 +297,16 @@ export async function getAdminUniversities(): Promise<Array<{ id: string; name: 
   return (data || []) as Array<{ id: string; name: string; short_name: string; slug: string; city: string | null; region: string | null; country: string; logo_url: string | null; hero_image_url: string | null; logo_alt_text: string | null; hero_alt_text: string | null; image_credit: string | null; image_source: string | null; website_url: string | null; description: string | null; is_enabled: boolean; created_at: string }>;
 }
 
+export async function getMyUniversityAdminScopes(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('university_admin_memberships')
+    .select('university_id')
+    .eq('is_active', true);
+
+  if (error) return [];
+  return (data || []).map(scope => scope.university_id);
+}
+
 export async function createUniversity(data: {
   name: string;
   short_name: string;
