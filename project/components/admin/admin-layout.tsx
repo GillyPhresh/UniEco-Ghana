@@ -148,11 +148,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+        <SheetContent side="left" className="w-64 p-0">
+          {sidebar}
+        </SheetContent>
       </Sheet>
-
-      <SheetContent side="left" className="w-64 p-0">
-        {sidebar}
-      </SheetContent>
 
       {/* Desktop content area */}
       <div className="hidden lg:flex flex-1 flex-col overflow-hidden">
