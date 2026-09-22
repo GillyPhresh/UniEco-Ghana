@@ -73,7 +73,7 @@ function DashboardContent() {
     { label: 'Universities', value: stats.universities, icon: GraduationCap, color: 'text-primary' },
     { label: 'Events', value: stats.events, icon: Calendar, color: 'text-info' },
     { label: 'Active Subscriptions', value: stats.activeSubscriptions, icon: CreditCard, color: 'text-success' },
-    { label: 'Revenue', value: `GH₵${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-success' },
+    { label: 'Revenue', value: `GHS ${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'text-success' },
   ];
 
   const chartConfig = {
@@ -83,7 +83,7 @@ function DashboardContent() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-7xl">
+    <div className="min-w-0 p-4 sm:p-6 space-y-6 max-w-7xl">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground">Platform Overview</h1>
         <p className="mt-1 text-sm text-muted-foreground">Real-time statistics across the entire UniEco Ghana ecosystem.</p>
@@ -94,14 +94,14 @@ function DashboardContent() {
         {statCards.map(card => {
           const Icon = card.icon;
           return (
-            <Card key={card.label}>
+            <Card key={card.label} className="min-w-0">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <Icon className={`h-4 w-4 ${card.color}`} />
                   </div>
                 </div>
-                <p className="mt-3 text-2xl font-bold text-foreground">{card.value}</p>
+                <p className="mt-3 truncate text-2xl font-bold text-foreground">{card.value}</p>
                 <p className="text-xs text-muted-foreground">{card.label}</p>
               </CardContent>
             </Card>

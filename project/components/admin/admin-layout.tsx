@@ -154,7 +154,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Desktop content area */}
-      <div className="hidden lg:flex flex-1 flex-col overflow-hidden">
+      <div className="hidden min-w-0 lg:flex flex-1 flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>
