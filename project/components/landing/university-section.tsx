@@ -27,7 +27,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
       <SectionHeading
         eyebrow="Universities"
         title="Find your campus"
-        description="UniEco Ghana is live at UENR and expanding to every tertiary institution. Explore what each campus has to offer."
+        description="UniEco Ghana is live at UENR and building a verified directory of university-level institutions across Ghana. Explore what each campus has to offer."
       />
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -114,20 +114,12 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
           </Reveal>
         ))}
 
-        {/* Coming soon card */}
-        <Reveal delay={universities.length * 0.08}>
-          <div className="flex h-full flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-center">
-            <span className="flex h-14 w-14 items-center justify-center rounded-xl bg-muted text-muted-foreground">
-              <Building2 className="h-7 w-7" />
-            </span>
-            <h3 className="mt-4 font-display font-semibold text-foreground">
-              More campuses coming
-            </h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              KNUST, University of Ghana, UCC, UEW, UDS and more are on the way.
-            </p>
-          </div>
-        </Reveal>
+      </div>
+
+      <div className="mt-8 text-center">
+        <Link href="/universities" className="inline-flex items-center text-sm font-semibold text-primary hover:underline">
+          Browse the complete university directory <ArrowRight className="ml-1 h-4 w-4" />
+        </Link>
       </div>
     </Section>
   );

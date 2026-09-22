@@ -46,7 +46,9 @@ export type VerificationRequestType =
 export interface University {
   id: string;
   name: string;
+  official_name: string;
   short_name: string;
+  abbreviation: string | null;
   slug: string;
   city: string | null;
   region: string | null;
@@ -57,9 +59,14 @@ export interface University {
   hero_alt_text: string | null;
   image_credit: string | null;
   image_source: string | null;
+  landmark_image_url: string | null;
   website_url: string | null;
   description: string | null;
+  institution_type: 'Public University' | 'Public Technical University' | 'Private Chartered University' | 'Private University' | 'Other recognized university-level institution' | null;
+  ownership_type: 'public' | 'private' | 'other' | null;
+  campus_launch_status: 'planned' | 'onboarding' | 'active' | 'suspended';
   is_enabled: boolean;
+  is_verified: boolean;
   created_at: string;
   updated_at: string;
 }

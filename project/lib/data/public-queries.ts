@@ -21,14 +21,25 @@ export interface BusinessWithRelations extends Business {
   location?: Location | null;
 }
 
-export async function getUniversities() {
+export async function getUniversities(limit?: number) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('universities')
-    .select('id, name, short_name, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, description, is_enabled')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, description, institution_type, campus_launch_status, is_enabled')
+    .eq('is_enabled', true)
+    .order('name')
+    .limit(limit || 1000);
+  return data as Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'institution_type' | 'campus_launch_status' | 'is_enabled'>[];
+}
+
+export async function getUniversityDirectory() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('universities')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, university_aliases(alias)')
     .eq('is_enabled', true)
     .order('name');
-  return data as Pick<University, 'id' | 'name' | 'short_name' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'is_enabled'>[];
+  return (data || []) as Array<Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'institution_type' | 'ownership_type' | 'campus_launch_status' | 'is_verified'> & { university_aliases: Array<{ alias: string }> }>;
 }
 
 export async function getUniversityBySlug(slug: string) {

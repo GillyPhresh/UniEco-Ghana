@@ -32,7 +32,7 @@ import {
 
 export default async function Home() {
   const [universities, featuredVendors, events, categoryCounts, totalVendors, totalReviews, totalProducts] = await Promise.all([
-    getUniversities(),
+    getUniversities(6),
     getFeaturedVendors(8),
     getPublishedEvents(3),
     getCategoryCounts(),
