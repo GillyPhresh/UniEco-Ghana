@@ -16,7 +16,7 @@ import {
   uploadUniversityImage, removeUniversityImage, getMyUniversityAdminScopes,
 } from '@/lib/data/admin-client';
 import { useAuth } from '@/lib/auth/auth-context';
-import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2, Search, ShieldCheck, Globe2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Uni = {
@@ -35,6 +35,8 @@ const EMPTY_FORM = {
   logo_alt_text: '', hero_alt_text: '', image_credit: '', image_source: '',
 };
 
+const UENR_DESCRIPTION = 'The University of Energy and Natural Resources (UENR) is a public university in Sunyani, Bono Region, Ghana, focused on energy, natural resources, science, technology, and sustainable development.';
+
 export default function AdminUniversitiesPage() {
   return (
     <AdminRouteGuard><AdminLayout><Content /></AdminLayout></AdminRouteGuard>
@@ -46,6 +48,7 @@ function Content() {
   const isUniversityAdmin = user?.role === 'university_admin';
   const [loading, setLoading] = useState(true);
   const [universities, setUniversities] = useState<Uni[]>([]);
+  const [search, setSearch] = useState('');
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Uni | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
@@ -138,6 +141,7 @@ function Content() {
     setUploadingLogo(true);
     const { url, error } = await uploadUniversityImage(editing.id, editing.slug, file, 'logo');
     setUploadingLogo(false);
+    e.target.value = '';
     if (error) { toast.error(error); return; }
     setLogoPreview(url);
     toast.success('Logo uploaded');
@@ -150,6 +154,7 @@ function Content() {
     setUploadingHero(true);
     const { url, error } = await uploadUniversityImage(editing.id, editing.slug, file, 'hero');
     setUploadingHero(false);
+    e.target.value = '';
     if (error) { toast.error(error); return; }
     setHeroPreview(url);
     toast.success('Landmark image uploaded');
@@ -174,23 +179,38 @@ function Content() {
     loadUniversities();
   }
 
+  const visibleUniversities = universities.filter(uni => {
+    const haystack = `${uni.name} ${uni.short_name} ${uni.city || ''} ${uni.region || ''}`.toLowerCase();
+    return haystack.includes(search.trim().toLowerCase());
+  });
+  const brandedCount = universities.filter(uni => uni.logo_url && uni.hero_image_url).length;
+
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-5xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 rounded-2xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <GraduationCap className="h-6 w-6 text-primary" /> Universities
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{universities.length} universities</p>
+          <p className="mt-1 text-sm text-muted-foreground">The authoritative university directory for UniEco Ghana.</p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            <Badge variant="outline"><ShieldCheck className="mr-1 h-3.5 w-3.5 text-primary" /> {universities.length} institutions</Badge>
+            <Badge variant="outline"><ImageIcon className="mr-1 h-3.5 w-3.5 text-primary" /> {brandedCount} fully branded</Badge>
+          </div>
         </div>
         {!isUniversityAdmin && <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> Add university</Button>}
+      </div>
+
+      <div className="relative max-w-lg">
+        <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input value={search} onChange={event => setSearch(event.target.value)} className="pl-9" placeholder="Search by university, abbreviation, city, or region" />
       </div>
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {universities.map(uni => (
+          {visibleUniversities.map(uni => (
             <Card key={uni.id}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -229,8 +249,11 @@ function Content() {
       )}
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing ? 'Edit University' : 'Add University'}</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? `University record · ${editing.short_name}` : 'Add university'}</DialogTitle>
+            <p className="text-sm text-muted-foreground">Changes are recorded in the platform audit trail. Branding uploads save immediately after verification.</p>
+          </DialogHeader>
           <div className="space-y-3 py-2">
             {isUniversityAdmin ? (
               <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">You can update branding for your assigned university only.</p>
@@ -244,8 +267,12 @@ function Content() {
               <div className="space-y-1.5"><Label>City</Label><Input value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} placeholder="Sunyani" /></div>
               <div className="space-y-1.5"><Label>Region</Label><Input value={form.region} onChange={e => setForm(p => ({ ...p, region: e.target.value }))} placeholder="Bono Region" /></div>
             </div>
-            <div className="space-y-1.5"><Label>Website</Label><Input value={form.website_url} onChange={e => setForm(p => ({ ...p, website_url: e.target.value }))} placeholder="https://uenr.edu.gh" /></div>
-            <div className="space-y-1.5"><Label>Description</Label><Textarea rows={2} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label className="flex items-center gap-1.5"><Globe2 className="h-3.5 w-3.5" /> Official website</Label><Input value={form.website_url} onChange={e => setForm(p => ({ ...p, website_url: e.target.value }))} placeholder="https://uenr.edu.gh" /><p className="text-xs text-muted-foreground">Use the institution’s official HTTPS website only.</p></div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-3"><Label>Public directory description</Label>{editing?.slug === 'uenr' && <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setForm(p => ({ ...p, description: UENR_DESCRIPTION }))}>Use recommended UENR copy</Button>}</div>
+              <Textarea rows={4} value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} placeholder="A short, factual description of the institution, its location, and academic focus." />
+              <p className="text-xs text-muted-foreground">Keep this factual, current, and between one and three sentences.</p>
+            </div>
 
             <Separator />
 
@@ -264,7 +291,7 @@ function Content() {
                     )}
                     <div className="flex flex-col gap-1.5">
                       <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleLogoUpload} />
-                      <Button size="sm" variant="outline" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
+                      <Button type="button" size="sm" variant="outline" disabled={uploadingLogo} onClick={() => logoInputRef.current?.click()}>
                         {uploadingLogo ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Upload className="mr-1 h-3 w-3" />}
                         {logoPreview ? 'Replace logo' : 'Upload logo'}
                       </Button>
@@ -279,6 +306,7 @@ function Content() {
                     <Label className="text-xs text-muted-foreground">Logo alt text (accessibility)</Label>
                     <Input value={form.logo_alt_text} onChange={e => setForm(p => ({ ...p, logo_alt_text: e.target.value }))} placeholder="University of Energy and Natural Resources official logo" />
                   </div>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, or WebP only · maximum 5 MB · square logo recommended.</p>
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">Save the university first, then upload a logo.</p>
@@ -306,7 +334,7 @@ function Content() {
                   )}
                   <div className="flex gap-1.5">
                     <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleHeroUpload} />
-                    <Button size="sm" variant="outline" disabled={uploadingHero} onClick={() => heroInputRef.current?.click()}>
+                    <Button type="button" size="sm" variant="outline" disabled={uploadingHero} onClick={() => heroInputRef.current?.click()}>
                       {uploadingHero ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Upload className="mr-1 h-3 w-3" />}
                       {heroPreview ? 'Replace image' : 'Upload image'}
                     </Button>
@@ -330,6 +358,7 @@ function Content() {
                       <Input value={form.image_source} onChange={e => setForm(p => ({ ...p, image_source: e.target.value }))} placeholder="URL or description" />
                     </div>
                   </div>
+                  <p className="text-xs text-muted-foreground">PNG, JPG, or WebP only · maximum 5 MB · use a wide campus or landmark image.</p>
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">Save the university first, then upload a landmark image.</p>

@@ -385,14 +385,24 @@ export async function uploadUniversityImage(
 
   const { error: uploadError } = await supabase.storage
     .from('university-branding')
-    .upload(path, file, { contentType: file.type || `image/${ext}` });
+    .upload(path, file, { contentType: file.type || `image/${ext}`, upsert: false });
 
-  if (uploadError) return { url: null, error: uploadError.message };
+  if (uploadError) {
+    return {
+      url: null,
+      error: `Upload failed: ${uploadError.message}. Use a JPG, PNG, or WebP image no larger than 5 MB.`,
+    };
+  }
 
   const { error: updateError } = await supabase.rpc('set_admin_university_branding', {
     p_university_id: universityId, p_image_type: imageType, p_object_path: path,
   });
-  if (updateError) return { url: null, error: updateError.message };
+  if (updateError) {
+    // Do not leave an unlinked asset behind when the protected record update
+    // fails. The removal is best-effort; the original error is more useful.
+    await supabase.storage.from('university-branding').remove([path]);
+    return { url: null, error: `Upload could not be linked to this university: ${updateError.message}` };
+  }
   return { url: supabase.storage.from('university-branding').getPublicUrl(path).data.publicUrl, error: null };
 }
 
