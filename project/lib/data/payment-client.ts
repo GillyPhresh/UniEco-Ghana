@@ -9,6 +9,18 @@ import type {
   VendorFinancialSummary, AdminFinancialSummary,
 } from '@/lib/types/payment';
 
+export async function startPaystackCheckout(input: {
+  purpose: 'subscription' | 'marketplace'; vendorId?: string; orderId?: string; idempotencyKey: string;
+}): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null }> {
+  const response = await fetch('/api/payments/paystack/initialize', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  });
+  const payload = await response.json() as { authorizationUrl?: string; reference?: string; error?: string };
+  return response.ok && payload.authorizationUrl && payload.reference
+    ? { authorizationUrl: payload.authorizationUrl, reference: payload.reference, error: null }
+    : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started.' };
+}
+
 // ============================================================
 // Payment Providers
 // ============================================================

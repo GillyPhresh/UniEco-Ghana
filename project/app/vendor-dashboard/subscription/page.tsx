@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useVendor } from '@/hooks/use-vendor';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
-  getCurrentSubscription, initiateSubscriptionPayment,
+  getCurrentSubscription, initiateSubscriptionPayment, startPaystackCheckout,
   cancelSubscription, reactivateSubscription,
   getEnabledPaymentProviders, getPaymentMethodsForProvider,
 } from '@/lib/data/payment-client';
@@ -81,6 +81,15 @@ function Content() {
       }
     }
     setProcessing(true);
+
+    if (selectedProvider === 'paystack') {
+      const { authorizationUrl, error } = await startPaystackCheckout({
+        purpose: 'subscription', vendorId: vendor.id, idempotencyKey: crypto.randomUUID(),
+      });
+      if (error || !authorizationUrl) { toast.error(error || 'Could not start Paystack checkout.'); setProcessing(false); return; }
+      window.location.assign(authorizationUrl);
+      return;
+    }
 
     // Step 1: Initiate payment
     const { payment, error: initError } = await initiateSubscriptionPayment({
@@ -313,13 +322,13 @@ function Content() {
             {/* Auto-renew toggle */}
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" checked={autoRenew} onChange={e => setAutoRenew(e.target.checked)} />
-              Enable auto-renewal (automatic monthly renewal)
+              Enable renewal reminders (Mobile Money renewals require a new approval)
             </label>
 
             <div className="rounded-lg bg-info/5 border border-info/20 p-3 text-xs text-info">
               <Smartphone className="inline h-3.5 w-3.5 mr-1" />
               {selectedProvider === 'manual'
-                ? 'Manual payment: Your subscription will be activated immediately. An admin will verify the payment reference.'
+                ? 'Manual payment remains pending until a trusted verification workflow confirms it.'
                 : selectedMethod
                   ? `You will be prompted to confirm the GH₵${SUBSCRIPTION_PLANS[selectedPlan].price} payment via ${selectedMethod.replace(/_/g, ' ')}.`
                   : 'Select a payment method to continue.'}

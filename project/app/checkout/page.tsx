@@ -18,7 +18,7 @@ import {
 } from '@/lib/data/marketplace-client';
 import {
   getEnabledPaymentProviders, getPaymentMethodsForProvider,
-  initiateMarketplacePayment,
+  initiateMarketplacePayment, startPaystackCheckout,
 } from '@/lib/data/payment-client';
 import type { PaymentProvider } from '@/lib/types/payment';
 import { supabase } from '@/lib/supabase/client';
@@ -190,9 +190,6 @@ function CheckoutContent() {
       return;
     }
 
-    // Clear cart
-    await clearCartItems();
-
     // Request a payment intent using the server-calculated order total.
     if (selectedProvider === 'manual') {
       const { error: payError } = await initiateMarketplacePayment({
@@ -205,9 +202,23 @@ function CheckoutContent() {
         setPlacing(false);
         return;
       }
+      await clearCartItems();
       toast.info('Order placed. Cash on delivery is awaiting collection; it has not been marked as paid.');
     } else {
       // Online payment — initiate and await provider confirmation
+      if (selectedProvider === 'paystack') {
+        const { authorizationUrl, error: payError } = await startPaystackCheckout({
+          purpose: 'marketplace', orderId: order.id, idempotencyKey: crypto.randomUUID(),
+        });
+        if (payError || !authorizationUrl) {
+          toast.error(`Order placed, but Paystack checkout could not start: ${payError || 'Unknown error'}`);
+          setPlacing(false);
+          return;
+        }
+        await clearCartItems();
+        window.location.assign(authorizationUrl);
+        return;
+      }
       const prov = paymentProviders.find(p => p.name === selectedProvider);
       const methodObj = prov ? getPaymentMethodsForProvider(prov).find(m => m.id === selectedMethod) : null;
       const { error: payError } = await initiateMarketplacePayment({
@@ -222,6 +233,7 @@ function CheckoutContent() {
         setPlacing(false);
         return;
       }
+      await clearCartItems();
       toast.info('Order placed. Payment remains pending until the provider confirms it.');
     }
 
