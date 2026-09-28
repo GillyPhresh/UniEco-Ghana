@@ -45,6 +45,7 @@ function Content() {
   const [mobileNumber, setMobileNumber] = useState('');
   const [autoRenew, setAutoRenew] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   useEffect(() => {
     if (vendor?.id) loadData();
@@ -70,55 +71,66 @@ function Content() {
   };
 
   const handlePayment = async () => {
-    if (!vendor?.id || !user) return;
+    setPaymentError(null);
+    if (!vendor?.id || !user) {
+      const message = 'Your vendor or account details are still loading. Refresh this page and try again.';
+      setPaymentError(message);
+      toast.error(message);
+      return;
+    }
     if (selectedProvider !== 'manual') {
       const prov = providers.find(p => p.name === selectedProvider);
       const methods = prov ? getPaymentMethodsForProvider(prov) : [];
       const method = methods.find(m => m.id === selectedMethod);
-      if (method?.type === 'mobile_money' && !mobileNumber.trim()) {
+      if (selectedProvider !== 'paystack' && method?.type === 'mobile_money' && !mobileNumber.trim()) {
         toast.error('Please enter your mobile money number');
         return;
       }
     }
     setProcessing(true);
 
-    if (selectedProvider === 'paystack') {
-      const { authorizationUrl, error } = await startPaystackCheckout({
-        purpose: 'subscription', vendorId: vendor.id, idempotencyKey: crypto.randomUUID(),
+    try {
+      if (selectedProvider === 'paystack') {
+        const { authorizationUrl, error } = await startPaystackCheckout({
+          purpose: 'subscription', vendorId: vendor.id, idempotencyKey: crypto.randomUUID(),
+        });
+        if (error || !authorizationUrl) {
+          const message = error || 'Could not start Paystack checkout.';
+          setPaymentError(message);
+          toast.error(message);
+          return;
+        }
+        window.location.assign(authorizationUrl);
+        return;
+      }
+
+      const { payment, error: initError } = await initiateSubscriptionPayment({
+        vendorId: vendor.id,
+        provider: selectedProvider,
+        mobileNumber: selectedProvider !== 'manual' ? mobileNumber : undefined,
+        mobileNetwork: selectedProvider !== 'manual' ? selectedMethod : undefined,
+        autoRenew,
+        idempotencyKey: crypto.randomUUID(),
       });
-      if (error || !authorizationUrl) { toast.error(error || 'Could not start Paystack checkout.'); setProcessing(false); return; }
-      window.location.assign(authorizationUrl);
-      return;
-    }
 
-    // Step 1: Initiate payment
-    const { payment, error: initError } = await initiateSubscriptionPayment({
-      vendorId: vendor.id,
-      provider: selectedProvider,
-      mobileNumber: selectedProvider !== 'manual' ? mobileNumber : undefined,
-      mobileNetwork: selectedProvider !== 'manual' ? selectedMethod : undefined,
-      autoRenew,
-      idempotencyKey: crypto.randomUUID(),
-    });
+      if (initError || !payment) {
+        const message = initError || 'Failed to initiate payment';
+        setPaymentError(message);
+        toast.error(message);
+        return;
+      }
 
-    if (initError || !payment) {
-      toast.error(initError || 'Failed to initiate payment');
-      setProcessing(false);
-      return;
-    }
-
-    if (selectedProvider === 'manual') {
-      toast.info('Payment is awaiting provider or staff confirmation. Your subscription is not active yet.');
+      toast.info(selectedProvider === 'manual'
+        ? 'Payment is awaiting provider or staff confirmation. Your subscription is not active yet.'
+        : `Payment initiated via ${selectedProvider}. You will be notified when payment is confirmed.`);
       setShowPayment(false);
-      setProcessing(false);
       loadData();
-    } else {
-      // For other providers, show "pending" state
-      // In production, redirect to provider payment page here
-      toast.info(`Payment initiated via ${selectedProvider}. You will be notified when payment is confirmed.`);
-      setShowPayment(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'We could not start this payment. Please try again.';
+      setPaymentError(message);
+      toast.error(message);
+    } finally {
       setProcessing(false);
-      loadData();
     }
   };
 
@@ -291,7 +303,7 @@ function Content() {
             </div>
 
             {/* Dynamic payment methods per provider */}
-            {selectedProvider !== 'manual' && (() => {
+            {selectedProvider !== 'manual' && selectedProvider !== 'paystack' && (() => {
               const prov = providers.find(p => p.name === selectedProvider);
               const methods = prov ? getPaymentMethodsForProvider(prov) : [];
               const selectedMethodObj = methods.find(m => m.id === selectedMethod);
@@ -327,12 +339,19 @@ function Content() {
 
             <div className="rounded-lg bg-info/5 border border-info/20 p-3 text-xs text-info">
               <Smartphone className="inline h-3.5 w-3.5 mr-1" />
-              {selectedProvider === 'manual'
+              {selectedProvider === 'paystack'
+                ? 'Continue to Paystack secure test checkout to choose an available card or Mobile Money channel.'
+                : selectedProvider === 'manual'
                 ? 'Manual payment remains pending until a trusted verification workflow confirms it.'
                 : selectedMethod
                   ? `You will be prompted to confirm the GH₵${SUBSCRIPTION_PLANS[selectedPlan].price} payment via ${selectedMethod.replace(/_/g, ' ')}.`
                   : 'Select a payment method to continue.'}
             </div>
+            {paymentError && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
+                {paymentError}
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPayment(false)}>Cancel</Button>
