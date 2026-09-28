@@ -50,3 +50,11 @@ test('student onboarding can read only its own profile while verification review
   assert.match(migration, /public\.has_permission\('can_review_verifications'\)/);
   assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
 });
+
+test('student verification approval accepts platform super-admins and explicitly permitted reviewers only', async () => {
+  const migration = await read('supabase/migrations/20260928040000_0051_super_admin_student_review_authority.sql');
+  assert.match(migration, /public\.is_super_admin\(\) OR public\.has_permission\('can_review_verifications'\)/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.review_student_verification/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.review_student_verification\(uuid, boolean, text\) TO authenticated/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});
