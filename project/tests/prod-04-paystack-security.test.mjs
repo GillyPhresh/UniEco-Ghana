@@ -54,3 +54,16 @@ test('production public URL is configurable and uses the current Railway hostnam
   assert.match(docs, /https:\/\/uniecoghana\.up\.railway\.app\/api\/health/);
   assert.doesNotMatch(docs, /uniecoghana-production\.up\.railway\.app/);
 });
+
+test('vendor registration is a trusted application state and does not invent an upfront payment', async () => {
+  const [onboarding, migration] = await Promise.all([read('app/onboarding/vendor/page.tsx'), read('supabase/migrations/20260928020000_0049_vendor_registration_payment_state.sql')]);
+  assert.match(onboarding, /create_vendor_registration_application/);
+  assert.doesNotMatch(onboarding, /\.from\('vendors'\)\.insert/);
+  assert.doesNotMatch(onboarding, /\.from\('vendor_profiles'\)\.(insert|update)/);
+  assert.match(migration, /vendor_registration_payment_states/);
+  assert.match(migration, /payment_purpose = 'vendor_registration'/);
+  assert.match(migration, /payment_requirement = 'not_required'/);
+  assert.match(migration, /Verified student status is required/);
+  assert.match(migration, /is_verified,is_active[\s\S]*v_is_student,false,false/);
+  assert.doesNotMatch(migration, /amount_due :=/);
+});

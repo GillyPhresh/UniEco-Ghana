@@ -94,62 +94,22 @@ function VendorOnboarding() {
 
     setSubmitting(true);
     try {
-      const vendorProfilePayload = {
-        profile_id: user.id,
-        vendor_type: form.vendor_type,
-        verification_status: 'pending',
-        subscription_status: 'none',
-        business_category: form.business_category,
-        location_address: form.location_address,
-        location_city: form.location_city,
-        location_region: form.location_region,
-        product_service_type: form.product_service_type,
-      };
-      const { data: existingVendorProfile } = await supabase
-        .from('vendor_profiles')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle();
-      const { error: vpError } = existingVendorProfile
-        ? await supabase
-            .from('vendor_profiles')
-            .update({
-              business_category: form.business_category,
-              location_address: form.location_address,
-              location_city: form.location_city,
-              location_region: form.location_region,
-              product_service_type: form.product_service_type,
-            })
-            .eq('id', existingVendorProfile.id)
-        : await supabase.from('vendor_profiles').insert(vendorProfilePayload);
-
-      if (vpError) throw new Error(vpError.message);
-
-      const vendorSlug = form.business_name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-
-      const { error: vendorError } = await supabase.from('vendors').insert({
-        university_id: user.profile?.university_id || null,
-        owner_id: user.id,
-        business_name: form.business_name,
-        business_slug: `${vendorSlug}-${user.id.slice(0, 8)}`,
-        business_type: form.business_category,
-        description: form.description,
-        is_student_business: form.vendor_type === 'student_vendor',
-        is_verified: false,
-        is_active: false,
-        contact_phone: form.contact_phone,
-        contact_email: form.contact_email || null,
-      });
-
-      if (vendorError) throw new Error(vendorError.message);
-
-      const { error: roleError } = await supabase.rpc('request_vendor_role', {
+      // The database creates the application, role transition, vendor record,
+      // and explicit no-upfront-fee registration state atomically. The browser
+      // cannot activate a vendor or create a financial record.
+      const { error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
+        p_business_name: form.business_name,
+        p_business_category: form.business_category,
+        p_description: form.description,
+        p_location_address: form.location_address,
+        p_location_city: form.location_city,
+        p_location_region: form.location_region,
+        p_product_service_type: form.product_service_type,
+        p_contact_phone: form.contact_phone,
+        p_contact_email: form.contact_email || null,
         p_vendor_type: form.vendor_type,
       });
-      if (roleError) throw new Error(roleError.message);
+      if (registrationError) throw new Error(registrationError.message);
 
       await refreshProfile();
       router.push('/onboarding/complete');
