@@ -12,6 +12,14 @@ Set these outside Git, separately for each Railway environment and the `payment-
 - `PAYSTACK_SECRET_KEY` — matching Paystack test or live server secret; never use `NEXT_PUBLIC_`.
 - `PAYSTACK_LIVE_ENABLED` — must be `true` in addition to the previous settings before a production process can initialize live payments.
 
+Current production configuration uses:
+
+```env
+UNIECO_PUBLIC_APP_URL=https://uniecoghana.up.railway.app
+```
+
+The current production health endpoint is `https://uniecoghana.up.railway.app/api/health`. Do not use the retired `uniecoghana-production` Railway hostname. `uniecoghana.com` remains deferred until it is purchased and configured; at that time only `UNIECO_PUBLIC_APP_URL` needs to change.
+
 Set the Paystack dashboard webhook URL to the deployed Supabase Edge Function `payment-webhook`. It validates the raw body using `x-paystack-signature` HMAC SHA-512 and verifies `charge.success` through Paystack's Verify Transaction API before applying anything.
 
 ## Merchant channels

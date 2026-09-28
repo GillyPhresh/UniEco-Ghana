@@ -45,3 +45,12 @@ test('protected legacy Bolt project is absent from payment implementation', asyn
   const sources = await Promise.all(['lib/payments/paystack.server.ts','app/api/payments/paystack/initialize/route.ts','app/api/payments/status/route.ts','supabase/functions/payment-webhook/index.ts','supabase/migrations/20260928010000_0048_paystack_authoritative_reconciliation.sql'].map(read));
   for (const source of sources) assert.doesNotMatch(source, /elxlrojlnusvybnfwxum/);
 });
+
+test('production public URL is configurable and uses the current Railway hostname in documentation', async () => {
+  const [route, docs] = await Promise.all([read('app/api/payments/paystack/initialize/route.ts'), read('docs/paystack-production-readiness.md')]);
+  assert.match(route, /process\.env\.UNIECO_PUBLIC_APP_URL/);
+  assert.doesNotMatch(route, /uniecoghana\.up\.railway\.app|uniecoghana\.com/);
+  assert.match(docs, /https:\/\/uniecoghana\.up\.railway\.app/);
+  assert.match(docs, /https:\/\/uniecoghana\.up\.railway\.app\/api\/health/);
+  assert.doesNotMatch(docs, /uniecoghana-production\.up\.railway\.app/);
+});
