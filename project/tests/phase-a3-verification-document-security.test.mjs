@@ -41,3 +41,12 @@ test('vendor verification UI never creates a public URL or browser-owned request
   assert.doesNotMatch(page, /from\('verification_requests'\)\s*\.insert/);
   assert.match(page, /from\('vendor-documents'\)\s*\.upload/);
 });
+
+test('student onboarding can read only its own profile while verification reviewers can read the queue', async () => {
+  const migration = await read('supabase/migrations/20260928030000_0050_student_profile_read_access.sql');
+  assert.match(migration, /CREATE POLICY students_read_own_or_review ON public\.student_profiles/);
+  assert.match(migration, /FOR SELECT TO authenticated/);
+  assert.match(migration, /user_id = auth\.uid\(\)/);
+  assert.match(migration, /public\.has_permission\('can_review_verifications'\)/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});
