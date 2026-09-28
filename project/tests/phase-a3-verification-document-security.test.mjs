@@ -58,3 +58,12 @@ test('student verification approval accepts platform super-admins and explicitly
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.review_student_verification\(uuid, boolean, text\) TO authenticated/);
   assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
 });
+
+test('pending vendor applications are private to owners and authorized reviewers', async () => {
+  const migration = await read('supabase/migrations/20260928050000_0052_vendor_verification_queue_access.sql');
+  assert.match(migration, /CREATE POLICY vendors_select_owner_or_verification_reviewer ON public\.vendors/);
+  assert.match(migration, /owner_id = auth\.uid\(\)/);
+  assert.match(migration, /public\.is_super_admin\(\) OR public\.has_permission\('can_review_verifications'\)/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.review_vendor_verification/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});
