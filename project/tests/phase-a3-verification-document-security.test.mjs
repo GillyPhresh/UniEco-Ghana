@@ -1,0 +1,69 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+
+const root = new URL('..', import.meta.url);
+const read = (path) => readFile(new URL(path, root), 'utf8');
+
+test('verification documents are normalized, private, and authorized by document id only', async () => {
+  const migration = await read('supabase/migrations/20260911241000_0037_verification_document_authorization.sql');
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.verification_request_documents/);
+  assert.match(migration, /verification_request_id uuid NOT NULL REFERENCES public\.verification_requests/);
+  assert.match(migration, /vendor_id uuid NOT NULL REFERENCES public\.vendors/);
+  assert.match(migration, /CHECK \(bucket_id = 'vendor-documents'\)/);
+  assert.match(migration, /FUNCTION public\.authorize_verification_document_access\(p_document_id uuid\)/);
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.match(migration, /current_app_role\(\)='university_admin'/);
+  assert.match(migration, /can_manage_university\(v_university\)/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.authorize_verification_document_access\(uuid\) FROM PUBLIC, anon, authenticated, service_role/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.submit_own_vendor_verification_request\(text,jsonb\), public\.authorize_verification_document_access\(uuid\) TO authenticated/);
+  assert.doesNotMatch(migration, /get_signed_url\s*\(\s*path/i);
+});
+
+test('private verification signing authenticates then authorizes before service signing', async () => {
+  const signer = await read('supabase/functions/get-verification-document-url/index.ts');
+  assert.match(signer, /auth\.getUser\(\)/);
+  assert.match(signer, /rpc\('authorize_verification_document_access', \{ p_document_id: documentId \}\)/);
+  assert.match(signer, /bucket_id !== 'vendor-documents'/);
+  assert.match(signer, /type AuthorizedDocument = \{[\s\S]*bucket_id: string;[\s\S]*object_path: string;[\s\S]*owner_id: string;/);
+  assert.match(signer, /const authorizedDocument = authorizationData as AuthorizedDocument \| null/);
+  assert.match(signer, /object_path\.startsWith\(`\$\{authorizedDocument\.owner_id\}\/`\)/);
+  assert.match(signer, /createSignedUrl\(authorizedDocument\.object_path, URL_TTL_SECONDS\)/);
+  assert.match(signer, /const URL_TTL_SECONDS = 300/);
+  assert.match(signer, /const \{ documentId \} = await request\.json\(\)\.catch/);
+  assert.doesNotMatch(signer, /const \{[^}]*?(?:bucket|objectPath|vendorId|requestId)[^}]*?\} = await request\.json/);
+});
+
+test('vendor verification UI never creates a public URL or browser-owned request', async () => {
+  const page = await read('app/vendor-dashboard/verification/page.tsx');
+  assert.doesNotMatch(page, /getPublicUrl\(/);
+  assert.match(page, /rpc\('submit_own_vendor_verification_request'/);
+  assert.doesNotMatch(page, /from\('verification_requests'\)\s*\.insert/);
+  assert.match(page, /from\('vendor-documents'\)\s*\.upload/);
+});
+
+test('student onboarding can read only its own profile while verification reviewers can read the queue', async () => {
+  const migration = await read('supabase/migrations/20260928030000_0050_student_profile_read_access.sql');
+  assert.match(migration, /CREATE POLICY students_read_own_or_review ON public\.student_profiles/);
+  assert.match(migration, /FOR SELECT TO authenticated/);
+  assert.match(migration, /user_id = auth\.uid\(\)/);
+  assert.match(migration, /public\.has_permission\('can_review_verifications'\)/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});
+
+test('student verification approval accepts platform super-admins and explicitly permitted reviewers only', async () => {
+  const migration = await read('supabase/migrations/20260928040000_0051_super_admin_student_review_authority.sql');
+  assert.match(migration, /public\.is_super_admin\(\) OR public\.has_permission\('can_review_verifications'\)/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.review_student_verification/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.review_student_verification\(uuid, boolean, text\) TO authenticated/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});
+
+test('pending vendor applications are private to owners and authorized reviewers', async () => {
+  const migration = await read('supabase/migrations/20260928050000_0052_vendor_verification_queue_access.sql');
+  assert.match(migration, /CREATE POLICY vendors_select_owner_or_verification_reviewer ON public\.vendors/);
+  assert.match(migration, /owner_id = auth\.uid\(\)/);
+  assert.match(migration, /public\.is_super_admin\(\) OR public\.has_permission\('can_review_verifications'\)/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.review_vendor_verification/);
+  assert.doesNotMatch(migration, /USING\s*\(\s*true\s*\)/i);
+});

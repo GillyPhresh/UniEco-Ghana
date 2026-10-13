@@ -1,0 +1,37 @@
+-- Phase A1 authorization test matrix
+--
+-- Run against an isolated local/staging Supabase database after applying all
+-- migrations. Substitute each test identity with real staging account IDs; do
+-- not run this script against production data without a rollback plan.
+--
+-- Required identities:
+--   student_a, student_b, student_vendor_a, moderator, super_admin,
+--   university_admin_a (assigned to university_a), university_b_admin
+--
+-- Expected outcomes:
+-- 1. Altering auth user metadata role during signup still produces role_id = 2.
+-- 2. student_a cannot update a role, status, activation field, another profile,
+--    student verification fields, or vendor verification fields.
+-- 3. student_vendor_a can update only their own vendor's permitted commercial
+--    fields and cannot set is_verified or is_active.
+-- 4. moderator can use the review RPCs only when database permissions allow it;
+--    student_a cannot execute either RPC.
+-- 5. only super_admin can assign a platform role or university administrator;
+--    neither actor can assign their own role.
+-- 6. university_admin_a can update university_a but receives an RLS denial for
+--    university_b and its university-owned location.
+-- 7. a profile location is visible only to its owner; vendor and university
+--    locations remain publicly discoverable.
+-- 8. role_transition_audit is visible to the target user and super_admin, but
+--    not to unrelated users; direct INSERT, UPDATE, and DELETE are denied.
+-- 9. student-documents and vendor-documents reject cross-user object reads,
+--    writes, and deletes; authorized staff access follows database roles.
+--
+-- Suggested direct checks after setting each role JWT subject:
+--   select public.current_app_role();
+--   select public.can_manage_university('<university-id>'::uuid);
+--   select public.has_permission('can_review_verifications');
+--
+-- The Node regression test in tests/phase-a1-authorization.test.mjs checks
+-- that the client remains wired to database-authoritative paths. This matrix
+-- verifies live RLS behavior, which cannot be proven by static tests.

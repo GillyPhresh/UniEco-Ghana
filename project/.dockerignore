@@ -1,0 +1,18 @@
+# Keep local and deployment credentials out of Docker build contexts/layers.
+.env*
+!.env.example
+
+# Build/runtime artifacts that should be produced inside the image.
+node_modules
+.next
+out
+coverage
+*.tsbuildinfo
+
+# Local tooling state and machine-specific files.
+.git
+.bolt
+supabase/.temp
+.smoke-next.*
+npm-debug.log*
+*.pem

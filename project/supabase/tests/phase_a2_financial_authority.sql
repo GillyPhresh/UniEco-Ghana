@@ -1,0 +1,23 @@
+-- Run after applying migrations in a disposable Supabase project.
+-- Replace UUID placeholders with seeded test identities and records.
+
+-- 1. As a normal authenticated user, direct INSERT/UPDATE/DELETE on payments,
+--    receipts, invoices, refunds, order_items, subscriptions, coupon_redemptions
+--    must fail. Direct order insert must fail.
+-- 2. Call create_marketplace_checkout twice with identical p_idempotency_key;
+--    it must return the same order and create one order row.
+-- 3. Change a client-side product price/total payload; checkout must use the
+--    product price held in public.products, not the supplied value.
+-- 4. Create two checkouts competing for the last unit. The second must fail
+--    while the first reservation is active. A verified success consumes stock.
+-- 5. Attempt coupon redemption directly; it must fail. A valid checkout must
+--    create one redemption and increment usage exactly once.
+-- 6. For a verified student_vendor + verified student profile, subscription
+--    intent must be GH₵20. Removing either property must yield GH₵50.
+-- 7. A manual marketplace intent must be cash_on_delivery and a manual
+--    subscription intent pending; neither creates receipt/invoice/subscription.
+-- 8. Invoke apply_verified_payment_webhook twice with the same provider event.
+--    The second response must be idempotent and no duplicate receipt/invoice
+--    may exist. Wrong amount/currency/reference must raise an error.
+-- 9. Verify service-role-only access to apply_verified_payment_webhook and
+--    private message attachment reads for both conversation participants only.
