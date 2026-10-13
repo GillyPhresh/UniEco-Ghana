@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -14,6 +14,8 @@ import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { Search, Store, Package, Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 
 interface SearchResults {
   vendors: any[];
@@ -22,6 +24,10 @@ interface SearchResults {
 }
 
 export default function SearchPage() {
+  return <Suspense fallback={<main className="container py-8">Loading search…</main>}><SearchContent /></Suspense>;
+}
+
+function SearchContent() {
   const searchParams = useSearchParams();
   const query = searchParams.get('q') || '';
   const [results, setResults] = useState<SearchResults>({ vendors: [], products: [], events: [] });
@@ -29,33 +35,41 @@ export default function SearchPage() {
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
-    if (!query.trim()) return;
+    const safeQuery = normalizeSearchTerm(query);
+    if (!safeQuery) { setResults({ vendors: [], products: [], events: [] }); setLoading(false); return; }
     setLoading(true);
     Promise.all([
       supabase
         .from('vendors')
         .select(`id, business_name, business_slug, business_type, description, rating_avg, rating_count, is_verified, is_student_business, university:universities(id, name, short_name, slug)`)
         .eq('is_active', true)
-        .or(`business_name.ilike.%${query}%,description.ilike.%${query}%,business_type.ilike.%${query}%`)
+        .or(`business_name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,business_type.ilike.%${safeQuery}%`)
         .limit(20),
       supabase
         .from('products')
         .select(`id, name, slug, description, price, currency, image_url, business:businesses(id, name, slug, vendor_id)`)
         .eq('is_active', true)
-        .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
+        .or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
         .limit(20),
       supabase
         .from('events')
         .select(`id, title, slug, description, start_time, location, university:universities(id, name, short_name, slug)`)
         .eq('is_published', true)
-        .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
+        .or(`title.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
         .limit(20),
     ]).then(([v, p, e]) => {
-      setResults({
+      const nextResults = {
         vendors: v.data || [],
         products: p.data || [],
         events: e.data || [],
-      });
+      };
+      setResults(nextResults);
+      if (!v.error && !p.error && !e.error) {
+        trackAnalyticsEvent({
+          event_type: 'search',
+          result_count: nextResults.vendors.length + nextResults.products.length + nextResults.events.length,
+        });
+      }
       setLoading(false);
     });
   }, [query]);
@@ -168,6 +182,7 @@ export default function SearchPage() {
                     <Link
                       key={product.id}
                       href={product.business ? `/business/${product.business.slug}` : '/discover'}
+                      onClick={() => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'product', subject_id: product.id })}
                       className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
                     >
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/5 text-2xl">
@@ -207,6 +222,7 @@ export default function SearchPage() {
                     <Link
                       key={event.id}
                       href={`/events/${event.slug}`}
+                      onClick={() => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'event', subject_id: event.id })}
                       className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
                     >
                       <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">

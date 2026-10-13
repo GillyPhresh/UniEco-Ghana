@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,13 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { getAdminUsers, suspendUser, reactivateUser, assignUserRole, exportToCsv } from '@/lib/data/admin-client';
-import type { AdminUser } from '@/lib/types/admin';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { getAdminUsers, suspendUser, reactivateUser, assignUserRole } from '@/lib/data/admin-client';
+import type { AdminUserDirectoryItem } from '@/lib/types/admin';
 import { ROLE_LABELS } from '@/lib/auth/permissions';
 import { ROLE_IDS, type UserRole } from '@/lib/types';
-import { Search, Download, Ban, CheckCircle, Shield, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminUsersPage() {
@@ -25,63 +26,64 @@ export default function AdminUsersPage() {
 
 function UsersContent() {
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<AdminUserDirectoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserDirectoryItem | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [reason, setReason] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{ kind: 'suspend' | 'reactivate' | 'role'; roleId?: number; roleLabel?: string } | null>(null);
   const pageSize = 20;
 
-  useEffect(() => { loadUsers(); }, [page, roleFilter, statusFilter]);
-
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
-    const { users, total } = await getAdminUsers({
-      search: search || undefined,
-      role: roleFilter !== 'all' ? Number(roleFilter) : undefined,
-      status: statusFilter,
-      limit: pageSize,
-      offset: page * pageSize,
-    });
-    setUsers(users);
-    setTotal(total);
-    setLoading(false);
-  }
+    setError(null);
+    try {
+      const result = await getAdminUsers({ search: search || undefined, role: roleFilter !== 'all' ? Number(roleFilter) : undefined, status: statusFilter, limit: pageSize, offset: page * pageSize });
+      setUsers(result.users);
+      setTotal(result.total);
+    } catch {
+      setUsers([]); setTotal(0); setError('Unable to load user directory. Please try again.');
+    } finally { setLoading(false); }
+  }, [page, roleFilter, search, statusFilter]);
+
+  useEffect(() => { void loadUsers(); }, [loadUsers]);
 
   function handleSearch() { setPage(0); loadUsers(); }
 
-  const handleSuspend = async () => {
+  const requestUserAction = (action: NonNullable<typeof pendingAction>) => {
     if (!selectedUser) return;
-    setActionLoading(true);
-    const { error } = await suspendUser(selectedUser.id, 'Suspended by admin');
-    if (error) { toast.error(error); } else { toast.success('User suspended'); setSelectedUser(null); loadUsers(); }
-    setActionLoading(false);
+    if (reason.trim().length < 10 || reason.trim().length > 500) { toast.error('Provide a reason between 10 and 500 characters'); return; }
+    setPendingAction(action);
   };
 
-  const handleReactivate = async () => {
-    if (!selectedUser) return;
+  const confirmUserAction = async () => {
+    if (!selectedUser || !pendingAction) return;
     setActionLoading(true);
-    const { error } = await reactivateUser(selectedUser.id);
-    if (error) { toast.error(error); } else { toast.success('User reactivated'); setSelectedUser(null); loadUsers(); }
-    setActionLoading(false);
-  };
-
-  const handleRoleAssign = async (roleId: number) => {
-    if (!selectedUser) return;
-    setActionLoading(true);
-    const { error } = await assignUserRole(selectedUser.id, roleId);
-    if (error) { toast.error(error); } else { toast.success('Role updated'); setSelectedUser(null); loadUsers(); }
-    setActionLoading(false);
-  };
-
-  const handleExport = () => {
-    exportToCsv(users.map(u => ({
-      id: u.id, name: u.full_name, email: u.email, role: (u.role as { name?: string })?.name || 'student',
-      status: u.status, university: u.university?.name || '', created: u.created_at,
-    })), 'users');
+    try {
+      const result = pendingAction.kind === 'suspend'
+        ? await suspendUser(selectedUser.id, reason.trim())
+        : pendingAction.kind === 'reactivate'
+          ? await reactivateUser(selectedUser.id, reason.trim())
+          : await assignUserRole(selectedUser.id, pendingAction.roleId!, reason.trim());
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(pendingAction.kind === 'role' ? `Role updated to ${pendingAction.roleLabel}` : `User ${pendingAction.kind === 'suspend' ? 'suspended' : 'reactivated'}`);
+        setSelectedUser(null);
+        setReason('');
+        void loadUsers();
+      }
+    } catch {
+      toast.error('Unable to complete this user action. Please retry.');
+    } finally {
+      setPendingAction(null);
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -91,7 +93,6 @@ function UsersContent() {
           <h1 className="font-display text-2xl font-bold text-foreground">User Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} total users</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
       </div>
 
       {/* Filters */}
@@ -125,6 +126,8 @@ function UsersContent() {
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : error ? (
+            <div className="space-y-3 py-12 text-center text-sm text-muted-foreground"><p>{error}</p><Button variant="outline" size="sm" onClick={() => void loadUsers()}>Retry</Button></div>
           ) : users.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No users found</div>
           ) : (
@@ -153,7 +156,7 @@ function UsersContent() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.university?.name || '—'}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(u.created_at).toLocaleDateString('en-GH')}</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => setSelectedUser(u)}>Manage</Button></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setSelectedUser(u); setReason(''); }}>Manage</Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -188,35 +191,23 @@ function UsersContent() {
                 </div>
               </div>
 
-              {selectedUser.student_profile && (
-                <div className="rounded-lg border border-border p-3 text-xs">
-                  <p className="font-semibold text-muted-foreground">Student Profile</p>
-                  <p className="mt-1">ID: {selectedUser.student_profile.student_id_number || '—'}</p>
-                  <p>Program: {selectedUser.student_profile.program_of_study || '—'}</p>
-                  <p>Verified: {selectedUser.student_profile.is_verified_student ? 'Yes' : 'No'}</p>
-                </div>
-              )}
-
-              {selectedUser.vendor_profile && (
-                <div className="rounded-lg border border-border p-3 text-xs">
-                  <p className="font-semibold text-muted-foreground">Vendor Profile</p>
-                  <p className="mt-1">Type: {selectedUser.vendor_profile.vendor_type}</p>
-                  <p>Verification: {selectedUser.vendor_profile.verification_status}</p>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <label htmlFor="user-action-reason" className="text-xs font-semibold text-muted-foreground">Reason for this privileged action</label>
+                <Input id="user-action-reason" value={reason} onChange={event => setReason(event.target.value)} placeholder="At least 10 characters" maxLength={500} />
+              </div>
 
               {/* Role assignment */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground mb-2">Assign Role</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(ROLE_LABELS).filter(([key]) => key !== 'university_admin').map(([key, label]) => (
+                  {Object.entries(ROLE_LABELS).filter(([key]) => !['university_admin', 'super_admin'].includes(key)).map(([key, label]) => (
                     <Button
                       key={key}
                       size="sm"
                       variant={selectedUser.role_id === ROLE_IDS[key as keyof typeof ROLE_IDS] ? 'default' : 'outline'}
                       className="h-7 text-xs"
                       disabled={actionLoading}
-                      onClick={() => handleRoleAssign(ROLE_IDS[key as keyof typeof ROLE_IDS])}
+                      onClick={() => requestUserAction({ kind: 'role', roleId: ROLE_IDS[key as keyof typeof ROLE_IDS], roleLabel: label })}
                     >
                       {label}
                     </Button>
@@ -227,11 +218,11 @@ function UsersContent() {
               {/* Actions */}
               <div className="flex gap-2 pt-2">
                 {selectedUser.status === 'active' ? (
-                  <Button variant="destructive" size="sm" className="flex-1" disabled={actionLoading} onClick={handleSuspend}>
+                  <Button variant="destructive" size="sm" className="flex-1" disabled={actionLoading} onClick={() => requestUserAction({ kind: 'suspend' })}>
                     <Ban className="mr-2 h-4 w-4" /> Suspend
                   </Button>
                 ) : (
-                  <Button size="sm" className="flex-1" disabled={actionLoading} onClick={handleReactivate}>
+                  <Button size="sm" className="flex-1" disabled={actionLoading} onClick={() => requestUserAction({ kind: 'reactivate' })}>
                     <CheckCircle className="mr-2 h-4 w-4" /> Reactivate
                   </Button>
                 )}
@@ -240,6 +231,25 @@ function UsersContent() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={pendingAction !== null} onOpenChange={open => { if (!open && !actionLoading) setPendingAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm user {pendingAction?.kind === 'role' ? 'role change' : pendingAction?.kind === 'suspend' ? 'suspension' : 'reactivation'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction?.kind === 'role'
+                ? `Change ${selectedUser?.full_name || selectedUser?.email || 'this user'} to the ${pendingAction.roleLabel} role? The change will be recorded with your required reason.`
+                : `${pendingAction?.kind === 'suspend' ? 'Suspend' : 'Reactivate'} ${selectedUser?.full_name || selectedUser?.email || 'this user'}? The account status will change and the decision will be audited.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="whitespace-pre-wrap text-sm text-muted-foreground">Reason: {reason.trim()}</p>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionLoading} onClick={event => { event.preventDefault(); void confirmUserAction(); }}>
+              {actionLoading ? 'Saving…' : pendingAction?.kind === 'role' ? `Confirm ${pendingAction.roleLabel} role` : pendingAction?.kind === 'suspend' ? 'Confirm suspension' : 'Confirm reactivation'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useDeferredValue, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAdminOrders, getOrderStats, exportToCsv } from '@/lib/data/admin-client';
+import { getAdminOrders, getOrderStats } from '@/lib/data/admin-client';
 import type { AdminOrder } from '@/lib/types/admin';
-import { ShoppingBag, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function AdminOrdersPage() {
   return (
@@ -24,27 +25,32 @@ function Content() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  const deferredSearch = useDeferredValue(search);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({ total: 0, completed: 0, cancelled: 0, pending: 0 });
   const pageSize = 20;
 
-  useEffect(() => { loadOrders(); }, [page, filter]);
-  useEffect(() => { getOrderStats().then(setStats); }, []);
-
-  async function loadOrders() {
+  const loadOrders = useCallback(async () => {
     setLoading(true);
-    const { orders, total } = await getAdminOrders({ status: filter, limit: pageSize, offset: page * pageSize });
-    setOrders(orders);
-    setTotal(total);
-    setLoading(false);
-  }
+    setError(null);
+    try {
+      const result = await getAdminOrders({ status: filter, search: deferredSearch, limit: pageSize, offset: page * pageSize });
+      setOrders(result.orders);
+      setTotal(result.total);
+    } catch {
+      setOrders([]);
+      setTotal(0);
+      setError('Unable to load orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [deferredSearch, filter, page]);
 
-  const handleExport = () => {
-    exportToCsv(orders.map(o => ({
-      id: o.id, order_number: o.order_number || '', buyer: o.buyer?.full_name || '',
-      vendor: o.vendor?.business_name || '', status: o.status, total: o.total_amount,
-      type: o.order_type, delivery: o.delivery_method || '', date: o.created_at,
-    })), 'orders');
-  };
+  useEffect(() => { void loadOrders(); }, [loadOrders]);
+  useEffect(() => {
+    getOrderStats().then(setStats).catch(() => setError('Unable to load the order summary. Please try again.'));
+  }, []);
 
   const completionRate = stats.total > 0 ? ((stats.completed / stats.total) * 100).toFixed(1) : '0';
   const cancellationRate = stats.total > 0 ? ((stats.cancelled / stats.total) * 100).toFixed(1) : '0';
@@ -58,7 +64,6 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Read-only visibility into marketplace activity</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
       </div>
 
       {/* Stats */}
@@ -80,10 +85,23 @@ function Content() {
         </TabsList>
       </Tabs>
 
+      <Input
+        value={search}
+        onChange={(event) => { setSearch(event.target.value); setPage(0); }}
+        placeholder="Search order number, buyer, email, or vendor"
+        aria-label="Search orders"
+        className="max-w-md"
+      />
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : error ? (
+            <div className="space-y-3 py-12 text-center text-sm text-muted-foreground">
+              <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={loadOrders}>Retry</Button>
+            </div>
           ) : orders.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No orders found</div>
           ) : (

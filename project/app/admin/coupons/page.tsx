@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { getAdminCoupons, createCoupon, updateCoupon, deleteCoupon } from '@/lib/data/payment-client';
+import { getAdminCoupons, createCoupon, updateCoupon } from '@/lib/data/payment-client';
 import type { Coupon } from '@/lib/types/payment';
-import { Ticket, Plus, Edit, Trash2, Eye, EyeOff, Percent, DollarSign } from 'lucide-react';
+import { Ticket, Plus, Edit, Percent, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminCouponsPage() {
@@ -23,6 +24,7 @@ export default function AdminCouponsPage() {
 function Content() {
   const [loading, setLoading] = useState(true);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Coupon | null>(null);
   const [form, setForm] = useState<{
@@ -35,35 +37,45 @@ function Content() {
     usage_limit: 100, per_user_limit: 1, is_active: true,
   });
   const [saving, setSaving] = useState(false);
+  const [reason, setReason] = useState('');
 
-  useEffect(() => { loadCoupons(); }, []);
-
-  async function loadCoupons() {
+  const loadCoupons = useCallback(async () => {
     setLoading(true);
-    const data = await getAdminCoupons();
-    setCoupons(data);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      setCoupons(await getAdminCoupons());
+    } catch {
+      setCoupons([]);
+      setLoadError('Unable to load coupons. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadCoupons(); }, [loadCoupons]);
 
   function openCreate() {
     setEditing(null);
+    setReason('');
     setForm({ code: '', description: '', discount_type: 'percentage', discount_value: 10, min_order_amount: 0, max_discount_amount: 0, student_only: false, usage_limit: 100, per_user_limit: 1, is_active: true });
     setShowDialog(true);
   }
 
   function openEdit(c: Coupon) {
     setEditing(c);
+    setReason('');
     setForm({
       code: c.code, description: c.description || '', discount_type: c.discount_type as 'percentage' | 'fixed',
       discount_value: c.discount_value, min_order_amount: c.min_order_amount,
       max_discount_amount: c.max_discount_amount || 0, student_only: c.student_only,
-      usage_limit: c.usage_limit || 100, per_user_limit: c.per_user_limit, is_active: c.is_active,
+      usage_limit: c.usage_limit ?? 0, per_user_limit: c.per_user_limit, is_active: c.is_active,
     });
     setShowDialog(true);
   }
 
   const handleSave = async () => {
     if (!form.code) { toast.error('Coupon code is required'); return; }
+    if (reason.trim().length < 10) { toast.error('Please provide a reason of at least 10 characters'); return; }
     setSaving(true);
     const payload = {
       ...form,
@@ -71,24 +83,13 @@ function Content() {
       usage_limit: form.usage_limit || undefined,
     };
     if (editing) {
-      const { error } = await updateCoupon(editing.id, payload);
-      if (error) { toast.error(error); } else { toast.success('Coupon updated'); setShowDialog(false); loadCoupons(); }
+      const { error } = await updateCoupon(editing.id, payload, reason);
+      if (error) { toast.error(error); } else { toast.success('Coupon updated'); setShowDialog(false); void loadCoupons(); }
     } else {
-      const { error } = await createCoupon(payload);
-      if (error) { toast.error(error); } else { toast.success('Coupon created'); setShowDialog(false); loadCoupons(); }
+      const { error } = await createCoupon(payload, reason);
+      if (error) { toast.error(error); } else { toast.success('Coupon created'); setShowDialog(false); void loadCoupons(); }
     }
     setSaving(false);
-  };
-
-  const handleDelete = async (c: Coupon) => {
-    if (!confirm(`Delete coupon "${c.code}"?`)) return;
-    const { error } = await deleteCoupon(c.id);
-    if (error) { toast.error(error); } else { toast.success('Coupon deleted'); loadCoupons(); }
-  };
-
-  const handleToggle = async (c: Coupon) => {
-    const { error } = await updateCoupon(c.id, { is_active: !c.is_active });
-    if (error) { toast.error(error); } else { loadCoupons(); }
   };
 
   return (
@@ -105,6 +106,11 @@ function Content() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 rounded-lg" />)}</div>
+      ) : loadError ? (
+        <Card><CardContent className="py-8 text-center space-y-3">
+          <p role="alert" className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => void loadCoupons()}>Retry</Button>
+        </CardContent></Card>
       ) : coupons.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No coupons yet</CardContent></Card>
       ) : (
@@ -127,9 +133,7 @@ function Content() {
                     {' '} | Used: {c.usage_count}{c.usage_limit ? `/${c.usage_limit}` : ''}
                   </p>
                 </div>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => handleToggle(c)}>{c.is_active ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}</Button>
                 <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(c)}><Edit className="h-3.5 w-3.5" /></Button>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c)}><Trash2 className="h-3.5 w-3.5" /></Button>
               </CardContent>
             </Card>
           ))}
@@ -156,17 +160,21 @@ function Content() {
               <div className="space-y-1.5"><Label>Max Discount</Label><Input type="number" value={form.max_discount_amount} onChange={e => setForm(p => ({ ...p, max_discount_amount: Number(e.target.value) }))} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Usage Limit</Label><Input type="number" value={form.usage_limit} onChange={e => setForm(p => ({ ...p, usage_limit: Number(e.target.value) }))} /></div>
+              <div className="space-y-1.5"><Label>Usage Limit (0 = unlimited)</Label><Input type="number" min={0} value={form.usage_limit} onChange={e => setForm(p => ({ ...p, usage_limit: Number(e.target.value) }))} /></div>
               <div className="space-y-1.5"><Label>Per User Limit</Label><Input type="number" value={form.per_user_limit} onChange={e => setForm(p => ({ ...p, per_user_limit: Number(e.target.value) }))} /></div>
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.student_only} onChange={e => setForm(p => ({ ...p, student_only: e.target.checked }))} /> Student only</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} /> Active</label>
             </div>
+            <div className="space-y-1.5">
+              <Label>Reason for coupon configuration change (required)</Label>
+              <Textarea rows={2} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} placeholder="At least 10 characters; recorded in the audit log" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
-            <Button disabled={saving} onClick={handleSave}>{saving ? 'Saving...' : 'Save'}</Button>
+            <Button disabled={saving || reason.trim().length < 10} onClick={handleSave}>{saving ? 'Saving...' : 'Save'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

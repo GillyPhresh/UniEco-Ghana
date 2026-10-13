@@ -11,11 +11,12 @@ import { EventReminderButton } from '@/components/communication/event-reminder-b
 import Link from 'next/link';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const event = await getEventBySlug(params.slug);
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
   if (!event) {
     return { title: 'Event not found' };
   }
@@ -61,7 +62,8 @@ function formatTimeRange(start: string | null, end: string | null): string {
 }
 
 export default async function EventDetailPage({ params }: PageProps) {
-  const event = await getEventBySlug(params.slug);
+  const { slug } = await params;
+  const event = await getEventBySlug(slug);
   if (!event) notFound();
 
   const jsonLd = {

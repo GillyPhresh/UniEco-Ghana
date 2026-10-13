@@ -50,15 +50,20 @@ export default function SignUpPage() {
   const onSubmit = async (data: SignUpFormData) => {
     if (!accountType) return;
     setAuthError(null);
+    const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
+    // This is only a registration hint. The database revalidates and locks it at intent creation.
+    if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     const { error } = await signUp(data.email, data.password, {
       full_name: data.full_name,
     });
     if (error) {
       setAuthError(error);
     } else {
-      router.push(
-        accountType === 'student' ? '/onboarding/student' : '/onboarding/vendor'
-      );
+      const referral = incomingReferral;
+      const studentPath = referral
+        ? `/onboarding/student?ref=${encodeURIComponent(referral)}`
+        : '/onboarding/student';
+      router.push(accountType === 'student' ? studentPath : '/onboarding/vendor');
     }
   };
 

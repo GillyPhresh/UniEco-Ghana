@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   getAdminBroadcasts, createAdminBroadcast, approveAdminBroadcast, beginAdminBroadcastDelivery, cancelAdminBroadcast,
@@ -38,18 +39,28 @@ export default function BroadcastsPage() {
 function Content() {
   const [loading, setLoading] = useState(true);
   const [broadcasts, setBroadcasts] = useState<AdminBroadcast[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
     title: '', body: '', broadcast_type: 'announcement',
     target_audience: 'all', channels: ['in_app'] as string[],
   });
   const [saving, setSaving] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ broadcast: AdminBroadcast; kind: 'approve' | 'send' | 'cancel' } | null>(null);
+  const [actionReason, setActionReason] = useState('');
+  const [actionSaving, setActionSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const data = await getAdminBroadcasts();
-    setBroadcasts(data);
-    setLoading(false);
+    setLoadError(null);
+    try {
+      setBroadcasts(await getAdminBroadcasts());
+    } catch {
+      setBroadcasts([]);
+      setLoadError('Unable to load broadcasts. Please retry.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -86,19 +97,21 @@ function Content() {
     }
   };
 
-  const handleApprove = async (b: AdminBroadcast) => {
-    const { error } = await approveAdminBroadcast(b.id);
-    if (error) { toast.error(error); } else { toast.success('Broadcast approved'); load(); }
-  };
-
-  const handleSend = async (b: AdminBroadcast) => {
-    const { error } = await beginAdminBroadcastDelivery(b.id);
-    if (error) { toast.error(error); } else { toast.success('Broadcast queued for trusted delivery'); load(); }
-  };
-
-  const handleCancel = async (b: AdminBroadcast) => {
-    const { error } = await cancelAdminBroadcast(b.id);
-    if (error) { toast.error(error); } else { toast.success('Broadcast cancelled'); load(); }
+  const confirmAction = async () => {
+    if (!pendingAction || actionReason.trim().length < 10 || actionReason.trim().length > 1000) return;
+    setActionSaving(true);
+    const { broadcast, kind } = pendingAction;
+    const result = kind === 'approve'
+      ? await approveAdminBroadcast(broadcast.id, actionReason)
+      : kind === 'send'
+        ? await beginAdminBroadcastDelivery(broadcast.id, actionReason)
+        : await cancelAdminBroadcast(broadcast.id, actionReason);
+    setActionSaving(false);
+    if (result.error) { toast.error(result.error); return; }
+    toast.success(kind === 'approve' ? 'Broadcast approved' : kind === 'send' ? 'Broadcast queued for trusted delivery' : 'Broadcast cancelled');
+    setPendingAction(null);
+    setActionReason('');
+    void load();
   };
 
   const STATUS_ICONS: Record<BroadcastStatus, typeof Clock> = {
@@ -120,6 +133,11 @@ function Content() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
+      ) : loadError ? (
+        <Card><CardContent className="py-8 text-center space-y-3">
+          <p role="alert" className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => void load()}>Retry</Button>
+        </CardContent></Card>
       ) : broadcasts.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No broadcasts yet</CardContent></Card>
       ) : (
@@ -156,13 +174,13 @@ function Content() {
                     </div>
                     <div className="flex flex-col gap-1">
                       {b.status === 'pending_approval' && (
-                        <Button size="sm" variant="outline" onClick={() => handleApprove(b)}><Check className="mr-1 h-3 w-3" /> Approve</Button>
+                        <Button size="sm" variant="outline" onClick={() => { setActionReason(''); setPendingAction({ broadcast: b, kind: 'approve' }); }}><Check className="mr-1 h-3 w-3" /> Approve</Button>
                       )}
                       {b.status === 'approved' && (
-                        <Button size="sm" onClick={() => handleSend(b)}><Send className="mr-1 h-3 w-3" /> Send</Button>
+                        <Button size="sm" onClick={() => { setActionReason(''); setPendingAction({ broadcast: b, kind: 'send' }); }}><Send className="mr-1 h-3 w-3" /> Send</Button>
                       )}
                       {(b.status === 'draft' || b.status === 'pending_approval') && (
-                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => handleCancel(b)}><X className="mr-1 h-3 w-3" /> Cancel</Button>
+                        <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { setActionReason(''); setPendingAction({ broadcast: b, kind: 'cancel' }); }}><X className="mr-1 h-3 w-3" /> Cancel</Button>
                       )}
                     </div>
                   </div>
@@ -225,6 +243,34 @@ function Content() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={pendingAction !== null} onOpenChange={open => { if (!open && !actionSaving) setPendingAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pendingAction?.kind === 'approve' ? 'Approve broadcast?' : pendingAction?.kind === 'send' ? 'Queue broadcast delivery?' : 'Cancel broadcast?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction?.kind === 'send'
+                ? `This will queue “${pendingAction.broadcast.title}” for trusted delivery to ${pendingAction.broadcast.target_audience.replace(/_/g, ' ')} through ${pendingAction.broadcast.channels.map(channel => CHANNEL_LABELS[channel as keyof typeof CHANNEL_LABELS] || channel).join(', ')}.`
+                : pendingAction?.kind === 'approve'
+                  ? `Approve “${pendingAction.broadcast.title}” for delivery review. Approval does not itself send the broadcast.`
+                  : `Cancel “${pendingAction?.broadcast.title || ''}”. It will no longer be eligible for delivery.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pendingAction && <div className="max-h-32 overflow-y-auto rounded-md border p-3 text-sm"><p className="font-medium">Message preview</p><p className="mt-1 whitespace-pre-wrap">{pendingAction.broadcast.body}</p></div>}
+          <div className="space-y-1.5">
+            <Label htmlFor="broadcast-action-reason">Reason (required, 10–1000 characters)</Label>
+            <Textarea id="broadcast-action-reason" rows={3} maxLength={1000} value={actionReason} onChange={event => setActionReason(event.target.value)} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionSaving || actionReason.trim().length < 10 || actionReason.trim().length > 1000} onClick={event => { event.preventDefault(); void confirmAction(); }}>
+              {actionSaving ? 'Saving…' : pendingAction?.kind === 'send' ? 'Confirm and queue' : pendingAction?.kind === 'approve' ? 'Confirm approval' : 'Confirm cancellation'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

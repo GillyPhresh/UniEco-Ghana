@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,10 +8,12 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { getAdminPayments, exportToCsv } from '@/lib/data/payment-client';
+import { getAdminPayments } from '@/lib/data/payment-client';
+import { downloadAdminCsv } from '@/lib/data/admin-export-client';
 import type { AdminPayment } from '@/lib/types/payment';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
 import { CreditCard, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function AdminPaymentsPage() {
   return (
@@ -25,24 +27,37 @@ function Content() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('all');
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const pageSize = 20;
 
-  useEffect(() => { loadPayments(); }, [page, filter]);
-
-  async function loadPayments() {
+  const loadPayments = useCallback(async () => {
     setLoading(true);
-    const { payments, total } = await getAdminPayments({ status: filter, limit: pageSize, offset: page * pageSize });
-    setPayments(payments);
-    setTotal(total);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      const result = await getAdminPayments({ status: filter, limit: pageSize, offset: page * pageSize });
+      setPayments(result.payments);
+      setTotal(result.total);
+    } catch {
+      setPayments([]);
+      setTotal(0);
+      setLoadError('Unable to load payments. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, page]);
 
-  const handleExport = () => {
-    exportToCsv(payments.map(p => ({
-      reference: p.payment_reference || '', provider: p.provider, type: p.payment_type,
-      user: p.user?.full_name || p.user?.email || '', amount: p.amount, currency: p.currency,
-      status: p.status, date: p.created_at,
-    })), 'payments');
+  useEffect(() => { void loadPayments(); }, [loadPayments]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadAdminCsv('payments', filter);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to create payment export.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -54,7 +69,9 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} transactions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || loading || !!loadError}>
+          <Download className="mr-2 h-4 w-4" /> {exporting ? 'Preparing…' : 'Export'}
+        </Button>
       </div>
 
       <Tabs value={filter} onValueChange={v => { setFilter(v); setPage(0); }}>
@@ -72,6 +89,11 @@ function Content() {
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : loadError ? (
+            <div className="py-8 text-center space-y-3">
+              <p role="alert" className="text-sm text-destructive">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => void loadPayments()}>Retry</Button>
+            </div>
           ) : payments.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No payments found</div>
           ) : (

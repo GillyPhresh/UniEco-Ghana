@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -15,6 +15,7 @@ import { Filter, X, Search, SlidersHorizontal } from 'lucide-react';
 import { ALL_CATEGORIES, CATEGORY_ICONS } from '@/lib/constants/categories';
 import type { VendorWithRelations } from '@/lib/types/extended';
 import { cn } from '@/lib/utils';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 
 const SORT_OPTIONS = [
   { value: 'rating', label: 'Top rated' },
@@ -32,6 +33,10 @@ const REGIONS = [
 const ALL_FILTER_VALUE = '__all__';
 
 export default function DiscoverPage() {
+  return <Suspense fallback={<main className="container py-8">Loading businesses…</main>}><DiscoverContent /></Suspense>;
+}
+
+function DiscoverContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
   const initialQuery = searchParams.get('q') || '';
@@ -68,8 +73,9 @@ export default function DiscoverPage() {
       if (category) query = query.eq('business_type', category);
       if (universityFilter) query = query.eq('university_id', universityFilter);
       if (verifiedOnly) query = query.eq('is_verified', true);
-      if (searchQuery) {
-        query = query.or(`business_name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+      const safeSearchQuery = normalizeSearchTerm(searchQuery);
+      if (safeSearchQuery) {
+        query = query.or(`business_name.ilike.%${safeSearchQuery}%,description.ilike.%${safeSearchQuery}%`);
       }
 
       if (sortBy === 'rating') query = query.order('rating_avg', { ascending: false });

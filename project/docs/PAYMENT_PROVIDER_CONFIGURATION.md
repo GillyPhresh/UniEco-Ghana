@@ -3,17 +3,18 @@
 ## Staging-first workflow
 
 Use a separate Supabase project for staging. Its Project URL and publishable
-key belong in `.env.staging.local` with `UNIECO_ENV=staging`; do not replace
-the production `.env` values. This file is a local operator configuration and
-must remain untracked.
+key belong in `.env.staging.local` with `UNIECO_ENV=staging`. Do not keep a
+default `.env` that targets production or the protected legacy project. The
+staging file is a local operator configuration and must remain untracked.
 
-The protected Bolt database remains the default legacy configuration in `.env`.
-It is not staging or production. Use `npm.cmd run dev:staging`,
+Use `npm.cmd run dev:staging`,
 `npm.cmd run build:staging`, and `npm.cmd run start:staging` for the dedicated
 staging project. These commands validate the staging project reference before
-starting Next.js and prevent Supabase variables from falling back to `.env`.
-Use `npm.cmd run env:check:default` and `npm.cmd run env:check:staging` to
-verify the two local environment boundaries without contacting either database.
+starting Next.js and remove inherited platform/provider configuration before
+loading the explicit staging environment. Live Paystack is rejected outside a
+production process. Use `npm.cmd run env:check:default` and
+`npm.cmd run env:check:staging` to verify local environment boundaries without
+contacting a database.
 
 Before applying migrations, link the Supabase CLI to the staging project and
 confirm `supabase migration list` identifies that project. Authentication for

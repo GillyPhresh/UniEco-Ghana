@@ -1,0 +1,14 @@
+# Root recovery workspace exclusions
+/node_modules/
+/.next/
+/recovery-artifacts/
+/recovery-tools/
+/supabase/
+
+# Local environment and generated files
+.env
+.env.*
+!.env.example
+*.log
+*.tsbuildinfo
+.smoke-next.*

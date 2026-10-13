@@ -49,21 +49,27 @@ test('browser payment and checkout clients cannot confirm payments or issue fina
   assert.match(vendors, /Subscriptions activate only after a verified provider payment/);
 });
 
-test('deferred referral and wallet features have no active browser database client', async () => {
-  const [payments, studentReferrals, vendorReferrals, adminReferrals, vendorNavigation, adminNavigation] = await Promise.all([
+test('referral UI uses trusted summary RPCs and never writes financial tables directly', async () => {
+  const [payments, studentReferrals, studentApi, adminReferrals, adminApi, migration] = await Promise.all([
     read('lib/data/payment-client.ts'),
     read('app/dashboard/referrals/page.tsx'),
-    read('app/vendor-dashboard/referrals/page.tsx'),
+    read('app/api/student-referrals/me/route.ts'),
     read('app/admin/referrals/page.tsx'),
-    read('components/vendor/vendor-dashboard-layout.tsx'),
-    read('lib/types/admin.ts'),
+    read('app/api/admin/student-referrals/route.ts'),
+    read('supabase/migrations/20261001090000_0105_student_registration_referrals.sql'),
   ]);
-  for (const source of [payments, studentReferrals, vendorReferrals, adminReferrals]) {
-    assert.doesNotMatch(source, /\.from\('(referrals|referral_rewards|wallets|wallet_transactions)'\)/);
-    assert.doesNotMatch(source, /reward_amount/);
+  assert.match(studentApi, /rpc\('get_my_referral_summary'/);
+  assert.match(adminApi, /rpc\('get_admin_student_referral_overview'/);
+  assert.match(studentReferrals, /\/api\/student-referrals\/me/);
+  assert.match(adminReferrals, /\/api\/admin\/student-referrals/);
+  for (const source of [payments, studentReferrals, studentApi, adminReferrals, adminApi]) {
+    assert.doesNotMatch(source, /\.from\('(student_referral_rewards|student_referral_payouts|payments)'\)\s*\.(insert|update|delete)/);
   }
-  assert.doesNotMatch(vendorNavigation, /vendor-dashboard\/referrals/);
-  assert.doesNotMatch(adminNavigation, /admin\/referrals/);
+  assert.match(migration, /UNIQUE REFERENCES public\.payments\(id\)/);
+  assert.match(migration, /referrer_user_id\s*<>\s*referred_user_id/);
+  assert.match(migration, /available_at timestamptz NOT NULL/);
+  assert.match(migration, /payout_pending/);
+  assert.match(migration, /Super administrator access required/);
 });
 
 test('webhook and message attachments require protected server-side verification', async () => {

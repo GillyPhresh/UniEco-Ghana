@@ -10,6 +10,7 @@ import type {
   Location,
 } from '@/lib/types';
 import { CATEGORY_ICONS, ALL_CATEGORIES } from '@/lib/constants/categories';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 import type { VendorWithRelations } from '@/lib/types/extended';
 
 export { CATEGORY_ICONS, ALL_CATEGORIES };
@@ -21,14 +22,25 @@ export interface BusinessWithRelations extends Business {
   location?: Location | null;
 }
 
-export async function getUniversities() {
+export async function getUniversities(limit?: number) {
   const supabase = await createClient();
   const { data } = await supabase
     .from('universities')
-    .select('id, name, short_name, slug, city, region, logo_url, hero_image_url, logo_alt_text, description, is_enabled')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, description, institution_type, campus_launch_status, is_enabled')
+    .eq('is_enabled', true)
+    .order('name')
+    .limit(limit || 1000);
+  return data as Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'institution_type' | 'campus_launch_status' | 'is_enabled'>[];
+}
+
+export async function getUniversityDirectory() {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('universities')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, university_aliases(alias)')
     .eq('is_enabled', true)
     .order('name');
-  return data as Pick<University, 'id' | 'name' | 'short_name' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'description' | 'is_enabled'>[];
+  return (data || []) as Array<Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'institution_type' | 'ownership_type' | 'campus_launch_status' | 'is_verified'> & { university_aliases: Array<{ alias: string }> }>;
 }
 
 export async function getUniversityBySlug(slug: string) {
@@ -251,26 +263,29 @@ export async function getCategoryCounts() {
 }
 
 export async function searchAll(query: string, limit = 20) {
+  const safeQuery = normalizeSearchTerm(query);
+  const safeLimit = Number.isFinite(limit) ? Math.min(20, Math.max(1, Math.trunc(limit))) : 20;
+  if (!safeQuery) return { vendors: [], products: [], events: [] };
   const supabase = await createClient();
   const [vendorsResult, productsResult, eventsResult] = await Promise.all([
     supabase
       .from('vendors')
       .select(`id, business_name, business_slug, business_type, description, rating_avg, rating_count, is_verified, is_student_business, university:universities(id, name, short_name, slug)`)
       .eq('is_active', true)
-      .or(`business_name.ilike.%${query}%,description.ilike.%${query}%,business_type.ilike.%${query}%`)
-      .limit(limit),
+      .or(`business_name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%,business_type.ilike.%${safeQuery}%`)
+      .limit(safeLimit),
     supabase
       .from('products')
       .select(`id, name, slug, description, price, currency, image_url, business:businesses(id, name, slug, vendor_id)`)
       .eq('is_active', true)
-      .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
-      .limit(limit),
+      .or(`name.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
+      .limit(safeLimit),
     supabase
       .from('events')
       .select(`id, title, slug, description, start_time, location, university:universities(id, name, short_name, slug)`)
       .eq('is_published', true)
-      .or(`title.ilike.%${query}%,description.ilike.%${query}%`)
-      .limit(limit),
+      .or(`title.ilike.%${safeQuery}%,description.ilike.%${safeQuery}%`)
+      .limit(safeLimit),
   ]);
   return {
     vendors: vendorsResult.data || [],

@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/lib/auth/auth-context';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { getVendorVerifications, approveVendor, rejectVendor, suspendVendor, restoreVendor } from '@/lib/data/admin-client';
-import type { AdminVendor } from '@/lib/types/admin';
+import type { VendorVerificationQueueItem } from '@/lib/types/admin';
 import { Check, X, Store, Ban, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,55 +23,69 @@ export default function VendorVerificationPage() {
 }
 
 function Content() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canManageVendors = isSuperAdmin || user?.role === 'university_admin';
   const [loading, setLoading] = useState(true);
-  const [vendors, setVendors] = useState<AdminVendor[]>([]);
+  const [vendors, setVendors] = useState<VendorVerificationQueueItem[]>([]);
   const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState('unverified');
-  const [selected, setSelected] = useState<AdminVendor | null>(null);
+  const [selected, setSelected] = useState<VendorVerificationQueueItem | null>(null);
   const [rejectMode, setRejectMode] = useState(false);
   const [reason, setReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+  const [pendingStatusAction, setPendingStatusAction] = useState<'approve' | 'reject' | 'suspend' | 'restore' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { loadVendors(); }, [filter]);
-
-  async function loadVendors() {
+  const loadVendors = useCallback(async () => {
     setLoading(true);
-    const { vendors, total } = await getVendorVerifications({ status: filter, limit: 30 });
-    setVendors(vendors);
-    setTotal(total);
-    setLoading(false);
-  }
+    setError(null);
+    try {
+      const result = await getVendorVerifications({ status: filter, limit: 30 });
+      setVendors(result.vendors);
+      setTotal(result.total);
+    } catch {
+      setVendors([]);
+      setTotal(0);
+      setError('Unable to load vendor verifications. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
 
-  const handleApprove = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await approveVendor(selected.id);
-    if (error) { toast.error(error); } else { toast.success('Vendor approved'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
+  useEffect(() => { void loadVendors(); }, [loadVendors]);
+
+  const requestStatusAction = (action: NonNullable<typeof pendingStatusAction>) => {
+    if (!selected || reason.trim().length < 10 || reason.trim().length > 500) return;
+    setPendingStatusAction(action);
   };
 
-  const handleReject = async () => {
-    if (!selected || !reason.trim()) { toast.error('Please provide a reason'); return; }
+  const confirmStatusAction = async () => {
+    if (!selected || !pendingStatusAction) return;
+    const action = pendingStatusAction;
     setActionLoading(true);
-    const { error } = await rejectVendor(selected.id, reason);
-    if (error) { toast.error(error); } else { toast.success('Vendor rejected'); setRejectMode(false); setSelected(null); setReason(''); loadVendors(); }
-    setActionLoading(false);
-  };
-
-  const handleSuspend = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await suspendVendor(selected.id, 'Suspended by admin');
-    if (error) { toast.error(error); } else { toast.success('Vendor suspended'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
-  };
-
-  const handleRestore = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await restoreVendor(selected.id);
-    if (error) { toast.error(error); } else { toast.success('Vendor restored'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
+    try {
+      const result = action === 'approve'
+        ? await approveVendor(selected.id, reason.trim())
+        : action === 'reject'
+          ? await rejectVendor(selected.id, reason.trim())
+        : action === 'suspend'
+          ? await suspendVendor(selected.id, reason.trim())
+          : await restoreVendor(selected.id, reason.trim());
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success(action === 'approve' ? 'Vendor approved' : action === 'reject' ? 'Vendor rejected' : action === 'suspend' ? 'Vendor suspended' : 'Vendor restored');
+        setSelected(null);
+        setRejectMode(false);
+        setReason('');
+        void loadVendors();
+      }
+    } catch {
+      toast.error('Unable to complete this vendor action. Please retry.');
+    } finally {
+      setPendingStatusAction(null);
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -78,7 +94,7 @@ function Content() {
         <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
           <Store className="h-6 w-6 text-primary" /> Vendor Verification Center
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">{total} vendors</p>
+        <p className="mt-1 text-sm text-muted-foreground">{total} vendors{user?.role === 'university_admin' ? ' in your assigned university scope' : ''}</p>
       </div>
 
       <Tabs value={filter} onValueChange={setFilter}>
@@ -91,13 +107,15 @@ function Content() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+      ) : error ? (
+        <Card><CardContent className="space-y-3 py-12 text-center text-sm text-muted-foreground"><p>{error}</p><Button variant="outline" size="sm" onClick={loadVendors}>Retry</Button></CardContent></Card>
       ) : vendors.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No vendors found</CardContent></Card>
       ) : (
         <div className="space-y-2">
           {vendors.map(v => (
-            <Card key={v.id} className="cursor-pointer hover:border-primary/30 transition-colors">
-              <CardContent className="flex items-center gap-3 p-4" onClick={() => { setSelected(v); setRejectMode(false); }}>
+              <Card key={v.id} className="cursor-pointer hover:border-primary/30 transition-colors">
+              <CardContent className="flex items-center gap-3 p-4" onClick={() => { setSelected(v); setRejectMode(false); setReason(''); }}>
                 <div className="h-10 w-10 overflow-hidden rounded-full bg-primary/10 flex items-center justify-center">
                   {v.logo_url ? <img src={v.logo_url} alt="" className="h-full w-full object-cover" /> : <Store className="h-5 w-5 text-primary" />}
                 </div>
@@ -134,18 +152,20 @@ function Content() {
 
               {rejectMode ? (
                 <div className="space-y-3">
-                  <Textarea rows={3} placeholder="Reason for rejection..." value={reason} onChange={e => setReason(e.target.value)} />
+                  <Textarea rows={3} minLength={10} maxLength={500} placeholder="Reason for rejection or verification revocation (10–500 characters)..." value={reason} onChange={e => setReason(e.target.value)} aria-label="Vendor verification decision reason" />
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1" onClick={() => setRejectMode(false)}>Cancel</Button>
-                    <Button variant="destructive" className="flex-1" disabled={actionLoading || !reason.trim()} onClick={handleReject}>
-                      <X className="mr-2 h-4 w-4" /> Confirm rejection
+                    <Button variant="destructive" className="flex-1" disabled={actionLoading || reason.trim().length < 10 || reason.trim().length > 500} onClick={() => requestStatusAction('reject')}>
+                      <X className="mr-2 h-4 w-4" /> Review rejection
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="space-y-3">
+                  <Textarea rows={3} maxLength={500} minLength={10} placeholder="Reason for verification decision or status change (10–500 characters)..." value={reason} onChange={event => setReason(event.target.value)} aria-label="Vendor verification decision reason" />
+                  <div className="flex gap-2">
                   {!selected.is_verified && (
-                    <Button className="flex-1" disabled={actionLoading} onClick={handleApprove}>
+                    <Button className="flex-1" disabled={actionLoading || reason.trim().length < 10 || reason.trim().length > 500} onClick={() => requestStatusAction('approve')}>
                       <Check className="mr-2 h-4 w-4" /> Approve
                     </Button>
                   )}
@@ -154,21 +174,44 @@ function Content() {
                       <X className="mr-2 h-4 w-4" /> Revoke
                     </Button>
                   )}
-                  {selected.is_active ? (
-                    <Button variant="outline" className="flex-1 text-destructive" disabled={actionLoading} onClick={handleSuspend}>
+                  {canManageVendors && (selected.is_active ? (
+                    <Button variant="outline" className="flex-1 text-destructive" disabled={actionLoading || reason.trim().length < 10} onClick={() => requestStatusAction('suspend')}>
                       <Ban className="mr-2 h-4 w-4" /> Suspend
                     </Button>
                   ) : (
-                    <Button variant="outline" className="flex-1" disabled={actionLoading} onClick={handleRestore}>
+                    <Button variant="outline" className="flex-1" disabled={actionLoading || reason.trim().length < 10} onClick={() => requestStatusAction('restore')}>
                       <RotateCcw className="mr-2 h-4 w-4" /> Restore
                     </Button>
-                  )}
+                  ))}
+                  </div>
                 </div>
               )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={pendingStatusAction !== null} onOpenChange={open => { if (!open && !actionLoading) setPendingStatusAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm vendor {pendingStatusAction === 'approve' ? 'approval' : pendingStatusAction === 'reject' ? (selected?.is_verified ? 'verification revocation' : 'rejection') : pendingStatusAction === 'suspend' ? 'suspension' : 'restoration'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatusAction === 'approve'
+                ? `Approve ${selected?.business_name || 'this vendor'} for verification? This decision will be recorded with your reason.`
+                : pendingStatusAction === 'reject'
+                  ? selected?.is_verified
+                    ? `Revoke verification for ${selected.business_name}? This decision and your reason will be recorded.`
+                    : `Reject ${selected?.business_name || 'this vendor'}'s verification request? This decision and your reason will be recorded.`
+                  : `${pendingStatusAction === 'suspend' ? 'Suspend' : 'Restore'} ${selected?.business_name || 'this vendor'}? Marketplace availability may change. This decision will be audited.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionLoading} onClick={event => { event.preventDefault(); void confirmStatusAction(); }}>
+              {actionLoading ? 'Saving…' : pendingStatusAction === 'approve' ? 'Confirm approval' : pendingStatusAction === 'reject' ? (selected?.is_verified ? 'Confirm revocation' : 'Confirm rejection') : pendingStatusAction === 'suspend' ? 'Confirm suspension' : 'Confirm restoration'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

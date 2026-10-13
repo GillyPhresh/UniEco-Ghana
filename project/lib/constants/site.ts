@@ -4,7 +4,7 @@ export const siteConfig = {
   tagline: 'Connecting Students, Businesses & Opportunities.',
   description:
     'UniEco Ghana is the campus commerce and community platform connecting students, businesses, and opportunities across every tertiary institution in Ghana.',
-  url: 'https://unieco.gh',
+  url: process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://uniecoghana.up.railway.app',
   locale: 'en_GH',
   keywords: [
     'UniEco Ghana',

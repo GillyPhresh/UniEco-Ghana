@@ -69,12 +69,29 @@ export interface InvoiceItem {
   created_at: string;
 }
 
-export interface AdminPayment extends PaymentRecord {
+export interface AdminPayment {
+  id: string;
+  payment_reference: string | null;
+  provider: string | null;
+  payment_type: string;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at: string;
   user?: { full_name: string | null; email: string } | null;
-  vendor?: { business_name: string } | null;
 }
 
-export interface AdminInvoice extends Invoice {
+export interface AdminInvoice {
+  id: string;
+  invoice_number: string;
+  vendor_id: string | null;
+  invoice_type: string;
+  amount: number;
+  currency: string;
+  tax_amount: number;
+  total_amount: number;
+  status: string;
+  created_at: string;
   user?: { full_name: string | null; email: string } | null;
   vendor?: { business_name: string } | null;
 }
@@ -115,6 +132,22 @@ export interface Refund {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  payment?: { payment_reference: string | null; amount: number; status: string } | null;
+  user?: { full_name: string | null; email: string } | null;
+  vendor?: { business_name: string } | null;
+}
+
+export interface AdminRefund {
+  id: string;
+  refund_number: string | null;
+  payment_id: string;
+  user_id: string;
+  vendor_id: string | null;
+  amount: number;
+  currency: string;
+  reason: string | null;
+  status: string;
+  created_at: string;
   payment?: { payment_reference: string | null; amount: number; status: string } | null;
   user?: { full_name: string | null; email: string } | null;
   vendor?: { business_name: string } | null;
@@ -168,6 +201,7 @@ export interface AdminFinancialSummary {
   pendingRefunds: number;
   monthlyData: Array<{ month: string; revenue: number }>;
   revenueByType: Array<{ type: string; revenue: number }>;
+  universityRevenue: Array<{ name: string; revenue: number; count: number }>;
 }
 
 export interface Coupon {

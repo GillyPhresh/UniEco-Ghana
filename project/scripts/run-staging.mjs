@@ -31,13 +31,14 @@ if (action === 'check') {
 }
 
 const environment = { ...process.env };
-for (const key of [
-  'UNIECO_ENV',
-  'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-  'SUPABASE_URL',
-]) delete environment[key];
+// Never let a staging process inherit production Supabase, payment, or provider
+// credentials from the caller's shell. Only explicitly staging-file values
+// are reintroduced below.
+for (const key of Object.keys(environment)) {
+  if (/^(UNIECO_|NEXT_PUBLIC_|SUPABASE_|PAYSTACK_|FLUTTERWAVE_|RESEND_|BREVO_|SENDGRID_|HUBTEL_|TWILIO_|WHATSAPP_|VAPID_)/.test(key)) {
+    delete environment[key];
+  }
+}
 Object.assign(environment, stagingValues);
 
 let nextBinary;

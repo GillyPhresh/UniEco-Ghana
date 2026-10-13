@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Keep build tracing inside this app; the workspace parent has a separate lockfile.
+  outputFileTracingRoot: __dirname,
   images: { unoptimized: true },
   experimental: {
     workerThreads: false,

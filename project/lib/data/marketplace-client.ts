@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase/client';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 import type { Order, OrderItem, OrderStatus, DeliveryMethod, Product, Service, DeliveryAddress } from '@/lib/types';
 import type {
   Cart, CartItem, CartWithItems, OrderWithDetails, OrderStatusHistory,
@@ -319,7 +320,7 @@ export async function searchProducts(params: {
   sort?: string;
   limit?: number;
   offset?: number;
-}): Promise<{ products: (Product & { vendor?: { business_name: string; business_slug: string; logo_url: string | null } })[]; total: number }> {
+}): Promise<{ products: (Product & { vendor?: { business_name: string; business_slug: string; logo_url: string | null } })[]; total: number; error: boolean }> {
   let query = supabase
     .from('products')
     .select(`
@@ -332,8 +333,9 @@ export async function searchProducts(params: {
     .eq('is_archived', false)
     .gt('stock', 0);
 
-  if (params.query) {
-    query = query.or(`name.ilike.%${params.query}%,description.ilike.%${params.query}%`);
+  const searchTerm = normalizeSearchTerm(params.query || '');
+  if (searchTerm) {
+    query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
   }
 
   if (params.category) {
@@ -361,9 +363,11 @@ export async function searchProducts(params: {
   const offset = params.offset || 0;
   query = query.range(offset, offset + limit - 1);
 
-  const { data, count } = await query;
+  const { data, count, error } = await query;
 
-  if (!data) return { products: [], total: 0 };
+  if (error) return { products: [], total: 0, error: true };
+
+  if (!data) return { products: [], total: 0, error: false };
 
   const products = data.map((p: Record<string, unknown>) => {
     const business = p.business as Record<string, unknown> | null;
@@ -372,7 +376,7 @@ export async function searchProducts(params: {
     return { ...(p as unknown as Product), vendor: vendor ? { business_name: vendor.business_name as string, business_slug: vendor.business_slug as string, logo_url: vendor.logo_url as string | null } : undefined };
   });
 
-  return { products, total: count || 0 };
+  return { products, total: count || 0, error: false };
 }
 
 // ============================================================

@@ -49,20 +49,10 @@ export function AuthLayout({
             The campus marketplace built for every tertiary institution in Ghana.
             Join your campus community today.
           </p>
-          <div className="flex gap-8">
-            <div>
-              <p className="font-display text-2xl font-bold">1,200+</p>
-              <p className="text-sm text-primary-foreground/70">Students</p>
-            </div>
-            <div>
-              <p className="font-display text-2xl font-bold">85+</p>
-              <p className="text-sm text-primary-foreground/70">Vendors</p>
-            </div>
-            <div>
-              <p className="font-display text-2xl font-bold">1</p>
-              <p className="text-sm text-primary-foreground/70">University</p>
-            </div>
-          </div>
+          <p className="max-w-md text-sm text-primary-foreground/70">
+            Start with your verified university profile and discover campus businesses,
+            services, products, and events as UniEco launches across Ghana.
+          </p>
         </div>
 
         <div className="relative text-sm text-primary-foreground/60">

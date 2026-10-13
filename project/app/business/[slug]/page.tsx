@@ -14,11 +14,12 @@ import {
 import { siteConfig } from '@/lib/constants/site';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const vendor = await getVendorBySlug(params.slug);
+  const { slug } = await params;
+  const vendor = await getVendorBySlug(slug);
   if (!vendor) {
     return {
       title: 'Business not found',
@@ -48,7 +49,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
-  const vendor = await getVendorBySlug(params.slug);
+  const { slug } = await params;
+  const vendor = await getVendorBySlug(slug);
   if (!vendor) notFound();
 
   const [location, products, services, reviews, relatedVendors] = await Promise.all([

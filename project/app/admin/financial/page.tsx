@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
-import { getRevenueStats, getRevenueByUniversity, exportToCsv } from '@/lib/data/payment-client';
+import { getRevenueStats } from '@/lib/data/payment-client';
 import type { AdminFinancialSummary } from '@/lib/types/payment';
 import { Wallet, Download, TrendingUp, DollarSign, CreditCard, Megaphone, AlertCircle, Clock, RotateCcw, ShoppingCart, Building2 } from 'lucide-react';
 
@@ -22,21 +22,44 @@ export default function AdminFinancialPage() {
 function Content() {
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<AdminFinancialSummary | null>(null);
-  const [uniRevenue, setUniRevenue] = useState<Array<{ name: string; revenue: number; count: number }>>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
-    const [data, uniData] = await Promise.all([getRevenueStats(), getRevenueByUniversity()]);
-    setSummary(data);
-    setUniRevenue(uniData);
-    setLoading(false);
+    setError(null);
+    try {
+      setSummary(await getRevenueStats());
+    } catch {
+      setSummary(null);
+      setError('Unable to load financial data. Check your access and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  const handleExport = () => {
-    if (!summary) return;
-    exportToCsv(summary.monthlyData.map(d => ({ month: d.month, revenue: d.revenue.toFixed(2) })), 'revenue');
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/admin/financial/export', { method: 'POST', credentials: 'same-origin' });
+      if (!response.ok) throw new Error('Export unavailable');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'unieco-financial-summary.csv';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Unable to create financial export. Check your access and try again.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const chartConfig = {
@@ -46,12 +69,22 @@ function Content() {
     marketplace: { label: 'Marketplace', color: 'hsl(var(--info))' },
   };
 
-  if (loading || !summary) {
+  if (loading) {
     return (
       <div className="p-6 space-y-4 max-w-5xl">
         <Skeleton className="h-8 w-48" />
         <div className="grid gap-4 sm:grid-cols-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
         <Skeleton className="h-80 rounded-xl" />
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div className="p-6 max-w-5xl space-y-4" role="alert">
+        <h1 className="text-xl font-semibold">Financial Dashboard</h1>
+        <p className="text-sm text-destructive">{error || 'Unable to load financial data.'}</p>
+        <Button variant="outline" onClick={loadData}>Retry</Button>
       </div>
     );
   }
@@ -65,8 +98,11 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Revenue overview and financial reporting</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+          <Download className="mr-2 h-4 w-4" /> {exporting ? 'Preparing…' : 'Export'}
+        </Button>
       </div>
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       {/* Revenue cards */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -173,9 +209,7 @@ function Content() {
               <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><CreditCard className="h-3.5 w-3.5" /> Subscription revenue</span><span className="font-medium">GH₵{summary.subscriptionRevenue.toFixed(2)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><Megaphone className="h-3.5 w-3.5" /> Advertisement revenue</span><span className="font-medium">GH₵{summary.adRevenue.toFixed(2)}</span></div>
               <div className="flex justify-between"><span className="text-muted-foreground flex items-center gap-2"><ShoppingCart className="h-3.5 w-3.5" /> Marketplace revenue</span><span className="font-medium">GH₵{summary.marketplaceRevenue.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Refund summaries</span><span className="font-medium">GH₵0.00 (future)</span></div>
               <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">Total revenue</span><span className="font-bold text-primary">GH₵{summary.totalRevenue.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Projected annual revenue</span><span className="font-medium">GH₵{(summary.monthlyRevenue * 12).toFixed(2)}</span></div>
             </div>
           </CardContent>
         </Card>
@@ -184,9 +218,9 @@ function Content() {
         <Card>
           <CardHeader><CardTitle className="text-sm font-semibold flex items-center gap-2"><Building2 className="h-4 w-4 text-primary" /> Revenue by University</CardTitle></CardHeader>
           <CardContent>
-            {uniRevenue.length > 0 ? (
+            {summary.universityRevenue.length > 0 ? (
               <div className="space-y-2 text-sm">
-                {uniRevenue.map((u, i) => (
+                {summary.universityRevenue.map((u, i) => (
                   <div key={i} className="flex justify-between items-center">
                     <div>
                       <span className="text-foreground">{u.name}</span>

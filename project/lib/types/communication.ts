@@ -304,6 +304,20 @@ export interface CommunicationLog {
   created_at: string;
 }
 
+/** Privacy-minimized row returned only by the admin communication RPC. */
+export interface AdminCommunicationLog {
+  id: string;
+  event_type: string;
+  channel: CommunicationChannel;
+  status: string;
+  provider: string | null;
+  has_recipient: boolean;
+  /** Presentation-only label; the underlying identifier is never returned. */
+  recipient_identifier: string | null;
+  created_at: string;
+  total_count: number;
+}
+
 // ============================================================
 // Push Subscriptions
 // ============================================================

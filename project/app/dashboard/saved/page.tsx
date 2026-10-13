@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -28,7 +28,9 @@ const TAB_MAP: Record<string, ItemType> = {
 export default function SavedItemsPage() {
   return (
     <RouteGuard requireAuth>
-      <SavedItemsContent />
+      <Suspense fallback={<main className="container py-8">Loading saved items…</main>}>
+        <SavedItemsContent />
+      </Suspense>
     </RouteGuard>
   );
 }

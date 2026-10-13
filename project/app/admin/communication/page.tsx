@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import {
   getCommunicationLogs, getCommunicationStats,
 } from '@/lib/data/communication-client';
-import type { CommunicationLog } from '@/lib/types/communication';
+import type { AdminCommunicationLog } from '@/lib/types/communication';
 import { CHANNEL_LABELS, DELIVERY_STATUS_LABELS } from '@/lib/types/communication';
 import {
   Mail, Bell, Smartphone, MessageCircle, Phone, Send,
@@ -47,30 +47,41 @@ export default function CommunicationDashboardPage() {
 
 function Content() {
   const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<CommunicationLog[]>([]);
+  const [logs, setLogs] = useState<AdminCommunicationLog[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [offset, setOffset] = useState(0);
+  const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ total: 0, byChannel: {} as Record<string, number>, byStatus: {} as Record<string, number>, failed: 0 });
   const [filters, setFilters] = useState({ channel: '', status: '', eventType: '' });
 
   const loadData = useCallback(async () => {
     setLoading(true);
-    const [logData, statData] = await Promise.all([
-      getCommunicationLogs({
-        channel: filters.channel || undefined,
-        status: filters.status || undefined,
-        eventType: filters.eventType || undefined,
-        limit: 50,
-      }),
-      getCommunicationStats(),
-    ]);
-    setLogs(logData);
-    setStats(statData);
-    setLoading(false);
-  }, [filters]);
+    setLoadError(null);
+    try {
+      const [logData, statData] = await Promise.all([
+        getCommunicationLogs({
+          channel: filters.channel || undefined,
+          status: filters.status || undefined,
+          eventType: filters.eventType || undefined,
+          limit: 50,
+          offset,
+        }),
+        getCommunicationStats(),
+      ]);
+      setLogs(logData.rows);
+      setTotal(logData.total);
+      setStats(statData);
+    } catch {
+      setLoadError('Unable to load communication operations. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, offset]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
   const channels = ['in_app', 'email', 'push', 'whatsapp', 'sms'];
-  const statuses = ['queued', 'sent', 'delivered', 'failed', 'opened', 'read'];
+  const statuses = ['queued', 'processing', 'sent', 'delivered', 'failed', 'cancelled', 'opened', 'read'];
 
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
@@ -89,7 +100,7 @@ function Content() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-muted-foreground">Total Sent</p>
+                <p className="text-xs text-muted-foreground">Total communications</p>
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
               </div>
               <Send className="h-8 w-8 text-primary/20" />
@@ -156,7 +167,7 @@ function Content() {
       <div className="flex flex-wrap gap-3 items-end">
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Channel</label>
-          <Select value={filters.channel || 'all'} onValueChange={(v) => setFilters((p) => ({ ...p, channel: v === 'all' ? '' : v }))}>
+          <Select value={filters.channel || 'all'} onValueChange={(v) => { setOffset(0); setFilters((p) => ({ ...p, channel: v === 'all' ? '' : v })); }}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All channels</SelectItem>
@@ -166,7 +177,7 @@ function Content() {
         </div>
         <div className="space-y-1">
           <label className="text-xs font-medium text-muted-foreground">Status</label>
-          <Select value={filters.status || 'all'} onValueChange={(v) => setFilters((p) => ({ ...p, status: v === 'all' ? '' : v }))}>
+          <Select value={filters.status || 'all'} onValueChange={(v) => { setOffset(0); setFilters((p) => ({ ...p, status: v === 'all' ? '' : v })); }}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
@@ -179,11 +190,12 @@ function Content() {
           <Input
             placeholder="e.g. order_placed"
             className="w-44"
+            maxLength={80}
             value={filters.eventType}
-            onChange={(e) => setFilters((p) => ({ ...p, eventType: e.target.value }))}
+            onChange={(e) => { setOffset(0); setFilters((p) => ({ ...p, eventType: e.target.value })); }}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={() => setFilters({ channel: '', status: '', eventType: '' })}>
+        <Button variant="outline" size="sm" onClick={() => { setOffset(0); setFilters({ channel: '', status: '', eventType: '' }); }}>
           Clear filters
         </Button>
       </div>
@@ -198,6 +210,11 @@ function Content() {
             <div className="space-y-2 p-4">
               {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
             </div>
+          ) : loadError ? (
+            <div role="alert" className="space-y-3 p-8 text-center text-sm text-destructive">
+              <p>{loadError}</p>
+              <Button variant="outline" onClick={() => void loadData()}>Retry</Button>
+            </div>
           ) : logs.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">
               No communication logs found
@@ -211,7 +228,7 @@ function Content() {
                     <th className="px-4 py-2 font-medium">Channel</th>
                     <th className="px-4 py-2 font-medium">Status</th>
                     <th className="px-4 py-2 font-medium">Provider</th>
-                    <th className="px-4 py-2 font-medium">Recipient</th>
+                    <th className="px-4 py-2 font-medium">Recipient (protected)</th>
                     <th className="px-4 py-2 font-medium">Time</th>
                   </tr>
                 </thead>
@@ -244,6 +261,13 @@ function Content() {
               </table>
             </div>
           )}
+          {!loading && !loadError && total > 0 && <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
+            <span>Showing {offset + 1}-{Math.min(offset + logs.length, total)} of {total}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</Button>
+              <Button variant="outline" size="sm" disabled={offset + logs.length >= total} onClick={() => setOffset(offset + 50)}>Next</Button>
+            </div>
+          </div>}
         </CardContent>
       </Card>
     </div>

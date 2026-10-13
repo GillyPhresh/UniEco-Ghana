@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { getAdminRefunds, approveRefund, rejectRefund, processRefund } from '@/lib/data/payment-client';
-import { useAuth } from '@/lib/auth/auth-context';
-import type { Refund } from '@/lib/types/payment';
+import { getAdminRefunds, approveRefund, rejectRefund } from '@/lib/data/payment-client';
+import type { AdminRefund } from '@/lib/types/payment';
 import { REFUND_STATUSES } from '@/lib/types/payment';
 import { RotateCcw, ChevronLeft, ChevronRight, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,52 +24,61 @@ export default function AdminRefundsPage() {
 }
 
 function Content() {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [refunds, setRefunds] = useState<Refund[]>([]);
+  const [refunds, setRefunds] = useState<AdminRefund[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [filter, setFilter] = useState('all');
-  const [selected, setSelected] = useState<Refund | null>(null);
-  const [action, setAction] = useState<'approve' | 'reject' | 'process' | null>(null);
+  const [selected, setSelected] = useState<AdminRefund | null>(null);
+  const [action, setAction] = useState<'approve' | 'reject' | null>(null);
   const [notes, setNotes] = useState('');
-  const [providerRef, setProviderRef] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const pageSize = 20;
 
-  useEffect(() => { loadRefunds(); }, [page, filter]);
-
-  async function loadRefunds() {
+  const loadRefunds = useCallback(async () => {
     setLoading(true);
-    const { refunds, total } = await getAdminRefunds({ status: filter, limit: pageSize, offset: page * pageSize });
-    setRefunds(refunds);
-    setTotal(total);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      const result = await getAdminRefunds({ status: filter, limit: pageSize, offset: page * pageSize });
+      setRefunds(result.refunds);
+      setTotal(result.total);
+    } catch {
+      setRefunds([]);
+      setTotal(0);
+      setLoadError('Unable to load refunds. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, page]);
 
-  function openAction(r: Refund, a: 'approve' | 'reject' | 'process') {
+  useEffect(() => { void loadRefunds(); }, [loadRefunds]);
+
+  function openAction(r: AdminRefund, a: 'approve' | 'reject') {
     setSelected(r);
     setAction(a);
     setNotes('');
-    setProviderRef('');
   }
 
   const handleAction = async () => {
-    if (!selected || !action || !user?.id) return;
+    if (!selected || !action || notes.trim().length < 10) return;
     setProcessing(true);
-    let result: { error: string | null };
-    if (action === 'approve') result = await approveRefund(selected.id, user.id, notes);
-    else if (action === 'reject') result = await rejectRefund(selected.id, user.id, notes);
-    else result = await processRefund(selected.id, providerRef);
-
-    if (result.error) { toast.error(result.error); }
-    else {
-      toast.success(`Refund ${action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'processed'}`);
-      setSelected(null);
-      setAction(null);
-      loadRefunds();
+    try {
+      const result = action === 'approve'
+        ? await approveRefund(selected.id, notes)
+        : await rejectRefund(selected.id, notes);
+      if (result.error) { toast.error(result.error); }
+      else {
+        toast.success(`Refund ${action === 'approve' ? 'approved' : 'rejected'}`);
+        setSelected(null);
+        setAction(null);
+        void loadRefunds();
+      }
+    } catch {
+      toast.error('Unable to review this refund. Please retry.');
+    } finally {
+      setProcessing(false);
     }
-    setProcessing(false);
   };
 
   return (
@@ -92,10 +100,19 @@ function Content() {
         </TabsList>
       </Tabs>
 
+      <p role="status" className="text-sm text-muted-foreground">
+        Refund approval and rejection are available. Provider refund execution is not configured; approved refunds cannot be marked processed here.
+      </p>
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : loadError ? (
+            <div className="py-8 text-center space-y-3">
+              <p role="alert" className="text-sm text-destructive">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => void loadRefunds()}>Retry</Button>
+            </div>
           ) : refunds.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No refund requests</div>
           ) : (
@@ -129,7 +146,7 @@ function Content() {
                           </>
                         )}
                         {r.status === 'approved' && (
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-primary" onClick={() => openAction(r, 'process')}>Process</Button>
+                          <span className="text-xs text-muted-foreground">Awaiting provider workflow</span>
                         )}
                       </div>
                     </TableCell>
@@ -156,7 +173,7 @@ function Content() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {action === 'approve' ? 'Approve Refund' : action === 'reject' ? 'Reject Refund' : 'Process Refund'}
+              {action === 'approve' ? 'Approve Refund' : 'Reject Refund'}
             </DialogTitle>
           </DialogHeader>
           {selected && (
@@ -167,26 +184,20 @@ function Content() {
                 <div className="flex justify-between mt-1"><span className="text-muted-foreground">User</span><span>{selected.user?.full_name || selected.user?.email}</span></div>
                 {selected.reason && <div className="mt-2 pt-2 border-t border-border"><span className="text-muted-foreground">Reason: </span><span>{selected.reason}</span></div>}
               </div>
-              {action === 'process' && (
-                <div className="space-y-1.5">
-                  <Label>Provider Reference</Label>
-                  <Textarea placeholder="Enter provider refund reference..." value={providerRef} onChange={e => setProviderRef(e.target.value)} rows={2} />
-                </div>
-              )}
               <div className="space-y-1.5">
-                <Label>Notes {action !== 'process' && '(optional)'}</Label>
-                <Textarea placeholder="Add notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
+                <Label>Review reason (required, at least 10 characters)</Label>
+                <Textarea maxLength={500} placeholder="Explain this refund decision..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => { setSelected(null); setAction(null); }}>Cancel</Button>
             <Button
-              disabled={processing || (action === 'process' && !providerRef)}
+              disabled={processing || notes.trim().length < 10}
               onClick={handleAction}
               variant={action === 'reject' ? 'destructive' : 'default'}
             >
-              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : action === 'approve' ? 'Approve' : action === 'reject' ? 'Reject' : 'Process'}
+              {processing ? <Loader2 className="h-4 w-4 animate-spin" /> : action === 'approve' ? 'Approve' : 'Reject'}
             </Button>
           </DialogFooter>
         </DialogContent>
