@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, AreaChart, Area, LineChart, Line } from 'recharts';
-import { getDailyActiveUsers, getOrderTrends, getUniversityGrowth, getCategoryPopularity } from '@/lib/data/admin-client';
+import { getAdminControlCenterSummary } from '@/lib/data/admin-client';
+import type { AdminControlCenterSummary } from '@/lib/types/admin';
 import { BarChart3, TrendingUp, Users, ShoppingBag } from 'lucide-react';
 
 export default function AdminAnalyticsPage() {
@@ -18,23 +18,22 @@ export default function AdminAnalyticsPage() {
 
 function Content() {
   const [loading, setLoading] = useState(true);
-  const [userTrends, setUserTrends] = useState<Array<{ date: string; count: number }>>([]);
-  const [orderTrends, setOrderTrends] = useState<Array<{ date: string; count: number }>>([]);
-  const [universityGrowth, setUniversityGrowth] = useState<Array<{ name: string; students: number; vendors: number; businesses: number }>>([]);
-  const [categoryData, setCategoryData] = useState<Array<{ category: string; count: number }>>([]);
+  const [summary, setSummary] = useState<AdminControlCenterSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     setLoading(true);
-    const [ut, ot, ug, cd] = await Promise.all([
-      getDailyActiveUsers(30), getOrderTrends(30), getUniversityGrowth(), getCategoryPopularity(),
-    ]);
-    setUserTrends(ut);
-    setOrderTrends(ot);
-    setUniversityGrowth(ug);
-    setCategoryData(cd);
-    setLoading(false);
+    setError(null);
+    try {
+      setSummary(await getAdminControlCenterSummary(30));
+    } catch {
+      setSummary(null);
+      setError('Unable to load analytics. Check your access and try again.');
+    } finally {
+      setLoading(false);
+    }
   }
 
   const chartConfig = {
@@ -54,6 +53,10 @@ function Content() {
     );
   }
 
+  if (!summary) {
+    return <div className="p-6 space-y-4" role="alert"><p className="text-sm text-destructive">{error || 'Unable to load analytics.'}</p><button className="text-sm underline" onClick={loadData}>Retry</button></div>;
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-7xl">
       <div>
@@ -67,9 +70,9 @@ function Content() {
         <Card>
           <CardHeader><CardTitle className="text-sm font-semibold flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> User Registration (30 days)</CardTitle></CardHeader>
           <CardContent>
-            {userTrends.length > 0 ? (
+            {summary.registrationTrend.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-64 w-full">
-                <AreaChart data={userTrends}>
+                <AreaChart data={summary.registrationTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
@@ -84,9 +87,9 @@ function Content() {
         <Card>
           <CardHeader><CardTitle className="text-sm font-semibold flex items-center gap-2"><ShoppingBag className="h-4 w-4 text-accent" /> Order Trends (30 days)</CardTitle></CardHeader>
           <CardContent>
-            {orderTrends.length > 0 ? (
+            {summary.orderTrend.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-64 w-full">
-                <LineChart data={orderTrends}>
+                <LineChart data={summary.orderTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
@@ -101,9 +104,9 @@ function Content() {
         <Card>
           <CardHeader><CardTitle className="text-sm font-semibold flex items-center gap-2"><TrendingUp className="h-4 w-4 text-success" /> University Growth</CardTitle></CardHeader>
           <CardContent>
-            {universityGrowth.length > 0 ? (
+            {summary.universityGrowth.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-64 w-full">
-                <BarChart data={universityGrowth}>
+                <BarChart data={summary.universityGrowth}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" tickFormatter={v => v.slice(0, 10)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
@@ -117,11 +120,11 @@ function Content() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle className="text-sm font-semibold">Category Popularity</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm font-semibold">Active Businesses by Category</CardTitle></CardHeader>
           <CardContent>
-            {categoryData.length > 0 ? (
+            {summary.businessCategories.length > 0 ? (
               <ChartContainer config={chartConfig} className="h-64 w-full">
-                <BarChart data={categoryData.slice(0, 10)} layout="vertical">
+                <BarChart data={summary.businessCategories.slice(0, 10)} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis type="number" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <YAxis type="category" dataKey="category" tickFormatter={v => v.slice(0, 12)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={100} />

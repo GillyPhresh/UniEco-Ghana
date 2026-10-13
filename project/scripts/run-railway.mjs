@@ -11,14 +11,21 @@ if (!environment || !supabaseUrl || !anonKey) {
   process.exit(1);
 }
 
-let projectRef;
+let parsedSupabaseUrl;
 try {
-  projectRef = new URL(supabaseUrl).hostname.split('.')[0];
+  parsedSupabaseUrl = new URL(supabaseUrl);
 } catch {
   console.error('Deployment startup rejected an invalid NEXT_PUBLIC_SUPABASE_URL.');
   process.exit(1);
 }
 
+const expectedProjectRef = environment === 'staging' ? STAGING_PROJECT_REF : PRODUCTION_PROJECT_REF;
+if (parsedSupabaseUrl.protocol !== 'https:' || parsedSupabaseUrl.hostname !== `${expectedProjectRef}.supabase.co` || parsedSupabaseUrl.username || parsedSupabaseUrl.password) {
+  console.error('Deployment startup rejected a Supabase URL outside the approved HTTPS project origin.');
+  process.exit(1);
+}
+
+const projectRef = parsedSupabaseUrl.hostname.split('.')[0];
 if (projectRef === BOLT_PROJECT_REF) {
   console.error('Deployment startup rejected the protected Bolt Supabase project.');
   process.exit(1);

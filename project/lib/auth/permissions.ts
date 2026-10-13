@@ -23,6 +23,8 @@ export type Permission =
   | 'can_review_reports'
   | 'can_moderate_content'
   | 'can_review_verifications'
+  | 'can_manage_support'
+  | 'can_manage_communications'
   | 'can_manage_users'
   | 'can_manage_universities'
   | 'can_manage_vendors'
@@ -90,6 +92,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'can_review_reports',
     'can_moderate_content',
     'can_review_verifications',
+    'can_manage_communications',
   ],
   super_admin: [
     'can_browse',
@@ -106,6 +109,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     'can_review_reports',
     'can_moderate_content',
     'can_review_verifications',
+    'can_manage_support',
+    'can_manage_communications',
     'can_view_audit_logs',
   ],
   university_admin: [
@@ -181,6 +186,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   can_review_reports: 'Review reports',
   can_moderate_content: 'Moderate content',
   can_review_verifications: 'Review verification requests',
+  can_manage_support: 'Manage support tickets',
+  can_manage_communications: 'Monitor communication delivery',
   can_manage_users: 'Manage users',
   can_manage_universities: 'Manage universities',
   can_manage_vendors: 'Manage vendors',

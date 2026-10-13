@@ -31,6 +31,7 @@ const NEVER_CACHE_PATTERNS = [
   '/vendor-dashboard',
   '/dashboard',
   '/profile',
+  '/wishlist',
   '/payment',
   '/forgot-password',
   '/verify-email',

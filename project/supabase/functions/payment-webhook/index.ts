@@ -46,12 +46,21 @@ async function verifyPaystack(req: Request, raw: string, payload: Record<string,
   const secret = Deno.env.get("PAYSTACK_SECRET_KEY");
   const signature = req.headers.get("x-paystack-signature");
   if (!secret || !signature || !equalConstantTime(await hmacHex("SHA-512", secret, raw), signature.toLowerCase())) throw new Error("Invalid Paystack signature");
-  if (payload.event !== "charge.success" && payload.event !== "charge.failed") throw new Error("Unsupported Paystack event");
+  if (payload.event !== "charge.success") throw new Error("Unsupported Paystack event");
   const data = payload.data as Record<string, unknown> | undefined;
-  const amount = Number(data?.amount);
-  const status = statusFromProvider(data?.status);
-  if (!data?.reference || !data?.id || !Number.isFinite(amount) || !status) throw new Error("Invalid Paystack payload");
-  return { provider: "paystack", eventId: String(data.id), paymentReference: String(data.reference), providerReference: String(data.id), status, amount: amount / 100, currency: String(data.currency || "GHS"), payload };
+  if (!data?.reference || !data?.id) throw new Error("Invalid Paystack payload");
+  // A valid signature proves origin, but Paystack also requires transaction
+  // verification before value is delivered. Use the verified API response,
+  // never the webhook's amount/status as the authority.
+  const verification = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(String(data.reference))}`, {
+    headers: { Authorization: `Bearer ${secret}` },
+  });
+  const verified = await verification.json() as { status?: boolean; data?: Record<string, unknown> };
+  const verifiedData = verified.data;
+  const amount = Number(verifiedData?.amount);
+  const status = statusFromProvider(verifiedData?.status);
+  if (!verification.ok || !verified.status || !verifiedData || String(verifiedData.reference) !== String(data.reference) || String(verifiedData.id) !== String(data.id) || !Number.isFinite(amount) || status !== "success") throw new Error("Paystack transaction verification failed");
+  return { provider: "paystack", eventId: String(verifiedData.id), paymentReference: String(verifiedData.reference), providerReference: String(verifiedData.id), status, amount: amount / 100, currency: String(verifiedData.currency || "GHS"), payload };
 }
 
 async function verifyFlutterwave(req: Request, payload: Record<string, unknown>): Promise<VerifiedEvent> {
@@ -73,11 +82,27 @@ Deno.serve(async (req: Request) => {
     const hasPaystackSignature = Boolean(req.headers.get("x-paystack-signature"));
     const hasFlutterwaveSignature = Boolean(req.headers.get("verif-hash"));
     if (hasPaystackSignature === hasFlutterwaveSignature) return json({ error: "Missing or ambiguous provider signature" }, 400);
-    let event: VerifiedEvent;
-    if (hasPaystackSignature) event = await verifyPaystack(req, raw, payload);
-    else event = await verifyFlutterwave(req, payload);
-
     const supabase = createClient(Deno.env.get("SUPABASE_URL") || "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "");
+    let event: VerifiedEvent;
+    if (hasPaystackSignature) {
+      event = await verifyPaystack(req, raw, payload);
+      const { data, error } = await supabase.rpc("apply_verified_paystack_webhook", {
+        p_provider_event_id: event.eventId,
+        p_payload_hash: await sha256Hex(raw),
+        p_payment_reference: event.paymentReference,
+        p_provider_reference: event.providerReference,
+        p_status: event.status,
+        p_amount: event.amount,
+        p_currency: event.currency,
+        p_provider_environment: Deno.env.get("PAYSTACK_MODE") === "live" ? "live" : "test",
+        p_signature: req.headers.get("x-paystack-signature"),
+        p_payload: event.payload,
+      });
+      if (error) { console.error("Verified Paystack webhook rejected", error.message); return json({ error: "Webhook could not be applied" }, 422); }
+      return json({ accepted: true, result: data }, 200);
+    }
+    event = await verifyFlutterwave(req, payload);
+
     const { data, error } = await supabase.rpc("apply_verified_payment_webhook", {
       p_provider: event.provider,
       p_provider_event_id: event.eventId,

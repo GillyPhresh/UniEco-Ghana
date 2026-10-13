@@ -29,6 +29,17 @@ test('message RPC derives sensitive actor and recipient fields server-side', asy
   assert.match(migration, /attachment:\/\//);
 });
 
+test('message rate limit is enforced transactionally inside the trusted RPC', async () => {
+  const migration = await read('supabase/migrations/20260928070000_0054_messaging_server_rate_limit.sql');
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.send_direct_message/);
+  assert.match(migration, /pg_advisory_xact_lock\(hashtextextended\(v_caller::text, 54054\)\)/);
+  assert.match(migration, /m\.sender_id = v_caller AND m\.created_at > now\(\) - interval '1 minute'/);
+  assert.match(migration, /v_recent_messages >= 20/);
+  assert.match(migration, /ERRCODE = '53300'/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.send_direct_message\(uuid, text, text, text\) TO authenticated/);
+  assert.doesNotMatch(migration, /GRANT (?:INSERT|UPDATE|DELETE)[\s\S]*messages/i);
+});
+
 test('student recipient search and attachment deletion remain private', async () => {
   const [migration, client, page] = await Promise.all([
     read('supabase/migrations/20260911233000_0032_secure_messaging_write_path.sql'),

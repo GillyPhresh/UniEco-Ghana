@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
@@ -59,8 +58,7 @@ export default function StudentOnboardingPage() {
 }
 
 function StudentOnboarding() {
-  const { user, refreshProfile } = useAuth();
-  const router = useRouter();
+  const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -132,70 +130,37 @@ function StudentOnboarding() {
     setSubmitting(true);
 
     try {
-      const { error: profError } = await supabase
-        .from('profiles')
-        .update({
-          phone: form.phone,
-          avatar_url: form.avatar_url || null,
-          university_id: form.university_id,
-        })
-        .eq('id', user.id);
-
-      if (profError) throw new Error(profError.message);
-
-      const { data: existing } = await supabase
-        .from('student_profiles')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      const payload = {
-        user_id: user.id,
-        profile_id: user.id,
-        university_id: form.university_id,
-        student_id_number: form.index_number,
-        program_of_study: form.programme,
-        faculty: form.faculty,
-        department: form.department,
-        level: form.level,
-        admission_year: form.admission_year,
-        graduation_year: form.graduation_year || null,
-        student_id_document_url: form.student_id_document_url || null,
-        verification_status: 'pending',
-      };
-
-      if (existing) {
-        const {
-          user_id: _userId,
-          profile_id: _profileId,
-          verification_status: _verificationStatus,
-          ...editablePayload
-        } = payload;
-        const { error } = await supabase
-          .from('student_profiles')
-          .update(editablePayload)
-          .eq('id', existing.id);
-        if (error) throw new Error(error.message);
-      } else {
-        const { error } = await supabase.from('student_profiles').insert(payload);
-        if (error) throw new Error(error.message);
+      const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
+      const response = await fetch('/api/payments/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purpose: 'student_registration',
+          idempotencyKey: crypto.randomUUID(),
+          registration: {
+            universityId: form.university_id,
+            phone: form.phone,
+            studentIdNumber: form.index_number,
+            program: form.programme,
+            faculty: form.faculty,
+            department: form.department,
+            level: form.level,
+            admissionYear: form.admission_year,
+            graduationYear: form.graduation_year || null,
+            studentDocumentPath: form.student_id_document_url || null,
+            referralCode,
+          },
+        }),
+      });
+      const result = await response.json() as { authorizationUrl?: string; error?: string };
+      if (!response.ok || !result.authorizationUrl) throw new Error(result.error || 'Payment could not be initialized.');
+      window.sessionStorage.removeItem('unieco_pending_referral_code');
+      if (form.avatar_url) {
+        const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
+        if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. Retry payment from onboarding.');
       }
-
-      const { data: verificationDoc } = form.student_id_document_url
-        ? await supabase
-            .from('verification_requests')
-            .insert({
-              user_id: user.id,
-              request_type: 'student_id',
-              documents: [{ url: form.student_id_document_url, label: 'Student ID' }],
-              status: 'pending',
-            })
-        : { data: null };
-
-      void verificationDoc;
-
-      await refreshProfile();
-      router.push('/onboarding/complete');
+      // Redirecting to Paystack is only checkout UX; activation is webhook-authoritative.
+      window.location.assign(result.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -467,11 +432,10 @@ function StudentOnboarding() {
 
               <div className="rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-info-foreground">
-                  Your verification will be reviewed by our team. You can use UniEco
-                  Ghana while your verification is pending, but some features require
-                  a verified student status.
+                  Student registration fee: GH₵10.00. Your account is activated only after Paystack confirms the payment. Student verification is reviewed separately.
                 </p>
               </div>
+              <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be applied to this registration. Eligible successful registrations may earn the referrer GH₵2 after the settlement period. Terms apply.</p>
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} className="flex-1">
@@ -480,7 +444,7 @@ function StudentOnboarding() {
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Submit for verification
+                  Continue to payment · GH₵10.00
                 </Button>
               </div>
             </motion.div>

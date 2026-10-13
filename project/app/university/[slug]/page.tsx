@@ -16,11 +16,12 @@ import { siteConfig } from '@/lib/constants/site';
 import { Building2, MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap, Image as ImageIcon } from 'lucide-react';
 
 interface PageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const university = await getUniversityBySlug(params.slug);
+  const { slug } = await params;
+  const university = await getUniversityBySlug(slug);
   if (!university) {
     return { title: 'University not found' };
   }
@@ -78,7 +79,8 @@ function formatDate(dateString: string | null): string {
 }
 
 export default async function UniversityPage({ params }: PageProps) {
-  const university = await getUniversityBySlug(params.slug);
+  const { slug } = await params;
+  const university = await getUniversityBySlug(slug);
   if (!university) notFound();
 
   const [vendors, events] = await Promise.all([

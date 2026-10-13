@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -15,6 +15,8 @@ import {
   getRecentlyAddedProducts, searchProducts,
 } from '@/lib/data/marketplace-client';
 import type { Product, Service } from '@/lib/types';
+import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 import {
   Search, TrendingUp, Tag, Clock, Wrench, ArrowRight,
   Sparkles, ShoppingBag, Star,
@@ -32,7 +34,29 @@ export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ProductWithVendor[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const doSearch = useCallback(async () => {
+    setSearching(true);
+    try {
+      const { products, total, error } = await searchProducts({
+        query: searchQuery.trim(),
+        category: activeCategory || undefined,
+        limit: 12,
+      });
+      if (!error && normalizeSearchTerm(searchQuery)) {
+        trackAnalyticsEvent({ event_type: 'search', result_count: Math.min(total, 1000) });
+      }
+      setSearchError(error);
+      setSearchResults(products as ProductWithVendor[]);
+    } catch {
+      setSearchError(true);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  }, [searchQuery, activeCategory]);
 
   useEffect(() => {
     loadData();
@@ -40,12 +64,13 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     if (searchQuery.trim()) {
-      const timer = setTimeout(() => doSearch(), 300);
+      const timer = setTimeout(() => { void doSearch(); }, 300);
       return () => clearTimeout(timer);
     } else {
       setSearchResults([]);
+      setSearchError(false);
     }
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, doSearch]);
 
   async function loadData() {
     setLoading(true);
@@ -60,17 +85,6 @@ export default function MarketplacePage() {
     setDeals(d as ProductWithVendor[]);
     setRecent(r as ProductWithVendor[]);
     setLoading(false);
-  }
-
-  async function doSearch() {
-    setSearching(true);
-    const { products } = await searchProducts({
-      query: searchQuery.trim(),
-      category: activeCategory || undefined,
-      limit: 12,
-    });
-    setSearchResults(products as ProductWithVendor[]);
-    setSearching(false);
   }
 
   const showSearch = searchQuery.trim().length > 0 || activeCategory;
@@ -143,9 +157,11 @@ export default function MarketplacePage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <ProductCardSkeleton key={i} />)}
               </div>
+            ) : searchError ? (
+              <Card><CardContent className="py-10 text-center text-sm text-destructive" role="alert">Unable to load marketplace search results. Please try again.</CardContent></Card>
             ) : searchResults.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {searchResults.map(p => <ProductCard key={p.id} product={p} />)}
+                {searchResults.map(p => <div key={p.id} onClick={() => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'product', subject_id: p.id })}><ProductCard product={p} /></div>)}
               </div>
             ) : (
               <Card>

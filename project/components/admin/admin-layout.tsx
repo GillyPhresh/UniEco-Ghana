@@ -2,27 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth/auth-context';
-import { isStaff } from '@/lib/auth/permissions';
+import { supabase } from '@/lib/supabase/client';
 import { ADMIN_NAV_GROUPS } from '@/lib/types/admin';
 import { Loader2, Menu, Shield, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, typeof Shield> = {
   LayoutDashboard: Shield, BarChart3: Shield, Wallet: Shield, Activity: Shield,
+  Search: Shield,
   Users: Shield, Store: Shield, GraduationCap: Shield, FolderTree: Shield,
-  ShoppingBag: Shield, CreditCard: Shield, Megaphone: Shield,
-  UserCheck: Shield, StoreCheck: Shield, Flag: Shield, LifeBuoy: Shield,
-  Bell: Shield, FileText: Shield, ScrollText: Shield, ShieldCheck: Shield,
+  ShoppingBag: Shield, CreditCard: Shield, Megaphone: Shield, Truck: Shield,
+  UserCheck: Shield, StoreCheck: Shield, Flag: Shield, Star: Shield, LifeBuoy: Shield,
+  Bell: Shield, FileText: Shield, ScrollText: Shield, ShieldCheck: Shield, CalendarDays: Shield,
+  ShieldAlert: Shield,
   Receipt: Shield, Ticket: Shield,
   RotateCcw: Shield,
 };
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
 
   if (loading) {
     return (
@@ -45,7 +48,25 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isStaff(user.role)) {
+  const isScopedUniversityAdmin = user.role === 'university_admin';
+  const moderatorPath = pathname === '/admin/moderation'
+    || pathname === '/admin/events'
+    || pathname === '/admin/trust-safety'
+    || pathname === '/admin/verification'
+    || pathname.startsWith('/admin/verification/')
+    || pathname === '/admin/support'
+    || pathname === '/admin/advertisements'
+    || pathname === '/admin/reviews'
+    || pathname === '/admin/communication';
+  const canAccessRoute = user.role === 'super_admin'
+    || (user.role === 'moderator' && (moderatorPath || pathname === '/admin'))
+    || (isScopedUniversityAdmin && (
+      pathname === '/admin' || pathname === '/admin/universities' || pathname === '/admin/orders' || pathname === '/admin/delivery' || pathname === '/admin/events' || pathname === '/admin/announcements' || pathname === '/admin/search'
+      || pathname === '/admin/businesses' || pathname === '/admin/verification/students' || pathname === '/admin/verification/vendors'
+      || pathname === '/admin/students'
+    ));
+
+  if (!canAccessRoute) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
@@ -65,6 +86,55 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { user } = useAuth();
+  const [moderatorPermissions, setModeratorPermissions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let active = true;
+    if (user?.role !== 'moderator') {
+      setModeratorPermissions(new Set());
+      return () => { active = false; };
+    }
+    // This DB lookup only controls visible navigation. Middleware and RPCs
+    // independently enforce every route and operation.
+    void Promise.all([
+      supabase.rpc('has_permission', { p_permission: 'can_review_reports' }),
+      supabase.rpc('has_permission', { p_permission: 'can_review_verifications' }),
+      supabase.rpc('has_permission', { p_permission: 'can_manage_support' }),
+      supabase.rpc('has_permission', { p_permission: 'can_moderate_content' }),
+      supabase.rpc('has_permission', { p_permission: 'can_manage_communications' }),
+    ]).then(([reports, verifications, support, content, communications]) => {
+      if (!active) return;
+      const permissions = new Set<string>();
+      if (!reports.error && reports.data === true) permissions.add('can_review_reports');
+      if (!verifications.error && verifications.data === true) permissions.add('can_review_verifications');
+      if (!support.error && support.data === true) permissions.add('can_manage_support');
+      if (!content.error && content.data === true) permissions.add('can_moderate_content');
+      if (!communications.error && communications.data === true) permissions.add('can_manage_communications');
+      setModeratorPermissions(permissions);
+    }).catch(() => {
+      if (active) setModeratorPermissions(new Set());
+    });
+    return () => { active = false; };
+  }, [user?.role]);
+
+  const navGroups = user?.role === 'university_admin'
+    ? ADMIN_NAV_GROUPS
+        .map(group => ({ ...group, items: group.items.filter(item => item.href === '/admin' || item.href === '/admin/universities' || item.href === '/admin/orders' || item.href === '/admin/delivery' || item.href === '/admin/events' || item.href === '/admin/announcements' || item.href === '/admin/search' || item.href === '/admin/businesses' || item.href === '/admin/verification/students' || item.href === '/admin/verification/vendors' || item.href === '/admin/students') }))
+        .filter(group => group.items.length > 0)
+    : user?.role === 'moderator'
+      ? ADMIN_NAV_GROUPS
+        .map(group => ({ ...group, items: group.items.filter(item =>
+          (item.href === '/admin' && moderatorPermissions.size > 0)
+          || ((item.href === '/admin/moderation' || item.href === '/admin/trust-safety') && moderatorPermissions.has('can_review_reports'))
+          || (item.href.startsWith('/admin/verification') && moderatorPermissions.has('can_review_verifications'))
+          || (item.href === '/admin/support' && moderatorPermissions.has('can_manage_support'))
+          || (item.href === '/admin/advertisements' && moderatorPermissions.has('can_moderate_content'))
+          || (item.href === '/admin/reviews' && moderatorPermissions.has('can_moderate_content'))
+          || (item.href === '/admin/events' && moderatorPermissions.has('can_moderate_content'))
+          || (item.href === '/admin/communication' && moderatorPermissions.has('can_manage_communications'))
+        ) }))
+        .filter(group => group.items.length > 0)
+    : ADMIN_NAV_GROUPS;
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -74,7 +144,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-        {ADMIN_NAV_GROUPS.map(group => (
+        {navGroups.map(group => (
           <div key={group.label}>
             <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">{group.label}</p>
             <div className="space-y-0.5">
@@ -139,14 +209,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+        <SheetContent side="left" className="w-64 p-0">
+          {sidebar}
+        </SheetContent>
       </Sheet>
 
-      <SheetContent side="left" className="w-64 p-0">
-        {sidebar}
-      </SheetContent>
-
       {/* Desktop content area */}
-      <div className="hidden lg:flex flex-1 flex-col overflow-hidden">
+      <div className="hidden min-w-0 lg:flex flex-1 flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
           {children}
         </main>

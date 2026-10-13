@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -18,10 +18,19 @@ import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 type SignInFormData = z.infer<typeof signInSchema>;
 
 export default function SignInPage() {
+  return <Suspense fallback={<main className="container py-8">Loading sign-in…</main>}><SignInContent /></Suspense>;
+}
+
+function SignInContent() {
   const { signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('next') || '/';
+  const requestedNext = searchParams.get('next');
+  const next = requestedNext?.startsWith('/')
+    && !requestedNext.startsWith('//')
+    && !requestedNext.includes('\\')
+    ? requestedNext
+    : '/';
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);

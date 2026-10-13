@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { Suspense, useEffect, useState, useCallback, useRef } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
@@ -83,7 +83,9 @@ function ProtectedAttachment({ reference, messageType }: { reference: string; me
 export default function MessagesPage() {
   return (
     <RouteGuard requireAuth>
-      <MessagesContent />
+      <Suspense fallback={<main className="container py-8">Loading messages…</main>}>
+        <MessagesContent />
+      </Suspense>
     </RouteGuard>
   );
 }

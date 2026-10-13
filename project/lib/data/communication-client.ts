@@ -20,7 +20,7 @@ import type {
   UniversityAnnouncement,
   EventReminder,
   PushSubscription,
-  CommunicationLog,
+  AdminCommunicationLog,
   NotificationCategory,
   MessageType,
 } from '@/lib/types/communication';
@@ -589,11 +589,11 @@ export async function deleteBusinessAnnouncement(id: string): Promise<{ error: s
 // ============================================================
 
 export async function getAdminBroadcasts(): Promise<AdminBroadcast[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('admin_broadcasts')
     .select('*')
     .order('created_at', { ascending: false });
-
+  if (error) throw new Error('Unable to load broadcasts');
   return (data || []) as AdminBroadcast[];
 }
 
@@ -620,19 +620,31 @@ export async function createAdminBroadcast(params: {
   return { error: error?.message || null, id: data ?? undefined };
 }
 
-export async function approveAdminBroadcast(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('approve_admin_broadcast', { p_broadcast_id: id });
-  return { error: error?.message || null };
+export async function approveAdminBroadcast(id: string, reason: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.rpc('approve_admin_broadcast', { p_broadcast_id: id, p_reason: reason.trim() });
+    return { error: error ? 'Unable to approve this broadcast. Check its status, reason, and permission, then retry.' : null };
+  } catch {
+    return { error: 'Unable to approve this broadcast. Please try again.' };
+  }
 }
 
-export async function beginAdminBroadcastDelivery(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('begin_admin_broadcast_delivery', { p_broadcast_id: id });
-  return { error: error?.message || null };
+export async function beginAdminBroadcastDelivery(id: string, reason: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.rpc('begin_admin_broadcast_delivery', { p_broadcast_id: id, p_reason: reason.trim() });
+    return { error: error ? 'Unable to queue this broadcast. Check its status, reason, and permission, then retry.' : null };
+  } catch {
+    return { error: 'Unable to queue this broadcast. Please try again.' };
+  }
 }
 
-export async function cancelAdminBroadcast(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.rpc('cancel_admin_broadcast', { p_broadcast_id: id });
-  return { error: error?.message || null };
+export async function cancelAdminBroadcast(id: string, reason: string): Promise<{ error: string | null }> {
+  try {
+    const { error } = await supabase.rpc('cancel_admin_broadcast', { p_broadcast_id: id, p_reason: reason.trim() });
+    return { error: error ? 'Unable to cancel this broadcast. Check its status, reason, and permission, then retry.' : null };
+  } catch {
+    return { error: 'Unable to cancel this broadcast. Please try again.' };
+  }
 }
 
 // ============================================================
@@ -726,24 +738,22 @@ export async function getCommunicationLogs(filters?: {
   channel?: string;
   status?: string;
   eventType?: string;
-  universityId?: string;
   limit?: number;
   offset?: number;
-}): Promise<CommunicationLog[]> {
-  let query = supabase
-    .from('communication_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(filters?.limit ?? 50);
-
-  if (filters?.channel) query = query.eq('channel', filters.channel);
-  if (filters?.status) query = query.eq('status', filters.status);
-  if (filters?.eventType) query = query.eq('event_type', filters.eventType);
-  if (filters?.universityId) query = query.eq('university_id', filters.universityId);
-  if (filters?.offset) query = query.range(filters.offset, (filters.offset) + (filters.limit ?? 50) - 1);
-
-  const { data } = await query;
-  return (data || []) as CommunicationLog[];
+}): Promise<{ rows: AdminCommunicationLog[]; total: number }> {
+  const { data, error } = await supabase.rpc('get_admin_communication_logs', {
+    p_channel: filters?.channel || null,
+    p_status: filters?.status || null,
+    p_event_type: filters?.eventType || null,
+    p_limit: filters?.limit ?? 50,
+    p_offset: filters?.offset ?? 0,
+  });
+  if (error) throw new Error('Unable to load communication operations');
+  const rows = ((data || []) as Omit<AdminCommunicationLog, 'recipient_identifier'>[]).map(row => ({
+    ...row,
+    recipient_identifier: row.has_recipient ? 'Protected' : null,
+  }));
+  return { rows, total: Number(rows[0]?.total_count || 0) };
 }
 
 export async function getCommunicationStats(): Promise<{
@@ -752,28 +762,13 @@ export async function getCommunicationStats(): Promise<{
   byStatus: Record<string, number>;
   failed: number;
 }> {
-  const { data: channelData } = await supabase
-    .from('communication_logs')
-    .select('channel, status');
-
-  if (!channelData) return { total: 0, byChannel: {}, byStatus: {}, failed: 0 };
-
-  const byChannel: Record<string, number> = {};
-  const byStatus: Record<string, number> = {};
-  let failed = 0;
-
-  for (const row of channelData) {
-    const ch = (row as { channel: string }).channel;
-    const st = (row as { status: string }).status;
-    byChannel[ch] = (byChannel[ch] || 0) + 1;
-    byStatus[st] = (byStatus[st] || 0) + 1;
-    if (st === 'failed') failed++;
-  }
-
+  const { data, error } = await supabase.rpc('get_admin_communication_stats');
+  if (error || !data || typeof data !== 'object') throw new Error('Unable to load communication statistics');
+  const summary = data as { total: number; byChannel: Record<string, number>; byStatus: Record<string, number>; failed: number };
   return {
-    total: channelData.length,
-    byChannel,
-    byStatus,
-    failed,
+    total: Number(summary.total || 0),
+    byChannel: summary.byChannel || {},
+    byStatus: summary.byStatus || {},
+    failed: Number(summary.failed || 0),
   };
 }

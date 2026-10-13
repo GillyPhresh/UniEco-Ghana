@@ -4,6 +4,18 @@ export const STAGING_PROJECT_REF = 'nyrrhoufgpqpajutatfp';
 export const BOLT_PROJECT_REF = 'elxlrojlnusvybnfwxum';
 export const PRODUCTION_PROJECT_REF = 'inslzwciwhberfpljmod';
 
+function matchesProjectUrl(value, projectRef) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:'
+      && url.hostname === `${projectRef}.supabase.co`
+      && !url.username
+      && !url.password;
+  } catch {
+    return false;
+  }
+}
+
 export function loadEnvironmentFile(filePath) {
   const values = {};
   const content = readFileSync(filePath, 'utf8');
@@ -30,13 +42,8 @@ export function validateStagingEnvironment(values) {
   if (!url) {
     errors.push('NEXT_PUBLIC_SUPABASE_URL is missing');
   } else {
-    try {
-      const projectRef = new URL(url).hostname.split('.')[0];
-      if (projectRef !== STAGING_PROJECT_REF) {
-        errors.push('NEXT_PUBLIC_SUPABASE_URL does not target the approved staging project');
-      }
-    } catch {
-      errors.push('NEXT_PUBLIC_SUPABASE_URL is invalid');
+    if (!matchesProjectUrl(url, STAGING_PROJECT_REF)) {
+      errors.push('NEXT_PUBLIC_SUPABASE_URL must use the approved HTTPS staging project origin');
     }
   }
 
@@ -55,13 +62,8 @@ export function validateProductionEnvironment(values) {
   if (!url) {
     errors.push('NEXT_PUBLIC_SUPABASE_URL is missing');
   } else {
-    try {
-      const projectRef = new URL(url).hostname.split('.')[0];
-      if (projectRef !== PRODUCTION_PROJECT_REF) {
-        errors.push('NEXT_PUBLIC_SUPABASE_URL does not target the approved production project');
-      }
-    } catch {
-      errors.push('NEXT_PUBLIC_SUPABASE_URL is invalid');
+    if (!matchesProjectUrl(url, PRODUCTION_PROJECT_REF)) {
+      errors.push('NEXT_PUBLIC_SUPABASE_URL must use the approved HTTPS production project origin');
     }
   }
 

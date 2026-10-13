@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AdminDeleteConfirmation } from '@/components/admin/admin-delete-confirmation';
 import { getAdminCategories, createCategory, updateCategory, deleteCategory } from '@/lib/data/admin-client';
 import type { Category } from '@/lib/types/admin';
 import { FolderTree, Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
@@ -23,19 +24,27 @@ export default function AdminCategoriesPage() {
 function Content() {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showDialog, setShowDialog] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [form, setForm] = useState({ name: '', slug: '', description: '', icon: '', sort_order: 0, is_visible: true });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { loadCategories(); }, []);
-
-  async function loadCategories() {
+  const loadCategories = useCallback(async () => {
     setLoading(true);
-    const data = await getAdminCategories();
-    setCategories(data);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      setCategories(await getAdminCategories());
+    } catch {
+      setCategories([]);
+      setLoadError('Unable to load categories. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadCategories(); }, [loadCategories]);
 
   function openCreate() {
     setEditing(null);
@@ -62,10 +71,13 @@ function Content() {
     setSaving(false);
   };
 
-  const handleDelete = async (cat: Category) => {
-    if (!confirm(`Delete "${cat.name}"? This cannot be undone.`)) return;
-    const { error } = await deleteCategory(cat.id);
-    if (error) { toast.error(error); } else { toast.success('Category deleted'); loadCategories(); }
+  const confirmCategoryDeletion = async (reason: string): Promise<boolean> => {
+    if (!categoryToDelete) return false;
+    const { error } = await deleteCategory(categoryToDelete.id, reason);
+    if (error) { toast.error(error); return false; }
+    toast.success('Category deleted');
+    void loadCategories();
+    return true;
   };
 
   const handleToggleVisibility = async (cat: Category) => {
@@ -87,6 +99,13 @@ function Content() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
+      ) : loadError ? (
+        <Card><CardContent className="py-8 text-center space-y-3">
+          <p role="alert" className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => void loadCategories()}>Retry</Button>
+        </CardContent></Card>
+      ) : categories.length === 0 ? (
+        <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No categories found.</CardContent></Card>
       ) : (
         <div className="space-y-1.5">
           {categories.map(cat => (
@@ -104,7 +123,7 @@ function Content() {
                   {cat.is_visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                 </Button>
                 <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(cat)}><Edit className="h-4 w-4" /></Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDelete(cat)}><Trash2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" aria-label={`Delete category ${cat.name}`} onClick={() => setCategoryToDelete(cat)}><Trash2 className="h-4 w-4" /></Button>
               </CardContent>
             </Card>
           ))}
@@ -133,6 +152,13 @@ function Content() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AdminDeleteConfirmation
+        open={categoryToDelete !== null}
+        itemName={categoryToDelete?.name || ''}
+        resourceLabel="category"
+        onOpenChange={open => { if (!open) setCategoryToDelete(null); }}
+        onConfirm={confirmCategoryDeletion}
+      />
     </div>
   );
 }

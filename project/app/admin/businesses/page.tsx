@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getAdminBusinesses, suspendVendor, restoreVendor, approveVendor, exportToCsv } from '@/lib/data/admin-client';
-import type { AdminVendor } from '@/lib/types/admin';
-import { Search, Store, Ban, RotateCcw, Check, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { getAdminBusinesses, suspendVendor, restoreVendor, approveVendor } from '@/lib/data/admin-client';
+import type { AdminVendorDirectoryItem } from '@/lib/types/admin';
+import { useAuth } from '@/lib/auth/auth-context';
+import { Search, Store, Ban, RotateCcw, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminBusinessesPage() {
@@ -22,60 +25,86 @@ export default function AdminBusinessesPage() {
 }
 
 function Content() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'super_admin';
+  const canManageVendors = isSuperAdmin || user?.role === 'university_admin';
   const [loading, setLoading] = useState(true);
-  const [vendors, setVendors] = useState<AdminVendor[]>([]);
+  const [vendors, setVendors] = useState<AdminVendorDirectoryItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [verifiedFilter, setVerifiedFilter] = useState('all');
-  const [selected, setSelected] = useState<AdminVendor | null>(null);
+  const [selected, setSelected] = useState<AdminVendorDirectoryItem | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionReason, setActionReason] = useState('');
+  const [pendingAction, setPendingAction] = useState<'verify' | 'suspend' | 'restore' | null>(null);
   const pageSize = 20;
 
-  useEffect(() => { loadVendors(); }, [page, verifiedFilter]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
 
-  async function loadVendors() {
+  const loadVendors = useCallback(async () => {
+    const normalizedSearch = debouncedSearch.trim();
+    if (normalizedSearch.length > 0 && normalizedSearch.length < 3) {
+      setVendors([]);
+      setTotal(0);
+      setLoadError(null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
-    const { vendors, total } = await getAdminBusinesses({
-      search: search || undefined,
-      verified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
-      limit: pageSize, offset: page * pageSize,
-    });
-    setVendors(vendors);
-    setTotal(total);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      const result = await getAdminBusinesses({
+        search: normalizedSearch || undefined,
+        verified: verifiedFilter === 'verified' ? true : verifiedFilter === 'unverified' ? false : undefined,
+        limit: pageSize, offset: page * pageSize,
+      });
+      setVendors(result.vendors);
+      setTotal(result.total);
+    } catch {
+      setVendors([]);
+      setTotal(0);
+      setLoadError('Unable to load businesses within your management scope. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, page, verifiedFilter]);
 
-  const handleSuspend = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await suspendVendor(selected.id, 'Suspended by admin');
-    if (error) { toast.error(error); } else { toast.success('Business suspended'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
+  useEffect(() => { void loadVendors(); }, [loadVendors]);
+
+  const requestAction = (action: NonNullable<typeof pendingAction>) => {
+    if (!selected || actionReason.trim().length < 10 || actionReason.trim().length > 500) return;
+    setPendingAction(action);
   };
 
-  const handleRestore = async () => {
-    if (!selected) return;
+  const confirmAction = async () => {
+    if (!selected || !pendingAction) return;
+    const action = pendingAction;
     setActionLoading(true);
-    const { error } = await restoreVendor(selected.id);
-    if (error) { toast.error(error); } else { toast.success('Business restored'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
-  };
-
-  const handleVerify = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await approveVendor(selected.id);
-    if (error) { toast.error(error); } else { toast.success('Business verified'); setSelected(null); loadVendors(); }
-    setActionLoading(false);
-  };
-
-  const handleExport = () => {
-    exportToCsv(vendors.map(v => ({
-      id: v.id, name: v.business_name, category: v.business_type || '',
-      verified: v.is_verified, active: v.is_active, owner: v.owner?.full_name || '',
-      email: v.owner?.email || '', rating: v.rating_avg, reviews: v.rating_count,
-    })), 'businesses');
+    try {
+      const result = action === 'verify'
+        ? await approveVendor(selected.id, actionReason.trim())
+        : action === 'suspend'
+          ? await suspendVendor(selected.id, actionReason.trim())
+          : await restoreVendor(selected.id, actionReason.trim());
+      if (result.error) toast.error(result.error);
+      else {
+        toast.success(action === 'verify' ? 'Business verified' : action === 'suspend' ? 'Business suspended' : 'Business restored');
+        setSelected(null);
+        setActionReason('');
+        void loadVendors();
+      }
+    } catch {
+      toast.error('Unable to complete this business action. Please retry.');
+    } finally {
+      setPendingAction(null);
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -83,17 +112,16 @@ function Content() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <Store className="h-6 w-6 text-primary" /> Business Management
+            <Store className="h-6 w-6 text-primary" /> {canManageVendors ? 'Vendor Management' : 'Business Directory'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} businesses</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search businesses..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { setPage(0); loadVendors(); } }} />
+          <Input className="pl-9" placeholder="Search businesses..." value={search} onChange={e => { setSearch(e.target.value); setPage(0); }} />
         </div>
         <Select value={verifiedFilter} onValueChange={v => { setVerifiedFilter(v); setPage(0); }}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -104,11 +132,17 @@ function Content() {
           </SelectContent>
         </Select>
       </div>
+      {search.trim().length > 0 && search.trim().length < 3 && <p className="text-xs text-muted-foreground">Enter at least 3 characters to search.</p>}
 
       <Card>
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : loadError ? (
+            <div role="alert" className="py-8 text-center space-y-3">
+              <p className="text-sm text-destructive">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => void loadVendors()}>Retry</Button>
+            </div>
           ) : vendors.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No businesses found</div>
           ) : (
@@ -120,7 +154,7 @@ function Content() {
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Rating</TableHead>
-                  <TableHead></TableHead>
+                    <TableHead>{canManageVendors ? 'Actions' : ''}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -136,7 +170,7 @@ function Content() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">{v.rating_avg.toFixed(1)} ({v.rating_count})</TableCell>
-                    <TableCell><Button variant="ghost" size="sm" onClick={() => setSelected(v)}>Manage</Button></TableCell>
+                    <TableCell><Button variant="ghost" size="sm" onClick={() => { setActionReason(''); setSelected(v); }}>{canManageVendors ? 'Manage' : 'View'}</Button></TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -157,29 +191,53 @@ function Content() {
 
       <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Manage Business</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isSuperAdmin ? 'Manage Business' : 'Business Details'}</DialogTitle></DialogHeader>
           {selected && (
             <div className="space-y-4 py-2">
               <div className="rounded-lg border border-border p-3 space-y-1 text-sm">
                 <p><span className="text-muted-foreground">Business:</span> {selected.business_name}</p>
                 <p><span className="text-muted-foreground">Category:</span> {selected.business_type || '—'}</p>
-                <p><span className="text-muted-foreground">Owner:</span> {selected.owner?.full_name || '—'} ({selected.owner?.email})</p>
+                <p><span className="text-muted-foreground">Owner:</span> {selected.owner?.full_name || selected.owner?.email || '—'}{isSuperAdmin && selected.owner?.full_name && selected.owner.email ? ` (${selected.owner.email})` : ''}</p>
                 <p><span className="text-muted-foreground">University:</span> {selected.university?.name || '—'}</p>
                 <p><span className="text-muted-foreground">Student business:</span> {selected.is_student_business ? 'Yes' : 'No'}</p>
                 <p><span className="text-muted-foreground">Delivery:</span> {selected.delivery_available ? 'Available' : 'Not available'}</p>
               </div>
-              <div className="flex gap-2">
-                {!selected.is_verified && <Button className="flex-1" disabled={actionLoading} onClick={handleVerify}><Check className="mr-2 h-4 w-4" /> Verify</Button>}
+              {canManageVendors && (
+                <div className="space-y-2">
+                  <label htmlFor="business-action-reason" className="text-xs font-medium">Reason for this administrative action</label>
+                  <Textarea id="business-action-reason" value={actionReason} onChange={(event) => setActionReason(event.target.value)} maxLength={500} rows={3} placeholder="Enter at least 10 characters explaining the decision." />
+                </div>
+              )}
+              {canManageVendors && <div className="flex gap-2">
+                {!selected.is_verified && <Button className="flex-1" disabled={actionLoading || actionReason.trim().length < 10} onClick={() => requestAction('verify')}><Check className="mr-2 h-4 w-4" /> Verify</Button>}
                 {selected.is_active ? (
-                  <Button variant="destructive" className="flex-1" disabled={actionLoading} onClick={handleSuspend}><Ban className="mr-2 h-4 w-4" /> Suspend</Button>
+                  <Button variant="destructive" className="flex-1" disabled={actionLoading || actionReason.trim().length < 10} onClick={() => requestAction('suspend')}><Ban className="mr-2 h-4 w-4" /> Suspend</Button>
                 ) : (
-                  <Button className="flex-1" disabled={actionLoading} onClick={handleRestore}><RotateCcw className="mr-2 h-4 w-4" /> Restore</Button>
+                  <Button className="flex-1" disabled={actionLoading || actionReason.trim().length < 10} onClick={() => requestAction('restore')}><RotateCcw className="mr-2 h-4 w-4" /> Restore</Button>
                 )}
-              </div>
+              </div>}
             </div>
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={pendingAction !== null} onOpenChange={open => { if (!open && !actionLoading) setPendingAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm business {pendingAction === 'verify' ? 'verification' : pendingAction === 'suspend' ? 'suspension' : 'restoration'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingAction === 'verify'
+                ? `Verify ${selected?.business_name || 'this business'}? This decision will be recorded with the reason you provided.`
+                : `${pendingAction === 'suspend' ? 'Suspend' : 'Restore'} ${selected?.business_name || 'this business'}? Its marketplace availability may change. This decision will be audited.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionLoading} onClick={event => { event.preventDefault(); void confirmAction(); }}>
+              {actionLoading ? 'Saving…' : pendingAction === 'verify' ? 'Confirm verification' : pendingAction === 'suspend' ? 'Confirm suspension' : 'Confirm restoration'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

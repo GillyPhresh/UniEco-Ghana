@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { getAdminAdvertisements, approveAdvertisement, rejectAdvertisement } from '@/lib/data/admin-client';
 import type { AdminAdvertisement } from '@/lib/types/admin';
 import { Megaphone, Check, X, Star, Search } from 'lucide-react';
@@ -33,39 +34,53 @@ function Content() {
   const [featured, setFeatured] = useState(false);
   const [sponsored, setSponsored] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<'approved' | 'rejected' | null>(null);
 
-  useEffect(() => { loadAds(); }, [filter]);
-
-  async function loadAds() {
+  const loadAds = useCallback(async () => {
     setLoading(true);
     const { ads, total } = await getAdminAdvertisements({ status: filter, limit: 30 });
     setAds(ads);
     setTotal(total);
     setLoading(false);
-  }
+  }, [filter]);
+
+  useEffect(() => { void loadAds(); }, [loadAds]);
 
   function openApprove(ad: AdminAdvertisement) {
     setSelected(ad);
     setRejectMode(false);
+    setReason('');
     setPriority(ad.priority || 0);
     setFeatured(ad.is_featured || false);
     setSponsored(ad.is_sponsored || false);
   }
 
-  const handleApprove = async () => {
-    if (!selected) return;
-    setActionLoading(true);
-    const { error } = await approveAdvertisement(selected.id, priority, featured, sponsored);
-    if (error) { toast.error(error); } else { toast.success('Advertisement approved'); setSelected(null); loadAds(); }
-    setActionLoading(false);
+  const requestDecision = (decision: 'approved' | 'rejected') => {
+    if (!selected || reason.trim().length < 10 || reason.trim().length > 500) { toast.error('Please provide a reason between 10 and 500 characters'); return; }
+    setPendingDecision(decision);
   };
 
-  const handleReject = async () => {
-    if (!selected || !reason.trim()) { toast.error('Please provide a reason'); return; }
+  const confirmDecision = async () => {
+    if (!selected || reason.trim().length < 10 || reason.trim().length > 500) { toast.error('Please provide a reason between 10 and 500 characters'); return; }
     setActionLoading(true);
-    const { error } = await rejectAdvertisement(selected.id, reason);
-    if (error) { toast.error(error); } else { toast.success('Advertisement rejected'); setRejectMode(false); setSelected(null); setReason(''); loadAds(); }
-    setActionLoading(false);
+    try {
+      const result = pendingDecision === 'approved'
+        ? await approveAdvertisement(selected.id, priority, featured, sponsored, reason)
+        : await rejectAdvertisement(selected.id, reason);
+      if (result.error) { toast.error(result.error); }
+      else {
+        toast.success(pendingDecision === 'approved' ? 'Advertisement approved' : 'Advertisement rejected');
+        setPendingDecision(null);
+        setRejectMode(false);
+        setSelected(null);
+        setReason('');
+        void loadAds();
+      }
+    } catch {
+      toast.error('Unable to complete this advertisement review. Please retry.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   return (
@@ -124,29 +139,30 @@ function Content() {
                 <p><span className="text-muted-foreground">Title:</span> {selected.title}</p>
                 <p><span className="text-muted-foreground">Vendor:</span> {selected.vendor?.business_name || '—'}</p>
                 <p><span className="text-muted-foreground">Placement:</span> {selected.placement || '—'}</p>
-                <p><span className="text-muted-foreground\">Target URL:</span> {selected.target_url ?? '—'}</p>
+                <p><span className="text-muted-foreground">Target URL:</span> {selected.target_url ?? '—'}</p>
                 <p><span className="text-muted-foreground">Duration:</span> {selected.starts_at ? new Date(selected.starts_at).toLocaleDateString('en-GH') : '—'} → {selected.ends_at ? new Date(selected.ends_at).toLocaleDateString('en-GH') : '—'}</p>
               </div>
 
               {rejectMode ? (
                 <div className="space-y-3">
-                  <Input placeholder="Reason for rejection..." value={reason} onChange={e => setReason(e.target.value)} />
+                  <Input aria-label="Reason for rejection" placeholder="Reason for rejection..." value={reason} minLength={10} maxLength={500} onChange={e => setReason(e.target.value)} />
                   <div className="flex gap-2">
                     <Button variant="outline" className="flex-1" onClick={() => setRejectMode(false)}>Cancel</Button>
-                    <Button variant="destructive" className="flex-1" disabled={actionLoading || !reason.trim()} onClick={handleReject}><X className="mr-2 h-4 w-4" /> Reject</Button>
+                    <Button variant="destructive" className="flex-1" disabled={actionLoading || reason.trim().length < 10 || reason.trim().length > 500} onClick={() => requestDecision('rejected')}><X className="mr-2 h-4 w-4" /> Review rejection</Button>
                   </div>
                 </div>
               ) : (
                 <>
                   <div className="space-y-3">
-                    <div className="space-y-1.5"><Label>Priority (higher shows first)</Label><Input type="number" value={priority} onChange={e => setPriority(Number(e.target.value))} /></div>
+                    <div className="space-y-1.5"><Label>Priority (higher shows first)</Label><Input type="number" min={0} max={100} value={priority} onChange={e => setPriority(Number(e.target.value))} /></div>
+                    <div className="space-y-1.5"><Label htmlFor="advertisement-review-reason">Review reason (required, 10–500 characters)</Label><Input id="advertisement-review-reason" value={reason} maxLength={500} onChange={e => setReason(e.target.value)} /></div>
                     <div className="flex items-center gap-4">
                       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} /> Featured</label>
                       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sponsored} onChange={e => setSponsored(e.target.checked)} /> Sponsored</label>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button className="flex-1" disabled={actionLoading} onClick={handleApprove}><Check className="mr-2 h-4 w-4" /> Approve</Button>
+                    <Button className="flex-1" disabled={actionLoading || !Number.isInteger(priority) || priority < 0 || priority > 100 || reason.trim().length < 10 || reason.trim().length > 500} onClick={() => requestDecision('approved')}><Check className="mr-2 h-4 w-4" /> Review approval</Button>
                     <Button variant="outline" className="flex-1 text-destructive" disabled={actionLoading} onClick={() => setRejectMode(true)}><X className="mr-2 h-4 w-4" /> Reject</Button>
                   </div>
                 </>
@@ -155,6 +171,25 @@ function Content() {
           )}
         </DialogContent>
       </Dialog>
+      <AlertDialog open={pendingDecision !== null} onOpenChange={open => { if (!open && !actionLoading) setPendingDecision(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{pendingDecision === 'approved' ? 'Confirm advertisement approval' : 'Confirm advertisement rejection'}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDecision === 'approved'
+                ? `Approve “${selected?.title || 'this advertisement'}” with priority ${priority}; ${featured ? 'Featured' : 'not Featured'} and ${sponsored ? 'Sponsored' : 'not Sponsored'} classification?`
+                : `Reject “${selected?.title || 'this advertisement'}”? It will not be eligible for display.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="text-sm text-muted-foreground">Reason: {reason.trim()}</p>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={actionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction disabled={actionLoading || reason.trim().length < 10 || reason.trim().length > 500} onClick={event => { event.preventDefault(); void confirmDecision(); }}>
+              {actionLoading ? 'Saving…' : pendingDecision === 'approved' ? 'Confirm approval' : 'Confirm rejection'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,22 +28,31 @@ function Content() {
   const [selected, setSelected] = useState<AdminReport | null>(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => { loadReports(); }, [filter]);
-
-  async function loadReports() {
+  const loadReports = useCallback(async () => {
     setLoading(true);
-    const { reports, total } = await getAdminReports({ status: filter, limit: 30 });
-    setReports(reports);
-    setTotal(total);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      const result = await getAdminReports({ status: filter, limit: 30 });
+      setReports(result.reports);
+      setTotal(result.total);
+    } catch {
+      setReports([]);
+      setTotal(0);
+      setLoadError('Unable to load reports. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => { void loadReports(); }, [loadReports]);
 
   const handleResolve = async () => {
-    if (!selected || !note.trim()) { toast.error('Please add a resolution note'); return; }
+    if (!selected || note.trim().length < 10) { toast.error('Please add a resolution note of at least 10 characters'); return; }
     setSaving(true);
     const { error } = await resolveReport(selected.id, note);
-    if (error) { toast.error(error); } else { toast.success('Report resolved'); setSelected(null); setNote(''); loadReports(); }
+    if (error) { toast.error(error); } else { toast.success('Report resolved'); setSelected(null); setNote(''); void loadReports(); }
     setSaving(false);
   };
 
@@ -66,6 +75,11 @@ function Content() {
 
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
+      ) : loadError ? (
+        <Card><CardContent className="py-8 text-center space-y-3">
+          <p role="alert" className="text-sm text-destructive">{loadError}</p>
+          <Button variant="outline" size="sm" onClick={() => void loadReports()}>Retry</Button>
+        </CardContent></Card>
       ) : reports.length === 0 ? (
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No reports found</CardContent></Card>
       ) : (
@@ -105,8 +119,8 @@ function Content() {
               </div>
               {selected.status === 'open' && (
                 <>
-                  <Textarea rows={3} placeholder="Resolution note..." value={note} onChange={e => setNote(e.target.value)} />
-                  <Button className="w-full" disabled={saving || !note.trim()} onClick={handleResolve}>
+                  <Textarea rows={3} maxLength={1000} placeholder="Resolution note (at least 10 characters)..." value={note} onChange={e => setNote(e.target.value)} />
+                  <Button className="w-full" disabled={saving || note.trim().length < 10} onClick={handleResolve}>
                     <Check className="mr-2 h-4 w-4" /> {saving ? 'Resolving...' : 'Resolve report'}
                   </Button>
                 </>

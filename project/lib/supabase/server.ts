@@ -1,17 +1,19 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+
 type CookieToSet = {
   name: string;
   value: string;
-  options: Parameters<ReturnType<typeof cookies>['set']>[2];
+  options: Parameters<CookieStore['set']>[2];
 };
 
 export async function createClient() {
-  let cookieStore: ReturnType<typeof cookies> | null = null;
+  let cookieStore: CookieStore | null = null;
 
   try {
-    cookieStore = cookies();
+    cookieStore = await cookies();
   } catch {
     cookieStore = null;
   }

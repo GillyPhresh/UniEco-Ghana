@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { getAdminSubscriptions, extendSubscription, exportToCsv } from '@/lib/data/admin-client';
+import { getAdminSubscriptions, extendSubscription } from '@/lib/data/admin-client';
+import { downloadAdminCsv } from '@/lib/data/admin-export-client';
 import type { AdminSubscription } from '@/lib/types/admin';
 import { CreditCard, Download, Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,31 +33,45 @@ function Content() {
   const [days, setDays] = useState(30);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const pageSize = 20;
 
-  useEffect(() => { loadSubs(); }, [page, filter]);
-
-  async function loadSubs() {
+  const loadSubs = useCallback(async () => {
     setLoading(true);
-    const { subscriptions, total } = await getAdminSubscriptions({ status: filter, limit: pageSize, offset: page * pageSize });
-    setSubs(subscriptions);
-    setTotal(total);
-    setLoading(false);
-  }
+    setLoadError(null);
+    try {
+      const result = await getAdminSubscriptions({ status: filter, limit: pageSize, offset: page * pageSize });
+      setSubs(result.subscriptions);
+      setTotal(result.total);
+    } catch {
+      setSubs([]);
+      setTotal(0);
+      setLoadError('Unable to load subscriptions. Please retry.');
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, page]);
+
+  useEffect(() => { void loadSubs(); }, [loadSubs]);
 
   const handleExtend = async () => {
     if (!extending) return;
     setSaving(true);
     const { error } = await extendSubscription(extending.id, days, note);
-    if (error) { toast.error(error); } else { toast.success('Subscription extended'); setExtending(null); setNote(''); loadSubs(); }
+    if (error) { toast.error(error); } else { toast.success('Subscription extended'); setExtending(null); setNote(''); void loadSubs(); }
     setSaving(false);
   };
 
-  const handleExport = () => {
-    exportToCsv(subs.map(s => ({
-      id: s.id, vendor: s.vendor?.business_name || '', plan: s.plan, status: s.status,
-      started: s.started_at, ends: s.ends_at || '', amount: s.amount, currency: s.currency,
-    })), 'subscriptions');
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await downloadAdminCsv('subscriptions', filter);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to create subscription export.');
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -68,7 +83,9 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} subscriptions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
+        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || loading || !!loadError}>
+          <Download className="mr-2 h-4 w-4" /> {exporting ? 'Preparing…' : 'Export'}
+        </Button>
       </div>
 
       <Tabs value={filter} onValueChange={v => { setFilter(v); setPage(0); }}>
@@ -84,6 +101,11 @@ function Content() {
         <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
+          ) : loadError ? (
+            <div className="py-8 text-center space-y-3">
+              <p role="alert" className="text-sm text-destructive">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => void loadSubs()}>Retry</Button>
+            </div>
           ) : subs.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No subscriptions found</div>
           ) : (

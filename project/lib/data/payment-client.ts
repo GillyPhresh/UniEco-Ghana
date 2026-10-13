@@ -5,9 +5,21 @@ import type { Subscription } from '@/lib/types';
 import type {
   PaymentRecord, PaymentProvider, Invoice, InvoiceItem,
   AdminPayment, AdminInvoice, Coupon,
-  Receipt, Refund, TransactionAuditEntry, PaymentStatusEvent,
+  Receipt, AdminRefund, TransactionAuditEntry, PaymentStatusEvent,
   VendorFinancialSummary, AdminFinancialSummary,
 } from '@/lib/types/payment';
+
+export async function startPaystackCheckout(input: {
+  purpose: 'subscription' | 'marketplace'; vendorId?: string; orderId?: string; idempotencyKey: string;
+}): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null }> {
+  const response = await fetch('/api/payments/paystack/initialize', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
+  });
+  const payload = await response.json() as { authorizationUrl?: string; reference?: string; error?: string };
+  return response.ok && payload.authorizationUrl && payload.reference
+    ? { authorizationUrl: payload.authorizationUrl, reference: payload.reference, error: null }
+    : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started.' };
+}
 
 // ============================================================
 // Payment Providers
@@ -102,23 +114,26 @@ export async function getAdminPayments(params: {
   limit?: number;
   offset?: number;
 }): Promise<{ payments: AdminPayment[]; total: number }> {
-  let query = supabase
-    .from('payments')
-    .select(`
-      *,
-      user:profiles!payments_user_id_fkey(full_name, email),
-      vendor:vendors(business_name)
-    `, { count: 'exact' });
-
-  if (params.status && params.status !== 'all') query = query.eq('status', params.status);
-  if (params.provider && params.provider !== 'all') query = query.eq('provider', params.provider);
-
-  const limit = params.limit || 20;
-  const offset = params.offset || 0;
-  query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-
-  const { data, count } = await query;
-  return { payments: (data || []) as unknown as AdminPayment[], total: count || 0 };
+  const { data, error } = await supabase.rpc('get_admin_payment_directory', {
+    p_status: params.status && params.status !== 'all' ? params.status : null,
+    p_limit: params.limit || 20,
+    p_offset: params.offset || 0,
+  });
+  if (error) throw new Error('Unable to load authorized payments');
+  const rows = (data || []) as Array<{
+    id: string; payment_reference: string | null; provider: string | null; payment_type: string;
+    amount: number; currency: string; status: string; created_at: string;
+    user_full_name: string | null; user_email: string | null; total_count: number;
+  }>;
+  return {
+    payments: rows.map(row => ({
+      id: row.id, payment_reference: row.payment_reference, provider: row.provider,
+      payment_type: row.payment_type, amount: Number(row.amount), currency: row.currency,
+      status: row.status, created_at: row.created_at,
+      user: row.user_email ? { full_name: row.user_full_name, email: row.user_email } : null,
+    })),
+    total: rows[0]?.total_count || 0,
+  };
 }
 
 export async function getCurrentSubscription(vendorId: string): Promise<Subscription | null> {
@@ -186,32 +201,35 @@ export async function getAdminInvoices(params: {
   limit?: number;
   offset?: number;
 }): Promise<{ invoices: AdminInvoice[]; total: number }> {
-  let query = supabase
-    .from('invoices')
-    .select(`
-      *,
-      user:profiles!invoices_user_id_fkey(full_name, email),
-      vendor:vendors(business_name)
-    `, { count: 'exact' });
-
-  if (params.status && params.status !== 'all') query = query.eq('status', params.status);
-
-  const limit = params.limit || 20;
-  const offset = params.offset || 0;
-  query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-
-  const { data, count } = await query;
-  return { invoices: (data || []) as unknown as AdminInvoice[], total: count || 0 };
+  const { data, error } = await supabase.rpc('get_admin_invoice_directory', {
+    p_status: params.status && params.status !== 'all' ? params.status : null,
+    p_limit: params.limit || 20,
+    p_offset: params.offset || 0,
+  });
+  if (error) throw new Error('Unable to load authorized invoices');
+  const rows = (data || []) as Array<{
+    id: string; invoice_number: string; vendor_id: string | null; invoice_type: string; amount: number;
+    currency: string; tax_amount: number; total_amount: number; status: string; created_at: string;
+    user_full_name: string | null; user_email: string | null; vendor_business_name: string | null; total_count: number;
+  }>;
+  return {
+    invoices: rows.map(row => ({
+      id: row.id, invoice_number: row.invoice_number, vendor_id: row.vendor_id, invoice_type: row.invoice_type,
+      amount: Number(row.amount), currency: row.currency, tax_amount: Number(row.tax_amount),
+      total_amount: Number(row.total_amount), status: row.status, created_at: row.created_at,
+      user: row.user_email ? { full_name: row.user_full_name, email: row.user_email } : null,
+      vendor: row.vendor_business_name ? { business_name: row.vendor_business_name } : null,
+    })),
+    total: rows[0]?.total_count || 0,
+  };
 }
 
 // ============================================================
 // Coupons (admin management — table already exists from marketplace migration)
 // ============================================================
 export async function getAdminCoupons(): Promise<Coupon[]> {
-  const { data } = await supabase
-    .from('coupons')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const { data, error } = await supabase.rpc('get_admin_coupons', { p_limit: 100, p_offset: 0 });
+  if (error) throw new Error('Unable to load coupons');
   return (data || []) as unknown as Coupon[];
 }
 
@@ -228,24 +246,50 @@ export async function createCoupon(data: {
   starts_at?: string;
   ends_at?: string;
   is_active?: boolean;
-}): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('coupons').insert({
-    ...data,
-    min_order_amount: data.min_order_amount || 0,
-    per_user_limit: data.per_user_limit || 1,
-    is_active: data.is_active ?? true,
+}, reason: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('admin_create_coupon', {
+    p_code: data.code,
+    p_description: data.description || null,
+    p_discount_type: data.discount_type,
+    p_discount_value: data.discount_value,
+    p_min_order_amount: data.min_order_amount ?? 0,
+    p_max_discount_amount: data.max_discount_amount ?? null,
+    p_student_only: data.student_only ?? false,
+    p_usage_limit: data.usage_limit ?? null,
+    p_per_user_limit: data.per_user_limit ?? 1,
+    p_is_active: data.is_active ?? true,
+    p_reason: reason,
   });
-  return { error: error?.message || null };
+  return { error: error ? 'Unable to create coupon. Verify the discount, limits, reason, and code uniqueness.' : null };
 }
 
-export async function updateCoupon(id: string, data: Record<string, unknown>): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('coupons').update(data).eq('id', id);
-  return { error: error?.message || null };
-}
-
-export async function deleteCoupon(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('coupons').delete().eq('id', id);
-  return { error: error?.message || null };
+export async function updateCoupon(id: string, data: {
+  code: string;
+  description?: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+  min_order_amount?: number;
+  max_discount_amount?: number | null;
+  student_only?: boolean;
+  usage_limit?: number | null;
+  per_user_limit?: number;
+  is_active?: boolean;
+}, reason: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('admin_update_coupon', {
+    p_coupon_id: id,
+    p_code: data.code,
+    p_description: data.description || null,
+    p_discount_type: data.discount_type,
+    p_discount_value: data.discount_value,
+    p_min_order_amount: data.min_order_amount ?? 0,
+    p_max_discount_amount: data.max_discount_amount ?? null,
+    p_student_only: data.student_only ?? false,
+    p_usage_limit: data.usage_limit ?? null,
+    p_per_user_limit: data.per_user_limit ?? 1,
+    p_is_active: data.is_active ?? true,
+    p_reason: reason,
+  });
+  return { error: error ? 'Unable to update coupon. Verify the discount, limits, reason, and code uniqueness.' : null };
 }
 
 // ============================================================
@@ -255,66 +299,12 @@ export async function deleteCoupon(id: string): Promise<{ error: string | null }
 // Revenue Stats (admin)
 // ============================================================
 export async function getRevenueStats(): Promise<AdminFinancialSummary> {
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const [allPayments, monthPayments, dayPayments, subPayments, adPayments, marketPayments, failedPayments, pendingPayments, pendingRefunds] = await Promise.all([
-    supabase.from('payments').select('amount, payment_type').eq('status', 'success'),
-    supabase.from('payments').select('amount').eq('status', 'success').gte('paid_at', monthStart.toISOString()),
-    supabase.from('payments').select('amount').eq('status', 'success').gte('paid_at', dayStart.toISOString()),
-    supabase.from('payments').select('amount').eq('status', 'success').eq('payment_type', 'subscription'),
-    supabase.from('payments').select('amount').eq('status', 'success').eq('payment_type', 'advertisement'),
-    supabase.from('payments').select('amount').eq('status', 'success').eq('payment_type', 'marketplace'),
-    supabase.from('payments').select('id', { count: 'exact', head: true }).eq('status', 'failed'),
-    supabase.from('payments').select('id', { count: 'exact', head: true }).in('status', ['pending', 'initiated']),
-    supabase.from('refunds').select('id', { count: 'exact', head: true }).eq('status', 'requested'),
-  ]);
-
-  const totalRevenue = (allPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-  const monthlyRevenue = (monthPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-  const dailyRevenue = (dayPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-  const subscriptionRevenue = (subPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-  const adRevenue = (adPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-  const marketplaceRevenue = (marketPayments.data || []).reduce((sum, p) => sum + (p.amount || 0), 0);
-
-  const monthlyData = await getRevenueByMonth();
-  const revenueByType = [
-    { type: 'Subscriptions', revenue: subscriptionRevenue },
-    { type: 'Advertisements', revenue: adRevenue },
-    { type: 'Marketplace', revenue: marketplaceRevenue },
-  ];
-
-  return {
-    totalRevenue, monthlyRevenue, dailyRevenue,
-    subscriptionRevenue, adRevenue, marketplaceRevenue,
-    failedPayments: failedPayments.count || 0,
-    outstandingPayments: pendingPayments.count || 0,
-    pendingRefunds: pendingRefunds.count || 0,
-    monthlyData, revenueByType,
-  };
-}
-
-export async function getRevenueByMonth(): Promise<Array<{ month: string; revenue: number }>> {
-  const { data } = await supabase
-    .from('payments')
-    .select('amount, paid_at')
-    .eq('status', 'success')
-    .not('paid_at', 'is', null);
-
-  if (!data) return [];
-
-  const byMonth: Record<string, number> = {};
-  for (const p of data) {
-    if (!p.paid_at) continue;
-    const date = new Date(p.paid_at);
-    const key = date.toLocaleDateString('en', { month: 'short', year: '2-digit' });
-    byMonth[key] = (byMonth[key] || 0) + (p.amount || 0);
+  const { data, error } = await supabase.rpc('get_admin_financial_summary');
+  if (error || !data || typeof data !== 'object') {
+    // Do not turn authorization/query failures into plausible-looking zeroes.
+    throw new Error('Unable to load authorized financial summary.');
   }
-
-  return Object.entries(byMonth)
-    .map(([month, revenue]) => ({ month, revenue }))
-    .slice(-12);
+  return data as AdminFinancialSummary;
 }
 
 // ============================================================
@@ -522,48 +512,48 @@ export async function getAdminRefunds(params: {
   status?: string;
   limit?: number;
   offset?: number;
-}): Promise<{ refunds: Refund[]; total: number }> {
-  let query = supabase
-    .from('refunds')
-    .select(`
-      *,
-      payment:payments!refunds_payment_id_fkey(payment_reference, amount, status),
-      user:profiles!refunds_user_id_fkey(full_name, email),
-      vendor:vendors(business_name)
-    `, { count: 'exact' });
-
-  if (params.status && params.status !== 'all') query = query.eq('status', params.status);
-
-  const limit = params.limit || 20;
-  const offset = params.offset || 0;
-  query = query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
-
-  const { data, count } = await query;
-  return { refunds: (data || []) as unknown as Refund[], total: count || 0 };
+}): Promise<{ refunds: AdminRefund[]; total: number }> {
+  const { data, error } = await supabase.rpc('get_admin_refund_directory', {
+    p_status: params.status && params.status !== 'all' ? params.status : null,
+    p_limit: params.limit || 20,
+    p_offset: params.offset || 0,
+  });
+  if (error) throw new Error('Unable to load authorized refunds');
+  const rows = (data || []) as Array<{
+    id: string; refund_number: string | null; payment_id: string; user_id: string; vendor_id: string | null;
+    amount: number; currency: string; reason: string | null; status: string; created_at: string;
+    payment_reference: string | null; payment_amount: number; payment_status: string;
+    user_full_name: string | null; user_email: string; vendor_business_name: string | null; total_count: number;
+  }>;
+  return {
+    refunds: rows.map(row => ({
+      id: row.id, refund_number: row.refund_number, payment_id: row.payment_id, user_id: row.user_id,
+      vendor_id: row.vendor_id, amount: Number(row.amount), currency: row.currency, reason: row.reason,
+      status: row.status, created_at: row.created_at,
+      payment: { payment_reference: row.payment_reference, amount: Number(row.payment_amount), status: row.payment_status },
+      user: { full_name: row.user_full_name, email: row.user_email },
+      vendor: row.vendor_business_name ? { business_name: row.vendor_business_name } : null,
+    })),
+    total: rows[0]?.total_count || 0,
+  };
 }
 
-export async function approveRefund(refundId: string, _adminId: string, notes?: string): Promise<{ error: string | null }> {
+export async function approveRefund(refundId: string, notes: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('review_payment_refund', {
     p_refund_id: refundId,
     p_approved: true,
-    p_notes: notes || null,
+    p_notes: notes,
   });
-  return { error: error?.message || null };
+  return { error: error ? 'Unable to approve this refund. Check authority, state, and review reason.' : null };
 }
 
-export async function rejectRefund(refundId: string, _adminId: string, notes?: string): Promise<{ error: string | null }> {
+export async function rejectRefund(refundId: string, notes: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('review_payment_refund', {
     p_refund_id: refundId,
     p_approved: false,
-    p_notes: notes || null,
+    p_notes: notes,
   });
-  return { error: error?.message || null };
-}
-
-export async function processRefund(refundId: string, providerReference: string): Promise<{ error: string | null }> {
-  void refundId;
-  void providerReference;
-  return { error: 'Provider refund processing is not configured. No refund was processed.' };
+  return { error: error ? 'Unable to reject this refund. Check authority, state, and review reason.' : null };
 }
 
 // ============================================================
@@ -660,49 +650,6 @@ export async function initiateMarketplacePayment(params: {
 // ============================================================
 // University Revenue Breakdown
 // ============================================================
-export async function getRevenueByUniversity(): Promise<Array<{ name: string; revenue: number; count: number }>> {
-  const { data } = await supabase
-    .from('payments')
-    .select(`
-      amount,
-      status,
-      vendor:vendors!payments_vendor_id_fkey(university_id)
-    `)
-    .eq('status', 'success');
-
-  if (!data) return [];
-
-  // Group by university
-  const uniMap: Record<string, { revenue: number; count: number }> = {};
-
-  for (const p of data) {
-    const vendorData = p.vendor as unknown as { university_id: string | null } | null;
-    const uniId = vendorData?.university_id || 'unassigned';
-    if (!uniMap[uniId]) uniMap[uniId] = { revenue: 0, count: 0 };
-    uniMap[uniId].revenue += p.amount || 0;
-    uniMap[uniId].count += 1;
-  }
-
-  // Look up university names
-  const uniIds = Object.keys(uniMap).filter(id => id !== 'unassigned');
-  if (uniIds.length > 0) {
-    const { data: unis } = await supabase
-      .from('universities')
-      .select('id, name')
-      .in('id', uniIds);
-    (unis || []).forEach(u => {
-      if (uniMap[u.id]) uniMap[u.id] = { ...uniMap[u.id] };
-      (uniMap as Record<string, { revenue: number; count: number; name?: string }>)[u.id].name = u.name;
-    });
-  }
-
-  return Object.entries(uniMap).map(([id, val]) => ({
-    name: (uniMap as Record<string, { name?: string }>)[id]?.name || (id === 'unassigned' ? 'Unassigned' : 'Unknown'),
-    revenue: val.revenue,
-    count: val.count,
-  }));
-}
-
 // ============================================================
 // Payment Methods — Get available methods per provider
 // ============================================================

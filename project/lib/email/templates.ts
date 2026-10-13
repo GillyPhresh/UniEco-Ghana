@@ -10,6 +10,8 @@
  * All copy uses human-friendly language — no robotic or AI-generated tone.
  */
 
+import { siteConfig } from '@/lib/constants/site';
+
 export interface EmailTemplate {
   subject: string;
   html: string;
@@ -31,7 +33,7 @@ export const emailTemplates = {
           <li>Browse businesses on your campus</li>
           <li>Discover campus events</li>
         </ul>
-        <a href="https://unieco.gh/profile"
+        <a href="${siteConfig.url}/profile"
            style="display: inline-block; background: #10b981; color: #fff;
                   padding: 12px 24px; border-radius: 8px; text-decoration: none;
                   margin-top: 16px;">
@@ -42,7 +44,7 @@ export const emailTemplates = {
         </p>
       </div>
     `,
-    text: `Welcome to UniEco Ghana, ${name}!\n\nYour account has been created. Complete your profile at https://unieco.gh/profile to get started.\n\nWelcome aboard!\nThe UniEco Ghana Team`,
+    text: `Welcome to UniEco Ghana, ${name}!\n\nYour account has been created. Complete your profile at ${siteConfig.url}/profile to get started.\n\nWelcome aboard!\nThe UniEco Ghana Team`,
   }),
 
   emailVerification: (name: string, link: string): EmailTemplate => ({
@@ -75,7 +77,7 @@ export const emailTemplates = {
         <p>Hi ${name},</p>
         <p>Great news — your ${accountType} verification has been approved. You now
         have full access to all the features available to your account type.</p>
-        <a href="https://unieco.gh/"
+        <a href="${siteConfig.url}/"
            style="display: inline-block; background: #10b981; color: #fff;
                   padding: 12px 24px; border-radius: 8px; text-decoration: none;
                   margin-top: 16px;">
@@ -99,7 +101,7 @@ export const emailTemplates = {
         <p><strong>Reason:</strong> ${reason}</p>
         <p>You can update your information and resubmit for verification at any
         time from your profile settings.</p>
-        <a href="https://unieco.gh/profile"
+        <a href="${siteConfig.url}/profile"
            style="display: inline-block; background: #10b981; color: #fff;
                   padding: 12px 24px; border-radius: 8px; text-decoration: none;
                   margin-top: 16px;">
@@ -110,7 +112,7 @@ export const emailTemplates = {
         </p>
       </div>
     `,
-    text: `Update on your ${accountType} verification\n\nHi ${name},\n\nWe were unable to approve your verification. Reason: ${reason}\n\nYou can update your information and resubmit from your profile at https://unieco.gh/profile.\n\nThe UniEco Ghana Team`,
+    text: `Update on your ${accountType} verification\n\nHi ${name},\n\nWe were unable to approve your verification. Reason: ${reason}\n\nYou can update your information and resubmit from your profile at ${siteConfig.url}/profile.\n\nThe UniEco Ghana Team`,
   }),
 
   passwordReset: (name: string, link: string): EmailTemplate => ({
@@ -144,7 +146,7 @@ export const emailTemplates = {
         <p>Your <strong>${plan}</strong> subscription expires on
         <strong>${expiryDate}</strong>. Renew now to keep your premium features
         and visibility on the platform.</p>
-        <a href="https://unieco.gh/profile"
+        <a href="${siteConfig.url}/profile"
            style="display: inline-block; background: #10b981; color: #fff;
                   padding: 12px 24px; border-radius: 8px; text-decoration: none;
                   margin-top: 16px;">
@@ -155,7 +157,7 @@ export const emailTemplates = {
         </p>
       </div>
     `,
-    text: `Your ${plan} subscription expires on ${expiryDate}. Renew at https://unieco.gh/profile to keep your premium features.\n\nThe UniEco Ghana Team`,
+    text: `Your ${plan} subscription expires on ${expiryDate}. Renew at ${siteConfig.url}/profile to keep your premium features.\n\nThe UniEco Ghana Team`,
   }),
 };
 
