@@ -30,7 +30,7 @@ export async function getUniversities(limit?: number) {
     .eq('is_enabled', true)
     .order('name')
     .limit(limit || 1000);
-  return data as Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'institution_type' | 'campus_launch_status' | 'is_enabled'>[];
+  return (data || []) as Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'institution_type' | 'campus_launch_status' | 'is_enabled'>[];
 }
 
 export async function getUniversityDirectory() {
