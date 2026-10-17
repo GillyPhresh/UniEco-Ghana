@@ -123,7 +123,7 @@ function DashboardContent() {
 
   if (dashboard.kind === 'operations') {
     return (
-      <div className="mx-auto max-w-7xl space-y-5 p-4 sm:p-6">
+      <div className="mx-auto w-full max-w-7xl space-y-5 p-3 sm:p-6 lg:p-8">
         <header>
           <h1 className="font-display text-2xl font-bold text-foreground">Operations Home</h1>
           <p className="mt-1 text-sm text-muted-foreground">Assigned operational queues only. Counts and links are limited by your database permissions.</p>
@@ -171,10 +171,16 @@ function DashboardContent() {
   };
 
   return (
-    <div className="min-w-0 p-4 sm:p-6 space-y-6 max-w-7xl">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">Platform Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Real-time statistics across the entire UniEco Ghana ecosystem.</p>
+    <div className="mx-auto min-w-0 w-full max-w-[1500px] space-y-5 p-3 sm:space-y-6 sm:p-6 lg:p-8">
+      <div className="flex flex-col gap-3 border-b border-border/70 pb-5 sm:flex-row sm:items-end sm:justify-between sm:pb-6">
+        <div>
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary sm:text-xs">Management overview</p>
+          <h1 className="font-display text-[1.65rem] font-bold tracking-tight text-foreground sm:text-3xl">Platform Overview</h1>
+          <p className="mt-1.5 max-w-2xl text-sm leading-5 text-muted-foreground sm:mt-2 sm:leading-6">Monitor activity, review priority queues, and keep the UniEco Ghana ecosystem running smoothly.</p>
+        </div>
+        <Badge variant="outline" className="w-fit gap-2 rounded-full px-3 py-1.5 text-xs font-medium">
+          <span className="h-2 w-2 rounded-full bg-success" aria-hidden="true" /> Live data
+        </Badge>
       </div>
 
       <PendingActionLinks actions={pendingActions} />
@@ -182,7 +188,7 @@ function DashboardContent() {
       <RecentActivityPanel role="super_admin" entries={recentActivity} loading={activityLoading} error={activityError} onRetry={loadRecentActivity} />
 
       {/* Stat cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+      <section aria-label="Platform metrics" className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 xl:grid-cols-6">
         {statCards.map(card => {
           const Icon = card.icon;
           return (
@@ -199,7 +205,7 @@ function DashboardContent() {
             </Card>
           );
         })}
-      </div>
+      </section>
 
       {/* Charts */}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -344,15 +350,16 @@ function UniversityAdminOverview({
   };
 
   return (
-    <div className="min-w-0 p-4 sm:p-6 space-y-6 max-w-7xl">
-      <div>
-        <h1 className="font-display text-2xl font-bold text-foreground">University Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Operational activity across universities assigned to your account. Financial and platform-wide controls are not available here.</p>
+    <div className="mx-auto min-w-0 w-full max-w-[1500px] space-y-5 p-3 sm:space-y-6 sm:p-6 lg:p-8">
+      <div className="border-b border-border/70 pb-5 sm:pb-6">
+        <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary sm:text-xs">Management overview</p>
+        <h1 className="font-display text-[1.65rem] font-bold tracking-tight text-foreground sm:text-3xl">University Overview</h1>
+        <p className="mt-1.5 max-w-2xl text-sm leading-5 text-muted-foreground sm:mt-2 sm:leading-6">Review activity across the universities assigned to your account. Financial and platform-wide controls are not available here.</p>
       </div>
       <PendingActionLinks actions={pendingActions} />
       <OperationalAlertsPanel role="university_admin" alerts={operationalAlerts} loading={alertsLoading} error={alertsError} onRetry={onRetryAlerts} />
       <RecentActivityPanel role="university_admin" entries={recentActivity} loading={activityLoading} error={activityError} onRetry={onRetryActivity} />
-      <section aria-label="Assigned university metrics" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+      <section aria-label="Assigned university metrics" className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4 xl:grid-cols-5">
         {statCards.map(({ label, value, icon: Icon }) => (
           <Card key={label} className="min-w-0">
             <CardContent className="p-4">
@@ -410,7 +417,7 @@ function PendingActionLinks({ actions }: { actions: Array<{ label: string; value
     <section aria-labelledby="pending-actions-title" className="space-y-3">
       <h2 id="pending-actions-title" className="text-sm font-semibold text-foreground">Pending actions</h2>
       {outstanding.length === 0 ? <p className="text-sm text-muted-foreground">No outstanding items in these queues.</p> : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
           {outstanding.map(action => (
             <Link key={action.href} href={action.href} className="rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
               <Card className="h-full transition-colors hover:border-primary/50">

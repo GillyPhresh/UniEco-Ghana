@@ -8,19 +8,45 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { ADMIN_NAV_GROUPS } from '@/lib/types/admin';
-import { Loader2, Menu, Shield, ArrowLeft } from 'lucide-react';
+import {
+  Activity,
+  ArrowLeft,
+  BarChart3,
+  Bell,
+  Building2,
+  CalendarDays,
+  CreditCard,
+  FileText,
+  FolderTree,
+  GraduationCap,
+  LayoutDashboard,
+  LifeBuoy,
+  Loader2,
+  Menu,
+  Megaphone,
+  Package,
+  Receipt,
+  Search,
+  Shield,
+  ShieldAlert,
+  ShieldCheck,
+  ShoppingBag,
+  Store,
+  Ticket,
+  Truck,
+  Users,
+  Wallet,
+  Wrench,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, typeof Shield> = {
-  LayoutDashboard: Shield, BarChart3: Shield, Wallet: Shield, Activity: Shield,
-  Search: Shield,
-  Users: Shield, Store: Shield, GraduationCap: Shield, FolderTree: Shield,
-  ShoppingBag: Shield, CreditCard: Shield, Megaphone: Shield, Truck: Shield,
-  UserCheck: Shield, StoreCheck: Shield, Flag: Shield, Star: Shield, LifeBuoy: Shield,
-  Bell: Shield, FileText: Shield, ScrollText: Shield, ShieldCheck: Shield, CalendarDays: Shield,
-  ShieldAlert: Shield,
-  Receipt: Shield, Ticket: Shield,
-  RotateCcw: Shield,
+  LayoutDashboard, BarChart3, Wallet, Activity, Search, Users, Store,
+  GraduationCap, FolderTree, ShoppingBag, CreditCard, Megaphone, Truck,
+  LifeBuoy, Bell, FileText, ShieldCheck, CalendarDays, ShieldAlert,
+  Receipt, Ticket, Building2, Package, Wrench,
+  UserCheck: ShieldCheck, StoreCheck: Store, Flag: ShieldAlert, Star: ShieldCheck,
+  ScrollText: FileText, RotateCcw: Activity,
 };
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
@@ -138,15 +164,20 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const sidebar = (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center gap-2 border-b border-border px-4">
-        <Shield className="h-5 w-5 text-primary" />
-        <span className="font-display text-sm font-bold">Admin Panel</span>
+      <div className="flex h-16 items-center gap-3 border-b border-border px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+        </div>
+        <div className="min-w-0">
+          <span className="block truncate font-display text-sm font-bold">UniEco Ghana</span>
+          <span className="block text-[11px] text-muted-foreground">Management console</span>
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
+      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-5">
         {navGroups.map(group => (
           <div key={group.label}>
-            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">{group.label}</p>
+            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">{group.label}</p>
             <div className="space-y-0.5">
               {group.items.map(item => {
                 const Icon = ICON_MAP[item.icon] || Shield;
@@ -157,13 +188,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     onClick={() => setMobileNavOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                     )}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
+                    <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-105" />
                     {item.label}
                   </Link>
                 );
@@ -173,7 +204,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="border-t border-border p-3">
+      <div className="border-t border-border bg-card/80 p-3">
         <Link href="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to site
         </Link>
@@ -185,7 +216,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:block">
         {sidebar}
@@ -193,15 +224,19 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile sidebar */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <div className="flex h-full flex-1 flex-col">
+        <div className="flex min-h-screen flex-1 flex-col lg:hidden">
           {/* Top bar */}
-          <header className="flex h-14 items-center gap-3 border-b border-border bg-card px-4">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-3 shadow-sm backdrop-blur sm:px-4">
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="lg:hidden">
+              <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open management menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <span className="font-display text-sm font-bold lg:hidden">Admin Panel</span>
+            <div className="min-w-0 flex-1">
+              <span className="block truncate font-display text-sm font-bold">Management console</span>
+              <span className="block truncate text-[11px] text-muted-foreground">UniEco Ghana</span>
+            </div>
+            <div className="h-2.5 w-2.5 rounded-full bg-success" title="System online" aria-label="System online" />
           </header>
 
           {/* Main content */}
@@ -209,7 +244,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
           {sidebar}
         </SheetContent>
       </Sheet>
