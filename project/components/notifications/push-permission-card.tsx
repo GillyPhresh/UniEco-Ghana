@@ -16,6 +16,7 @@ export function PushPermissionCard() {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [enabled, setEnabled] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,9 +35,14 @@ export function PushPermissionCard() {
           keys: { p256dh, auth },
           expirationTime: subscriptionJson.expirationTime,
         });
-        if (!cancelled && !result.error) setEnabled(true);
+        if (!cancelled) {
+          if (result.error) setSyncError(result.error);
+          else setEnabled(true);
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setSyncError('Could not synchronize this device with UniEco.');
+      });
     return () => {
       cancelled = true;
     };
@@ -48,6 +54,7 @@ export function PushPermissionCard() {
       return;
     }
     setBusy(true);
+    setSyncError(null);
     try {
       const configResponse = await fetch('/api/notifications/push-config');
       const config = await configResponse.json();
@@ -96,6 +103,7 @@ export function PushPermissionCard() {
         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : enabled ? <Check className="mr-2 h-4 w-4" /> : null}
         {enabled ? 'Enabled' : 'Enable push'}
       </Button>
+      {syncError && <p className="text-xs text-destructive sm:max-w-xs sm:text-right">{syncError}</p>}
     </div>
   );
 }
