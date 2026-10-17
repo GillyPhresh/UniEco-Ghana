@@ -9,10 +9,14 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const handleCallback = async () => {
-      const { error } = await supabase.auth.exchangeCodeForSession(
-        window.location.href
-      );
+    const code = new URL(window.location.href).searchParams.get('code');
+
+      if (!code) {
+        router.replace('/signin?error=auth_callback_failed');
+        return;
+      }
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
 
       if (error) {
         router.replace('/signin?error=auth_callback_failed');
