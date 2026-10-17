@@ -500,22 +500,19 @@ export async function subscribeToPush(
     expiration_time?: string | null;
   },
 ): Promise<{ error: string | null }> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
-
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: user.id,
+  const response = await fetch('/api/notifications/push-subscription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       endpoint: subscription.endpoint,
-      p256dh_key: subscription.p256dh_key || subscription.keys?.p256dh || '',
-      auth_key: subscription.auth_key || subscription.keys?.auth || '',
-      expiration_time: subscription.expiration_time || (subscription.expirationTime ? new Date(subscription.expirationTime).toISOString() : null),
-      is_active: true,
-    },
-    { onConflict: 'user_id,endpoint' },
-  );
-
-  return { error: error?.message || null };
+      p256dh: subscription.p256dh_key || subscription.keys?.p256dh,
+      auth: subscription.auth_key || subscription.keys?.auth,
+      expirationTime: subscription.expirationTime,
+    }),
+  });
+  if (response.ok) return { error: null };
+  const result = await response.json().catch(() => ({}));
+  return { error: result.error || 'Could not save push subscription' };
 }
 
 export async function unsubscribeFromPush(endpoint: string): Promise<{ error: string | null }> {
