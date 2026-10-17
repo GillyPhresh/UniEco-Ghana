@@ -77,6 +77,41 @@ self.addEventListener('message', (event) => {
   if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch {
+    payload = { body: event.data?.text?.() || '' };
+  }
+
+  const title = payload.title || 'UniEco Ghana';
+  const options = {
+    body: payload.body || 'You have a new UniEco notification.',
+    icon: payload.icon || '/icon.svg',
+    badge: payload.badge || '/icon.svg',
+    tag: payload.tag || 'unieco-notification',
+    data: { url: payload.url || '/dashboard/notifications' },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || '/dashboard/notifications';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((client) => 'focus' in client);
+      if (existing) {
+        existing.navigate(targetUrl);
+        return existing.focus();
+      }
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
 function shouldNeverCache(url) {
   return NEVER_CACHE_PATTERNS.some((p) => url.pathname.startsWith(p));
 }

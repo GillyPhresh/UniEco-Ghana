@@ -492,7 +492,13 @@ export { MESSAGE_REPORT_REASONS };
 // ============================================================
 
 export async function subscribeToPush(
-  subscription: PushSubscription,
+  subscription: Pick<PushSubscription, 'endpoint'> & {
+    keys?: { p256dh?: string | null; auth?: string | null };
+    expirationTime?: number | null;
+    p256dh_key?: string;
+    auth_key?: string;
+    expiration_time?: string | null;
+  },
 ): Promise<{ error: string | null }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Not authenticated' };
@@ -501,9 +507,9 @@ export async function subscribeToPush(
     {
       user_id: user.id,
       endpoint: subscription.endpoint,
-      p256dh_key: subscription.p256dh_key,
-      auth_key: subscription.auth_key,
-      expiration_time: subscription.expiration_time,
+      p256dh_key: subscription.p256dh_key || subscription.keys?.p256dh || '',
+      auth_key: subscription.auth_key || subscription.keys?.auth || '',
+      expiration_time: subscription.expiration_time || (subscription.expirationTime ? new Date(subscription.expirationTime).toISOString() : null),
       is_active: true,
     },
     { onConflict: 'endpoint' },

@@ -18,6 +18,7 @@ import {
 } from '@/lib/data/communication-client';
 import type { NotificationCategory, CategoryChannelPrefs, NotificationPreferences } from '@/lib/types/communication';
 import { NOTIFICATION_CATEGORIES_FULL, CHANNEL_LABELS } from '@/lib/types/communication';
+import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 
 const CHANNEL_ICONS: Record<keyof CategoryChannelPrefs, typeof Bell> = {
   in_app: Bell,
@@ -113,6 +114,8 @@ function PreferencesContent() {
             );
           })}
         </div>
+
+        <PushPermissionCard />
 
         {loading ? (
           <div className="space-y-4">

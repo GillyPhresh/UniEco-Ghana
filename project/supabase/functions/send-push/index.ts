@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import webpush from "npm:web-push@3.6.7";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
 import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
 
@@ -64,6 +65,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const provider = "web_push";
+    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
     let sentCount = 0;
     let failedCount = 0;
 
@@ -78,17 +80,19 @@ Deno.serve(async (req: Request) => {
           tag: eventType || "notification",
         });
 
-        await fetch(sub.endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "TTL": "86400",
-          },
-          body: pushPayload,
+        await webpush.sendNotification({
+          endpoint: sub.endpoint,
+          keys: { p256dh: sub.p256dh_key, auth: sub.auth_key },
+        }, pushPayload, {
+          TTL: 86400,
         });
         sentCount++;
-      } catch {
+      } catch (error) {
         failedCount++;
+        const statusCode = (error as { statusCode?: number })?.statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await supabase.from("push_subscriptions").update({ is_active: false }).eq("id", sub.id);
+        }
       }
     }
 
