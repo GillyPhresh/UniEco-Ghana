@@ -19,8 +19,17 @@ export async function GET(request: Request) {
   const { error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
+    const reason = error.code ?? error.name ?? 'oauth_exchange_failed';
+    console.error('[auth/callback] Supabase code exchange failed', {
+      code: error.code,
+      name: error.name,
+      message: error.message,
+    });
     return NextResponse.redirect(
-      new URL('/signin?error=auth_callback_failed', requestUrl.origin),
+      new URL(
+        `/signin?error=auth_callback_failed&reason=${encodeURIComponent(reason)}`,
+        requestUrl.origin,
+      ),
     );
   }
 
