@@ -149,23 +149,7 @@ INSERT INTO public.universities (
   ('Valley View University', 'Valley View University', 'Valley View', 'VVU', 'valley-view-university', 'Oyibi', 'Greater Accra', 'Ghana', NULL, 'Private Chartered University', 'private', 'planned', true, true, NULL, NULL),
   ('SENES Professional College, Accra', 'SENES Professional College, Accra', 'SENES Professional College', NULL, 'senes-professional-college-accra', 'Tema', 'Greater Accra', 'Ghana', NULL, 'Private University', 'private', 'planned', true, true, NULL, NULL),
   ('Ghana Armed Forces Command and Staff College', 'Ghana Armed Forces Command and Staff College', 'GAFCSC', 'GAFCSC', 'ghana-armed-forces-command-and-staff-college', 'Burma Camp, Accra', 'Greater Accra', 'Ghana', NULL, 'Other recognized university-level institution', 'public', 'planned', true, true, NULL, NULL)
-ON CONFLICT (slug) DO UPDATE SET
-  name = EXCLUDED.name,
-  official_name = EXCLUDED.official_name,
-  short_name = EXCLUDED.short_name,
-  abbreviation = EXCLUDED.abbreviation,
-  city = EXCLUDED.city,
-  region = EXCLUDED.region,
-  country = EXCLUDED.country,
-  website_url = COALESCE(EXCLUDED.website_url, public.universities.website_url),
-  institution_type = EXCLUDED.institution_type,
-  ownership_type = EXCLUDED.ownership_type,
-  campus_launch_status = EXCLUDED.campus_launch_status,
-  is_enabled = EXCLUDED.is_enabled,
-  is_verified = EXCLUDED.is_verified,
-  logo_alt_text = COALESCE(EXCLUDED.logo_alt_text, public.universities.logo_alt_text),
-  hero_alt_text = COALESCE(EXCLUDED.hero_alt_text, public.universities.hero_alt_text),
-  updated_at = now();
+ON CONFLICT DO NOTHING;
 
 INSERT INTO public.university_aliases (university_id, alias)
 SELECT university.id, aliases.alias
