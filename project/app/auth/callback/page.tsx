@@ -9,7 +9,8 @@ export default function AuthCallbackPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const code = new URL(window.location.href).searchParams.get('code');
+    const handleCallback = async () => {
+      const code = new URL(window.location.href).searchParams.get('code');
 
       if (!code) {
         router.replace('/signin?error=auth_callback_failed');
