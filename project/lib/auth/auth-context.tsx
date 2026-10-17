@@ -144,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
-    window.location.assign('/auth/google');
+    window.location.assign('/auth/google-production');
     return { error: null };
   }, []);
 
