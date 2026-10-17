@@ -36,7 +36,18 @@ export function PushPermissionCard() {
         userVisibleOnly: true,
         applicationServerKey: decodeBase64Url(config.publicKey),
       });
-      const result = await subscribeToPush(subscription.toJSON());
+      const subscriptionJson = subscription.toJSON();
+      const endpoint = subscriptionJson.endpoint;
+      const p256dh = subscriptionJson.keys?.p256dh;
+      const auth = subscriptionJson.keys?.auth;
+      if (!endpoint || !p256dh || !auth) {
+        throw new Error('The browser returned an incomplete push subscription.');
+      }
+      const result = await subscribeToPush({
+        endpoint,
+        keys: { p256dh, auth },
+        expirationTime: subscriptionJson.expirationTime,
+      });
       if (result.error) throw new Error(result.error);
       setEnabled(true);
       toast({ title: 'Push notifications enabled', description: 'UniEco can now alert you about important updates.' });
