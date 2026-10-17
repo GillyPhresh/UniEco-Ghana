@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase/client';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -27,7 +28,11 @@ function PaymentCallbackContent() {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const check = async () => {
       try {
-        const response = await fetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`, { cache: 'no-store' });
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`, {
+          cache: 'no-store',
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        });
         const body = await response.json() as { payment?: Payment; error?: string };
         if (!response.ok) throw new Error(body.error || 'Payment could not be found.');
         if (cancelled) return;
