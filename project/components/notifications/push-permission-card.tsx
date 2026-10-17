@@ -57,10 +57,10 @@ export function PushPermissionCard() {
       if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: decodeBase64Url(config.publicKey),
-      });
+      const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: decodeBase64Url(config.publicKey),
+        });
       const subscriptionJson = subscription.toJSON();
       const endpoint = subscriptionJson.endpoint;
       const p256dh = subscriptionJson.keys?.p256dh;
@@ -92,7 +92,7 @@ export function PushPermissionCard() {
           <p className="text-sm text-muted-foreground">Receive important UniEco updates even when the site is closed.</p>
         </div>
       </div>
-      <Button type="button" size="sm" onClick={enablePush} disabled={busy || enabled} className="shrink-0">
+      <Button type="button" size="sm" onClick={enablePush} disabled={busy} className="shrink-0">
         {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : enabled ? <Check className="mr-2 h-4 w-4" /> : null}
         {enabled ? 'Enabled' : 'Enable push'}
       </Button>
