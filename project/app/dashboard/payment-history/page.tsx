@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { RouteGuard } from '@/lib/auth/route-guard';
+import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,7 +13,7 @@ import { getUserPayments, exportToCsv } from '@/lib/data/payment-client';
 import type { PaymentRecord } from '@/lib/types/payment';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
 import { Button } from '@/components/ui/button';
-import { Download, Wallet, Search } from 'lucide-react';
+import { ArrowLeft, Download, Wallet, Search } from 'lucide-react';
 
 export default function StudentPaymentHistoryPage() {
   return (
@@ -45,14 +46,19 @@ function Content() {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="mx-auto max-w-4xl p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Button asChild variant="outline" size="icon" className="mt-0.5 h-10 w-10 shrink-0 rounded-xl" aria-label="Back to dashboard">
+              <Link href="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
+            </Button>
+            <div>
             <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
               <Wallet className="h-6 w-6 text-primary" /> Payment History
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">{payments.length} transactions</p>
+            </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport}><Download className="mr-2 h-4 w-4" /> Export</Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Export</Button>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
