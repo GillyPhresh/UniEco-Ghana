@@ -7,6 +7,7 @@ import { Loader2, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 type Payment = { status: string; amount: number; currency: string; payment_type: string; failure_reason: string | null };
 
