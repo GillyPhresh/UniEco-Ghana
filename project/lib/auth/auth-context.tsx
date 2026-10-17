@@ -144,14 +144,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signInWithGoogle = useCallback(async () => {
-    const redirectOrigin = window.location.hostname === 'localhost'
-      ? window.location.origin
-      : 'https://uniecoghana.com';
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: `${redirectOrigin}/auth/callback` },
-    });
-    return { error: error?.message ?? null };
+    window.location.assign('/auth/google');
+    return { error: null };
   }, []);
 
   const signOut = useCallback(async () => {
