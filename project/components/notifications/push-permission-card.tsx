@@ -21,9 +21,20 @@ export function PushPermissionCard() {
     let cancelled = false;
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => {
-        if (!cancelled && subscription) setEnabled(true);
+      .then(async (registration) => {
+        const subscription = await registration.pushManager.getSubscription();
+        if (!subscription) return;
+        const subscriptionJson = subscription.toJSON();
+        const endpoint = subscriptionJson.endpoint;
+        const p256dh = subscriptionJson.keys?.p256dh;
+        const auth = subscriptionJson.keys?.auth;
+        if (!endpoint || !p256dh || !auth) return;
+        const result = await subscribeToPush({
+          endpoint,
+          keys: { p256dh, auth },
+          expirationTime: subscriptionJson.expirationTime,
+        });
+        if (!cancelled && !result.error) setEnabled(true);
       })
       .catch(() => {});
     return () => {

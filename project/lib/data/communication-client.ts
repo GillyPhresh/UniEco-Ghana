@@ -512,7 +512,7 @@ export async function subscribeToPush(
       expiration_time: subscription.expiration_time || (subscription.expirationTime ? new Date(subscription.expirationTime).toISOString() : null),
       is_active: true,
     },
-    { onConflict: 'endpoint' },
+    { onConflict: 'user_id,endpoint' },
   );
 
   return { error: error?.message || null };
