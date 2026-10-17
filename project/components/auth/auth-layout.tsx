@@ -46,12 +46,12 @@ export function AuthLayout({
             Connecting Students, Businesses &amp; Opportunities
           </h2>
           <p className="max-w-md text-primary-foreground/80">
-            The campus marketplace built for every tertiary institution in Ghana.
-            Join your campus community today.
+            A campus marketplace for tertiary institutions across Ghana.
+            Find local businesses, services, products, and events in one place.
           </p>
           <p className="max-w-md text-sm text-primary-foreground/70">
-            Start with your verified university profile and discover campus businesses,
-            services, products, and events as UniEco launches across Ghana.
+            Create your profile, discover what is around you, and connect with
+            your campus community.
           </p>
         </div>
 

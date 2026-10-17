@@ -100,21 +100,21 @@ export default function SignUpPage() {
               className="space-y-4"
             >
               <p className="text-center text-sm text-muted-foreground">
-                Choose your account type to get started
+                How will you use UniEco?
               </p>
 
               <AccountTypeCard
                 icon={GraduationCap}
-                title="Student Account"
-                description="Browse businesses, purchase products, message vendors, and review businesses on your campus."
+                title="Student"
+                description="Discover businesses, shop for products, message vendors, and review businesses on your campus."
                 selected={accountType === 'student'}
                 onClick={() => setAccountType('student')}
               />
 
               <AccountTypeCard
                 icon={Store}
-                title="Business Account"
-                description="Register your business, list products and services, receive orders, and reach thousands of students."
+                title="Business"
+                description="Register your business, list products and services, accept orders, and reach students."
                 selected={accountType === 'external_vendor'}
                 onClick={() => setAccountType('external_vendor')}
               />

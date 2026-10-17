@@ -44,7 +44,7 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
           >
             Find businesses, food, and services{' '}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              around your campus
+              near your campus
             </span>
           </motion.h1>
 
@@ -54,9 +54,8 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
             transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="mt-6 text-base text-muted-foreground text-pretty sm:text-lg"
           >
-            Search for waakye near your lecture hall, a print shop before a
-            deadline, or a phone repair between classes. No account needed to
-            browse.
+            Find waakye near your lecture hall, a print shop before a deadline,
+            or phone repair between classes. You can browse without an account.
           </motion.p>
 
           <motion.div
@@ -69,12 +68,12 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
             <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
               <Button asChild variant="outline" size="sm">
                 <Link href="/discover">
-                  Browse all businesses
+                  Browse businesses
                   <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
                 </Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
-                <Link href="/events">See campus events</Link>
+                <Link href="/events">View campus events</Link>
               </Button>
             </div>
           </motion.div>

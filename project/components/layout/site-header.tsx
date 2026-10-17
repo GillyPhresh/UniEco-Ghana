@@ -144,7 +144,7 @@ export function SiteHeader() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/orders')}>
                   <Package className="mr-2 h-4 w-4" />
-                  My Orders
+                  My orders
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push('/wishlist')}>
                   <Heart className="mr-2 h-4 w-4" />
@@ -186,7 +186,7 @@ export function SiteHeader() {
                 <Link href="/signin">Sign in</Link>
               </Button>
               <Button asChild size="sm" className="hidden sm:inline-flex">
-                <Link href="/signup">Get started</Link>
+                <Link href="/signup">Create an account</Link>
               </Button>
             </>
           )}
@@ -238,7 +238,7 @@ export function SiteHeader() {
                     </SheetClose>
                     <SheetClose asChild>
                       <Link href="/orders" className="flex items-center gap-3 rounded-lg px-4 py-3 text-base font-medium text-foreground/80 transition-colors hover:bg-muted hover:text-foreground">
-                        <Package className="h-5 w-5" /> My Orders
+                        <Package className="h-5 w-5" /> My orders
                       </Link>
                     </SheetClose>
                     <SheetClose asChild>
@@ -304,7 +304,7 @@ export function SiteHeader() {
                       </SheetClose>
                       <SheetClose asChild>
                         <Button asChild>
-                          <Link href="/signup">Get started</Link>
+                          <Link href="/signup">Create an account</Link>
                         </Button>
                       </SheetClose>
                     </>
