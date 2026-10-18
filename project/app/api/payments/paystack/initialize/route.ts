@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { createClient as createAdminClient, createClient as createTokenClient } from '@supabase/supabase-js';
 import { getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels } from '@/lib/payments/paystack.server';
 
 export const dynamic = 'force-dynamic';
@@ -25,17 +25,24 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
+    const { data: { session } } = await supabase.auth.getSession();
+    const rpcClient = session?.access_token
+      ? createTokenClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+          auth: { persistSession: false, autoRefreshToken: false },
+          global: { headers: { Authorization: `Bearer ${session.access_token}` } },
+        })
+      : supabase;
     let intent: unknown;
     let intentError: { code?: string; message: string } | null = null;
     if (body.purpose === 'subscription' && body.vendorId) {
-      const result = await supabase.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: false, p_idempotency_key: body.idempotencyKey });
+      const result = await rpcClient.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: false, p_idempotency_key: body.idempotencyKey });
       intent = result.data; intentError = result.error;
     } else if (body.purpose === 'marketplace' && body.orderId) {
-      const result = await supabase.rpc('create_marketplace_payment_intent', { p_order_id: body.orderId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_idempotency_key: body.idempotencyKey });
+      const result = await rpcClient.rpc('create_marketplace_payment_intent', { p_order_id: body.orderId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_idempotency_key: body.idempotencyKey });
       intent = result.data; intentError = result.error;
     } else if (body.purpose === 'student_registration' && body.registration) {
       const registration = body.registration;
-      const result = await supabase.rpc('begin_student_registration_payment', {
+      const result = await rpcClient.rpc('begin_student_registration_payment', {
         p_university_id: registration.universityId,
         p_phone: registration.phone,
         p_student_id_number: registration.studentIdNumber,
@@ -51,7 +58,7 @@ export async function POST(request: NextRequest) {
       });
       intent = result.data; intentError = result.error;
     } else if (body.purpose === 'vendor_registration' && body.vendorId) {
-      const result = await supabase.rpc('begin_vendor_registration_payment', {
+      const result = await rpcClient.rpc('begin_vendor_registration_payment', {
         p_vendor_id: body.vendorId,
         p_idempotency_key: body.idempotencyKey,
       });
