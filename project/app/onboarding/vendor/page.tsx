@@ -111,9 +111,8 @@ function VendorOnboarding() {
 
     setSubmitting(true);
     try {
-      // The database creates the application, role transition, vendor record,
-      // and explicit no-upfront-fee registration state atomically. The browser
-      // cannot activate a vendor or create a financial record.
+      // The database creates the application, role transition, and vendor
+      // record. Payment activation remains webhook-authoritative.
       const { data: registration, error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
         p_business_name: form.business_name,
         p_business_category: form.business_category,
@@ -142,8 +141,22 @@ function VendorOnboarding() {
       });
       if (locationError) throw new Error(locationError.message);
 
+      const paymentResponse = await fetch('/api/payments/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          purpose: 'vendor_registration',
+          vendorId,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      });
+      const paymentResult = await paymentResponse.json() as { authorizationUrl?: string; error?: string };
+      if (!paymentResponse.ok || !paymentResult.authorizationUrl) {
+        throw new Error(paymentResult.error || 'Vendor registration payment could not be initialized.');
+      }
+
       await refreshProfile();
-      router.push('/onboarding/complete');
+      window.location.assign(paymentResult.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -355,9 +368,15 @@ function VendorOnboarding() {
             </p>
           </div>
 
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+            Registration fee: <strong>GH₵20.00</strong>. You will be redirected to secure
+            Paystack Mobile Money checkout after submitting your business details. Your
+            vendor access starts only after the payment is verified.
+          </div>
+
           <Button onClick={handleSubmit} disabled={submitting} className="w-full">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit for approval
+            Pay GH₵20 and continue
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

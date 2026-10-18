@@ -41,6 +41,20 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  const paymentProtectedPrefixes = [
+    '/marketplace', '/discover', '/events', '/categories', '/business',
+    '/dashboard', '/vendor-dashboard', '/profile', '/checkout', '/orders',
+    '/search', '/wishlist', '/start-business', '/universities', '/benefits',
+  ];
+  const paymentGateExcluded = pathname === '/signin'
+    || pathname === '/signup'
+    || pathname.startsWith('/auth/')
+    || pathname.startsWith('/verify-email')
+    || pathname.startsWith('/forgot-password')
+    || pathname.startsWith('/onboarding/')
+    || pathname.startsWith('/payments/')
+    || pathname.startsWith('/api/');
+  const isPaymentProtectedRoute = paymentProtectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
 
   if (isAdminRoute) {
     const copySessionCookies = (response: NextResponse) => {
@@ -109,6 +123,19 @@ export async function updateSession(request: NextRequest) {
     // Prevent authenticated operational responses from entering shared caches.
     supabaseResponse.headers.set('Cache-Control', 'private, no-store, max-age=0');
     supabaseResponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
+
+  if (user && isPaymentProtectedRoute && !paymentGateExcluded) {
+    const { data: access, error: accessError } = await supabase.rpc('get_my_registration_access');
+    if (!accessError && access && access.allowed !== true) {
+      const target = access.role === 'student' ? '/onboarding/student' : '/onboarding/vendor';
+      const paymentUrl = request.nextUrl.clone();
+      paymentUrl.pathname = target;
+      paymentUrl.search = '';
+      paymentUrl.searchParams.set('payment_required', '1');
+      paymentUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(paymentUrl);
+    }
   }
 
   return supabaseResponse;

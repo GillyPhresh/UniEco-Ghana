@@ -6,7 +6,7 @@ import { getPaystackMode, initializePaystackTransaction, paystackIsEnabled, perm
 export const dynamic = 'force-dynamic';
 
 type RequestBody = {
-  purpose?: 'subscription' | 'marketplace' | 'student_registration';
+  purpose?: 'subscription' | 'marketplace' | 'student_registration' | 'vendor_registration';
   vendorId?: string; orderId?: string; idempotencyKey?: string;
   registration?: { universityId?: string; phone?: string; studentIdNumber?: string; program?: string; faculty?: string; department?: string; level?: string; admissionYear?: number; graduationYear?: number | null; studentDocumentPath?: string | null; referralCode?: string | null };
 };
@@ -47,6 +47,12 @@ export async function POST(request: NextRequest) {
         p_graduation_year: registration.graduationYear ?? null,
         p_student_document_path: registration.studentDocumentPath ?? null,
         p_referral_code: registration.referralCode ?? null,
+        p_idempotency_key: body.idempotencyKey,
+      });
+      intent = result.data; intentError = result.error;
+    } else if (body.purpose === 'vendor_registration' && body.vendorId) {
+      const result = await supabase.rpc('begin_vendor_registration_payment', {
+        p_vendor_id: body.vendorId,
         p_idempotency_key: body.idempotencyKey,
       });
       intent = result.data; intentError = result.error;
