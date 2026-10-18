@@ -87,7 +87,7 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
             className="relative mx-auto w-full max-w-[30rem] lg:max-w-none"
           >
             <div className="absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[2rem] border border-border/80 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
+            <div className="brand-sheen relative overflow-hidden rounded-[2rem] border border-border/80 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
               <div className="flex items-center justify-between border-b border-border/70 pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Discover near you</p>

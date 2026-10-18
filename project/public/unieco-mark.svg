@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <title>UniEco Ghana emblem</title>
+  <defs>
+    <linearGradient id="green" x1="18" y1="30" x2="70" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D9B59"/>
+      <stop offset="1" stop-color="#006B3F"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="62" y1="40" x2="111" y2="105" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFD34E"/>
+      <stop offset="1" stop-color="#F2A900"/>
+    </linearGradient>
+  </defs>
+  <path d="M19 31 64 11l45 20-45 20L19 31Z" fill="#101820"/>
+  <path d="M29 34v14c0 4 3 7 7 9l28 14 28-14c4-2 7-5 7-9V34L64 49 29 34Z" fill="#101820"/>
+  <path d="M100 38v20" stroke="#101820" stroke-width="4" stroke-linecap="round"/>
+  <path d="M100 59c5 0 9 4 9 9s-4 9-9 9-9-4-9-9 4-9 9-9Z" fill="#101820"/>
+  <path d="M19 45c-1 20 1 42 17 55 8 6 18 9 30 9V57L19 45Z" fill="url(#green)"/>
+  <path d="M109 45c1 20-1 42-17 55-8 6-18 9-30 9V57l47-12Z" fill="url(#gold)"/>
+  <path d="M47 91V67l17-11 17 11v24" fill="#0A7C47"/>
+  <path d="M53 91V69h22v22" fill="#0B5D3A"/>
+  <path d="M61 75h6v16h-6V75Z" fill="#F6B51B"/>
+  <path d="M42 94c8-5 15-7 22-7s14 2 22 7c-6 8-14 12-22 12s-16-4-22-12Z" fill="#101820" fill-opacity=".72"/>
+  <circle cx="64" cy="56" r="4" fill="#F6B51B"/>
+</svg>

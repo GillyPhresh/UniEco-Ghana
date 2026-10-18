@@ -1,7 +1,7 @@
 export const siteConfig = {
   name: 'UniEco Ghana',
   shortName: 'UniEco',
-  tagline: 'Connecting Students, Businesses & Opportunities.',
+  tagline: 'Your Campus. Your Marketplace. Your Community.',
   description:
     'UniEco Ghana is the campus commerce and community platform connecting students, businesses, and opportunities across every tertiary institution in Ghana.',
   url: process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://uniecoghana.com',
