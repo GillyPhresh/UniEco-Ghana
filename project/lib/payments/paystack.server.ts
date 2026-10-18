@@ -56,7 +56,7 @@ export async function initializePaystackTransaction(input: {
       reference: input.reference,
       callback_url: input.callbackUrl,
       channels: input.channels,
-      metadata: JSON.stringify(input.metadata),
+      metadata: input.metadata,
     }),
     cache: 'no-store',
   });
