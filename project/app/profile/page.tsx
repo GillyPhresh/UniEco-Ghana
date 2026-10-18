@@ -283,6 +283,27 @@ function ProfileContent() {
           </div>
         )}
 
+        {user?.role === 'student' || user?.role === 'student_vendor' ? (
+          <div className={`mb-6 rounded-2xl border p-4 ${user.studentProfile?.verification_status === 'verified' ? 'border-success/20 bg-success/5' : user.studentProfile?.verification_status === 'rejected' ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5'}`}>
+            <div className="flex items-start gap-3">
+              <ShieldCheck className={`mt-0.5 h-5 w-5 shrink-0 ${user.studentProfile?.verification_status === 'verified' ? 'text-success' : user.studentProfile?.verification_status === 'rejected' ? 'text-destructive' : 'text-primary'}`} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">
+                  {user.studentProfile?.verification_status === 'verified' ? 'You are a verified UniEco student' : user.studentProfile?.verification_status === 'rejected' ? 'Your verification needs an update' : 'Complete your student verification'}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {user.studentProfile?.verification_status === 'verified'
+                    ? 'Your verified status helps you access student opportunities and makes eligible referrals count.'
+                    : user.studentProfile?.verification_status === 'rejected'
+                      ? user.studentProfile.rejection_reason || 'Review your academic information and update the required details before resubmitting.'
+                      : 'Add accurate academic information and submit the requested student document so our team can review your account.'}
+                </p>
+                {user.studentProfile?.verification_status !== 'verified' && <p className="mt-2 text-xs font-medium text-primary">Use the Academic tab below to keep your information complete and ready for review.</p>}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <Tabs defaultValue="profile" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
             <TabsTrigger value="profile" className="gap-1.5">
