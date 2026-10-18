@@ -12,6 +12,13 @@ import { Check, Copy, Loader2, ShieldCheck, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
 
 type InviteResult = { token: string; audience: 'student' | 'vendor'; expires_at: string };
+const REASONS = [
+  ['no_momo', 'No access to MoMo'],
+  ['financial_hardship', 'Financial hardship'],
+  ['institution_sponsored', 'Institution-sponsored registration'],
+  ['outreach', 'Community outreach or partnership'],
+  ['other', 'Other reason'],
+] as const;
 
 export default function RegistrationInvitesPage() {
   return <AdminRouteGuard><AdminLayout><Content /></AdminLayout></AdminRouteGuard>;
@@ -19,18 +26,30 @@ export default function RegistrationInvitesPage() {
 
 function Content() {
   const [audience, setAudience] = useState<'student' | 'vendor'>('student');
-  const [hours, setHours] = useState('168');
+  const [hours, setHours] = useState('24');
+  const [reason, setReason] = useState('no_momo');
   const [note, setNote] = useState('');
   const [creating, setCreating] = useState(false);
   const [invite, setInvite] = useState<InviteResult | null>(null);
 
   const createInvite = async () => {
+    const expiryHours = Number(hours);
+    if (![24, 48, 72, 168, 720].includes(expiryHours)) {
+      toast.error('Choose a valid expiry period.');
+      return;
+    }
+    if (reason === 'other' && !note.trim()) {
+      toast.error('Add a short explanation for the other reason.');
+      return;
+    }
     setCreating(true);
     setInvite(null);
+    const reasonLabel = REASONS.find(([value]) => value === reason)?.[1] || reason;
+    const auditNote = note.trim() ? `${reasonLabel}: ${note.trim()}` : reasonLabel;
     const { data, error } = await supabase.rpc('create_registration_access_invite', {
       p_audience: audience,
-      p_expires_hours: Number(hours),
-      p_note: note.trim() || null,
+      p_expires_hours: expiryHours,
+      p_note: auditNote,
     });
     setCreating(false);
     if (error) {
@@ -74,9 +93,28 @@ function Content() {
               <SelectContent><SelectItem value="student">Student — sponsored GH₵10 fee</SelectItem><SelectItem value="vendor">Vendor — sponsored GH₵20 fee</SelectItem></SelectContent>
             </Select>
           </div>
-          <div className="space-y-2"><Label htmlFor="hours">Expires after (hours)</Label><Input id="hours" type="number" min={1} max={720} value={hours} onChange={event => setHours(event.target.value)} /></div>
-          <div className="space-y-2"><Label htmlFor="note">Internal note (optional)</Label><Input id="note" placeholder="Reason or recipient name" value={note} onChange={event => setNote(event.target.value)} /></div>
-          <Button onClick={() => void createInvite()} disabled={creating || !hours}>{creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ticket className="mr-2 h-4 w-4" />}Create one-time link</Button>
+          <div className="space-y-2">
+            <Label>Expires after</Label>
+            <Select value={hours} onValueChange={setHours}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24">24 hours (recommended)</SelectItem>
+                <SelectItem value="48">48 hours</SelectItem>
+                <SelectItem value="72">3 days</SelectItem>
+                <SelectItem value="168">7 days</SelectItem>
+                <SelectItem value="720">30 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Reason for sponsorship</Label>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{REASONS.map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2"><Label htmlFor="note">Additional details {reason === 'other' ? '(required)' : '(optional)'}</Label><Input id="note" placeholder="Recipient name or short explanation" value={note} onChange={event => setNote(event.target.value)} /></div>
+          <Button onClick={() => void createInvite()} disabled={creating}>{creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Ticket className="mr-2 h-4 w-4" />}Create one-time link</Button>
         </CardContent>
       </Card>
 
