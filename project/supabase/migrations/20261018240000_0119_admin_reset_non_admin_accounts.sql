@@ -45,7 +45,12 @@ BEGIN
     WHERE c.contype='f'
       AND c.confrelid IN ('auth.users'::regclass,'public.profiles'::regclass)
       AND array_length(c.conkey,1)=1
-      AND c.conrelid NOT IN ('public.profiles'::regclass)
+      AND c.conrelid NOT IN (
+        'public.profiles'::regclass,
+        'public.vendors'::regclass,
+        'public.payments'::regclass,
+        'public.orders'::regclass
+      )
   LOOP
     DECLARE v_schema text; v_table text; v_column text;
     BEGIN
