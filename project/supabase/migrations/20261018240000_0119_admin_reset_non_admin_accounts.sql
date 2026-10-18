@@ -91,6 +91,14 @@ BEGIN
   CREATE TEMP TABLE purge_payment_ids(id uuid PRIMARY KEY) ON COMMIT DROP;
   INSERT INTO purge_payment_ids(id)
   SELECT id FROM public.payments WHERE user_id IN (SELECT id FROM purge_user_ids) OR vendor_id IN (SELECT id FROM purge_vendor_ids);
+  -- Re-scan immediately before deleting payment dependants. This protects
+  -- against payment rows created or retained through a vendor-only link.
+  INSERT INTO purge_payment_ids(id)
+  SELECT id
+  FROM public.payments
+  WHERE vendor_id IN (SELECT id FROM purge_vendor_ids)
+     OR user_id IN (SELECT id FROM purge_user_ids)
+  ON CONFLICT (id) DO NOTHING;
   FOR v_constraint_id IN
     SELECT c.oid FROM pg_constraint c
     WHERE c.contype='f' AND c.confrelid='public.payments'::regclass
