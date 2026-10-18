@@ -35,10 +35,6 @@ BEGIN
   IF v_admin_id IS NULL OR v_admin_role IS DISTINCT FROM 'super_admin' THEN
     RAISE EXCEPTION 'Protected administrator account was not found or is not super_admin' USING ERRCODE='42501';
   END IF;
-  IF v_admin_id <> auth.uid() THEN
-    RAISE EXCEPTION 'Sign in as info.uniecoghana@gmail.com to perform this reset' USING ERRCODE='42501';
-  END IF;
-
   CREATE TEMP TABLE purge_user_ids(id uuid PRIMARY KEY) ON COMMIT DROP;
   INSERT INTO purge_user_ids(id) SELECT id FROM auth.users WHERE id<>v_admin_id;
   GET DIAGNOSTICS v_deleted_users = ROW_COUNT;
