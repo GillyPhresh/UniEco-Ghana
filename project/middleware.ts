@@ -6,6 +6,7 @@ export async function middleware(request: Parameters<typeof updateSession>[0]) {
   if (hostname === 'www.uniecoghana.com') {
     const canonicalUrl = request.nextUrl.clone();
     canonicalUrl.hostname = 'uniecoghana.com';
+    canonicalUrl.port = '';
     canonicalUrl.protocol = 'https:';
     return NextResponse.redirect(canonicalUrl, 308);
   }

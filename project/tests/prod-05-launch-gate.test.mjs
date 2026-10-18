@@ -40,5 +40,6 @@ test('www traffic is redirected to the canonical custom domain', async () => {
   const middleware = await read('middleware.ts');
   assert.match(middleware, /hostname === 'www\.uniecoghana\.com'/);
   assert.match(middleware, /canonicalUrl\.hostname = 'uniecoghana\.com'/);
+  assert.match(middleware, /canonicalUrl\.port = ''/);
   assert.match(middleware, /NextResponse\.redirect\(canonicalUrl, 308\)/);
 });
