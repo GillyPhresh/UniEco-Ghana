@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
     let intent: unknown;
-    let intentError: { message: string } | null = null;
+    let intentError: { code?: string; message: string } | null = null;
     if (body.purpose === 'subscription' && body.vendorId) {
       const result = await supabase.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: false, p_idempotency_key: body.idempotencyKey });
       intent = result.data; intentError = result.error;
@@ -57,7 +57,16 @@ export async function POST(request: NextRequest) {
       });
       intent = result.data; intentError = result.error;
     } else return NextResponse.json({ error: 'Unsupported payment purpose.' }, { status: 400 });
-    if (intentError || !intent || typeof intent !== 'object') return NextResponse.json({ error: 'Could not create payment intent. Check the registration details and try again.' }, { status: 422 });
+    if (intentError) {
+      console.error('Payment intent RPC rejected', { code: intentError.code || 'unknown', message: intentError.message });
+      const errorMessage = intentError.code === '42501'
+        ? 'Your account is not ready for registration payment. Please sign in again or contact support.'
+        : intentError.code === '55000'
+          ? 'This registration payment needs support review before you can continue.'
+          : 'Please check your registration details and try again.';
+      return NextResponse.json({ error: errorMessage }, { status: 422 });
+    }
+    if (!intent || typeof intent !== 'object') return NextResponse.json({ error: 'Payment could not be initialized. Please try again.' }, { status: 422 });
     const payment = intent as { payment_reference?: string; amount?: number; currency?: string; status?: string; payment_type?: string };
     if (!payment.payment_reference || payment.currency !== 'GHS' || !Number.isFinite(Number(payment.amount))) return NextResponse.json({ error: 'Invalid authoritative payment intent.' }, { status: 422 });
     if (payment.status === 'success') return NextResponse.json({ error: 'This payment is already confirmed.', reference: payment.payment_reference }, { status: 409, headers: { 'Cache-Control': 'no-store' } });

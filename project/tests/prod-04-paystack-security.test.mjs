@@ -48,13 +48,13 @@ test('protected legacy Bolt project is absent from payment implementation', asyn
   for (const source of sources) assert.doesNotMatch(source, /elxlrojlnusvybnfwxum/);
 });
 
-test('production public URL is configurable and uses the current Railway hostname in documentation', async () => {
+test('production public URL is configurable and uses the canonical custom domain in documentation', async () => {
   const [route, docs] = await Promise.all([read('app/api/payments/paystack/initialize/route.ts'), read('docs/paystack-production-readiness.md')]);
   assert.match(route, /process\.env\.UNIECO_PUBLIC_APP_URL/);
-  assert.doesNotMatch(route, /uniecoghana\.up\.railway\.app|uniecoghana\.com/);
-  assert.match(docs, /https:\/\/uniecoghana\.up\.railway\.app/);
-  assert.match(docs, /https:\/\/uniecoghana\.up\.railway\.app\/api\/health/);
-  assert.doesNotMatch(docs, /uniecoghana-production\.up\.railway\.app/);
+  assert.doesNotMatch(route, /uniecoghana\.up\.railway\.app/);
+  assert.match(docs, /https:\/\/uniecoghana\.com/);
+  assert.match(docs, /https:\/\/uniecoghana\.com\/api\/health/);
+  assert.doesNotMatch(docs, /uniecoghana-production\.up\.railway\.app|uniecoghana\.up\.railway\.app/);
 });
 
 test('vendor registration is a trusted application state and does not invent an upfront payment', async () => {
