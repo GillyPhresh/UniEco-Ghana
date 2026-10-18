@@ -15,10 +15,10 @@ Set these outside Git, separately for each Railway environment and the `payment-
 Current production configuration uses:
 
 ```env
-UNIECO_PUBLIC_APP_URL=https://uniecoghana.up.railway.app
+UNIECO_PUBLIC_APP_URL=https://uniecghana.com
 ```
 
-The current production health endpoint is `https://uniecoghana.up.railway.app/api/health`. Do not use the retired `uniecoghana-production` Railway hostname. `uniecoghana.com` remains deferred until it is purchased and configured; at that time only `UNIECO_PUBLIC_APP_URL` needs to change.
+The production health endpoint is `https://uniecghana.com/api/health`. Use the custom domain for all user-facing links and payment callbacks.
 
 Set the Paystack dashboard webhook URL to the deployed Supabase Edge Function `payment-webhook`. It validates the raw body using `x-paystack-signature` HMAC SHA-512 and verifies `charge.success` through Paystack's Verify Transaction API before applying anything.
 
