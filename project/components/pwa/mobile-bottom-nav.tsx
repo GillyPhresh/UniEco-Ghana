@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Home, Search, ShoppingCart, Package, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home },
@@ -36,11 +37,11 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-card/95 backdrop-blur-md lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 shadow-[0_-8px_24px_-18px_hsl(var(--foreground)/0.45)] backdrop-blur-xl lg:hidden"
       aria-label="Mobile bottom navigation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="flex items-stretch justify-around">
+      <div className="mx-auto flex min-h-[4.25rem] max-w-xl items-stretch justify-around px-1 pb-1 pt-1">
         {items.map((item) => {
           const isActive =
             pathname === item.href ||
@@ -50,14 +51,14 @@ export function MobileBottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center gap-0.5 py-2"
+              className={cn('relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 transition-colors', isActive ? 'bg-primary/10' : 'hover:bg-muted/70')}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
               {isActive && (
                 <motion.div
                   layoutId="bottom-nav-active"
-                  className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-primary"
+                  className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary"
                   transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                 />
               )}
@@ -67,7 +68,7 @@ export function MobileBottomNav() {
                 }`}
               />
               <span
-                className={`text-[10px] font-medium transition-colors ${
+                className={`truncate text-[10px] font-semibold transition-colors ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
               >

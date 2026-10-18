@@ -188,7 +188,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     onClick={() => setMobileNavOpen(false)}
                     className={cn(
-                      'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
@@ -240,18 +240,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* Main content */}
-          <main className="flex-1 overflow-y-auto">
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
             {children}
           </main>
         </div>
-        <SheetContent side="left" className="w-[88vw] max-w-sm p-0">
+        <SheetContent side="left" className="w-[88vw] max-w-[22rem] p-0">
           {sidebar}
         </SheetContent>
       </Sheet>
 
       {/* Desktop content area */}
       <div className="hidden min-w-0 lg:flex flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
         </main>
       </div>

@@ -86,5 +86,8 @@
       "postcss": "8.5.23"
     },
     "react-remove-scroll": "2.7.2"
+  },
+  "devDependencies": {
+    "supabase": "^2.121.0"
   }
 }

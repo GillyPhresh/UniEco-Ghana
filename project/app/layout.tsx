@@ -104,7 +104,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${jakarta.variable} font-sans pb-14 lg:pb-0`}
+        className={`${inter.variable} ${jakarta.variable} font-sans pb-16 lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>

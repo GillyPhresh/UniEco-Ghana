@@ -340,7 +340,7 @@ function Content() {
             <div className="rounded-lg bg-info/5 border border-info/20 p-3 text-xs text-info">
               <Smartphone className="inline h-3.5 w-3.5 mr-1" />
               {selectedProvider === 'paystack'
-                ? 'Continue to Paystack secure test checkout to choose an available card or Mobile Money channel.'
+                ? 'Continue to Paystack secure checkout to choose an available card or Mobile Money channel.'
                 : selectedProvider === 'manual'
                 ? 'Manual payment remains pending until a trusted verification workflow confirms it.'
                 : selectedMethod
