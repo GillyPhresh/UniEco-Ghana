@@ -44,6 +44,7 @@ function UsersContent() {
   const [resetConfirmation, setResetConfirmation] = useState('');
   const [resetReason, setResetReason] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [resetError, setResetError] = useState<string | null>(null);
   const pageSize = 20;
 
   const loadUsers = useCallback(async () => {
@@ -105,6 +106,7 @@ function UsersContent() {
       return;
     }
     setResetLoading(true);
+    setResetError(null);
     try {
       const result = await resetNonAdminAccounts(confirmation, resetReason.trim());
       toast.success(`${result.deletedUserCount} non-admin account(s) removed`);
@@ -114,6 +116,7 @@ function UsersContent() {
       void loadUsers();
     } catch (resetError) {
       const message = resetError instanceof Error ? resetError.message : 'Account reset failed. No changes were committed.';
+      setResetError(message);
       toast.error(message);
     } finally {
       setResetLoading(false);
@@ -307,6 +310,7 @@ function UsersContent() {
           <DialogHeader><DialogTitle className="text-destructive">Delete all non-admin users?</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">This permanently removes all users except <strong>info.uniecoghana@gmail.com</strong>, including test profiles, vendors, payments, orders, referrals, notifications, and related records. This cannot be undone.</p>
+            {resetError && <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">{resetError}</div>}
             <div className="space-y-1.5">
               <label htmlFor="reset-confirmation" className="text-xs font-semibold text-muted-foreground">Type DELETE ALL NON-ADMIN USERS</label>
               <Input id="reset-confirmation" value={resetConfirmation} onChange={event => setResetConfirmation(event.target.value)} autoComplete="off" />
