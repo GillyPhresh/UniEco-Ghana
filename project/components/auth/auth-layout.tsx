@@ -28,7 +28,7 @@ export function AuthLayout({
 
         <div className="relative">
           <Link href="/" className="inline-flex items-center gap-3 font-display text-xl font-bold text-white">
-            <img src="/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png" alt="UniEco Ghana" className="h-20 w-20 object-contain" />
+            <img src="/unieco-ghana-dark-logo.png" alt="UniEco Ghana" className="h-24 w-24 object-contain" />
           </Link>
         </div>
 
