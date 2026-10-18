@@ -95,7 +95,8 @@ function UsersContent() {
   };
 
   const confirmAccountReset = async () => {
-    if (resetConfirmation !== 'DELETE ALL NON-ADMIN USERS') {
+    const confirmation = resetConfirmation.trim();
+    if (confirmation !== 'DELETE ALL NON-ADMIN USERS') {
       toast.error('Enter the confirmation phrase exactly');
       return;
     }
@@ -105,7 +106,7 @@ function UsersContent() {
     }
     setResetLoading(true);
     try {
-      const result = await resetNonAdminAccounts(resetConfirmation, resetReason.trim());
+      const result = await resetNonAdminAccounts(confirmation, resetReason.trim());
       toast.success(`${result.deletedUserCount} non-admin account(s) removed`);
       setResetOpen(false);
       setResetConfirmation('');
@@ -316,7 +317,7 @@ function UsersContent() {
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetLoading}>Cancel</Button>
-              <Button variant="destructive" onClick={() => void confirmAccountReset()} disabled={resetLoading || resetConfirmation !== 'DELETE ALL NON-ADMIN USERS'}>
+              <Button variant="destructive" onClick={() => void confirmAccountReset()} disabled={resetLoading || resetConfirmation.trim() !== 'DELETE ALL NON-ADMIN USERS'}>
                 {resetLoading ? 'Deleting…' : 'Permanently delete accounts'}
               </Button>
             </div>
