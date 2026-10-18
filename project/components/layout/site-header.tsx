@@ -57,14 +57,8 @@ export function SiteHeader() {
     .toUpperCase();
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 ${
-        scrolled
-          ? 'glass border-b border-border/60 shadow-sm'
-          : 'border-b border-transparent bg-transparent'
-      }`}
-    >
-      <div className="container flex h-16 items-center justify-between gap-4">
+    <header className={`sticky top-0 z-50 w-full border-b border-border bg-card transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
+      <div className="container flex h-[4.25rem] items-center justify-between gap-4">
         <Logo />
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
@@ -72,7 +66,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {link.label}
             </Link>
@@ -315,6 +309,7 @@ export function SiteHeader() {
           </Sheet>
         </div>
       </div>
+      <div className="ghana-stripe h-[3px] w-full" aria-hidden="true" />
     </header>
   );
 }

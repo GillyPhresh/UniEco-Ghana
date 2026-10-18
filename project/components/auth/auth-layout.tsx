@@ -22,36 +22,27 @@ export function AuthLayout({
   showBackLink?: boolean;
 }) {
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
+    <div className="workspace-page flex min-h-screen flex-col lg:flex-row">
       {/* Brand panel — hidden on mobile, visible on large screens */}
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-primary to-primary-700 p-12 text-primary-foreground lg:flex">
-        <div className="absolute inset-0 bg-dot opacity-20" />
-        <div className="absolute -right-20 top-1/4 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-secondary/20 blur-3xl" />
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden border-r border-border bg-[#0e3b32] p-12 text-white lg:flex">
+        <div className="absolute inset-x-0 top-0 h-1 ghana-stripe" />
 
         <div className="relative">
-          <Link href="/" className="inline-flex items-center gap-2 font-display text-xl font-bold text-primary-foreground">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden="true">
-                <path d="M12 3L20 18H4L12 3Z" fill="currentColor" fillOpacity="0.95" />
-                <circle cx="12" cy="15.5" r="2.2" fill="#f59e0b" />
-              </svg>
-            </span>
-            UniEco Ghana
+          <Link href="/" className="inline-flex items-center gap-3 font-display text-xl font-bold text-white">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white p-1"><img src="/unieco-mark.svg" alt="" className="h-full w-full" /></span>
+            <span>UniEco Ghana</span>
           </Link>
         </div>
 
         <div className="relative space-y-6">
           <h2 className="font-display text-3xl font-bold leading-tight">
-            Connecting Students, Businesses &amp; Opportunities
+            Your campus, in one place.
           </h2>
-          <p className="max-w-md text-primary-foreground/80">
-            A campus marketplace for tertiary institutions across Ghana.
-            Find local businesses, services, products, and events in one place.
+          <p className="max-w-md text-white/80">
+            Find trusted campus businesses, useful services, events and opportunities across Ghana.
           </p>
-          <p className="max-w-md text-sm text-primary-foreground/70">
-            Create your profile, discover what is around you, and connect with
-            your campus community.
+          <p className="max-w-md text-sm text-white/65">
+            A practical digital home for students and the communities around them.
           </p>
         </div>
 
@@ -62,7 +53,7 @@ export function AuthLayout({
 
       {/* Form panel */}
       <div className="flex flex-1 flex-col">
-        <div className="flex items-center justify-between p-4 sm:p-6">
+        <div className="flex items-center justify-between border-b border-border bg-card p-4 sm:p-6">
           <div className="lg:hidden">
             <Logo />
           </div>
@@ -81,7 +72,7 @@ export function AuthLayout({
         </div>
 
         <div className="flex flex-1 items-center justify-center px-4 pb-12 sm:px-6">
-          <div className="w-full max-w-md">
+          <div className="workspace-card w-full max-w-md p-6 sm:p-8">
             {title && (
               <div className="mb-8 text-center">
                 <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">

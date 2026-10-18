@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Search, Store, Calendar, Heart, Bell, MessageSquare, Star,
-  TrendingUp, Clock, ArrowRight, ShoppingBag, Sparkles,
+  TrendingUp, Clock, ArrowRight, ShoppingBag, CheckCircle2,
   GraduationCap, ShieldCheck, Briefcase, Settings, ChevronRight,
 } from 'lucide-react';
 import { BusinessCard } from '@/components/shared/business-card';
@@ -126,7 +126,8 @@ function DashboardContent() {
   return (
     <>
       <SiteHeader />
-      <main className="container py-6 sm:py-8">
+      <main className="workspace-page min-h-[calc(100vh-7rem)] py-6 sm:py-8">
+        <div className="container">
         {/* Welcome area */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -161,7 +162,7 @@ function DashboardContent() {
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
+                  <CheckCircle2 className="h-4 w-4 text-primary" />
                   <p className="text-sm font-semibold text-foreground">
                     Profile {profileCompletion}% complete
                   </p>
@@ -415,6 +416,7 @@ function DashboardContent() {
               </CardContent>
             </Card>
           </div>
+        </div>
         </div>
       </main>
       <SiteFooter />

@@ -156,6 +156,11 @@
   .brand-rule {
     background: linear-gradient(90deg, hsl(var(--brand-red)), hsl(var(--brand-gold)) 48%, hsl(var(--brand-green)));
   }
+  .ghana-stripe {
+    background: linear-gradient(90deg, #d62828 0 33.333%, #f2b134 33.333% 66.666%, #168a45 66.666% 100%);
+  }
+  .workspace-page { background: #f7f8f8; }
+  .workspace-card { @apply rounded-xl border border-border bg-card shadow-sm; }
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

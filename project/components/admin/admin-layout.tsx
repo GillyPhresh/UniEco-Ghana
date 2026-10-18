@@ -163,9 +163,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     : ADMIN_NAV_GROUPS;
 
   const sidebar = (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+      <div className="flex h-full flex-col">
+      <div className="relative flex h-16 items-center gap-3 border-b border-border px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
           <ShieldCheck className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
@@ -188,7 +188,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     onClick={() => setMobileNavOpen(false)}
                     className={cn(
-                      'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-primary text-primary-foreground shadow-sm'
                         : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
@@ -226,7 +226,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <div className="flex min-h-screen flex-1 flex-col lg:hidden">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-3 shadow-sm backdrop-blur sm:px-4">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open management menu">
                 <Menu className="h-5 w-5" />
@@ -238,6 +238,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="h-2.5 w-2.5 rounded-full bg-success" title="System online" aria-label="System online" />
           </header>
+          <div className="ghana-stripe h-[3px] w-full" aria-hidden="true" />
 
           {/* Main content */}
           <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
@@ -250,7 +251,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Desktop content area */}
-      <div className="hidden min-w-0 lg:flex flex-1 flex-col overflow-hidden">
+      <div className="workspace-page hidden min-w-0 flex-1 flex-col overflow-hidden lg:flex">
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
         </main>
