@@ -57,6 +57,7 @@ export default function SignUpPage() {
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
     const { error } = await signUp(data.email, data.password, {
       full_name: data.full_name,
+      registration_intent: accountType,
     });
     if (error) {
       setAuthError(error);

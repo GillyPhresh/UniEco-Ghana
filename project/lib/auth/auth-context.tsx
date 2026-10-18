@@ -13,7 +13,7 @@ interface AuthContextValue {
   signUp: (
     email: string,
     password: string,
-    meta: { full_name: string }
+    meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
   ) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       email: string,
       password: string,
-      meta: { full_name: string }
+      meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
     ) => {
       const { error } = await supabase.auth.signUp({
         email,
@@ -135,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         options: {
           data: {
             full_name: meta.full_name,
+            registration_intent: meta.registration_intent ?? 'student',
           },
         },
       });

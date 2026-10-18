@@ -1,0 +1,35 @@
+-- Persist the signup choice so email verification and later sign-in can route
+-- new users to the onboarding flow they selected.
+BEGIN;
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER
+SET search_path=pg_catalog,public AS $$
+DECLARE v_student_role_id smallint; v_registration_intent text;
+BEGIN
+  SELECT id INTO v_student_role_id FROM public.user_roles WHERE name='student' LIMIT 1;
+  v_registration_intent := NULLIF(NEW.raw_user_meta_data->>'registration_intent','');
+  IF v_registration_intent NOT IN ('student','external_vendor') THEN
+    v_registration_intent := 'student';
+  END IF;
+
+  INSERT INTO public.profiles(
+    id,email,role_id,full_name,avatar_url,is_active,status,preferences
+  )
+  VALUES(
+    NEW.id,NEW.email,COALESCE(v_student_role_id,2),
+    NEW.raw_user_meta_data->>'full_name',NEW.raw_user_meta_data->>'avatar_url',true,'active',
+    jsonb_build_object('registration_intent',v_registration_intent)
+  )
+  ON CONFLICT(id) DO UPDATE SET
+    email=EXCLUDED.email,
+    is_active=true,
+    status=CASE WHEN public.profiles.status IN ('pending','pending_approval') THEN 'active' ELSE public.profiles.status END,
+    updated_at=now();
+  RETURN NEW;
+END $$;
+
+REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC,anon,authenticated,service_role;
+
+COMMIT;

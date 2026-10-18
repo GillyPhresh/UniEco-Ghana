@@ -14,8 +14,11 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     if (!loading && user) {
+      const intent = user.profile?.preferences?.registration_intent;
       const role = user.role;
-      if (role === 'student') {
+      if (role === 'student' && intent === 'external_vendor') {
+        router.replace('/onboarding/vendor');
+      } else if (role === 'student') {
         router.replace('/onboarding/student');
       } else if (role === 'external_vendor' || role === 'student_vendor') {
         router.replace('/onboarding/vendor');
