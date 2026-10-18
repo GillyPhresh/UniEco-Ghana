@@ -92,7 +92,7 @@ export async function resetNonAdminAccounts(confirmation: string, reason: string
     p_confirmation: confirmation,
     p_reason: reason,
   });
-  if (error) throw new Error('Unable to reset non-admin accounts');
+  if (error) throw new Error(error.message || 'Unable to reset non-admin accounts');
   return { deletedUserCount: Number((data as { deleted_user_count?: number } | null)?.deleted_user_count || 0) };
 }
 

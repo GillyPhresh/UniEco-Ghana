@@ -110,8 +110,9 @@ function UsersContent() {
       setResetConfirmation('');
       setResetReason('');
       void loadUsers();
-    } catch {
-      toast.error('Account reset failed. No changes were committed.');
+    } catch (resetError) {
+      const message = resetError instanceof Error ? resetError.message : 'Account reset failed. No changes were committed.';
+      toast.error(message);
     } finally {
       setResetLoading(false);
     }

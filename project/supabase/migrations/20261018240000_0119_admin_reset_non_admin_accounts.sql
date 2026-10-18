@@ -67,6 +67,7 @@ BEGIN
   FOR v_table_id IN
     SELECT c.oid FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='public' AND c.relkind='r'
+      AND c.relname NOT IN ('vendors','payments','orders')
   LOOP
     DECLARE v_table text; v_column text;
     BEGIN
