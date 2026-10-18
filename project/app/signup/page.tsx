@@ -51,8 +51,10 @@ export default function SignUpPage() {
     if (!accountType) return;
     setAuthError(null);
     const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
+    const incomingInvite = new URLSearchParams(window.location.search).get('invite');
     // This is only a registration hint. The database revalidates and locks it at intent creation.
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
+    if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
     const { error } = await signUp(data.email, data.password, {
       full_name: data.full_name,
     });
@@ -60,15 +62,18 @@ export default function SignUpPage() {
       setAuthError(error);
     } else {
       const referral = incomingReferral;
-      const studentPath = referral
-        ? `/onboarding/student?ref=${encodeURIComponent(referral)}`
-        : '/onboarding/student';
-      router.push(accountType === 'student' ? studentPath : '/onboarding/vendor');
+      const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
+      const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
+      const studentPath = studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student';
+      const vendorPath = inviteQuery ? `/onboarding/vendor?${inviteQuery}` : '/onboarding/vendor';
+      router.push(accountType === 'student' ? studentPath : vendorPath);
     }
   };
 
   const handleGoogle = async () => {
     setAuthError(null);
+    const incomingInvite = new URLSearchParams(window.location.search).get('invite');
+    if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
     setGoogleLoading(true);
     const { error } = await signInWithGoogle();
     if (error) {

@@ -141,6 +141,20 @@ function VendorOnboarding() {
       });
       if (locationError) throw new Error(locationError.message);
 
+      const inviteToken = new URLSearchParams(window.location.search).get('invite')
+        || window.sessionStorage.getItem('unieco_pending_registration_invite');
+      if (inviteToken) {
+        const { error: inviteError } = await supabase.rpc('redeem_vendor_registration_invite', {
+          p_token: inviteToken,
+          p_vendor_id: vendorId,
+        });
+        if (inviteError) throw new Error(inviteError.message);
+        window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        await refreshProfile();
+        router.push('/onboarding/complete');
+        return;
+      }
+
       const paymentResponse = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

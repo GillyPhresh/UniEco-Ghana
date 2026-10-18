@@ -511,6 +511,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Delivery Operations', href: '/admin/delivery', icon: 'Truck' },
       { label: 'Subscriptions', href: '/admin/subscriptions', icon: 'CreditCard' },
       { label: 'Payments', href: '/admin/payments', icon: 'CreditCard' },
+      { label: 'Sponsored Access', href: '/admin/registration-invites', icon: 'Ticket' },
       { label: 'Invoices', href: '/admin/invoices', icon: 'Receipt' },
       { label: 'Coupons', href: '/admin/coupons', icon: 'Ticket' },
       { label: 'Advertisements', href: '/admin/advertisements', icon: 'Megaphone' },

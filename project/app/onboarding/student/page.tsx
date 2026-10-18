@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
@@ -59,6 +60,7 @@ export default function StudentOnboardingPage() {
 
 function StudentOnboarding() {
   const { user } = useAuth();
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,6 +132,27 @@ function StudentOnboarding() {
     setSubmitting(true);
 
     try {
+      const inviteToken = new URLSearchParams(window.location.search).get('invite')
+        || window.sessionStorage.getItem('unieco_pending_registration_invite');
+      if (inviteToken) {
+        const { error: inviteError } = await supabase.rpc('complete_student_registration_with_invite', {
+          p_token: inviteToken,
+          p_university_id: form.university_id,
+          p_phone: form.phone,
+          p_student_id_number: form.index_number,
+          p_program: form.programme,
+          p_faculty: form.faculty,
+          p_department: form.department,
+          p_level: form.level,
+          p_admission_year: form.admission_year,
+          p_graduation_year: form.graduation_year || null,
+          p_student_document_path: form.student_id_document_url || null,
+        });
+        if (inviteError) throw new Error(inviteError.message);
+        window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        router.push('/onboarding/complete');
+        return;
+      }
       const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
       const response = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
