@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -51,6 +51,17 @@ interface FormData {
 }
 
 export default function StudentOnboardingPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user?.role === 'external_vendor') {
+      router.replace('/onboarding/vendor');
+    }
+  }, [loading, router, user?.role]);
+
+  if (user?.role === 'external_vendor') return null;
+
   return (
     <RouteGuard requireAuth>
       <StudentOnboarding />
