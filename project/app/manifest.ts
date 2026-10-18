@@ -17,9 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-GH',
     dir: 'ltr',
     icons: [
-      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
-      { src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'maskable' },
-      { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'maskable' },
+      { src: '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png', sizes: '1024x1024', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       { name: 'Discover Businesses', url: '/discover?source=pwa_shortcut', description: 'Find campus businesses near you' },

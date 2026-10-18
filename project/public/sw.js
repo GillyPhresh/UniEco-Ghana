@@ -16,7 +16,7 @@ const SHELL_ASSETS = [
   '/',
   '/offline',
   '/manifest.webmanifest',
-  '/icon.svg',
+  '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png',
 ];
 
 // Paths that must NEVER be cached — sensitive or user-specific data
@@ -88,8 +88,8 @@ self.addEventListener('push', (event) => {
   const title = payload.title || 'UniEco Ghana';
   const options = {
     body: payload.body || 'You have a new UniEco notification.',
-    icon: payload.icon || '/icon.svg',
-    badge: payload.badge || '/icon.svg',
+    icon: payload.icon || '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png',
+    badge: payload.badge || '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png',
     tag: payload.tag || 'unieco-notification',
     data: { url: payload.url || '/dashboard/notifications' },
   };

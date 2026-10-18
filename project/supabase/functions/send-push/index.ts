@@ -75,8 +75,8 @@ Deno.serve(async (req: Request) => {
           title,
           body,
           url: actionUrl || "/dashboard/notifications",
-          icon: "/icon.svg",
-          badge: "/icon.svg",
+          icon: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
+          badge: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           tag: eventType || "notification",
         });
 
