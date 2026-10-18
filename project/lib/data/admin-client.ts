@@ -72,7 +72,7 @@ export async function getAdminUsers(params: {
     p_limit: params.limit || 20,
     p_offset: params.offset || 0,
   });
-  if (error) throw new Error('Unable to load user directory');
+  if (error) throw new Error(error.message || 'Unable to load user directory');
   const rows = (data || []) as Array<{
     id: string; full_name: string | null; email: string; role_id: number; role_name: string;
     status: string; is_active: boolean; university_name: string | null; created_at: string; total_count: number;

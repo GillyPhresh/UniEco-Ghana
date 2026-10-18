@@ -53,8 +53,9 @@ function UsersContent() {
       const result = await getAdminUsers({ search: search || undefined, role: roleFilter !== 'all' ? Number(roleFilter) : undefined, status: statusFilter, limit: pageSize, offset: page * pageSize });
       setUsers(result.users);
       setTotal(result.total);
-    } catch {
-      setUsers([]); setTotal(0); setError('Unable to load user directory. Please try again.');
+    } catch (loadError) {
+      setUsers([]); setTotal(0);
+      setError(loadError instanceof Error ? loadError.message : 'Unable to load user directory. Please try again.');
     } finally { setLoading(false); }
   }, [page, roleFilter, search, statusFilter]);
 
