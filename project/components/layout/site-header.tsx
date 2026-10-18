@@ -18,7 +18,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/layout/logo';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { navLinks } from '@/lib/constants/site';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
@@ -74,8 +73,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : user ? (

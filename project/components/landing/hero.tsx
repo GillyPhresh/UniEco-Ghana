@@ -1,6 +1,5 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { SearchBar } from '@/components/shared/search-bar';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,6 @@ import {
   MapPin,
   Search,
   ShieldCheck,
-  Sparkles,
   Star,
   Store,
 } from 'lucide-react';
@@ -24,27 +22,17 @@ interface HeroProps {
 }
 export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
   return (
-    <section className="relative overflow-hidden border-b border-border/60 bg-gradient-to-br from-primary-50/70 via-background to-accent/5 pt-10 sm:pt-16 lg:pt-20">
-      <div className="absolute inset-0 bg-grid opacity-30 [mask-image:linear-gradient(to_bottom,black,transparent_78%)]" />
-      <div className="absolute -right-40 -top-32 h-[28rem] w-[28rem] rounded-full bg-primary/15 blur-3xl" />
-      <div className="absolute -left-40 bottom-0 h-72 w-72 rounded-full bg-secondary/10 blur-3xl" />
-
-      <div className="container relative">
+    <section className="border-b border-border bg-[#f7f8f8] pt-10 sm:pt-16 lg:pt-20">
+      <div className="container">
         <div className="grid items-center gap-12 pb-16 lg:grid-cols-[1.02fr_0.98fr] lg:gap-16 lg:pb-24">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
-            className="max-w-2xl"
-          >
-            <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/80 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.16em] text-primary shadow-sm">
-              <Sparkles className="h-3.5 w-3.5" />
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center border-l-4 border-secondary bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary shadow-sm">
               Ghana’s campus marketplace
             </span>
 
             <h1 className="mt-6 max-w-xl font-display text-4xl font-bold leading-[1.08] tracking-tight text-foreground text-balance sm:text-5xl lg:text-7xl">
               Your campus.
-              <span className="block bg-gradient-to-r from-primary via-primary-600 to-accent bg-clip-text text-transparent">
+              <span className="block text-primary">
                 Your community.
               </span>
               Everything in one place.
@@ -78,29 +66,23 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
               <Stat icon={Building2} value={universityCount} label="universities" />
               <Stat icon={ShieldCheck} value={reviewCount} label="reviews" />
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-            className="relative mx-auto w-full max-w-[30rem] lg:max-w-none"
-          >
-            <div className="absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-primary/20 via-transparent to-secondary/20 blur-2xl" />
-            <div className="brand-sheen relative overflow-hidden rounded-[2rem] border border-border/80 bg-card p-4 shadow-2xl shadow-primary/10 sm:p-5">
+          <div className="mx-auto w-full max-w-[30rem] lg:max-w-none">
+            <div className="relative overflow-hidden border border-border bg-white p-4 shadow-sm sm:p-5">
               <div className="flex items-center justify-between border-b border-border/70 pb-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Discover near you</p>
                   <p className="mt-1 font-display text-xl font-bold">UENR, Sunyani</p>
                 </div>
-                <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <MapPin className="h-5 w-5" />
                 </span>
               </div>
 
               <div className="mt-4 flex gap-2 overflow-hidden">
                 {['Food', 'Services', 'Events'].map((item, index) => (
-                  <span key={item} className={index === 0 ? 'rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground' : 'rounded-full bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground'}>
+                  <span key={item} className={index === 0 ? 'rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground' : 'rounded-md bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground'}>
                     {item}
                   </span>
                 ))}
@@ -112,7 +94,7 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
                 <DiscoveryCard icon="🎓" title="Student Innovation Fair" category="Event · This Friday" rating="—" color="bg-primary/10" />
               </div>
 
-              <div className="mt-5 flex items-center justify-between rounded-2xl bg-primary p-4 text-primary-foreground">
+              <div className="mt-5 flex items-center justify-between bg-primary p-4 text-primary-foreground">
                 <div>
                   <p className="text-sm font-semibold">Find your next favourite</p>
                   <p className="mt-1 text-xs text-primary-foreground/75">Real people. Real campus value.</p>
@@ -120,7 +102,7 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
                 <Search className="h-5 w-5" />
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

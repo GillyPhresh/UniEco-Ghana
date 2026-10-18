@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { Logo } from '@/components/layout/logo';
-import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -67,7 +66,6 @@ export function AuthLayout({
                 </Link>
               </Button>
             )}
-            <ThemeToggle />
           </div>
         </div>
 
