@@ -37,9 +37,9 @@ BEGIN
   INSERT INTO purge_user_ids(id)
   SELECT id FROM auth.users WHERE id <> admin_id;
 
-  -- Storage metadata is user-owned even when no relational FK exists.
-  DELETE FROM storage.objects
-  WHERE owner IN (SELECT id FROM purge_user_ids);
+  -- Supabase protects storage.objects from direct SQL deletion. Storage files
+  -- must be removed through the Storage API after this database transaction;
+  -- the database cleanup below intentionally does not touch storage tables.
 
   -- Delete every row directly tied to a removed Auth/profile identity. This
   -- uses the live catalog so later migrations adding user FKs are covered too.
