@@ -59,11 +59,8 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   icons: {
-    icon: [
-      { url: '/favicon.ico', sizes: 'any' },
-      { url: '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png', type: 'image/png' },
-    ],
-    apple: '/apple-touch-icon.png',
+    icon: [{ url: '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png', type: 'image/png' }],
+    apple: '/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png',
   },
   robots: {
     index: true,
@@ -86,6 +83,7 @@ const jsonLd = {
   name: siteConfig.name,
   description: siteConfig.description,
   url: siteConfig.url,
+  logo: `${siteConfig.url}/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png`,
   slogan: siteConfig.tagline,
   sameAs: Object.values(siteConfig.links),
 };
