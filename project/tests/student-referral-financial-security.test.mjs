@@ -23,7 +23,7 @@ test('student registration checkout uses existing Paystack adapter and database-
 
 test('registration activation and referral reward are tied to verified payment transition', async () => {
   const [migration, webhook] = await Promise.all([
-    read('supabase/migrations/20261001090000_0105_student_registration_referrals.sql'),
+    read('supabase/migrations/20261017180000_0107_student_referral_replacement.sql'),
     read('supabase/functions/payment-webhook/index.ts'),
   ]);
   assert.match(migration, /CREATE TRIGGER apply_student_registration_payment_result AFTER UPDATE OF status ON public\.payments/);
@@ -41,24 +41,24 @@ test('registration activation and referral reward are tied to verified payment t
 
 test('referral rewards and payout requests are ledger-backed and not browser-writable', async () => {
   const [migration, student, payoutApi] = await Promise.all([
-    read('supabase/migrations/20261001090000_0105_student_registration_referrals.sql'),
+    read('supabase/migrations/20261017180000_0107_student_referral_replacement.sql'),
     read('app/dashboard/referrals/page.tsx'),
     read('app/api/admin/student-referrals/route.ts'),
   ]);
   assert.match(migration, /registration_fee numeric\(12,2\) NOT NULL DEFAULT 10\.00/);
   assert.match(migration, /referral_reward numeric\(12,2\) NOT NULL DEFAULT 2\.00/);
-  assert.match(migration, /reward_settlement_hours integer NOT NULL DEFAULT 24/);
+  assert.match(migration, /reward_settlement_hours integer NOT NULL DEFAULT 168/);
   assert.match(migration, /minimum_payout numeric\(12,2\) NOT NULL DEFAULT 10\.00/);
   assert.match(migration, /UNIQUE\s*\(user_id\)/);
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.request_my_referral_payout/);
-  assert.match(migration, /pg_advisory_xact_lock/);
+  assert.match(migration, /Referral payouts are not enabled yet/);
   assert.match(student, /\/api\/student-referrals\/me/);
   assert.doesNotMatch(student, /\.from\('(student_referral_rewards|student_referral_payouts|payments)'\)\s*\.(insert|update|delete)/);
   assert.doesNotMatch(payoutApi, /service_role|PAYSTACK_SECRET_KEY/);
 });
 
 test('referral migration preserves role helper and separates read summary from settlement', async () => {
-  const migration = await read('supabase/migrations/20261001090000_0105_student_registration_referrals.sql');
+  const migration = await read('supabase/migrations/20261017180000_0107_student_referral_replacement.sql');
   const summary = migration.match(/CREATE OR REPLACE FUNCTION public\.get_my_referral_summary\(\)([\s\S]*?)END \$\$;/)?.[1] ?? '';
   assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.current_app_role\(/);
   assert.match(migration, /public\.current_app_role\(\) NOT IN \('student','student_vendor'\)/);
@@ -68,4 +68,7 @@ test('referral migration preserves role helper and separates read summary from s
   assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.student_referral_reward_events/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.student_referral_payout_allocations/);
   assert.match(migration, /CREATE TABLE IF NOT EXISTS public\.student_referral_reversal_cases/);
+  assert.match(migration, /student_profiles verified_student/);
+  assert.match(migration, /Referral payouts are not enabled yet/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.try_qualify_student_referral/);
 });

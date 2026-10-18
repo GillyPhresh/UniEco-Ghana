@@ -56,9 +56,10 @@ test('referral UI uses trusted summary RPCs and never writes financial tables di
     read('app/api/student-referrals/me/route.ts'),
     read('app/admin/referrals/page.tsx'),
     read('app/api/admin/student-referrals/route.ts'),
-    read('supabase/migrations/20261001090000_0105_student_registration_referrals.sql'),
+    read('supabase/migrations/20261017180000_0107_student_referral_replacement.sql'),
   ]);
   assert.match(studentApi, /rpc\('get_my_referral_summary'/);
+  assert.match(studentApi, /\/signup\?ref=/);
   assert.match(adminApi, /rpc\('get_admin_student_referral_overview'/);
   assert.match(studentReferrals, /\/api\/student-referrals\/me/);
   assert.match(adminReferrals, /\/api\/admin\/student-referrals/);
@@ -68,6 +69,9 @@ test('referral UI uses trusted summary RPCs and never writes financial tables di
   assert.match(migration, /UNIQUE REFERENCES public\.payments\(id\)/);
   assert.match(migration, /referrer_user_id\s*<>\s*referred_user_id/);
   assert.match(migration, /available_at timestamptz NOT NULL/);
+  const settlementSchedule = await read('supabase/migrations/20261018100000_0108_student_referral_settlement_schedule.sql');
+  assert.match(settlementSchedule, /settle-student-referral-rewards-every-15-minutes/);
+  assert.match(settlementSchedule, /settle_due_student_referral_rewards\(250\)/);
   assert.match(migration, /payout_pending/);
   assert.match(migration, /Super administrator access required/);
 });
