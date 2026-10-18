@@ -11,11 +11,12 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { RatingStars } from '@/components/shared/rating-stars';
 import { VerificationBadge } from '@/components/shared/verification-badge';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
-import { Search, Store, Package, Calendar, MapPin, ArrowRight } from 'lucide-react';
+import { Search, Store, Package, Calendar, MapPin, ArrowRight, ExternalLink } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import { normalizeSearchTerm } from '@/lib/utils/search';
+import { getGoogleMapsSearchUrl } from '@/lib/maps';
 
 interface SearchResults {
   vendors: any[];
@@ -87,6 +88,11 @@ function SearchContent() {
           <p className="mt-1 text-sm text-muted-foreground">
             {query ? `Results for "${query}"` : 'Search for businesses, products, and events.'}
           </p>
+          {query && getGoogleMapsSearchUrl(query) && (
+            <a href={getGoogleMapsSearchUrl(query)!} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+              <ExternalLink className="h-4 w-4" /> Search this destination on Google Maps
+            </a>
+          )}
         </div>
 
         <div className="mb-6">

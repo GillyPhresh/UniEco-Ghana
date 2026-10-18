@@ -6,13 +6,11 @@ import path from 'node:path';
 const root = path.resolve(import.meta.dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
-test('Google Maps integration fails safely without claiming configuration', () => {
-  const source = read('components/maps/google-map.tsx');
-  const config = read('lib/maps.ts');
-  assert.match(config, /NEXT_PUBLIC_GOOGLE_MAPS_API_KEY/);
-  assert.match(source, /Google Maps is not configured for this deployment/);
-  assert.match(source, /libraries=places/);
-  assert.match(source, /places\.Autocomplete/);
+test('core directions do not depend on a Google Maps API key', () => {
+  const source = read('lib/maps.ts');
+  assert.doesNotMatch(source, /NEXT_PUBLIC_GOOGLE_MAPS_API_KEY/);
+  assert.doesNotMatch(source, /maps\.googleapis\.com/);
+  assert.match(source, /getGoogleMapsSearchUrl/);
 });
 
 test('directions use the official Maps URL format and encoded destinations', () => {
@@ -23,13 +21,20 @@ test('directions use the official Maps URL format and encoded destinations', () 
 });
 
 test('vendor locations distinguish owner submission from UniEco verification', () => {
-  const source = read('supabase/migrations/20261018120000_0109_google_maps_vendor_locations.sql');
+  const source = read('supabase/migrations/20261018130000_0110_external_maps_location_workflow.sql');
   assert.match(source, /location_verification_status/);
   assert.match(source, /pending_review/);
   assert.match(source, /p_latitude NOT BETWEEN -90 AND 90/);
   assert.match(source, /p_longitude NOT BETWEEN -180 AND 180/);
   assert.match(source, /owner_id=auth\.uid\(\)/);
-  assert.match(source, /review_vendor_location/);
+  assert.match(read('supabase/migrations/20261018120000_0109_google_maps_vendor_locations.sql'), /review_vendor_location/);
+});
+
+test('vendor link validation accepts only supported Google hosts', () => {
+  const source = read('lib/maps.ts');
+  assert.match(source, /isSupportedGoogleMapsUrl/);
+  assert.match(source, /maps\.app\.goo\.gl/);
+  assert.match(source, /parseGoogleMapsLinkCoordinates/);
 });
 
 test('related vendor discovery remains institution-scoped', () => {

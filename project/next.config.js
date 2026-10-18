@@ -39,7 +39,6 @@ const nextConfig = {
             "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com",
             "font-src 'self' data:",
             "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-            "frame-src https://www.openstreetmap.org",
             "worker-src 'self' blob:",
             "manifest-src 'self'",
           ].join('; '),

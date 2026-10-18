@@ -15,8 +15,8 @@ import { getVendorVerifications, getVendorLocationReview, reviewVendorLocation, 
 import type { VendorVerificationQueueItem } from '@/lib/types/admin';
 import { Check, X, Store, Ban, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { GoogleMap } from '@/components/maps/google-map';
 import type { VendorLocationReview } from '@/lib/types/admin';
+import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl } from '@/lib/maps';
 
 export default function VendorVerificationPage() {
   return (
@@ -179,8 +179,11 @@ function Content() {
                 </div>
                 {locationReview?.latitude != null && locationReview.longitude != null ? (
                   <>
-                    <GoogleMap latitude={locationReview.latitude} longitude={locationReview.longitude} label={locationReview.business_name} height={180} />
                     <p className="text-xs text-muted-foreground">{[locationReview.address, locationReview.city, locationReview.region].filter(Boolean).join(', ') || 'No display address'} · {locationReview.latitude.toFixed(6)}, {locationReview.longitude.toFixed(6)}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {getGoogleMapsDirectionsUrl({ latitude: locationReview.latitude, longitude: locationReview.longitude, address: [locationReview.address, locationReview.city].filter(Boolean).join(', ') }) && <Button asChild size="sm" variant="outline"><a href={getGoogleMapsDirectionsUrl({ latitude: locationReview.latitude, longitude: locationReview.longitude, address: [locationReview.address, locationReview.city].filter(Boolean).join(', ') })!} target="_blank" rel="noopener noreferrer">Open directions</a></Button>}
+                      {getGoogleMapsPlaceUrl({ latitude: locationReview.latitude, longitude: locationReview.longitude }) && <Button asChild size="sm" variant="outline"><a href={getGoogleMapsPlaceUrl({ latitude: locationReview.latitude, longitude: locationReview.longitude })!} target="_blank" rel="noopener noreferrer">Open in Google Maps</a></Button>}
+                    </div>
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1" disabled={actionLoading} onClick={() => void handleLocationReview('verified')}><Check className="mr-2 h-4 w-4" /> Confirm location</Button>
                       <Button size="sm" variant="outline" className="flex-1" disabled={actionLoading} onClick={() => void handleLocationReview('rejected')}><X className="mr-2 h-4 w-4" /> Request correction</Button>

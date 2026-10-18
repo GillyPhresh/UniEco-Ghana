@@ -1,27 +1,19 @@
-# UniEco Ghana location services
+# UniEco Ghana directions and location policy
 
-UniEco uses Google Maps Platform only when a deployment supplies a browser-restricted key.
+UniEco does not require a Google Maps Platform API key for core marketplace discovery, vendor profiles, location capture, or directions. It uses ordinary Google Maps URLs to hand navigation to Google Maps in a browser or installed mobile app.
 
-## Required configuration
+## Directions
 
-Set:
+Vendor directions use the vendor's own approved coordinates when available. If coordinates are missing, UniEco uses the submitted public address. The destination is encoded using Google's Maps URL format; UniEco does not calculate routes, travel time, or continuous user location.
 
-```env
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=your-browser-restricted-key
-```
+## Vendor location submission
 
-In Google Cloud, enable Maps JavaScript API and Places API for the project. Restrict the key by HTTP referrer to the deployed UniEco origins and restrict it to the APIs above. Google Cloud billing and any applicable quota approval are deployment responsibilities; this code does not create or activate a paid Google Cloud service.
+Onboarding collects the business address, town/city, region, optional latitude/longitude, and an optional Google Maps link copied by the owner. Supported Google Maps URL shapes are validated. Coordinates are extracted only from recognizable coordinate-bearing URL forms; short links without coordinates are retained for review but are not treated as precise coordinates.
 
-If the key is absent or cannot load, UniEco keeps the marketplace usable and shows a clear configuration message. Vendors can still enter coordinates manually or use browser geolocation where permission is granted.
+A vendor may submit an address without coordinates. Every submission is marked `pending_review`. UniEco administrators can review or reject the location, and changing a reviewed location sends it through review again. Google Maps links do not prove ownership and do not create a Google verification badge.
 
-## Location workflow
+## External search
 
-Vendor onboarding lets an owner search an address with Places Autocomplete, select the exact place, adjust the draggable map pin, use current location, or enter latitude and longitude manually. The selected coordinates are stored with the selection source and remain `pending_review` until an authorized UniEco administrator reviews them. A changed verified location is submitted for review again.
+When a user wants a destination that is not registered on UniEco, the app can open an encoded Google Maps search URL. Google Places results are not scraped, cached as vendor records, or mixed into the UniEco marketplace.
 
-The app stores UniEco location metadata and, when available, a Google Place ID. Google Places results are not copied into the UniEco vendor directory and do not become vendors automatically.
-
-## Directions and privacy
-
-Vendor profiles generate official Google Maps URLs using verified coordinates, a Place ID, or the public address. Navigation opens in Google Maps or its web fallback. UniEco requests browser location only after a user activates the current-location control; it does not retain continuous background location. Private or service-area vendors can be kept from exposing a residential address through the vendor visibility setting.
-
-The Supabase migration `20261018120000_0109_google_maps_vendor_locations.sql` must be applied to the target database before the new onboarding and admin location-review RPCs are used.
+The migration `20261018130000_0110_external_maps_location_workflow.sql` must be applied after `20261018120000_0109_google_maps_vendor_locations.sql` before the revised onboarding RPC is used.

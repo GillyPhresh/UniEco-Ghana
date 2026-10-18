@@ -193,8 +193,9 @@ export interface Vendor {
   service_radius_km: number | null;
   gps_latitude: number | null;
   gps_longitude: number | null;
+  location_maps_url?: string | null;
   location_place_id?: string | null;
-  location_selection_source?: 'not_provided' | 'owner_address' | 'owner_pin' | 'google_place' | 'admin_reviewed' | null;
+  location_selection_source?: 'not_provided' | 'owner_address' | 'owner_pin' | 'google_maps_link' | 'google_place' | 'admin_reviewed' | null;
   location_verification_status?: 'not_submitted' | 'pending_review' | 'verified' | 'rejected' | null;
   location_last_confirmed_at?: string | null;
   location_public_visibility?: 'business_location' | 'service_area' | 'pickup_only' | 'private' | null;

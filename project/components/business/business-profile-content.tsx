@@ -547,6 +547,7 @@ export function BusinessProfileContent({
               label={vendor.business_name}
               address={location?.address_line}
               city={location?.city}
+              mapsUrl={vendor.location_maps_url}
             />
           </div>
 
