@@ -90,7 +90,7 @@ async function dispatchToProvider(item: QueueEvent): Promise<{
   if (!baseUrl || !secret) return { success: false, provider: null, providerReference: null, error: 'Trusted dispatcher configuration is missing' };
   const body = typeof item.metadata.body === 'string' ? item.metadata.body : item.subject || item.event_type;
   const payload = item.channel === 'email'
-    ? { to: item.recipient_email, subject: item.subject || item.event_type, body, eventType: item.event_type, recipientId: item.recipient_id }
+    ? { to: item.recipient_email, subject: item.subject || item.event_type, body, eventType: item.event_type, eventId: item.event_id, recipientId: item.recipient_id, metadata: item.metadata }
     : item.channel === 'push'
       ? { recipientId: item.recipient_id, title: item.subject || item.event_type, body, actionUrl: item.metadata.action_url, eventType: item.event_type }
       : item.channel === 'whatsapp'
