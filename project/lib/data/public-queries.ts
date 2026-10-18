@@ -161,6 +161,7 @@ export async function getRelatedVendors(vendor: Vendor, limit = 4) {
     `)
     .eq('is_active', true)
     .eq('business_type', vendor.business_type)
+    .eq('university_id', vendor.university_id)
     .neq('id', vendor.id)
     .order('rating_avg', { ascending: false })
     .limit(limit);

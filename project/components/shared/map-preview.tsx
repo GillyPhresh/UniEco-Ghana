@@ -1,5 +1,7 @@
-import { MapPin, Navigation } from 'lucide-react';
+import { MapPin, Navigation, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { GoogleMap } from '@/components/maps/google-map';
+import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl } from '@/lib/maps';
 
 interface MapPreviewProps {
   latitude: number | null;
@@ -7,17 +9,6 @@ interface MapPreviewProps {
   label?: string;
   address?: string | null;
   city?: string | null;
-}
-
-function getDirectionsUrl(latitude: number, longitude: number) {
-  // Deployments may choose any maps provider without changing application code.
-  // The template accepts `{lat}` and `{lng}` placeholders. The fallback keeps
-  // current behavior for environments that have not configured a provider.
-  const template = process.env.NEXT_PUBLIC_MAP_DIRECTIONS_URL_TEMPLATE
-    || 'https://www.google.com/maps/dir/?api=1&destination={lat},{lng}';
-  return template
-    .replaceAll('{lat}', encodeURIComponent(String(latitude)))
-    .replaceAll('{lng}', encodeURIComponent(String(longitude)));
 }
 
 export function MapPreview({
@@ -38,19 +29,14 @@ export function MapPreview({
     );
   }
 
-  const directionsUrl = getDirectionsUrl(latitude, longitude);
+  const destination = { latitude, longitude, address: [address, city].filter(Boolean).join(', ') };
+  const directionsUrl = getGoogleMapsDirectionsUrl(destination);
+  const placeUrl = getGoogleMapsPlaceUrl(destination);
 
   return (
     <div className="space-y-3">
       <div className="relative overflow-hidden rounded-xl border border-border">
-        <iframe
-          title={`Map of ${label || 'location'}`}
-          width="100%"
-          height="280"
-          loading="lazy"
-          src={`https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01}%2C${latitude - 0.01}%2C${longitude + 0.01}%2C${latitude + 0.01}&layer=mapnik&marker=${latitude}%2C${longitude}`}
-          className="block"
-        />
+        <GoogleMap latitude={latitude} longitude={longitude} label={label} />
       </div>
       {(address || city) && (
         <div className="flex items-start gap-2 text-sm text-muted-foreground">
@@ -62,12 +48,13 @@ export function MapPreview({
           </span>
         </div>
       )}
-      <Button asChild variant="outline" size="sm">
+      {directionsUrl && <Button asChild variant="outline" size="sm">
         <a href={directionsUrl} target="_blank" rel="noopener noreferrer">
           <Navigation className="mr-2 h-4 w-4" />
           Get directions
         </a>
-      </Button>
+      </Button>}
+      {placeUrl && <Button asChild variant="outline" size="sm"><a href={placeUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Open in Google Maps</a></Button>}
     </div>
   );
 }

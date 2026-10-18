@@ -122,6 +122,21 @@ export interface VendorVerificationQueueItem {
   owner?: { full_name: string | null; email: string | null } | null;
 }
 
+export interface VendorLocationReview {
+  vendor_id: string;
+  business_name: string;
+  latitude: number | null;
+  longitude: number | null;
+  place_id: string | null;
+  selection_source: string | null;
+  verification_status: string | null;
+  public_visibility: string | null;
+  address: string | null;
+  city: string | null;
+  region: string | null;
+  last_confirmed_at: string | null;
+}
+
 /** Student verification details without exposing the private storage object path. */
 export interface AdminStudentVerification {
   id: string;

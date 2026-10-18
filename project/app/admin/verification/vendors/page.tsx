@@ -11,10 +11,12 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { getVendorVerifications, approveVendor, rejectVendor, suspendVendor, restoreVendor } from '@/lib/data/admin-client';
+import { getVendorVerifications, getVendorLocationReview, reviewVendorLocation, approveVendor, rejectVendor, suspendVendor, restoreVendor } from '@/lib/data/admin-client';
 import type { VendorVerificationQueueItem } from '@/lib/types/admin';
 import { Check, X, Store, Ban, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
+import { GoogleMap } from '@/components/maps/google-map';
+import type { VendorLocationReview } from '@/lib/types/admin';
 
 export default function VendorVerificationPage() {
   return (
@@ -36,6 +38,8 @@ function Content() {
   const [actionLoading, setActionLoading] = useState(false);
   const [pendingStatusAction, setPendingStatusAction] = useState<'approve' | 'reject' | 'suspend' | 'restore' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [locationReview, setLocationReview] = useState<VendorLocationReview | null>(null);
+  const [locationLoading, setLocationLoading] = useState(false);
 
   const loadVendors = useCallback(async () => {
     setLoading(true);
@@ -54,6 +58,21 @@ function Content() {
   }, [filter]);
 
   useEffect(() => { void loadVendors(); }, [loadVendors]);
+
+  useEffect(() => {
+    if (!selected) { setLocationReview(null); return; }
+    setLocationLoading(true);
+    void getVendorLocationReview(selected.id).then(setLocationReview).catch(() => setLocationReview(null)).finally(() => setLocationLoading(false));
+  }, [selected]);
+
+  const handleLocationReview = async (status: 'verified' | 'rejected') => {
+    if (!selected) return;
+    setActionLoading(true);
+    const result = await reviewVendorLocation(selected.id, status, reason);
+    if (result.error) toast.error(result.error);
+    else { toast.success(status === 'verified' ? 'Location marked as reviewed' : 'Location sent back for correction'); setLocationReview((current) => current ? { ...current, verification_status: status, selection_source: status === 'verified' ? 'admin_reviewed' : current.selection_source } : current); }
+    setActionLoading(false);
+  };
 
   const requestStatusAction = (action: NonNullable<typeof pendingStatusAction>) => {
     if (!selected || reason.trim().length < 10 || reason.trim().length > 500) return;
@@ -148,6 +167,26 @@ function Content() {
                 <p><span className="text-muted-foreground">University:</span> {selected.university?.name || '—'}</p>
                 <p><span className="text-muted-foreground">Rating:</span> {selected.rating_avg.toFixed(1)} ({selected.rating_count} reviews)</p>
                 <p><span className="text-muted-foreground">Student business:</span> {selected.is_student_business ? 'Yes' : 'No'}</p>
+              </div>
+
+              <div className="space-y-3 rounded-lg border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-medium">Location review</p>
+                    <p className="text-xs text-muted-foreground">UniEco review only; this is not Google verification.</p>
+                  </div>
+                  <Badge variant="outline">{locationReview?.verification_status || (locationLoading ? 'Loading' : 'Not submitted')}</Badge>
+                </div>
+                {locationReview?.latitude != null && locationReview.longitude != null ? (
+                  <>
+                    <GoogleMap latitude={locationReview.latitude} longitude={locationReview.longitude} label={locationReview.business_name} height={180} />
+                    <p className="text-xs text-muted-foreground">{[locationReview.address, locationReview.city, locationReview.region].filter(Boolean).join(', ') || 'No display address'} · {locationReview.latitude.toFixed(6)}, {locationReview.longitude.toFixed(6)}</p>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1" disabled={actionLoading} onClick={() => void handleLocationReview('verified')}><Check className="mr-2 h-4 w-4" /> Confirm location</Button>
+                      <Button size="sm" variant="outline" className="flex-1" disabled={actionLoading} onClick={() => void handleLocationReview('rejected')}><X className="mr-2 h-4 w-4" /> Request correction</Button>
+                    </div>
+                  </>
+                ) : <p className="text-sm text-muted-foreground">The owner has not submitted a precise location yet.</p>}
               </div>
 
               {rejectMode ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
@@ -32,6 +32,7 @@ import {
   Check,
   Info,
 } from 'lucide-react';
+import { GoogleMap, CurrentLocationButton, GooglePlaceSearch } from '@/components/maps/google-map';
 
 type FormData = z.infer<typeof vendorRegistrationSchema>;
 
@@ -51,6 +52,9 @@ function VendorOnboarding() {
   const [uploadedDoc, setUploadedDoc] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
   const [isStudent, setIsStudent] = useState(false);
+  const [pin, setPin] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
+  const [placeId, setPlaceId] = useState<string | null>(null);
+  const [locationSource, setLocationSource] = useState<'owner_pin' | 'google_place'>('owner_pin');
   const [form, setForm] = useState<FormData>({
     business_name: '',
     business_category: '',
@@ -82,6 +86,24 @@ function VendorOnboarding() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const updatePin = useCallback((location: { latitude: number; longitude: number }) => setPin(location), []);
+  const handleMapLocation = useCallback((location: { latitude: number; longitude: number }) => {
+    updatePin(location);
+    setLocationSource('owner_pin');
+    setPlaceId(null);
+  }, [updatePin]);
+  const handlePlaceSelect = useCallback((selection: { latitude: number; longitude: number; address: string; city?: string; region?: string; placeId?: string }) => {
+    setPin({ latitude: selection.latitude, longitude: selection.longitude });
+    setPlaceId(selection.placeId || null);
+    setLocationSource(selection.placeId ? 'google_place' : 'owner_pin');
+    setForm((current) => ({
+      ...current,
+      location_address: selection.address || current.location_address,
+      location_city: selection.city || current.location_city,
+      location_region: selection.region || current.location_region,
+    }));
+  }, []);
+
   const handleSubmit = async () => {
     if (!user) return;
     setError(null);
@@ -91,13 +113,17 @@ function VendorOnboarding() {
       setError(result.error.errors[0]?.message || 'Check all required fields');
       return;
     }
+    if (pin.latitude == null || pin.longitude == null) {
+      setError('Place the business pin on the map or use your current location before submitting.');
+      return;
+    }
 
     setSubmitting(true);
     try {
       // The database creates the application, role transition, vendor record,
       // and explicit no-upfront-fee registration state atomically. The browser
       // cannot activate a vendor or create a financial record.
-      const { error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
+      const { data: registration, error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
         p_business_name: form.business_name,
         p_business_category: form.business_category,
         p_description: form.description,
@@ -110,6 +136,20 @@ function VendorOnboarding() {
         p_vendor_type: form.vendor_type,
       });
       if (registrationError) throw new Error(registrationError.message);
+      const vendorId = (registration as { vendor_id?: string } | null)?.vendor_id;
+      if (!vendorId) throw new Error('Vendor registration did not return a vendor reference.');
+      const { error: locationError } = await supabase.rpc('set_my_vendor_location', {
+        p_vendor_id: vendorId,
+        p_latitude: pin.latitude,
+        p_longitude: pin.longitude,
+        p_address: form.location_address,
+        p_city: form.location_city,
+        p_region: form.location_region,
+        p_place_id: placeId,
+        p_selection_source: locationSource,
+        p_public_visibility: 'business_location',
+      });
+      if (locationError) throw new Error(locationError.message);
 
       await refreshProfile();
       router.push('/onboarding/complete');
@@ -261,6 +301,23 @@ function VendorOnboarding() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+            <div>
+              <Label>Confirm the exact business location</Label>
+              <p className="mt-1 text-xs text-muted-foreground">Move the pin to the actual shop, office, stall, or pickup point. Location is submitted for UniEco review.</p>
+            </div>
+            <GooglePlaceSearch value={form.location_address} onSelect={handlePlaceSelect} />
+            <GoogleMap latitude={pin.latitude} longitude={pin.longitude} label={form.business_name || 'Business location'} interactive onLocationChange={handleMapLocation} height={240} />
+            <div className="flex flex-wrap items-center gap-2">
+              <CurrentLocationButton onLocation={handleMapLocation} />
+              <span className="text-xs text-muted-foreground">{pin.latitude != null && pin.longitude != null ? `${pin.latitude.toFixed(6)}, ${pin.longitude.toFixed(6)}` : 'No exact pin selected'}</span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input aria-label="Latitude" type="number" step="any" placeholder="Latitude" value={pin.latitude ?? ''} onChange={(event) => { setLocationSource('owner_pin'); setPlaceId(null); setPin((current) => ({ ...current, latitude: event.target.value ? Number(event.target.value) : null })); }} />
+              <Input aria-label="Longitude" type="number" step="any" placeholder="Longitude" value={pin.longitude ?? ''} onChange={(event) => { setLocationSource('owner_pin'); setPlaceId(null); setPin((current) => ({ ...current, longitude: event.target.value ? Number(event.target.value) : null })); }} />
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import type {
   AdminControlCenterSummary, AdminUniversityControlCenterSummary, AdminRecentActivityItem, AdminOperationalAlert, AdminUserDirectoryItem, AdminVendorDirectoryItem, SupportTicket, TicketReply,
   CmsPage, CmsFaqEntry, Category, Announcement, AdminAction, AdminQueryResult,
   AdminReport, AdminSubscription, AdminAdvertisement, AdminOrder, VendorVerificationQueueItem, ManagementSearchResult,
+  VendorLocationReview,
   AdminStudentVerification,
   AdminReviewQueueItem,
   AdminStudentDirectoryItem,
@@ -280,6 +281,17 @@ export async function getVendorVerifications(params: {
     })),
     total: rows[0]?.total_count || 0,
   };
+}
+
+export async function getVendorLocationReview(vendorId: string): Promise<VendorLocationReview | null> {
+  const { data, error } = await supabase.rpc('get_vendor_location_review', { p_vendor_id: vendorId });
+  if (error) throw new Error('Unable to load vendor location review');
+  return (data || null) as VendorLocationReview | null;
+}
+
+export async function reviewVendorLocation(vendorId: string, status: 'verified' | 'rejected', note: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('review_vendor_location', { p_vendor_id: vendorId, p_status: status, p_note: note.trim() || null });
+  return { error: error ? 'Unable to update the vendor location review.' : null };
 }
 
 export async function approveVendor(vendorId: string, reason: string): Promise<{ error: string | null }> {
