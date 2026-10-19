@@ -256,6 +256,12 @@ function renderEmail(input: {
   } else if (template === 'payment_refunded') {
     heading = 'Payment refunded';
     copy = `<p>Hi ${name},</p><p>Your payment${amount ? ` of <strong>${amount}</strong>` : ''} has been refunded.</p>${reference}<p>Thank you for your patience.</p>`;
+  } else if (template === 'referral_link_ready') {
+    const referralLink = typeof meta.referral_link === 'string' ? escapeHtml(meta.referral_link) : actionUrl;
+    const rewardAmount = escapeHtml(meta.reward_amount || '2');
+    heading = 'Your UniEco referral link is ready';
+    copy = `<p>Hi ${name},</p><p>Share your unique UniEco Ghana link with genuine students. You can earn <strong>GH₵${rewardAmount}</strong> for each eligible registration after payment and student verification.</p><p style="word-break:break-all;background:#f1f5f9;padding:12px;border-radius:8px;font-size:13px">${referralLink}</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Open my referral dashboard</a>`;
   } else if (template === 'invoice_issued' || template === 'invoice_paid') {
     const invoice = escapeHtml(meta.invoice_number || 'your invoice');
     heading = template === 'invoice_paid' ? 'Invoice paid' : 'Your invoice is ready';
