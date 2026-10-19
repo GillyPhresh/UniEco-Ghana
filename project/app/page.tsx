@@ -48,6 +48,13 @@ export default async function Home() {
           vendorCount={totalVendors}
           universityCount={totalUniversities}
           reviewCount={totalReviews}
+          featuredBusinesses={featuredVendors.map((vendor) => ({
+            id: vendor.id,
+            business_name: vendor.business_name,
+            business_type: vendor.business_type,
+            rating_avg: vendor.rating_avg,
+            rating_count: vendor.rating_count,
+          }))}
         />
         <UniversitySection universities={universities} vendorCounts={vendorCounts} />
         <FeaturedBusinesses vendors={featuredVendors} />
