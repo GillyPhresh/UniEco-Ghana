@@ -3,7 +3,9 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 const root = new URL('..', import.meta.url);
-const read = (path) => readFile(new URL(path, root), 'utf8');
+// Normalize repository line endings so structural checks behave consistently
+// on Windows and Linux CI runners.
+const read = async (path) => (await readFile(new URL(path, root), 'utf8')).replace(/\r\n/g, '\n');
 
 test('admin mutations use narrow audited RPCs with authenticated authority', async () => {
   const migration = await read('supabase/migrations/20260911242000_0038_admin_authority_consolidation.sql');
@@ -594,8 +596,8 @@ test('active announcements require publication confirmation while database scope
   assert.match(page, /Scope: \{universities\.find/);
   assert.match(client, /rpc\('create_admin_announcement'/);
   assert.match(client, /rpc\('update_admin_announcement'/);
-  assert.match(reasonedMigration, /DROP FUNCTION public\.create_admin_announcement/);
-  assert.match(reasonedMigration, /DROP FUNCTION public\.update_admin_announcement/);
+  assert.match(reasonedMigration, /DROP FUNCTION(?: IF EXISTS)? public\.create_admin_announcement/);
+  assert.match(reasonedMigration, /DROP FUNCTION(?: IF EXISTS)? public\.update_admin_announcement/);
   assert.match(reasonedMigration, /clean_reason IS NULL OR length\(clean_reason\) NOT BETWEEN 10 AND 500/);
   assert.match(reasonedMigration, /'reason', clean_reason/);
   assert.match(reasonedMigration, /p_university_id IS NOT NULL OR NOT public\.is_super_admin\(\)/);
