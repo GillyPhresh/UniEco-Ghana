@@ -7,7 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/lib/supabase/client';
 import {
   getCommunicationLogs, getCommunicationStats,
 } from '@/lib/data/communication-client';
@@ -15,8 +18,9 @@ import type { AdminCommunicationLog } from '@/lib/types/communication';
 import { CHANNEL_LABELS, DELIVERY_STATUS_LABELS } from '@/lib/types/communication';
 import {
   Mail, Bell, Smartphone, MessageCircle, Phone, Send,
-  TrendingUp, AlertCircle, CheckCircle2, Clock, Activity,
+  TrendingUp, AlertCircle, CheckCircle2, Clock, Activity, Award,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const CHANNEL_ICONS: Record<string, typeof Mail> = {
   in_app: Bell,
@@ -53,6 +57,8 @@ function Content() {
   const [total, setTotal] = useState(0);
   const [stats, setStats] = useState({ total: 0, byChannel: {} as Record<string, number>, byStatus: {} as Record<string, number>, failed: 0 });
   const [filters, setFilters] = useState({ channel: '', status: '', eventType: '' });
+  const [appointment, setAppointment] = useState({ email: '', name: '', title: '', message: '' });
+  const [sendingAppointment, setSendingAppointment] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -83,6 +89,28 @@ function Content() {
   const channels = ['in_app', 'email', 'push', 'whatsapp', 'sms'];
   const statuses = ['queued', 'processing', 'sent', 'delivered', 'failed', 'cancelled', 'opened', 'read'];
 
+  const sendAppointment = async () => {
+    if (!appointment.email || !appointment.name || !appointment.title) {
+      toast.error('Recipient email, name, and appointment title are required.');
+      return;
+    }
+    setSendingAppointment(true);
+    const { error } = await supabase.rpc('send_super_admin_appointment_email', {
+      p_recipient_email: appointment.email,
+      p_recipient_name: appointment.name,
+      p_appointment_title: appointment.title,
+      p_message: appointment.message || null,
+    });
+    setSendingAppointment(false);
+    if (error) {
+      toast.error(error.message || 'Only a Super Admin can send appointment emails.');
+      return;
+    }
+    toast.success(`Official appointment email queued for ${appointment.email}.`);
+    setAppointment({ email: '', name: '', title: '', message: '' });
+    void loadData();
+  };
+
   return (
     <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
       <div>
@@ -93,6 +121,20 @@ function Content() {
           Monitor all outbound communications across every channel.
         </p>
       </div>
+
+      <Card className="border-primary/20 bg-primary/[0.03]">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base"><Award className="h-5 w-5 text-primary" /> Official appointment email</CardTitle>
+          <p className="text-sm text-muted-foreground">Super Admins can send the UniEco Ghana letterhead appointment message to an internal or external appointee.</p>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5"><Label htmlFor="appointment-email">Recipient email</Label><Input id="appointment-email" type="email" placeholder="appointed.person@example.com" value={appointment.email} onChange={(e) => setAppointment((p) => ({ ...p, email: e.target.value }))} /></div>
+          <div className="space-y-1.5"><Label htmlFor="appointment-name">Recipient name</Label><Input id="appointment-name" placeholder="Full name" value={appointment.name} onChange={(e) => setAppointment((p) => ({ ...p, name: e.target.value }))} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="appointment-title">Appointment title</Label><Input id="appointment-title" placeholder="e.g. Managing Director of UniEco Ghana" value={appointment.title} onChange={(e) => setAppointment((p) => ({ ...p, title: e.target.value }))} /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label htmlFor="appointment-message">Optional official message</Label><Textarea id="appointment-message" rows={4} maxLength={5000} placeholder="Add a specific message, mandate, or congratulations note..." value={appointment.message} onChange={(e) => setAppointment((p) => ({ ...p, message: e.target.value }))} /></div>
+          <div className="sm:col-span-2"><Button onClick={() => void sendAppointment()} disabled={sendingAppointment}>{sendingAppointment ? 'Queueing email…' : 'Send official appointment email'}</Button></div>
+        </CardContent>
+      </Card>
 
       {/* Stats cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
