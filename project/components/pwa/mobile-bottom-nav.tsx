@@ -41,7 +41,7 @@ export function MobileBottomNav() {
       aria-label="Mobile bottom navigation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="mx-auto flex min-h-[4.25rem] max-w-xl items-stretch justify-around px-1 pb-1 pt-1">
+      <div className="mx-auto flex min-h-[4.5rem] max-w-xl items-stretch justify-around px-2 pb-1 pt-1">
         {items.map((item) => {
           const isActive =
             pathname === item.href ||

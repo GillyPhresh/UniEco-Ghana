@@ -56,8 +56,8 @@ export function SiteHeader() {
     .toUpperCase();
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-border bg-card transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
-      <div className="container flex h-[4.25rem] items-center justify-between gap-4">
+    <header className={`sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-xl transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
+      <div className="container flex h-16 items-center justify-between gap-3 sm:h-[4.25rem]">
         <Logo />
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
@@ -102,7 +102,7 @@ export function SiteHeader() {
               </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-2 rounded-full border border-border p-0.5 pr-2 transition-colors hover:border-primary/40">
+                  <button className="flex items-center gap-2 rounded-full border border-border p-0.5 pr-2 transition-colors hover:border-primary/40" aria-label="Open account menu">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={getPublicAvatarUrl(user.profile?.avatar_url)} alt={user.profile?.full_name || ''} />
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
