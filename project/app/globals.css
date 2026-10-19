@@ -120,6 +120,20 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    min-width: 320px;
+    overflow-x: hidden;
+  }
+  html {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  @media (max-width: 640px) {
+    input,
+    select,
+    textarea {
+      /* iOS Safari zooms focused controls below 16px. */
+      font-size: 16px;
+    }
   }
   ::selection {
     @apply bg-primary/20 text-foreground;

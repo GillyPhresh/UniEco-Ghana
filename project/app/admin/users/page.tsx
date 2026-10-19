@@ -187,7 +187,8 @@ function UsersContent() {
           ) : users.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No users found</div>
           ) : (
-            <Table>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[48rem]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -217,6 +218,7 @@ function UsersContent() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

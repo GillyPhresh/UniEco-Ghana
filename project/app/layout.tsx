@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '@/components/providers/app-providers';
@@ -77,6 +77,16 @@ export const metadata: Metadata = {
   },
 };
 
+// The platform is mobile-first. Explicitly locking the layout viewport to the
+// device width prevents mobile browsers from rendering a desktop canvas and
+// scaling it down, which causes the apparent zoom/crop behavior.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#10b981',
+};
+
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
@@ -102,7 +112,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${jakarta.variable} font-sans pb-16 lg:pb-0`}
+        className={`${inter.variable} ${jakarta.variable} font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>
