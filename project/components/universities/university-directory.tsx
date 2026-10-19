@@ -15,6 +15,10 @@ type DirectoryUniversity = {
 
 const allTypes = 'All institution types';
 
+function statusLabel(status: string) {
+  return status.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export function UniversityDirectory({ universities }: { universities: DirectoryUniversity[] }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState(allTypes);
@@ -42,7 +46,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
           {university.hero_image_url ? <img src={university.hero_image_url} alt={university.hero_alt_text || `${university.name} campus`} className="h-32 w-full object-cover" loading="lazy" /> : <div className="flex h-24 items-center justify-center bg-muted/40"><Building2 className="h-8 w-8 text-muted-foreground" /></div>}
           <div className="p-4">
             <div className="flex gap-3"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted p-1">{university.logo_url ? <img src={university.logo_url} alt={university.logo_alt_text || `Official logo of ${university.name}`} className="max-h-full max-w-full object-contain" loading="lazy" /> : <Building2 className="h-5 w-5 text-muted-foreground" />}</div><div><h2 className="font-semibold group-hover:text-primary">{university.short_name}</h2><p className="text-sm text-muted-foreground line-clamp-2">{university.official_name}</p></div></div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{university.institution_type}</span><span className="rounded-full bg-muted px-2 py-1 capitalize">{university.campus_launch_status}</span></div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{university.institution_type || 'Tertiary institution'}</span><span className="rounded-full bg-success/10 px-2 py-1 text-success">{statusLabel(university.campus_launch_status)}</span></div>
             <p className="mt-3 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{[university.city, university.region].filter(Boolean).join(', ') || 'Ghana'}</p>
           </div>
         </Link>)}</div>

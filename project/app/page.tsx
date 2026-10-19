@@ -12,6 +12,7 @@ import { EventsPreview } from '@/components/landing/events-preview';
 import { CallToAction } from '@/components/landing/call-to-action';
 import {
   getUniversities,
+  getTotalUniversityCount,
   getFeaturedVendors,
   getPublishedEvents,
   getCategoryCounts,
@@ -22,12 +23,13 @@ import {
 } from '@/lib/data/public-queries';
 
 export default async function Home() {
-  const [universities, featuredVendors, events, categoryCounts, totalVendors, totalReviews, totalProducts] = await Promise.all([
+  const [universities, featuredVendors, events, categoryCounts, totalVendors, totalUniversities, totalReviews, totalProducts] = await Promise.all([
     getUniversities(6),
     getFeaturedVendors(8),
     getPublishedEvents(3),
     getCategoryCounts(),
     getTotalVendorCount(),
+    getTotalUniversityCount(),
     getTotalReviewCount(),
     getTotalProductCount(),
   ]);
@@ -44,7 +46,7 @@ export default async function Home() {
       <main>
         <Hero
           vendorCount={totalVendors}
-          universityCount={universities.length}
+          universityCount={totalUniversities}
           reviewCount={totalReviews}
         />
         <UniversitySection universities={universities} vendorCounts={vendorCounts} />
