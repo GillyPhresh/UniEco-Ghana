@@ -56,7 +56,7 @@ function SignInContent() {
   const handleGoogle = async () => {
     setAuthError(null);
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle({ next });
     if (error) {
       setAuthError(error);
       setGoogleLoading(false);

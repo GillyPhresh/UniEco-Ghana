@@ -15,7 +15,7 @@ interface AuthContextValue {
     password: string,
     meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
   ) => Promise<{ error: string | null }>;
-  signInWithGoogle: () => Promise<{ error: string | null }>;
+  signInWithGoogle: (options?: { intent?: 'student' | 'external_vendor'; next?: string }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   signOutAll: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -144,8 +144,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const signInWithGoogle = useCallback(async () => {
-    window.location.assign('/auth/google-production');
+  const signInWithGoogle = useCallback(async (options?: { intent?: 'student' | 'external_vendor'; next?: string }) => {
+    const params = new URLSearchParams();
+    if (options?.intent) params.set('intent', options.intent);
+    if (options?.next) params.set('next', options.next);
+    window.location.assign(`/auth/google-production${params.toString() ? `?${params.toString()}` : ''}`);
     return { error: null };
   }, []);
 

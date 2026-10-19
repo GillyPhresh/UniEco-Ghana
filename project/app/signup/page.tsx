@@ -79,9 +79,16 @@ export default function SignUpPage() {
   const handleGoogle = async () => {
     setAuthError(null);
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
+    const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
+    const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
+    if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
+    if (institutionAdminInvite) window.sessionStorage.setItem('unieco_pending_institution_admin_invite', institutionAdminInvite);
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle();
+    const next = institutionAdminInvite
+      ? `/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`
+      : '/onboarding';
+    const { error } = await signInWithGoogle({ intent: accountType || 'student', next });
     if (error) {
       setAuthError(error);
       setGoogleLoading(false);

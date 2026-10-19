@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-const PRODUCTION_CALLBACK = 'https://uniecoghana.com/auth/callback';
-
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const requestedIntent = requestUrl.searchParams.get('intent');
+  const intent = requestedIntent === 'external_vendor' ? 'external_vendor' : requestedIntent === 'student' ? 'student' : null;
+  const requestedNext = requestUrl.searchParams.get('next');
+  const next = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//') && !requestedNext.includes('\\')
+    ? requestedNext
+    : intent ? '/onboarding' : '/';
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: PRODUCTION_CALLBACK },
+    options: { redirectTo: `${requestUrl.origin}/auth/callback` },
   });
 
   if (error || !data.url) {
@@ -21,5 +25,8 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.redirect(data.url);
+  const response = NextResponse.redirect(data.url);
+  response.cookies.set('unieco_oauth_next', next, { httpOnly: true, sameSite: 'lax', secure: requestUrl.protocol === 'https:', maxAge: 600, path: '/' });
+  if (intent) response.cookies.set('unieco_oauth_intent', intent, { httpOnly: true, sameSite: 'lax', secure: requestUrl.protocol === 'https:', maxAge: 600, path: '/' });
+  return response;
 }

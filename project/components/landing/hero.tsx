@@ -37,7 +37,7 @@ export function Hero({ vendorCount, universityCount, reviewCount }: HeroProps) {
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between border-b border-border pb-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">Near you</p><h2 className="mt-1 font-display text-xl font-bold text-foreground">UENR, Sunyani</h2></div><span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary"><MapPin className="h-5 w-5" /></span></div>
             <div className="mt-4 space-y-2.5"><DiscoveryCard icon={Store} title="Auntie Ama's Kitchen" category="Food · 0.4 km away" rating="4.9" /><DiscoveryCard icon={Search} title="Campus Print Hub" category="Services · Open now" rating="4.8" /><DiscoveryCard icon={CalendarDays} title="Student Innovation Fair" category="Event · This Friday" rating="" /></div>
-            <Link href="/discover" className="mt-4 flex items-center justify-between rounded-lg bg-primary/5 px-3 py-3 text-sm font-semibold text-primary hover:bg-primary/10">See what's available around campus <ArrowRight className="h-4 w-4" /></Link>
+            <Link href="/discover" className="mt-4 flex items-center justify-between rounded-lg bg-primary/5 px-3 py-3 text-sm font-semibold text-primary hover:bg-primary/10">See what&apos;s available around campus <ArrowRight className="h-4 w-4" /></Link>
           </div>
         </div>
         <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" /> Verified businesses, events, and services from your campus community.</p>
