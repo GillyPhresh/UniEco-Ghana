@@ -45,6 +45,7 @@ export async function updateSession(request: NextRequest) {
     '/marketplace', '/discover', '/events', '/categories', '/business',
     '/dashboard', '/vendor-dashboard', '/profile', '/checkout', '/orders',
     '/search', '/wishlist', '/start-business', '/universities', '/benefits',
+    '/university',
   ];
   const paymentGateExcluded = pathname === '/signin'
     || pathname === '/signup'

@@ -76,6 +76,7 @@ function StudentOnboarding() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [paymentRequired, setPaymentRequired] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
@@ -92,6 +93,10 @@ function StudentOnboarding() {
     graduation_year: undefined,
     student_id_document_url: '',
   });
+
+  useEffect(() => {
+    setPaymentRequired(new URLSearchParams(window.location.search).get('payment_required') === '1');
+  }, []);
 
   if (!unisLoaded) {
     supabase
@@ -279,6 +284,13 @@ function StudentOnboarding() {
           <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {paymentRequired && !error && (
+          <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-semibold">Registration payment required</p>
+            <p className="mt-1">Complete the GH₵10 registration payment below before you can access the UniEco Ghana platform.</p>
           </div>
         )}
 

@@ -45,7 +45,18 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const response = NextResponse.redirect(new URL(destination, publicOrigin));
+  // A Google signup must always enter the payment-gated onboarding flow. The
+  // cookie is only a navigation hint and must not be allowed to accidentally
+  // send a newly-created account into the platform before registration payment.
+  const onboardingDestination = intent === 'student'
+    ? '/onboarding/student?payment_required=1'
+    : intent === 'external_vendor'
+      ? '/onboarding/vendor?payment_required=1'
+      : destination;
+  const safeDestination = intent && destination === '/onboarding'
+    ? onboardingDestination
+    : destination;
+  const response = NextResponse.redirect(new URL(safeDestination, publicOrigin));
   response.cookies.delete('unieco_oauth_next');
   response.cookies.delete('unieco_oauth_intent');
   return response;
