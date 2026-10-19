@@ -8,8 +8,8 @@
   - Non-GET requests: Network Only (never cached)
 */
 
-const SHELL_CACHE = 'unieco-shell-v3';
-const CONTENT_CACHE = 'unieco-content-v3';
+const SHELL_CACHE = 'unieco-shell-v4';
+const CONTENT_CACHE = 'unieco-content-v4';
 const OFFLINE_URL = '/offline';
 
 const SHELL_ASSETS = [
@@ -55,6 +55,7 @@ self.addEventListener('install', (event) => {
       .open(SHELL_CACHE)
       .then((cache) => cache.addAll(SHELL_ASSETS))
       .catch(() => {})
+      .then(() => self.skipWaiting())
   );
 });
 
