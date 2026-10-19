@@ -1,6 +1,7 @@
 'use client';
 
 import { supabase } from '@/lib/supabase/client';
+import { normalizeSearchTerm } from '@/lib/utils/search';
 import type { Subscription } from '@/lib/types';
 import type {
   PaymentRecord, PaymentProvider, Invoice, InvoiceItem,
@@ -68,7 +69,7 @@ export async function initiateSubscriptionPayment(params: {
     p_idempotency_key: params.idempotencyKey || null,
   });
 
-  if (error) return { payment: null, error: error.message };
+  if (error) return { payment: null, error: 'Unable to start subscription payment. Please try again.' };
   return { payment: data as unknown as PaymentRecord, error: null };
 }
 
@@ -85,8 +86,8 @@ export async function getUserPayments(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { payments: [], total: 0 };
 
-  const limit = params.limit || 20;
-  const offset = params.offset || 0;
+  const limit = Math.min(100, Math.max(1, Math.trunc(params.limit || 20)));
+  const offset = Math.min(10000, Math.max(0, Math.trunc(params.offset || 0)));
 
   let query = supabase
     .from('payments')
@@ -97,8 +98,9 @@ export async function getUserPayments(params: {
 
   if (params.status && params.status !== 'all') query = query.eq('status', params.status);
   if (params.paymentType && params.paymentType !== 'all') query = query.eq('payment_type', params.paymentType);
-  if (params.search) {
-    query = query.or(`payment_reference.ilike.%${params.search}%,provider_reference.ilike.%${params.search}%`);
+  const search = normalizeSearchTerm(params.search || '');
+  if (search) {
+    query = query.or(`payment_reference.ilike.%${search}%,provider_reference.ilike.%${search}%`);
   }
 
   const { data, count } = await query;
@@ -152,7 +154,7 @@ export async function cancelSubscription(subId: string): Promise<{ error: string
     p_subscription_id: subId,
     p_auto_renew: false,
   });
-  return { error: error?.message || null };
+  return { error: error ? 'Unable to update subscription renewal settings.' : null };
 }
 
 export async function reactivateSubscription(subId: string): Promise<{ error: string | null }> {
@@ -160,7 +162,7 @@ export async function reactivateSubscription(subId: string): Promise<{ error: st
     p_subscription_id: subId,
     p_auto_renew: true,
   });
-  return { error: error?.message || null };
+  return { error: error ? 'Unable to update subscription renewal settings.' : null };
 }
 
 // ============================================================
@@ -505,7 +507,7 @@ export async function requestRefund(params: {
     p_amount: params.amount,
     p_reason: params.reason,
   });
-  return { error: error?.message || null };
+  return { error: error ? 'Unable to request a refund. Check the payment and reason, then retry.' : null };
 }
 
 export async function getAdminRefunds(params: {
@@ -643,7 +645,7 @@ export async function initiateMarketplacePayment(params: {
     p_idempotency_key: params.idempotencyKey || null,
   });
 
-  if (error) return { payment: null, error: error.message };
+  if (error) return { payment: null, error: 'Unable to start marketplace payment. Please try again.' };
   return { payment: data as unknown as PaymentRecord, error: null };
 }
 

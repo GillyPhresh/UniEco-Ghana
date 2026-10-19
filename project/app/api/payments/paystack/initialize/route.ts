@@ -11,10 +11,10 @@ type RequestBody = {
   registration?: { universityId?: string; phone?: string; studentIdNumber?: string; program?: string; faculty?: string; department?: string; level?: string; admissionYear?: number; graduationYear?: number | null; studentDocumentPath?: string | null; referralCode?: string | null };
 };
 
-function appUrl(request: NextRequest) {
-  const configured = process.env.UNIECO_PUBLIC_APP_URL;
+function appUrl() {
+  const configured = process.env.UNIECO_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (configured) return configured.replace(/\/$/, '');
-  return new URL(request.url).origin;
+  return 'https://uniecoghana.com';
 }
 
 export async function POST(request: NextRequest) {
@@ -70,9 +70,7 @@ export async function POST(request: NextRequest) {
         ? 'Your account is not ready for registration payment. Please sign in again or contact support.'
         : intentError.code === '55000'
           ? 'This registration payment needs support review before you can continue.'
-          : intentError.code === '22023'
-            ? intentError.message
-            : 'Payment setup failed before Paystack could open. Please try again or contact support.';
+          : 'Payment setup failed before Paystack could open. Please try again or contact support.';
       return NextResponse.json({ error: errorMessage }, { status: 422 });
     }
     if (!intent || typeof intent !== 'object') return NextResponse.json({ error: 'Payment could not be initialized. Please try again.' }, { status: 422 });
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (providerError || !provider?.is_enabled) return NextResponse.json({ error: 'Paystack is not available.' }, { status: 503 });
     const channels = permittedChannels(provider.supported_methods || [], provider.config?.channels);
     if (!channels.length) return NextResponse.json({ error: 'No Paystack payment channels are currently configured for this merchant.' }, { status: 503 });
-    const callbackUrl = `${appUrl(request)}/payments/callback`;
+    const callbackUrl = `${appUrl()}/payments/callback`;
     const checkout = await initializePaystackTransaction({ email: user.email, amountGhs: Number(payment.amount), reference: payment.payment_reference, callbackUrl, channels, metadata: { unieco_payment_reference: payment.payment_reference, purpose: String(payment.payment_type || body.purpose), user_id: user.id, ...(body.registration?.universityId ? { university_id: body.registration.universityId } : {}) } });
     const { error: markError } = await admin.rpc('record_paystack_checkout_initialized', { p_payment_reference: payment.payment_reference, p_provider_environment: getPaystackMode() });
     if (markError) return NextResponse.json({ error: 'Checkout was created but could not be recorded safely. Please contact support.' }, { status: 422 });
