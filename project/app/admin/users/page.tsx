@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +17,7 @@ import { getAdminUsers, suspendUser, reactivateUser, assignUserRole, resetNonAdm
 import type { AdminUserDirectoryItem } from '@/lib/types/admin';
 import { ROLE_LABELS } from '@/lib/auth/permissions';
 import { ROLE_IDS, type UserRole } from '@/lib/types';
-import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, Trash2 } from 'lucide-react';
+import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, Trash2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminUsersPage() {
@@ -125,11 +126,12 @@ function UsersContent() {
 
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-7xl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">User Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} total users</p>
         </div>
+        {isSuperAdmin && <Button asChild variant="outline"><Link href="/admin/universities"><UserPlus className="mr-2 h-4 w-4" /> Invite institution administrator</Link></Button>}
       </div>
 
       {isSuperAdmin && (
