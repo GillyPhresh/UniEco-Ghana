@@ -273,6 +273,14 @@ function renderEmail(input: {
     heading = 'Your UniEco referral link is ready';
     copy = `<p>Hi ${name},</p><p>Share your unique UniEco Ghana link with genuine students. You can earn <strong>GH₵${rewardAmount}</strong> for each eligible registration after payment and student verification.</p><p style="word-break:break-all;background:#f1f5f9;padding:12px;border-radius:8px;font-size:13px">${referralLink}</p>`;
     button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Open my referral dashboard</a>`;
+  } else if (template === 'institution_admin_invitation') {
+    const institutionName = escapeHtml(meta.institution_name || 'your institution');
+    const inviteUrl = typeof meta.invite_url === 'string' ? meta.invite_url : actionUrl;
+    const expiresAt = meta.expires_at ? escapeHtml(new Date(String(meta.expires_at)).toLocaleString('en-GH', { dateStyle: 'medium', timeStyle: 'short' })) : 'the stated expiry time';
+    heading = 'Institution administrator invitation';
+    copy = `<p>Hi ${name},</p><p>You have been appointed to manage <strong>${institutionName}</strong> on UniEco Ghana.</p><div style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px;padding:18px;margin:20px 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#15803d;font-weight:700">Your access will include</div><p style="margin:8px 0 0;color:#166534;font-size:14px">Posting and managing institution-focused content, announcements, events, and other approved campus updates within this institution only.</p></div><p>This secure invitation expires on <strong>${expiresAt}</strong>. You must create or sign in to a UniEco Ghana account using this invited email address before access is granted.</p>`;
+    button = `<a href="${escapeHtml(inviteUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Accept institution invitation</a>`;
+    plainText = `Institution administrator invitation\n\nHi ${String(meta.name || 'there')},\n\nYou have been appointed to manage ${String(meta.institution_name || 'your institution')} on UniEco Ghana.\n\nYour access is limited to posting and managing approved institution content for that institution.\n\nAccept the invitation: ${inviteUrl}\n\nThis invitation expires on ${String(meta.expires_at || 'the stated expiry time')}. Use the invited email address when creating or signing in to your UniEco Ghana account.`;
   } else if (template === 'invoice_issued' || template === 'invoice_paid') {
     const invoice = escapeHtml(meta.invoice_number || 'your invoice');
     heading = template === 'invoice_paid' ? 'Invoice paid' : 'Your invoice is ready';

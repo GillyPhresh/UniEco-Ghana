@@ -52,6 +52,7 @@ export default function SignUpPage() {
     setAuthError(null);
     const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
+    const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
     // This is only a registration hint. The database revalidates and locks it at intent creation.
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
@@ -63,6 +64,10 @@ export default function SignUpPage() {
       setAuthError(error);
     } else {
       const referral = incomingReferral;
+      if (institutionAdminInvite) {
+        router.push(`/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`);
+        return;
+      }
       const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
       const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
       const studentPath = studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student';

@@ -18,6 +18,7 @@ import {
   searchUniversityAdminCandidates, assignUniversityAdministrator, revokeUniversityAdministrator,
 } from '@/lib/data/admin-client';
 import { useAuth } from '@/lib/auth/auth-context';
+import { supabase } from '@/lib/supabase/client';
 import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2, Search, ShieldCheck, Globe2, UserPlus, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -69,6 +70,10 @@ function Content() {
   const [membershipReason, setMembershipReason] = useState('');
   const [membershipError, setMembershipError] = useState<string | null>(null);
   const [membershipSaving, setMembershipSaving] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteHours, setInviteHours] = useState('168');
+  const [inviteNote, setInviteNote] = useState('');
+  const [sendingInvite, setSendingInvite] = useState(false);
   const [pendingMembershipAction, setPendingMembershipAction] = useState<{
     kind: 'assign' | 'revoke';
     userId: string;
@@ -101,6 +106,9 @@ function Content() {
     setCandidateSearch('');
     setCandidates([]);
     setMembershipReason('');
+    setInviteEmail('');
+    setInviteHours('168');
+    setInviteNote('');
     setMembersLoading(true);
     try {
       setMembers(await getUniversityAdminMemberships(uni.id));
@@ -110,6 +118,35 @@ function Content() {
     } finally {
       setMembersLoading(false);
     }
+  }
+
+  async function sendInstitutionAdminInvite() {
+    if (!managedUniversity) return;
+    const email = inviteEmail.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setMembershipError('Enter a valid recipient email address.');
+      return;
+    }
+    if (inviteNote.trim().length > 500) {
+      setMembershipError('The note must be 500 characters or fewer.');
+      return;
+    }
+    setSendingInvite(true);
+    setMembershipError(null);
+    const { error } = await supabase.rpc('create_institution_admin_invite', {
+      p_university_id: managedUniversity.id,
+      p_recipient_email: email,
+      p_expires_hours: Number(inviteHours),
+      p_note: inviteNote.trim() || null,
+    });
+    setSendingInvite(false);
+    if (error) {
+      setMembershipError(error.message);
+      return;
+    }
+    toast.success(`Invitation sent to ${email}`);
+    setInviteEmail('');
+    setInviteNote('');
   }
 
   async function findAdministratorCandidates() {
@@ -531,6 +568,21 @@ function Content() {
                 ))}
               </div>
             )}
+          </section>
+
+          <Separator />
+
+          <section className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck className="h-4 w-4 text-primary" />Invite a new institution administrator</h2>
+              <p className="mt-1 text-xs text-muted-foreground">The recipient will receive a secure, one-time email link. They must create or sign in with that email before access is activated.</p>
+            </div>
+            <div className="space-y-1.5"><Label htmlFor="institution-admin-email">Recipient email</Label><Input id="institution-admin-email" type="email" value={inviteEmail} onChange={event => setInviteEmail(event.target.value)} placeholder="appointed.person@example.com" /></div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="institution-admin-expiry">Invitation expiry</Label><select id="institution-admin-expiry" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={inviteHours} onChange={event => setInviteHours(event.target.value)}><option value="24">24 hours</option><option value="72">3 days</option><option value="168">7 days</option><option value="720">30 days</option></select></div>
+              <div className="space-y-1.5"><Label htmlFor="institution-admin-note">Appointment note (optional)</Label><Input id="institution-admin-note" value={inviteNote} onChange={event => setInviteNote(event.target.value)} placeholder="Tertiary platform coordinator" maxLength={500} /></div>
+            </div>
+            <Button onClick={() => void sendInstitutionAdminInvite()} disabled={sendingInvite || !inviteEmail.trim()}>{sendingInvite ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}Send secure invitation</Button>
           </section>
 
           <Separator />
