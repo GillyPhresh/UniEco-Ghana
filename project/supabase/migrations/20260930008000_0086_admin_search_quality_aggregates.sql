@@ -8,6 +8,10 @@ CREATE INDEX IF NOT EXISTS search_clicks_search_query_id_idx
   ON public.search_clicks (search_query_id)
   WHERE search_query_id IS NOT NULL;
 
+-- Production may already contain the later analytics-backed version of this
+-- function. Drop the prior return shape before recreating the legacy shape;
+-- PostgreSQL cannot change OUT columns with CREATE OR REPLACE.
+DROP FUNCTION IF EXISTS public.get_admin_search_quality_metrics(integer);
 CREATE OR REPLACE FUNCTION public.get_admin_search_quality_metrics(p_days integer DEFAULT 30)
 RETURNS TABLE(
   activity_date date,

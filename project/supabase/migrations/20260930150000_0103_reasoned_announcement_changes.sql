@@ -114,8 +114,8 @@ END;
 $$;
 
 -- Old signatures are removed, not merely hidden, so callers cannot bypass reason validation.
-DROP FUNCTION public.create_admin_announcement(text, text, text, text, uuid, timestamptz, timestamptz);
-DROP FUNCTION public.update_admin_announcement(uuid, text, text, text, text, uuid, boolean, timestamptz, timestamptz);
+DROP FUNCTION IF EXISTS public.create_admin_announcement(text, text, text, text, uuid, timestamptz, timestamptz);
+DROP FUNCTION IF EXISTS public.update_admin_announcement(uuid, text, text, text, text, uuid, boolean, timestamptz, timestamptz);
 REVOKE ALL ON FUNCTION public.create_admin_announcement(text, text, text, text, uuid, timestamptz, timestamptz, text),
   public.update_admin_announcement(uuid, text, text, text, text, uuid, boolean, timestamptz, timestamptz, text)
 FROM PUBLIC, anon, authenticated, service_role;

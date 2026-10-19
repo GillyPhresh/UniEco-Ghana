@@ -63,7 +63,7 @@ ALTER TABLE public.student_referral_codes ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.student_referral_codes FROM PUBLIC, anon, authenticated, service_role;
 -- Existing active student accounts receive a real unique code during rollout.
 INSERT INTO public.student_referral_codes(user_id,code)
-SELECT profile.id,'UE-'||upper(encode(gen_random_bytes(10),'hex'))
+SELECT profile.id,'UE-'||upper(encode(extensions.gen_random_bytes(10),'hex'))
 FROM public.profiles profile JOIN public.user_roles role ON role.id=profile.role_id
 WHERE role.name IN ('student','student_vendor') AND profile.is_active AND profile.status='active'
 ON CONFLICT(user_id) DO NOTHING;

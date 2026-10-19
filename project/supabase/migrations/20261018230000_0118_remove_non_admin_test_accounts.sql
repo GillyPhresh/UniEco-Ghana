@@ -33,6 +33,15 @@ BEGIN
       USING ERRCODE = '42501';
   END IF;
 
+  -- This is the explicit production test-data reset path. Financial ledger
+  -- triggers normally make historical rows immutable; suspend only those
+  -- user triggers for this transaction so the confirmed reset can remove
+  -- test-owned ledger rows, then restore them before committing.
+  ALTER TABLE public.student_registration_payment_attempts DISABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_rewards DISABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_payouts DISABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_reward_events DISABLE TRIGGER USER;
+
   CREATE TEMP TABLE purge_user_ids(id uuid PRIMARY KEY) ON COMMIT DROP;
   INSERT INTO purge_user_ids(id)
   SELECT id FROM auth.users WHERE id <> admin_id;
@@ -49,7 +58,14 @@ BEGIN
     WHERE c.contype = 'f'
       AND c.confrelid IN ('auth.users'::regclass, 'public.profiles'::regclass)
       AND array_length(c.conkey, 1) = 1
-      AND c.conrelid NOT IN ('public.profiles'::regclass)
+      -- Vendors, payments, and orders need their dependency-aware cleanup
+      -- below; deleting them in this generic pass violates restrictive FKs.
+      AND c.conrelid NOT IN (
+        'public.profiles'::regclass,
+        'public.vendors'::regclass,
+        'public.payments'::regclass,
+        'public.orders'::regclass
+      )
   LOOP
     DECLARE
       child_schema text;
@@ -166,6 +182,9 @@ BEGIN
       AND c.confrelid = 'public.vendors'::regclass
       AND array_length(c.conkey, 1) = 1
       AND c.conrelid <> 'public.vendors'::regclass
+      -- Payments have restrictive child records and are removed by the
+      -- dedicated payment cleanup above before vendors are deleted.
+      AND c.conrelid NOT IN ('public.payments'::regclass, 'public.orders'::regclass)
   LOOP
     DECLARE
       child_schema text;
@@ -193,6 +212,11 @@ BEGIN
   -- Auth deletion cascades profiles and all remaining CASCADE-owned rows.
   DELETE FROM auth.users
   WHERE id IN (SELECT id FROM purge_user_ids);
+
+  ALTER TABLE public.student_registration_payment_attempts ENABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_rewards ENABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_payouts ENABLE TRIGGER USER;
+  ALTER TABLE public.student_referral_reward_events ENABLE TRIGGER USER;
 
   -- Fail closed if anything other than the named admin remains.
   IF EXISTS (

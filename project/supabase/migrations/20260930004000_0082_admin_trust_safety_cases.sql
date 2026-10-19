@@ -23,6 +23,8 @@ RETURNS TABLE(
   subject_type text,
   subject_id text,
   university_name text,
+  assigned_to_id uuid,
+  assigned_to_name text,
   priority integer,
   resolution text,
   created_at timestamptz,
@@ -60,10 +62,12 @@ BEGIN
   RETURN QUERY
   SELECT moderation.id, moderation.case_number, moderation.case_type, moderation.severity,
     moderation.status, moderation.title, moderation.description, moderation.subject_type,
-    moderation.subject_id, university.name, moderation.priority, moderation.resolution,
+    moderation.subject_id, university.name, moderation.assigned_to, assignee.full_name,
+    moderation.priority, moderation.resolution,
     moderation.created_at, moderation.updated_at, count(*) OVER ()
   FROM public.moderation_cases moderation
   LEFT JOIN public.universities university ON university.id = moderation.university_id
+  LEFT JOIN public.profiles assignee ON assignee.id = moderation.assigned_to
   WHERE (v_status IS NULL OR moderation.status = v_status)
     AND (v_severity IS NULL OR moderation.severity = v_severity)
     AND (v_search IS NULL OR
