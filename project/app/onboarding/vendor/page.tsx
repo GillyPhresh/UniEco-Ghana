@@ -216,6 +216,11 @@ function VendorOnboarding() {
           </div>
         )}
 
+        <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
+          <p className="font-semibold">Registration payment required</p>
+          <p className="mt-1">Complete the GH₵20 business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
+        </div>
+
         {error && (
           <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
