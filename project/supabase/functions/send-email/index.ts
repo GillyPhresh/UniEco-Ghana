@@ -238,24 +238,35 @@ function renderEmail(input: {
   const actionUrl = typeof meta.action_url === 'string' ? meta.action_url : 'https://uniecoghana.com';
   const template = typeof meta.template === 'string' ? meta.template : input.eventType;
   const amount = meta.amount !== undefined ? `${escapeHtml(meta.amount)} ${escapeHtml(meta.currency || 'GHS')}` : '';
-  const reference = meta.payment_reference ? `<p style="color:#64748b;font-size:13px">Reference: ${escapeHtml(meta.payment_reference)}</p>` : '';
+  const paymentReference = typeof meta.payment_reference === 'string' ? meta.payment_reference : '';
+  const reference = paymentReference ? `<p style="color:#64748b;font-size:13px">Reference: ${escapeHtml(paymentReference)}</p>` : '';
+  const paymentPurpose = typeof meta.payment_type === 'string'
+    ? meta.payment_type.replaceAll('_', ' ')
+    : typeof meta.purpose === 'string' ? meta.purpose.replaceAll('_', ' ') : 'UniEco Ghana payment';
   let heading = escapeHtml(input.subject);
   let copy = `<p>${escapeHtml(input.body)}</p>`;
   let button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Open UniEco Ghana</a>`;
+  let plainText = input.body;
 
   if (template === 'registration_welcome') {
     heading = 'Welcome to UniEco Ghana';
     copy = `<p>Hi ${name},</p><p>Congratulations! Your UniEco Ghana account has been created successfully.</p><p>Complete your registration to discover campus businesses, opportunities, events, and services built for Ghana’s university community.</p>`;
     button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Continue registration</a>`;
   } else if (template === 'payment_receipt') {
-    heading = 'Payment received';
-    copy = `<p>Hi ${name},</p><p>We have received your payment of <strong>${amount}</strong>.</p>${reference}<p>Thank you for using UniEco Ghana.</p>`;
+    heading = 'Payment receipt';
+    copy = `<p style="margin:0 0 22px;color:#475569">Hi ${name},</p><div style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px;padding:20px;margin-bottom:24px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#15803d;font-weight:700">Payment successful</div><div style="font-size:30px;line-height:1.2;color:#064e3b;font-weight:800;margin-top:8px">${amount}</div><div style="font-size:13px;color:#166534;margin-top:6px">Thank you. Your payment has been securely recorded.</div></div><table role="presentation" style="width:100%;border-collapse:collapse;font-size:14px"><tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #e2e8f0">Payment type</td><td style="padding:10px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;text-transform:capitalize">${escapeHtml(paymentPurpose)}</td></tr><tr><td style="padding:10px 0;color:#64748b;border-bottom:1px solid #e2e8f0">Payment reference</td><td style="padding:10px 0;text-align:right;color:#0f172a;border-bottom:1px solid #e2e8f0;word-break:break-all">${escapeHtml(paymentReference || 'Available in your dashboard')}</td></tr><tr><td style="padding:10px 0;color:#64748b">Payment provider</td><td style="padding:10px 0;text-align:right;color:#0f172a">Paystack</td></tr></table><p style="margin:24px 0 0;color:#475569;font-size:14px">Keep this email for your records. You can view your payment history and account status from your UniEco Ghana dashboard.</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">View payment history</a>`;
+    plainText = `Payment receipt\n\nHi ${String(meta.name || 'there')},\n\nPayment successful\nAmount: ${String(meta.amount ?? '')} ${String(meta.currency || 'GHS')}\nPayment type: ${paymentPurpose}\nReference: ${paymentReference || 'Available in your dashboard'}\nProvider: Paystack\n\nKeep this email for your records. View your payment history at ${actionUrl}.`;
   } else if (template === 'payment_failed') {
     heading = 'Payment update';
-    copy = `<p>Hi ${name},</p><p>We could not complete your payment${amount ? ` of <strong>${amount}</strong>` : ''}.</p>${reference}<p>Please try again from your UniEco Ghana account. If money was deducted, contact support and include the reference above.</p>`;
+    copy = `<p style="margin:0 0 22px;color:#475569">Hi ${name},</p><div style="border:1px solid #fed7aa;background:#fff7ed;border-radius:14px;padding:20px;margin-bottom:24px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c2410c;font-weight:700">Payment not completed</div><p style="margin:8px 0 0;color:#7c2d12;font-size:14px">We could not complete your payment${amount ? ` of <strong>${amount}</strong>` : ''}.</p></div>${reference}<p style="color:#475569;font-size:14px">Please return to UniEco Ghana and try again. If your account was charged, do not pay again immediately—contact support with the payment reference so we can verify it.</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Review payment</a>`;
+    plainText = `Payment update\n\nHi ${String(meta.name || 'there')},\n\nYour payment${meta.amount !== undefined ? ` of ${String(meta.amount)} ${String(meta.currency || 'GHS')}` : ''} was not completed.\nReference: ${paymentReference || 'Not available'}\n\nPlease return to UniEco Ghana and try again. If your account was charged, contact support with the reference.\n${actionUrl}`;
   } else if (template === 'payment_refunded') {
     heading = 'Payment refunded';
-    copy = `<p>Hi ${name},</p><p>Your payment${amount ? ` of <strong>${amount}</strong>` : ''} has been refunded.</p>${reference}<p>Thank you for your patience.</p>`;
+    copy = `<p style="margin:0 0 22px;color:#475569">Hi ${name},</p><div style="border:1px solid #bae6fd;background:#f0f9ff;border-radius:14px;padding:20px;margin-bottom:24px"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#0369a1;font-weight:700">Refund recorded</div><div style="font-size:26px;line-height:1.2;color:#0c4a6e;font-weight:800;margin-top:8px">${amount || 'Your payment'}</div><div style="font-size:13px;color:#075985;margin-top:6px">The refund status has been recorded securely.</div></div>${reference}<p style="color:#475569;font-size:14px">Please allow your payment provider’s normal processing time for the funds to appear. Contact support if you need help.</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">View payment history</a>`;
+    plainText = `Payment refunded\n\nHi ${String(meta.name || 'there')},\n\nYour payment${meta.amount !== undefined ? ` of ${String(meta.amount)} ${String(meta.currency || 'GHS')}` : ''} has been refunded.\nReference: ${paymentReference || 'Available in your dashboard'}\n\nPlease allow your payment provider's normal processing time.\n${actionUrl}`;
   } else if (template === 'referral_link_ready') {
     const referralLink = typeof meta.referral_link === 'string' ? escapeHtml(meta.referral_link) : actionUrl;
     const rewardAmount = escapeHtml(meta.reward_amount || '2');
@@ -272,6 +283,6 @@ function renderEmail(input: {
   }
 
   const html = `<!doctype html><html><body style="margin:0;background:#f1f5f9;font-family:Arial,sans-serif;color:#0f172a"><div style="max-width:620px;margin:0 auto;padding:28px 16px"><div style="background:#064e3b;border-radius:16px 16px 0 0;padding:22px 28px;color:#fff"><div style="font-size:20px;font-weight:700">UniEco Ghana</div><div style="font-size:12px;color:#a7f3d0;margin-top:4px">Connecting Ghana's university community</div></div><div style="background:#fff;padding:30px 28px;border-radius:0 0 16px 16px;box-shadow:0 4px 16px rgba(15,23,42,.08)"><h1 style="font-size:24px;margin:0 0 18px;color:#064e3b">${heading}</h1>${copy}<div style="margin:26px 0">${button}</div><p style="color:#64748b;font-size:13px;margin-top:28px">You received this important account or service message from UniEco Ghana.</p></div><p style="text-align:center;color:#64748b;font-size:12px;margin:16px">© UniEco Ghana · <a href="https://uniecoghana.com" style="color:#059669">uniecoghana.com</a></p></div></body></html>`;
-  const text = input.body;
+  const text = plainText;
   return { html, text };
 }
