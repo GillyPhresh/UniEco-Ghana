@@ -70,7 +70,9 @@ export async function POST(request: NextRequest) {
         ? 'Your account is not ready for registration payment. Please sign in again or contact support.'
         : intentError.code === '55000'
           ? 'This registration payment needs support review before you can continue.'
-          : 'Please check your registration details and try again.';
+          : intentError.code === '22023'
+            ? intentError.message
+            : 'Payment setup failed before Paystack could open. Please try again or contact support.';
       return NextResponse.json({ error: errorMessage }, { status: 422 });
     }
     if (!intent || typeof intent !== 'object') return NextResponse.json({ error: 'Payment could not be initialized. Please try again.' }, { status: 422 });
