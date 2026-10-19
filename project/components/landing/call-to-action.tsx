@@ -22,12 +22,10 @@ export function CallToAction() {
 
         <div className="relative">
           <h2 className="font-display text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl lg:text-5xl">
-            Ready to join the UniEco community?
+            Find what you need on campus.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base text-primary-foreground/80 sm:text-lg">
-            Create your free account today and start exploring everything your
-            campus has to offer. Students, vendors, and universities are all
-            welcome.
+            Browse businesses, services, products, and events near your campus. Create an account when you are ready to save items, place orders, or list a business.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button
@@ -37,7 +35,7 @@ export function CallToAction() {
               className="group h-12 px-7 text-base"
             >
               <Link href="/signup">
-                Get started for free
+                Create an account
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
             </Button>

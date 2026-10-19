@@ -45,7 +45,7 @@ export function EventsPreview({ events }: { events: EventPreviewItem[] }) {
         <SectionHeading
           eyebrow="Events"
           title="What's happening on campus"
-          description="Fairs, festivals, sports, and gatherings — see what is coming up at UENR."
+          description="Fairs, festivals, sports, and gatherings happening across Ghanaian campuses."
           align="left"
         />
         <Button asChild variant="ghost" size="sm" className="hidden shrink-0 sm:inline-flex">

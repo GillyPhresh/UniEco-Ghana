@@ -16,7 +16,7 @@ export function FeaturedBusinesses({ vendors }: { vendors: VendorWithRelations[]
         <SectionHeading
           eyebrow="Featured"
           title="Popular businesses on campus"
-          description="Top-rated businesses loved by students at UENR."
+          description="Businesses and services students are using across campus."
           align="left"
         />
         <Button asChild variant="ghost" size="sm" className="hidden shrink-0 sm:inline-flex">

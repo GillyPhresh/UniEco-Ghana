@@ -14,7 +14,7 @@ export function Logo({ className }: { className?: string }) {
         width={72}
         height={72}
         priority
-        className="h-12 w-16 object-contain object-left"
+        className="h-10 w-14 object-contain object-left sm:h-11 sm:w-16"
       />
     </Link>
   );

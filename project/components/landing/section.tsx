@@ -14,7 +14,7 @@ export function Section({ id, className, children }: SectionProps) {
   return (
     <section
       id={id}
-      className={cn('scroll-mt-20 py-16 sm:py-20 lg:py-28', className)}
+      className={cn('scroll-mt-20 py-10 sm:py-14 lg:py-20', className)}
     >
       <div className="container">{children}</div>
     </section>

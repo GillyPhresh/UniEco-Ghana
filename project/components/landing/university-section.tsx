@@ -27,7 +27,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
       <SectionHeading
         eyebrow="Universities"
         title="Find your campus"
-        description="UniEco Ghana is live at UENR and building a verified directory of university-level institutions across Ghana. Explore what each campus has to offer."
+        description="Choose a campus to see its businesses, services, events, and student community."
       />
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
