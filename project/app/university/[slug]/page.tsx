@@ -29,7 +29,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${university.name} (${university.short_name}) — Businesses, Events & Services | ${siteConfig.name}`;
   const description = `Discover businesses, food vendors, services, and events at ${university.name} in ${university.city}. Find everything around ${university.short_name} campus on UniEco Ghana.`;
   const canonicalUrl = `${siteConfig.url}/university/${university.slug}`;
-  const ogImage = university.hero_image_url || university.logo_url || '/og-image.png';
+  const isUenr = university.slug.toLowerCase() === 'uenr';
+  const ogImage = university.hero_image_url || university.logo_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : '/og-image.png');
   const ogImageAlt = university.hero_alt_text || university.logo_alt_text || `${university.name} campus`;
 
   return {
@@ -98,9 +99,15 @@ export default async function UniversityPage({ params }: PageProps) {
   const studentBusinesses = vendors.filter((v) => v.is_student_business);
   const verifiedBusinesses = vendors.filter((v) => v.is_verified);
 
+  // UENR has approved local brand assets while its database branding fields
+  // are still being completed by the university administrator.
+  const isUenr = university.slug.toLowerCase() === 'uenr';
+  const logoUrl = university.logo_url || (isUenr ? '/assets/universities/UENR/UENR_LOGO.png' : null);
+  const heroImageUrl = university.hero_image_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : null);
+
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
   const heroAlt = university.hero_alt_text || `${university.name} campus landmark`;
-  const hasHeroImage = !!university.hero_image_url;
+  const hasHeroImage = !!heroImageUrl;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -115,18 +122,16 @@ export default async function UniversityPage({ params }: PageProps) {
       addressCountry: university.country,
     },
     url: `${siteConfig.url}/university/${university.slug}`,
-    ...(university.logo_url && {
+    ...(logoUrl && {
       logo: {
         '@type': 'ImageObject',
-        url: university.logo_url.startsWith('http')
-          ? university.logo_url
-          : `${siteConfig.url}${university.logo_url}`,
+        url: logoUrl.startsWith('http') ? logoUrl : `${siteConfig.url}${logoUrl}`,
       },
     }),
-    ...(university.hero_image_url && {
-      image: university.hero_image_url.startsWith('http')
-        ? university.hero_image_url
-        : `${siteConfig.url}${university.hero_image_url}`,
+    ...(heroImageUrl && {
+      image: heroImageUrl.startsWith('http')
+        ? heroImageUrl
+        : `${siteConfig.url}${heroImageUrl}`,
     }),
   };
 
@@ -145,7 +150,7 @@ export default async function UniversityPage({ params }: PageProps) {
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={university.hero_image_url!}
+                src={heroImageUrl!}
                 alt={heroAlt}
                 className="absolute inset-0 h-full w-full object-cover"
                 loading="eager"
@@ -166,11 +171,11 @@ export default async function UniversityPage({ params }: PageProps) {
             </nav>
             <div className="flex items-start gap-5">
               {/* Logo — preserves aspect ratio, works on all backgrounds */}
-              {university.logo_url ? (
+              {logoUrl ? (
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/90 p-2 shadow-md backdrop-blur-sm sm:h-20 sm:w-20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={university.logo_url}
+                    src={logoUrl}
                     alt={logoAlt}
                     className="max-h-full max-w-full object-contain"
                   />
