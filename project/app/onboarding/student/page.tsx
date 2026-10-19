@@ -28,6 +28,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Upload,
+  Search,
 } from 'lucide-react';
 
 const STEPS = [
@@ -75,7 +76,8 @@ function StudentOnboarding() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string }[]>([]);
+  const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
+  const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
   const [form, setForm] = useState<FormData>({
     phone: '',
@@ -94,7 +96,7 @@ function StudentOnboarding() {
   if (!unisLoaded) {
     supabase
       .from('universities')
-      .select('id, name, short_name')
+      .select('id, name, short_name, city, region, institution_type, campus_launch_status')
       .eq('is_enabled', true)
       .order('name')
       .then(({ data }) => {
@@ -106,6 +108,16 @@ function StudentOnboarding() {
   const updateForm = (key: keyof FormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const visibleUniversities = universities.filter((university) => {
+    const query = universitySearch.trim().toLocaleLowerCase();
+    if (!query) return true;
+    return [university.name, university.short_name, university.city, university.region, university.institution_type]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase()
+      .includes(query);
+  });
 
   const validateStep = (): string | null => {
     if (step === 0) {
@@ -325,6 +337,16 @@ function StudentOnboarding() {
             >
               <div className="space-y-2">
                 <Label htmlFor="university">University</Label>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    value={universitySearch}
+                    onChange={(event) => setUniversitySearch(event.target.value)}
+                    placeholder="Search all listed institutions"
+                    className="pl-9"
+                    aria-label="Search listed institutions"
+                  />
+                </div>
                 <Select
                   value={form.university_id}
                   onValueChange={(v) => updateForm('university_id', v)}
@@ -333,13 +355,17 @@ function StudentOnboarding() {
                     <SelectValue placeholder="Select your university" />
                   </SelectTrigger>
                   <SelectContent>
-                    {universities.map((uni) => (
+                    {visibleUniversities.map((uni) => (
                       <SelectItem key={uni.id} value={uni.id}>
-                        {uni.name} ({uni.short_name})
+                        {uni.name} ({uni.short_name}){uni.city ? ` — ${uni.city}` : ''}
                       </SelectItem>
                     ))}
+                    {!visibleUniversities.length && <SelectItem value="__no_match__" disabled>No listed institution matches your search.</SelectItem>}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {universities.length} listed institution{universities.length === 1 ? '' : 's'} available for registration.
+                </p>
               </div>
 
               <div className="space-y-2">
