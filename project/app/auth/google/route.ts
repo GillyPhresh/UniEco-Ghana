@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
+  const publicOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'https://uniecoghana.com';
   const requestedIntent = requestUrl.searchParams.get('intent');
   const intent = requestedIntent === 'external_vendor' ? 'external_vendor' : requestedIntent === 'student' ? 'student' : null;
   const requestedNext = requestUrl.searchParams.get('next');
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${requestUrl.origin}/auth/callback` },
+    options: { redirectTo: `${publicOrigin}/auth/callback` },
   });
 
   if (error || !data.url) {
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
       code: error?.code,
     });
     return NextResponse.redirect(
-      new URL('/signin?error=oauth_start_failed', requestUrl.origin),
+      new URL('/signin?error=oauth_start_failed', publicOrigin),
     );
   }
 
