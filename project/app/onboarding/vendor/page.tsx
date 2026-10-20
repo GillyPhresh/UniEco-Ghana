@@ -52,6 +52,8 @@ function VendorOnboarding() {
   const [uploadedDoc, setUploadedDoc] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
   const [isStudent, setIsStudent] = useState(false);
+  const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
+  const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [pin, setPin] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
   const [mapsLink, setMapsLink] = useState('');
   const [locationSource, setLocationSource] = useState<'owner_address' | 'owner_pin' | 'google_maps_link'>('owner_address');
@@ -81,6 +83,23 @@ function VendorOnboarding() {
       setForm((prev) => ({ ...prev, vendor_type: 'student_vendor' }));
     }
   }, [user]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
+    if (!token) return;
+    setCashInviteLoading(true);
+    supabase.rpc('get_registration_access_invite', { p_token: token }).then(({ data, error: inviteError }) => {
+      const invite = data as { valid?: boolean; audience?: string; message?: string } | null;
+      if (inviteError || !invite?.valid || invite.audience !== 'vendor') {
+        setError(invite?.message || 'This cash registration link is invalid or expired. You can continue with standard payment.');
+        setCashInviteToken(null);
+      } else {
+        setCashInviteToken(token);
+      }
+      setCashInviteLoading(false);
+    });
+  }, []);
 
   const updateForm = (key: keyof FormData, value: string) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -140,6 +159,18 @@ function VendorOnboarding() {
         p_public_visibility: 'business_location',
       });
       if (locationError) throw new Error(locationError.message);
+
+      if (cashInviteToken) {
+        const { error: cashError } = await supabase.rpc('redeem_cash_vendor_registration', {
+          p_token: cashInviteToken,
+          p_vendor_id: vendorId,
+        });
+        if (cashError) throw new Error(cashError.message);
+        window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        await refreshProfile();
+        router.push('/onboarding/complete?registration=cash');
+        return;
+      }
 
       const paymentResponse = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
@@ -202,10 +233,17 @@ function VendorOnboarding() {
           </div>
         )}
 
-        <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
-          <p className="font-semibold">Registration payment required</p>
-          <p className="mt-1">Complete the GH₵20 business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
-        </div>
+        {cashInviteToken ? (
+          <div className="rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
+            <p className="font-semibold">Cash registration approved</p>
+            <p className="mt-1">This one-time link was issued by UniEco Ghana administration. You will not be sent to Paystack.</p>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-semibold">Registration payment required</p>
+            <p className="mt-1">Complete the GH₵20 business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
+          </div>
+        )}
 
         {error && (
           <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
@@ -373,15 +411,15 @@ function VendorOnboarding() {
             </p>
           </div>
 
-          <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
+          {!cashInviteToken && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
             Registration fee: <strong>GH₵20.00</strong>. You will be redirected to secure
-            Paystack Mobile Money checkout after submitting your business details. Your
-            vendor access starts only after the payment is verified.
-          </div>
+            Paystack checkout after submitting your business details. Your vendor access
+            starts only after the payment is verified.
+          </div>}
 
-          <Button onClick={handleSubmit} disabled={submitting} className="w-full">
+          <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="w-full">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Pay GH₵20 and continue
+            {cashInviteToken ? 'Complete cash registration' : 'Pay GH₵20 and continue'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

@@ -14,7 +14,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{ error: string | null; session: Session | null }>;
   signInWithGoogle: (options?: { intent?: 'student' | 'external_vendor'; next?: string }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   signOutAll: () => Promise<{ error: string | null }>;
@@ -129,7 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string,
       meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
     ) => {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         },
       });
-      return { error: error?.message ?? null };
+      return { error: error?.message ?? null, session: data.session };
     },
     []
   );

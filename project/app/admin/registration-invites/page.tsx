@@ -58,7 +58,7 @@ function Content() {
     }
     const result = data as InviteResult;
     setInvite(result);
-    toast.success('Sponsored registration link created. Copy it now; it is shown only once.');
+    toast.success('Cash registration link created. Copy it now; it is shown only once.');
   };
 
   const inviteUrl = invite ? `${window.location.origin}/signup?invite=${encodeURIComponent(invite.token)}` : '';
@@ -72,19 +72,19 @@ function Content() {
   return (
     <div className="max-w-3xl space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="flex items-center gap-2 font-display text-2xl font-bold"><Ticket className="h-6 w-6 text-primary" /> Sponsored access</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Create a controlled registration link for someone whose registration fee is being sponsored.</p>
+        <h1 className="flex items-center gap-2 font-display text-2xl font-bold"><Ticket className="h-6 w-6 text-primary" /> Cash registration links</h1>
+        <p className="mt-1 text-sm text-muted-foreground">Create a controlled one-time link for someone who will register with cash instead of Paystack Mobile Money.</p>
       </div>
 
       <Card className="border-amber-500/30 bg-amber-500/5">
         <CardContent className="flex gap-3 p-4 text-sm">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p>Each link is single-use, expires automatically, and is recorded against your Super Admin account. It waives only the registration fee; normal identity and vendor verification still apply.</p>
+          <p>Each link is single-use, expires automatically, and is recorded against your Super Admin account. It confirms the registration fee through the approved cash workflow; normal identity and vendor verification still apply.</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Create invite</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Create cash registration link</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Registration type</Label>

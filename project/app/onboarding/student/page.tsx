@@ -77,6 +77,8 @@ function StudentOnboarding() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentRequired, setPaymentRequired] = useState(false);
+  const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
+  const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
@@ -95,7 +97,22 @@ function StudentOnboarding() {
   });
 
   useEffect(() => {
-    setPaymentRequired(new URLSearchParams(window.location.search).get('payment_required') === '1');
+    const params = new URLSearchParams(window.location.search);
+    setPaymentRequired(params.get('payment_required') === '1');
+    const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
+    if (!token) return;
+    setCashInviteLoading(true);
+    supabase.rpc('get_registration_access_invite', { p_token: token }).then(({ data, error: inviteError }) => {
+      const invite = data as { valid?: boolean; audience?: string; message?: string } | null;
+      if (inviteError || !invite?.valid || invite.audience !== 'student') {
+        setError(invite?.message || 'This cash registration link is invalid or expired. You can continue with standard payment.');
+        setCashInviteToken(null);
+      } else {
+        setCashInviteToken(token);
+        setPaymentRequired(false);
+      }
+      setCashInviteLoading(false);
+    });
   }, []);
 
   if (!unisLoaded) {
@@ -161,6 +178,26 @@ function StudentOnboarding() {
 
     try {
       const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
+      if (cashInviteToken) {
+        const { error: cashError } = await supabase.rpc('redeem_cash_student_registration', {
+          p_token: cashInviteToken,
+          p_university_id: form.university_id,
+          p_phone: form.phone,
+          p_student_id_number: form.index_number,
+          p_program: form.programme,
+          p_faculty: form.faculty,
+          p_department: form.department,
+          p_level: form.level,
+          p_admission_year: form.admission_year,
+          p_graduation_year: form.graduation_year || null,
+          p_student_document_path: form.student_id_document_url || null,
+        });
+        if (cashError) throw new Error(cashError.message);
+        window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        window.sessionStorage.removeItem('unieco_pending_referral_code');
+        router.push('/onboarding/complete?registration=cash');
+        return;
+      }
       const response = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -266,7 +303,14 @@ function StudentOnboarding() {
           </div>
         )}
 
-        {paymentRequired && !error && (
+        {cashInviteToken && !error && (
+          <div className="rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
+            <p className="font-semibold">Cash registration approved</p>
+            <p className="mt-1">This one-time link was issued by UniEco Ghana administration. You will not be sent to Paystack.</p>
+          </div>
+        )}
+
+        {!cashInviteToken && paymentRequired && !error && (
           <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
             <p className="font-semibold">Registration payment required</p>
             <p className="mt-1">Complete the GH₵10 registration payment below before you can access the UniEco Ghana platform.</p>
@@ -481,11 +525,11 @@ function StudentOnboarding() {
                 )}
               </div>
 
-              <div className="rounded-lg border border-info/30 bg-info/5 p-3">
+              {!cashInviteToken && <div className="rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-info-foreground">
                   Student registration fee: GH₵10.00. Your account is activated only after Paystack confirms the payment. Student verification is reviewed separately.
                 </p>
-              </div>
+              </div>}
               <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be applied to this registration. Eligible successful registrations may earn the referrer GH₵2 after the settlement period. Terms apply.</p>
 
               <div className="flex gap-3">
@@ -493,9 +537,9 @@ function StudentOnboarding() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button onClick={handleSubmit} disabled={submitting} className="flex-1">
+                <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Continue to payment · GH₵10.00
+                  {cashInviteToken ? 'Complete cash registration' : 'Continue to payment · GH₵10.00'}
                 </Button>
               </div>
             </motion.div>

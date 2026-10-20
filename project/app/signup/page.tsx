@@ -32,7 +32,7 @@ type SignUpFormData = z.infer<typeof signUpSchema>;
 type AccountType = 'student' | 'external_vendor';
 
 export default function SignUpPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signIn, signInWithGoogle } = useAuth();
   const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -56,13 +56,23 @@ export default function SignUpPage() {
     // This is only a registration hint. The database revalidates and locks it at intent creation.
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
-    const { error } = await signUp(data.email, data.password, {
+    const { error, session } = await signUp(data.email, data.password, {
       full_name: data.full_name,
       registration_intent: accountType,
     });
     if (error) {
       setAuthError(error);
     } else {
+      // With email confirmations disabled Supabase returns a session here.
+      // The fallback lets an existing account continue without a confirmation
+      // screen when Supabase returns no session for an already-created user.
+      if (!session) {
+        const signInResult = await signIn(data.email, data.password);
+        if (signInResult.error) {
+          setAuthError('Your account was created, but sign-in is not ready yet. Please try signing in once, then continue registration.');
+          return;
+        }
+      }
       const referral = incomingReferral;
       if (institutionAdminInvite) {
         router.push(`/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`);
