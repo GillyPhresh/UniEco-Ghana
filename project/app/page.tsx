@@ -1,6 +1,5 @@
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
-import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
 
 export const dynamic = 'force-dynamic';
 
@@ -41,7 +40,6 @@ export default async function Home() {
 
   return (
     <>
-      <ServiceWorkerRegister />
       <SiteHeader />
       <main>
         <Hero
