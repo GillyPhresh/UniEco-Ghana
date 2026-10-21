@@ -6,6 +6,7 @@ export function GET() {
   return NextResponse.json({
     status: 'ok',
     service: 'uniecoghana-web',
+    release: 'referral-delivery-0134',
     deployment: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || 'local',
     environment: process.env.RAILWAY_ENVIRONMENT_NAME || 'production',
     timestamp: new Date().toISOString(),
