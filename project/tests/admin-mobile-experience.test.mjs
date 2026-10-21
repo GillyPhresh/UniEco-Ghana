@@ -47,3 +47,18 @@ test('admin dialogs are safe for short mobile viewports and device insets', () =
   assert.match(source, /overscroll-contain/);
   assert.match(source, /safe-area-inset-bottom/);
 });
+
+test('the document locks layout width to the device without disabling accessibility zoom', () => {
+  const layout = read('app/layout.tsx');
+  const styles = read('app/globals.css');
+  const tabs = read('components/ui/tabs.tsx');
+  assert.match(layout, /width: 'device-width'/);
+  assert.match(layout, /initialScale: 1/);
+  assert.match(layout, /mobile-viewport-safe/);
+  assert.match(styles, /\.mobile-viewport-safe/);
+  assert.match(styles, /overflow-wrap: anywhere/);
+  assert.match(tabs, /max-w-full/);
+  assert.match(tabs, /overflow-x-auto/);
+  assert.doesNotMatch(layout, /maximumScale/);
+  assert.doesNotMatch(layout, /userScalable:\s*false/);
+});

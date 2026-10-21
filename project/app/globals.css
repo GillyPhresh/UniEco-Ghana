@@ -140,6 +140,13 @@
   ::selection {
     @apply bg-primary/20 text-foreground;
   }
+
+  /* Keep the document viewport stable on phones. Individual desktop-sized
+     children must not be allowed to widen the page and make the browser
+     render a zoomed-out canvas. */
+  .mobile-viewport-safe {
+    max-width: 100%;
+  }
 }
 
 @layer utilities {
@@ -182,6 +189,54 @@
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+@media (max-width: 1023px) {
+  .mobile-viewport-safe {
+    overflow-x: hidden;
+  }
+
+  @supports (overflow: clip) {
+    .mobile-viewport-safe {
+      overflow-x: clip;
+    }
+  }
+
+  .mobile-viewport-safe .container,
+  .mobile-viewport-safe main,
+  .mobile-viewport-safe section,
+  .mobile-viewport-safe article,
+  .mobile-viewport-safe aside,
+  .mobile-viewport-safe header,
+  .mobile-viewport-safe footer,
+  .mobile-viewport-safe nav,
+  .mobile-viewport-safe form,
+  .mobile-viewport-safe div,
+  .mobile-viewport-safe table {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .mobile-viewport-safe .container {
+    width: 100%;
+  }
+
+  .mobile-viewport-safe :is(h1, h2, h3, h4, h5, h6, p, dt, dd, span, a, li, td, th) {
+    overflow-wrap: anywhere;
+  }
+
+  .mobile-viewport-safe pre,
+  .mobile-viewport-safe code {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .mobile-viewport-safe img,
+  .mobile-viewport-safe video,
+  .mobile-viewport-safe canvas,
+  .mobile-viewport-safe iframe {
+    max-width: 100%;
   }
 }
 

@@ -112,7 +112,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${jakarta.variable} font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
+        className={`${inter.variable} ${jakarta.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>
