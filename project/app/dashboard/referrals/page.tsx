@@ -13,14 +13,17 @@ const CURRENCY = 'GH\u20B5';
 export default function StudentReferralsPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [link, setLink] = useState<string | null>(null);
+  const [code, setCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
     fetch('/api/student-referrals/me', { cache: 'no-store' }).then(async (response) => {
-      const body = await response.json() as { summary?: Summary; referralLink?: string | null; error?: string };
+      const body = await response.json() as { summary?: Summary; referralCode?: string | null; referralLink?: string | null; error?: string };
       if (!response.ok) throw new Error(body.error || 'Referral information is unavailable.');
       setSummary(body.summary || null);
+      setCode(body.referralCode || body.summary?.code || null);
       setLink(body.referralLink || null);
     }).catch((reason) => setError(reason instanceof Error ? reason.message : 'Referral information is unavailable.'));
   }, []);
@@ -30,6 +33,12 @@ export default function StudentReferralsPage() {
     await navigator.clipboard.writeText(link);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  };
+  const copyCode = async () => {
+    if (!code) return;
+    await navigator.clipboard.writeText(code);
+    setCodeCopied(true);
+    window.setTimeout(() => setCodeCopied(false), 1800);
   };
   const shareLink = async () => {
     if (!link) return;
@@ -49,7 +58,7 @@ export default function StudentReferralsPage() {
     {!summary && !error && <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading your referral information...</div>}
     {summary && <>
       <Card><CardHeader><CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5 text-primary"/>My referral link</CardTitle></CardHeader><CardContent className="space-y-3">
-        {link ? <><div className="break-all rounded-md bg-muted px-3 py-2 text-sm">{link}</div><div className="flex flex-wrap gap-2"><Button onClick={copyLink} variant="outline"><Copy className="mr-2 h-4 w-4"/>{copied ? 'Copied' : 'Copy link'}</Button><Button onClick={shareLink}><Share2 className="mr-2 h-4 w-4"/>Share and grow</Button><Button onClick={shareOnWhatsApp} variant="outline" className="border-success/30 text-success hover:bg-success/10"><MessageCircle className="mr-2 h-4 w-4"/>WhatsApp</Button></div></> : <p className="text-sm text-muted-foreground">Your sharing link is being prepared. Once it appears, share it with classmates and friends to help grow UniEco Ghana.</p>}
+        {link ? <><div className="rounded-md border border-primary/20 bg-primary/5 px-3 py-3"><p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Your referral code</p><div className="mt-1 flex flex-wrap items-center justify-between gap-2"><code className="text-lg font-bold tracking-wide text-primary">{code}</code><Button onClick={copyCode} variant="outline" size="sm"><Copy className="mr-2 h-4 w-4"/>{codeCopied ? 'Copied' : 'Copy code'}</Button></div></div><div className="break-all rounded-md bg-muted px-3 py-2 text-sm">{link}</div><div className="flex flex-wrap gap-2"><Button onClick={copyLink} variant="outline"><Copy className="mr-2 h-4 w-4"/>{copied ? 'Copied' : 'Copy link'}</Button><Button onClick={shareLink}><Share2 className="mr-2 h-4 w-4"/>Share and grow</Button><Button onClick={shareOnWhatsApp} variant="outline" className="border-success/30 text-success hover:bg-success/10"><MessageCircle className="mr-2 h-4 w-4"/>WhatsApp</Button></div></> : <p className="text-sm text-muted-foreground">Complete your paid student registration first. Your personal referral code and sharing link will then appear here and be sent by email.</p>}
       </CardContent></Card>
       <Card className="border-primary/20 bg-primary/5"><CardContent className="flex items-start gap-3 p-4"><TrendingUp className="mt-0.5 h-5 w-5 shrink-0 text-primary"/><div><p className="font-semibold">Your UniEco impact is growing</p><p className="mt-1 text-sm text-muted-foreground">You have {summary.successful_referrals} successful {summary.successful_referrals === 1 ? 'referral' : 'referrals'}. Every genuine student you introduce helps expand UniEco across Ghana and moves your rewards forward.</p></div></CardContent></Card>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

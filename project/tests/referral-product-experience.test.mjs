@@ -9,9 +9,32 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 test('referral dashboard supports direct growth sharing', () => {
   const page = read('app/dashboard/referrals/page.tsx');
   assert.match(page, /Share and grow/);
+  assert.match(page, /Copy code/);
+  assert.match(page, /Your referral code/);
   assert.match(page, /wa\.me/);
   assert.match(page, /Your UniEco impact is growing/);
   assert.match(page, /There is no limit to the number of genuine students/);
+});
+
+test('referral delivery repairs paid accounts and retries email safely', () => {
+  const migration = read('supabase/migrations/20261021120000_0134_repair_referral_code_delivery.sql');
+  const api = read('app/api/student-referrals/me/route.ts');
+  const onboarding = read('app/onboarding/student/page.tsx');
+  const email = read('supabase/functions/send-email/index.ts');
+
+  assert.match(migration, /queue_referral_link_message_for_user/);
+  assert.match(migration, /ensure_my_student_referral_link/);
+  assert.match(migration, /attach_my_referral_code/);
+  assert.match(migration, /communication_deliveries/);
+  assert.match(migration, /status = 'queued'/);
+  assert.match(migration, /registration\.status = 'paid'/);
+  assert.match(api, /ensure_my_student_referral_link/);
+  assert.match(api, /referralCode/);
+  assert.match(api, /signup\?ref=/);
+  assert.match(onboarding, /attach_my_referral_code/);
+  assert.match(email, /meta\.referral_code/);
+  assert.match(email, /Referral code/);
+  assert.match(email, /Referral link/);
 });
 
 test('student profile explains verification progress without blocking referrals', () => {

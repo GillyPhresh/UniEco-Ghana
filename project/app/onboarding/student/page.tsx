@@ -198,6 +198,12 @@ function StudentOnboarding() {
         router.push('/onboarding/complete?registration=cash');
         return;
       }
+      if (referralCode) {
+        const { error: referralAttachError } = await supabase.rpc('attach_my_referral_code', {
+          p_referral_code: referralCode,
+        });
+        if (referralAttachError) throw new Error(referralAttachError.message);
+      }
       const response = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
