@@ -109,6 +109,14 @@ function Content() {
           ) : subs.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No subscriptions found</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile subscriptions list">
+              {subs.map(s => <article key={s.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words font-semibold">{s.vendor?.business_name || 'Vendor unavailable'}</p><p className="mt-1 text-sm capitalize text-muted-foreground">{s.plan} plan</p></div><Badge className={s.status === 'active' ? 'shrink-0 bg-success/10 text-success' : s.status === 'expired' ? 'shrink-0 bg-warning/10 text-warning' : 'shrink-0 bg-destructive/10 text-destructive'}>{s.status}</Badge></div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Started</dt><dd className="mt-0.5">{new Date(s.started_at).toLocaleDateString('en-GH')}</dd></div><div><dt className="text-xs text-muted-foreground">Ends</dt><dd className="mt-0.5">{s.ends_at ? new Date(s.ends_at).toLocaleDateString('en-GH') : '—'}</dd></div><div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-0.5 font-semibold">{s.amount ? `GH₵${s.amount}` : '—'}</dd></div><div className="flex items-end justify-end"><Button variant="outline" size="sm" className="min-h-10" onClick={() => setExtending(s)}>Extend</Button></div></dl>
+              </article>)}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -139,6 +147,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

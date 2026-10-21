@@ -147,6 +147,16 @@ function Content() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile review queue">
+              {reviews.map(review => (
+                <article key={review.review_id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="line-clamp-3 break-words text-sm">{review.comment || <span className="text-muted-foreground">No written comment</span>}</p>{review.flag_reason && <p className="mt-1 flex items-center gap-1 text-xs text-destructive"><Flag className="h-3 w-3" />{review.flag_reason}</p>}</div><Badge className="shrink-0" variant={review.moderation_status === 'published' ? 'default' : review.moderation_status === 'removed' ? 'destructive' : 'outline'}>{review.moderation_status.replace('_', ' ')}</Badge></div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div className="min-w-0"><dt className="text-xs text-muted-foreground">Target</dt><dd className="mt-0.5 break-words font-medium">{review.target_title}</dd></div><div className="min-w-0"><dt className="text-xs text-muted-foreground">University</dt><dd className="mt-0.5 break-words">{review.university_name || 'Platform-wide'}</dd></div><div><dt className="text-xs text-muted-foreground">Rating</dt><dd className="mt-0.5">{review.rating} / 5</dd></div><div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString('en-GH')}</dd></div></dl>
+                  <Button className="mt-4 min-h-11 w-full" variant="outline" onClick={() => { setSelected(review); setConfirmation(null); setReason(''); }}>Review</Button>
+                </article>
+              ))}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Review</TableHead><TableHead>Target</TableHead><TableHead>University</TableHead>
@@ -169,6 +179,7 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -109,6 +109,14 @@ function Content() {
           ) : actions.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No audit log entries found</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile audit log">
+              {actions.map(a => <article key={a.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words font-mono text-xs font-medium">{a.action}</p><p className="mt-1 break-words text-sm">{a.admin?.full_name || a.admin?.email || 'Administrator unavailable'}</p></div><Badge className="shrink-0" variant={a.result === 'success' ? 'default' : 'destructive'}>{a.result}</Badge></div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Module</dt><dd className="mt-0.5"><Badge variant="outline">{a.module}</Badge></dd></div><div><dt className="text-xs text-muted-foreground">Target</dt><dd className="mt-0.5 break-words text-xs">{a.target_type || '—'}</dd></div><div className="col-span-2"><dt className="text-xs text-muted-foreground">Reason</dt><dd className="mt-0.5 break-words text-xs text-muted-foreground">{a.reason || '—'}</dd></div><div className="col-span-2"><dt className="text-xs text-muted-foreground">Time</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(a.created_at).toLocaleString('en-GH', { dateStyle: 'short', timeStyle: 'short' })}</dd></div></dl>
+              </article>)}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -135,6 +143,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

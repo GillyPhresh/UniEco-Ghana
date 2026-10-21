@@ -187,7 +187,37 @@ function UsersContent() {
           ) : users.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No users found</div>
           ) : (
-            <div className="w-full overflow-x-auto">
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile user directory">
+              {users.map(u => {
+                const roleName = (u.role as { name?: string })?.name || 'student';
+                return (
+                  <article key={u.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="break-words font-semibold text-foreground">{u.full_name || 'Name unavailable'}</h2>
+                        <a className="mt-1 block break-all text-sm text-muted-foreground underline-offset-2 hover:underline" href={`mailto:${u.email}`}>{u.email}</a>
+                      </div>
+                      <Badge variant="outline" className="shrink-0 capitalize">{roleName.replaceAll('_', ' ')}</Badge>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Badge className={u.status === 'active' ? 'bg-success/10 text-success' : u.status === 'suspended' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}>
+                        {u.status}
+                      </Badge>
+                      {u.university?.name && <span className="text-xs text-muted-foreground">{u.university.name}</span>}
+                    </div>
+                    <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+                      <div className="min-w-0"><dt className="text-xs text-muted-foreground">University</dt><dd className="mt-0.5 break-words font-medium">{u.university?.name || 'Unassigned'}</dd></div>
+                      <div><dt className="text-xs text-muted-foreground">Joined</dt><dd className="mt-0.5 font-medium">{new Date(u.created_at).toLocaleDateString('en-GH')}</dd></div>
+                    </dl>
+                    <Button className="mt-4 min-h-11 w-full" variant="outline" onClick={() => { setSelectedUser(u); setReason(''); }}>
+                      Manage user
+                    </Button>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="hidden w-full overflow-x-auto lg:block">
             <Table className="min-w-[48rem]">
               <TableHeader>
                 <TableRow>
@@ -219,6 +249,7 @@ function UsersContent() {
               </TableBody>
             </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>

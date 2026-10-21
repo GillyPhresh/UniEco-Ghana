@@ -391,10 +391,18 @@ function UniversityAdminOverview({
       <Card>
         <CardHeader><CardTitle className="text-sm font-semibold">Assigned university activity</CardTitle></CardHeader>
         <CardContent>
-          {summary.universityActivity.length ? <div className="overflow-x-auto"><table className="w-full min-w-[36rem] text-sm">
+          {summary.universityActivity.length ? <>
+            <div className="space-y-3 lg:hidden" aria-label="Mobile assigned university activity">
+              {summary.universityActivity.map(university => <article key={university.name} className="rounded-xl border border-border bg-background p-4">
+                <h3 className="break-words font-semibold">{university.name}</h3>
+                <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Students</dt><dd className="mt-0.5 font-semibold">{university.students}</dd></div><div><dt className="text-xs text-muted-foreground">Vendors</dt><dd className="mt-0.5 font-semibold">{university.vendors}</dd></div><div><dt className="text-xs text-muted-foreground">Businesses</dt><dd className="mt-0.5 font-semibold">{university.businesses}</dd></div></dl>
+              </article>)}
+            </div>
+            <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[36rem] text-sm">
             <thead><tr className="border-b text-left text-muted-foreground"><th className="py-2 font-medium">University</th><th className="py-2 font-medium">Students</th><th className="py-2 font-medium">Vendors</th><th className="py-2 font-medium">Businesses</th></tr></thead>
             <tbody>{summary.universityActivity.map(university => <tr key={university.name} className="border-b last:border-0"><th scope="row" className="py-3 text-left font-medium">{university.name}</th><td className="py-3">{university.students}</td><td className="py-3">{university.vendors}</td><td className="py-3">{university.businesses}</td></tr>)}</tbody>
-          </table></div> : <p className="text-sm text-muted-foreground">No assigned university data available.</p>}
+          </table></div>
+          </> : <p className="text-sm text-muted-foreground">No assigned university data available.</p>}
         </CardContent>
       </Card>
       <Card>

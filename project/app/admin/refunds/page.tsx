@@ -116,6 +116,16 @@ function Content() {
           ) : refunds.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No refund requests</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile refund queue">
+              {refunds.map(r => <article key={r.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{r.refund_number || 'Refund request'}</p><p className="mt-1 break-words text-sm">{r.user?.full_name || r.user?.email || 'User unavailable'}</p></div><Badge className="shrink-0">{REFUND_STATUSES[r.status as keyof typeof REFUND_STATUSES]?.label || r.status}</Badge></div>
+                {r.reason && <p className="mt-3 break-words text-sm text-muted-foreground">{r.reason}</p>}
+                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-0.5 font-semibold">GH₵{r.amount.toFixed(2)}</dd></div><div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(r.created_at).toLocaleDateString('en-GH')}</dd></div></dl>
+                {r.status === 'requested' && <div className="mt-4 grid grid-cols-2 gap-2"><Button size="sm" className="min-h-11 text-success" variant="outline" onClick={() => openAction(r, 'approve')}><Check className="mr-1 h-4 w-4" />Approve</Button><Button size="sm" className="min-h-11 text-destructive" variant="outline" onClick={() => openAction(r, 'reject')}><X className="mr-1 h-4 w-4" />Reject</Button></div>}
+              </article>)}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -154,6 +164,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

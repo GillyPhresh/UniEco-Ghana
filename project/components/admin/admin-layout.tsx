@@ -36,6 +36,7 @@ import {
   Truck,
   Users,
   Wallet,
+  WifiOff,
   Wrench,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -111,8 +112,25 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
   const { user } = useAuth();
   const [moderatorPermissions, setModeratorPermissions] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setIsOnline(window.navigator.onLine);
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     let active = true;
@@ -162,6 +180,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         .filter(group => group.items.length > 0)
     : ADMIN_NAV_GROUPS;
 
+  const activeItem = navGroups.flatMap(group => group.items).find(item => pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href)));
+  const availablePaths = new Set<string>(navGroups.flatMap(group => group.items.map(item => item.href)));
+  const reviewHref = ['/admin/verification/students', '/admin/trust-safety', '/admin/students', '/admin/orders']
+    .find(href => availablePaths.has(href)) || '/admin';
+  const mobileQuickLinks = [
+    { href: '/admin', label: 'Home', icon: LayoutDashboard },
+    { href: reviewHref, label: reviewHref === '/admin/orders' ? 'Orders' : 'Review', icon: reviewHref === '/admin/orders' ? ShoppingBag : ShieldCheck },
+    ...(availablePaths.has('/admin/search') ? [{ href: '/admin/search', label: 'Search', icon: Search }] : []),
+  ];
+
   const sidebar = (
       <div className="flex h-full flex-col">
       <div className="relative flex h-16 items-center gap-3 border-b border-border px-5">
@@ -187,6 +215,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileNavOpen(false)}
+                    aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
@@ -226,24 +255,60 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <div className="flex min-h-screen flex-1 flex-col lg:hidden">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card px-3 sm:px-4">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open management menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <div className="min-w-0 flex-1">
-              <span className="block truncate font-display text-sm font-bold">Management console</span>
-              <span className="block truncate text-[11px] text-muted-foreground">UniEco Ghana</span>
+              <span className="block truncate font-display text-sm font-bold">{activeItem?.label || 'Management console'}</span>
+              <span className="block truncate text-[11px] capitalize text-muted-foreground">UniEco Ghana · {user?.role?.replaceAll('_', ' ') || 'admin'}</span>
             </div>
-            <div className="h-2.5 w-2.5 rounded-full bg-success" title="System online" aria-label="System online" />
+            <div
+              className={cn('h-2.5 w-2.5 shrink-0 rounded-full', isOnline ? 'bg-success' : 'bg-warning')}
+              title={isOnline ? 'Device online' : 'Device offline'}
+              aria-label={isOnline ? 'Device online' : 'Device offline'}
+            />
           </header>
           <div className="ghana-stripe h-[3px] w-full" aria-hidden="true" />
 
+          {!isOnline && (
+            <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning-foreground" role="status">
+              <WifiOff className="h-4 w-4 shrink-0" />
+              <span>You are offline. Changes will not be submitted until your connection returns.</span>
+            </div>
+          )}
+
           {/* Main content */}
-          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-24">
             {children}
           </main>
+
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-6px_20px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="Mobile admin shortcuts">
+            <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
+              {mobileQuickLinks.map(({ href, label, icon: Icon }) => {
+                const isActive = pathname === href || (href !== '/admin' && pathname.startsWith(href));
+                return (
+                  <Link
+                    key={`${href}-${label}`}
+                    href={href}
+                    className={cn('flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium transition-colors', isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted')}
+                    aria-current={isActive ? 'page' : undefined}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span>{label}</span>
+                  </Link>
+                );
+              })}
+              <SheetTrigger asChild>
+                <Button variant="ghost" className="flex min-h-12 h-auto flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[11px] font-medium text-muted-foreground hover:bg-muted" aria-label="Open management menu">
+                  <Menu className="h-5 w-5" />
+                  <span>Menu</span>
+                </Button>
+              </SheetTrigger>
+            </div>
+          </nav>
         </div>
         <SheetContent side="left" className="w-[88vw] max-w-[22rem] p-0">
           {sidebar}

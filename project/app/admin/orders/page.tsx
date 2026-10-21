@@ -105,6 +105,16 @@ function Content() {
           ) : orders.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No orders found</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile order list">
+              {orders.map(o => (
+                <article key={o.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{o.order_number || '—'}</p><p className="mt-1 break-words text-sm">{o.buyer?.full_name || 'Buyer unavailable'}</p></div><Badge className={o.status === 'completed' ? 'shrink-0 bg-success/10 text-success' : o.status === 'cancelled' ? 'shrink-0 bg-destructive/10 text-destructive' : o.status === 'pending' ? 'shrink-0 bg-warning/10 text-warning' : 'shrink-0 bg-info/10 text-info'}>{o.status}</Badge></div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div className="min-w-0"><dt className="text-xs text-muted-foreground">Vendor</dt><dd className="mt-0.5 break-words">{o.vendor?.business_name || '—'}</dd></div><div><dt className="text-xs text-muted-foreground">Total</dt><dd className="mt-0.5 font-semibold">GH₵{o.total_amount.toFixed(2)}</dd></div><div><dt className="text-xs text-muted-foreground">Type</dt><dd className="mt-0.5 capitalize">{o.order_type}</dd></div><div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(o.created_at).toLocaleDateString('en-GH')}</dd></div></dl>
+                </article>
+              ))}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -136,6 +146,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

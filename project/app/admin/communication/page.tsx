@@ -262,7 +262,31 @@ function Content() {
               No communication logs found
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile communication log">
+              {logs.map((log) => {
+                const Icon = CHANNEL_ICONS[log.channel] || Mail;
+                return (
+                  <article key={log.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="break-words font-medium text-foreground">{log.event_type}</h3>
+                        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground"><Icon className="h-3.5 w-3.5" />{CHANNEL_LABELS[log.channel as keyof typeof CHANNEL_LABELS] || log.channel}</p>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${STATUS_COLORS[log.status] || 'bg-muted text-muted-foreground'}`}>
+                        {DELIVERY_STATUS_LABELS[log.status as keyof typeof DELIVERY_STATUS_LABELS]?.label || log.status}
+                      </span>
+                    </div>
+                    <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+                      <div className="min-w-0"><dt className="text-xs text-muted-foreground">Recipient</dt><dd className="mt-0.5 break-all text-xs">{log.recipient_identifier || '—'}</dd></div>
+                      <div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="mt-0.5">{log.provider || '—'}</dd></div>
+                      <div className="col-span-2"><dt className="text-xs text-muted-foreground">Time</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(log.created_at).toLocaleString('en-GH', { dateStyle: 'short', timeStyle: 'short' })}</dd></div>
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-sm">
                 <thead className="border-b border-border bg-muted/30">
                   <tr className="text-left text-xs text-muted-foreground">
@@ -302,6 +326,7 @@ function Content() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
           {!loading && !loadError && total > 0 && <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
             <span>Showing {offset + 1}-{Math.min(offset + logs.length, total)} of {total}</span>

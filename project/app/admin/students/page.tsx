@@ -177,6 +177,36 @@ function Content() {
           ) : students.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No students match these filters.</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile student directory">
+              {students.map(student => (
+                <article key={student.student_id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="break-words font-semibold text-foreground">{student.full_name || 'Name unavailable'}</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">{student.university_name || 'Unassigned'}</p>
+                      <p className="text-xs text-muted-foreground">{student.role_name === 'student_vendor' ? 'Student vendor' : 'Student'}</p>
+                    </div>
+                    <Badge className="shrink-0" variant={student.is_active && student.account_status === 'active' ? 'default' : 'destructive'}>{student.account_status}</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant={student.verification_status === 'verified' ? 'default' : student.verification_status === 'rejected' ? 'destructive' : 'outline'}>{student.verification_status.replace('_', ' ')}</Badge>
+                    {student.vendor_status && <Badge variant="outline">Vendor: {student.vendor_status}</Badge>}
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+                    <div><dt className="text-xs text-muted-foreground">Marketplace</dt><dd className="mt-0.5 font-medium">{student.total_orders} orders</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Completed</dt><dd className="mt-0.5 font-medium">{student.completed_orders}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Account flags</dt><dd className={student.active_account_flags > 0 ? 'mt-0.5 font-medium text-destructive' : 'mt-0.5 font-medium'}>{student.active_account_flags}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Support tickets</dt><dd className="mt-0.5 font-medium">{student.unresolved_support_tickets}</dd></div>
+                  </dl>
+                  <Button className="mt-4 min-h-11 w-full gap-2" variant="outline" onClick={() => setSelected(student)}>
+                    {student.active_account_flags > 0 && <ShieldAlert className="h-4 w-4 text-destructive" />}
+                    View student operations
+                  </Button>
+                </article>
+              ))}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader><TableRow>
                 <TableHead>Student</TableHead><TableHead>University</TableHead><TableHead>Verification</TableHead>
@@ -205,6 +235,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

@@ -146,6 +146,15 @@ function Content() {
           ) : vendors.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No businesses found</div>
           ) : (
+            <>
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile business directory">
+              {vendors.map(v => <article key={v.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3"><div className="min-w-0"><h2 className="break-words font-semibold">{v.business_name}</h2><p className="mt-1 break-words text-sm text-muted-foreground">{v.business_type || 'Business type unavailable'}</p></div><div className="flex shrink-0 flex-col items-end gap-1">{v.is_verified ? <Badge className="bg-success/10 text-success">Verified</Badge> : <Badge variant="outline">Unverified</Badge>}{!v.is_active && <Badge className="bg-destructive/10 text-destructive">Suspended</Badge>}</div></div>
+                <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div className="min-w-0"><dt className="text-xs text-muted-foreground">Owner</dt><dd className="mt-0.5 break-words">{v.owner?.full_name || v.owner?.email || '—'}</dd></div><div><dt className="text-xs text-muted-foreground">Rating</dt><dd className="mt-0.5 font-medium">{v.rating_avg.toFixed(1)} ({v.rating_count})</dd></div></dl>
+                <Button className="mt-4 min-h-11 w-full" variant="outline" onClick={() => { setActionReason(''); setSelected(v); }}>{canManageVendors ? 'Manage business' : 'View business'}</Button>
+              </article>)}
+            </div>
+            <div className="hidden lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -175,6 +184,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </CardContent>
       </Card>

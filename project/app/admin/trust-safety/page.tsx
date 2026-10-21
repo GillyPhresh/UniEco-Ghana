@@ -190,12 +190,22 @@ function Content() {
         {loading ? <div className="space-y-2 p-4">{[1, 2, 3, 4].map(row => <Skeleton key={row} className="h-12 rounded-lg" />)}</div>
           : error ? <div className="space-y-3 py-12 text-center text-sm text-muted-foreground"><p role="alert">Unable to load Trust & Safety cases. Please try again.</p><Button variant="outline" size="sm" onClick={() => void loadCases()}>Retry</Button></div>
             : cases.length === 0 ? <div className="py-12 text-center text-sm text-muted-foreground">No Trust & Safety cases match your filters.</div>
-              : <div className="overflow-x-auto"><Table>
+              : <>
+              <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile Trust and Safety case list">
+                {cases.map(item => <article key={item.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-all font-mono text-xs text-muted-foreground">{item.case_number}</p><Button variant="link" className="h-auto whitespace-normal p-0 text-left text-base font-semibold" onClick={() => openCase(item)}>{item.title}</Button></div><Badge variant={item.severity === 'critical' || item.severity === 'high' ? 'destructive' : 'outline'} className="shrink-0">{item.severity}</Badge></div>
+                  <div className="mt-3 flex flex-wrap gap-2"><Badge variant="outline">{item.status.replaceAll('_', ' ')}</Badge><span className="text-xs text-muted-foreground">{item.case_type}</span></div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div className="min-w-0"><dt className="text-xs text-muted-foreground">University</dt><dd className="mt-0.5 break-words">{item.university_name || 'Platform'}</dd></div><div className="min-w-0"><dt className="text-xs text-muted-foreground">Assigned to</dt><dd className="mt-0.5 break-words">{item.assigned_to_name || 'Unassigned'}</dd></div><div className="col-span-2"><dt className="text-xs text-muted-foreground">Updated</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(item.updated_at).toLocaleString('en-GH', { dateStyle: 'short', timeStyle: 'short' })}</dd></div></dl>
+                  <Button className="mt-4 min-h-11 w-full" variant="outline" onClick={() => openCase(item)}>Open case</Button>
+                </article>)}
+              </div>
+              <div className="hidden overflow-x-auto lg:block"><Table>
                 <TableHeader><TableRow><TableHead>Case</TableHead><TableHead>Title</TableHead><TableHead>Type</TableHead><TableHead>Severity</TableHead><TableHead>Status</TableHead><TableHead>University</TableHead><TableHead>Assigned to</TableHead><TableHead>Updated</TableHead></TableRow></TableHeader>
                 <TableBody>{cases.map(item => <TableRow key={item.id}>
                   <TableCell className="font-mono text-xs">{item.case_number}</TableCell><TableCell><Button variant="link" className="h-auto whitespace-normal p-0 text-left" onClick={() => openCase(item)}>{item.title}</Button></TableCell><TableCell>{item.case_type}</TableCell><TableCell><Badge variant={item.severity === 'critical' || item.severity === 'high' ? 'destructive' : 'outline'}>{item.severity}</Badge></TableCell><TableCell><Badge variant="outline">{item.status.replaceAll('_', ' ')}</Badge></TableCell><TableCell>{item.university_name || 'Platform'}</TableCell><TableCell>{item.assigned_to_name || 'Unassigned'}</TableCell><TableCell className="text-xs text-muted-foreground">{new Date(item.updated_at).toLocaleString('en-GH', { dateStyle: 'short', timeStyle: 'short' })}</TableCell>
                 </TableRow>)}</TableBody>
-              </Table></div>}
+              </Table></div>
+              </>}
       </CardContent></Card>
 
       {total > pageSize && <div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">Page {page + 1} of {Math.ceil(total / pageSize)}</p><div className="flex gap-1"><Button variant="outline" size="sm" aria-label="Previous page" disabled={page === 0} onClick={() => setPage(current => current - 1)}><ChevronLeft className="h-4 w-4" /></Button><Button variant="outline" size="sm" aria-label="Next page" disabled={(page + 1) * pageSize >= total} onClick={() => setPage(current => current + 1)}><ChevronRight className="h-4 w-4" /></Button></div></div>}
