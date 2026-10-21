@@ -12,6 +12,16 @@ function decodeBase64Url(value: string) {
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }
 
+async function getPushRegistration(): Promise<ServiceWorkerRegistration> {
+  const existing = await navigator.serviceWorker.getRegistration('/');
+  const registration = existing || await navigator.serviceWorker.register('/sw.js', {
+    scope: '/',
+    updateViaCache: 'none',
+  });
+  await registration.update().catch(() => undefined);
+  return registration;
+}
+
 export function PushPermissionCard() {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
@@ -20,8 +30,8 @@ export function PushPermissionCard() {
 
   useEffect(() => {
     let cancelled = false;
-    if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.ready
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    getPushRegistration()
       .then(async (registration) => {
         const subscription = await registration.pushManager.getSubscription();
         if (!subscription) return;
@@ -60,10 +70,13 @@ export function PushPermissionCard() {
       const config = await configResponse.json();
       if (!configResponse.ok) throw new Error(config.error || 'Push notifications are not configured.');
 
+      if (Notification.permission === 'denied') {
+        throw new Error('Notifications are blocked for UniEco in this browser. Allow them in site settings, then try again.');
+      }
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await getPushRegistration();
       const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: decodeBase64Url(config.publicKey),

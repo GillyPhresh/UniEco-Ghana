@@ -503,13 +503,15 @@ export async function subscribeToPush(
   const response = await fetch('/api/notifications/push-subscription', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify({
       endpoint: subscription.endpoint,
       p256dh: subscription.p256dh_key || subscription.keys?.p256dh,
       auth: subscription.auth_key || subscription.keys?.auth,
       expirationTime: subscription.expirationTime,
     }),
-  });
+  }).catch(() => null);
+  if (!response) return { error: 'Could not reach UniEco to save this device.' };
   if (response.ok) return { error: null };
   const result = await response.json().catch(() => ({}));
   return { error: result.error || 'Could not save push subscription' };

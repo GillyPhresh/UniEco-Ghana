@@ -20,9 +20,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid push subscription' }, { status: 400 });
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      console.error('Push subscription storage is not configured.');
+      return NextResponse.json({ error: 'Push notifications are not configured on this server' }, { status: 503 });
+    }
+
     const serviceClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      supabaseUrl,
+      serviceRoleKey,
       { auth: { autoRefreshToken: false, persistSession: false } },
     );
     const { error } = await serviceClient.from('push_subscriptions').upsert({

@@ -10,11 +10,15 @@ export function ServiceWorkerRegister() {
     const refreshAfterWorkerUpdate = () => window.location.reload();
     navigator.serviceWorker.addEventListener('controllerchange', refreshAfterWorkerUpdate);
 
-    const register = () => {
-      navigator.serviceWorker.register('/sw.js').then((registration) => {
+    const register = async () => {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js', {
+          scope: '/',
+          updateViaCache: 'none',
+        });
         // Check for a new worker whenever the app opens. This keeps an
         // installed PWA from staying on an outdated mobile shell.
-        registration.update().catch(() => {});
+        await registration.update().catch(() => undefined);
 
         const activateWaitingWorker = () => {
           registration.waiting?.postMessage('SKIP_WAITING');
@@ -28,14 +32,13 @@ export function ServiceWorkerRegister() {
             }
           });
         });
-      }).catch(() => {
+      } catch {
         // Silent fail — offline support is a progressive enhancement.
-      });
+      }
     };
 
-    window.addEventListener('load', register);
+    void register();
     return () => {
-      window.removeEventListener('load', register);
       navigator.serviceWorker.removeEventListener('controllerchange', refreshAfterWorkerUpdate);
     };
   }, []);

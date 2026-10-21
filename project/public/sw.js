@@ -98,6 +98,49 @@ self.addEventListener('push', (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(syncRenewedPushSubscription());
+});
+
+async function syncRenewedPushSubscription() {
+  try {
+    const configResponse = await fetch('/api/notifications/push-config', {
+      credentials: 'include',
+      cache: 'no-store',
+    });
+    if (!configResponse.ok) return;
+    const config = await configResponse.json();
+    if (!config.publicKey) return;
+
+    const subscription = await self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: decodeBase64Url(config.publicKey),
+    });
+    const subscriptionJson = subscription.toJSON();
+    if (!subscriptionJson.endpoint || !subscriptionJson.keys?.p256dh || !subscriptionJson.keys?.auth) return;
+
+    await fetch('/api/notifications/push-subscription', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: subscriptionJson.endpoint,
+        p256dh: subscriptionJson.keys.p256dh,
+        auth: subscriptionJson.keys.auth,
+        expirationTime: subscriptionJson.expirationTime,
+      }),
+    });
+  } catch {
+    // The next visit will retry synchronization through the app UI.
+  }
+}
+
+function decodeBase64Url(value) {
+  const padding = '='.repeat((4 - (value.length % 4)) % 4);
+  const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+}
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || '/dashboard/notifications';
