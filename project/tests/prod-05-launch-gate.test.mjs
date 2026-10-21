@@ -43,3 +43,20 @@ test('www traffic is redirected to the canonical custom domain', async () => {
   assert.match(middleware, /canonicalUrl\.port = ''/);
   assert.match(middleware, /NextResponse\.redirect\(canonicalUrl, 308\)/);
 });
+
+test('Search Console verification and Organization metadata are configured safely', async () => {
+  const [layout, sitemap, robots] = await Promise.all([
+    read('app/layout.tsx'),
+    read('app/sitemap.ts'),
+    read('app/robots.ts'),
+  ]);
+  assert.match(layout, /process\.env\.GOOGLE_SITE_VERIFICATION\?\.trim\(\)/);
+  assert.match(layout, /verification:\s*googleSiteVerification/);
+  assert.match(layout, /'@type': 'Organization'/);
+  assert.match(layout, /'@type': 'WebSite'/);
+  assert.match(layout, /areaServed/);
+  assert.match(sitemap, /getIndexableVendorSlugs/);
+  assert.match(sitemap, /getIndexableEventSlugs/);
+  assert.match(sitemap, /\$\{base}\/marketplace/);
+  assert.match(robots, /sitemap\.xml/);
+});

@@ -9,6 +9,7 @@ project, and rejects use of staging as production.
 - `UNIECO_ENV` — `staging` or `production`.
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `GOOGLE_SITE_VERIFICATION` (optional) — the Google Search Console URL-prefix verification token. Keep this server/build-only; never prefix it with `NEXT_PUBLIC_`.
 
 For staging, the URL must use project ref `nyrrhoufgpqpajutatfp`.
 Production must use a separately created project and may never use the Bolt or

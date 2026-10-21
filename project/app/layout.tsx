@@ -10,6 +10,8 @@ import { MobileBottomNav } from '@/components/pwa/mobile-bottom-nav';
 import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { siteConfig } from '@/lib/constants/site';
 
+const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
@@ -32,6 +34,9 @@ export const metadata: Metadata = {
   keywords: siteConfig.keywords,
   authors: [{ name: siteConfig.name }],
   creator: siteConfig.name,
+  verification: googleSiteVerification
+    ? { google: googleSiteVerification }
+    : undefined,
   manifest: '/manifest.webmanifest',
   alternates: {
     canonical: '/',
@@ -87,15 +92,37 @@ export const viewport: Viewport = {
   themeColor: '#10b981',
 };
 
+const organizationId = `${siteConfig.url}/#organization`;
+
 const jsonLd = {
   '@context': 'https://schema.org',
-  '@type': 'Organization',
-  name: siteConfig.name,
-  description: siteConfig.description,
-  url: siteConfig.url,
-  logo: `${siteConfig.url}/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png`,
-  slogan: siteConfig.tagline,
-  sameAs: Object.values(siteConfig.links),
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': organizationId,
+      name: siteConfig.name,
+      description: siteConfig.description,
+      url: siteConfig.url,
+      logo: {
+        '@type': 'ImageObject',
+        url: `${siteConfig.url}/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png`,
+      },
+      slogan: siteConfig.tagline,
+      areaServed: {
+        '@type': 'Country',
+        name: 'Ghana',
+      },
+      sameAs: Object.values(siteConfig.links),
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteConfig.url}/#website`,
+      url: siteConfig.url,
+      name: siteConfig.name,
+      publisher: { '@id': organizationId },
+      inLanguage: siteConfig.locale,
+    },
+  ],
 };
 
 export default function RootLayout({

@@ -1,6 +1,10 @@
 import type { MetadataRoute } from 'next';
 import { siteConfig } from '@/lib/constants/site';
-import { getUniversities } from '@/lib/data/public-queries';
+import {
+  getIndexableEventSlugs,
+  getIndexableVendorSlugs,
+  getUniversities,
+} from '@/lib/data/public-queries';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteConfig.url;
@@ -14,6 +18,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${base}/discover`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
+    },
+    {
+      url: `${base}/marketplace`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.9,
@@ -51,14 +61,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const universities = await getUniversities();
+    const [universities, vendors, events] = await Promise.all([
+      getUniversities(),
+      getIndexableVendorSlugs(),
+      getIndexableEventSlugs(),
+    ]);
     const universityEntries: MetadataRoute.Sitemap = universities.map((uni) => ({
       url: `${base}/university/${uni.slug}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }));
-    return [...staticEntries, ...universityEntries];
+    const vendorEntries: MetadataRoute.Sitemap = vendors.map((vendor) => ({
+      url: `${base}/business/${vendor.business_slug}`,
+      lastModified: vendor.updated_at ? new Date(vendor.updated_at) : new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
+    }));
+    const eventEntries: MetadataRoute.Sitemap = events.map((event) => ({
+      url: `${base}/events/${event.slug}`,
+      lastModified: event.updated_at ? new Date(event.updated_at) : new Date(),
+      changeFrequency: 'daily' as const,
+      priority: 0.7,
+    }));
+    return [...staticEntries, ...universityEntries, ...vendorEntries, ...eventEntries];
   } catch {
     return staticEntries;
   }

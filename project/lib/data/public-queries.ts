@@ -33,6 +33,30 @@ export async function getUniversities(limit?: number) {
   return (data || []) as Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'description' | 'institution_type' | 'campus_launch_status' | 'is_enabled'>[];
 }
 
+export async function getIndexableVendorSlugs(limit = 1000) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('vendors')
+    .select('business_slug, updated_at')
+    .eq('is_active', true)
+    .not('business_slug', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  return (data || []) as Array<{ business_slug: string; updated_at: string | null }>;
+}
+
+export async function getIndexableEventSlugs(limit = 1000) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('events')
+    .select('slug, updated_at')
+    .eq('is_published', true)
+    .not('slug', 'is', null)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  return (data || []) as Array<{ slug: string; updated_at: string | null }>;
+}
+
 export async function getUniversityDirectory() {
   const supabase = await createClient();
   const { data } = await supabase
