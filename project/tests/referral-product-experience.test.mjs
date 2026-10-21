@@ -18,6 +18,7 @@ test('referral dashboard supports direct growth sharing', () => {
 
 test('referral delivery repairs paid accounts and retries email safely', () => {
   const migration = read('supabase/migrations/20261021120000_0134_repair_referral_code_delivery.sql');
+  const paidRegistrationTrigger = read('supabase/migrations/20261021130000_0135_referral_code_paid_registration_trigger.sql');
   const api = read('app/api/student-referrals/me/route.ts');
   const onboarding = read('app/onboarding/student/page.tsx');
   const email = read('supabase/functions/send-email/index.ts');
@@ -28,6 +29,8 @@ test('referral delivery repairs paid accounts and retries email safely', () => {
   assert.match(migration, /communication_deliveries/);
   assert.match(migration, /status = 'queued'/);
   assert.match(migration, /registration\.status = 'paid'/);
+  assert.match(paidRegistrationTrigger, /AFTER INSERT OR UPDATE OF status ON public\.student_registration_payments/);
+  assert.match(paidRegistrationTrigger, /ensure_my_student_referral_link_for_user/);
   assert.match(api, /ensure_my_student_referral_link/);
   assert.match(api, /referralCode/);
   assert.match(api, /signup\?ref=/);
