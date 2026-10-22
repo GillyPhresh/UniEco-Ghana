@@ -72,7 +72,9 @@ export function Hero({ vendorCount, universityCount, reviewCount, featuredBusine
                 key={business.id}
                 title={business.business_name}
                 category={business.business_type || 'Campus business'}
-                rating={business.rating_count ? business.rating_avg.toFixed(1) : ''}
+                rating={business.rating_count && Number.isFinite(Number(business.rating_avg))
+                  ? Number(business.rating_avg).toFixed(1)
+                  : ''}
               />
             ))}
             {!featuredBusinesses.length && <p className="rounded-xl border border-dashed p-5 text-center text-sm text-muted-foreground">Businesses will appear here as campus listings go live.</p>}

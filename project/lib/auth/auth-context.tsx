@@ -80,18 +80,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!active) return;
       setSession(s);
       if (s?.user) {
-        loadProfileData(s.user.id).finally(() => setLoading(false));
+        loadProfileData(s.user.id).finally(() => {
+          if (active) setLoading(false);
+        });
       } else {
         setLoading(false);
       }
+    }).catch(() => {
+      if (!active) return;
+      setSession(null);
+      setProfile(null);
+      setStudentProfile(null);
+      setVendorProfile(null);
+      setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       if (s?.user) {
         (async () => {
-          await loadProfileData(s.user.id);
-          setLoading(false);
+          try {
+            await loadProfileData(s.user.id);
+          } finally {
+            if (active) setLoading(false);
+          }
         })();
       } else {
         setProfile(null);

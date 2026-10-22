@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient, createClient as createTokenClient } from '@supabase/supabase-js';
-import { getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels } from '@/lib/payments/paystack.server';
+import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels, type PaystackMobileMoneyProvider } from '@/lib/payments/paystack.server';
 
 export const dynamic = 'force-dynamic';
 
 type RequestBody = {
   purpose?: 'subscription' | 'marketplace' | 'student_registration' | 'vendor_registration';
   vendorId?: string; orderId?: string; idempotencyKey?: string;
+  mobileMoney?: { phone?: string; provider?: PaystackMobileMoneyProvider };
   registration?: { universityId?: string; phone?: string; studentIdNumber?: string; program?: string; faculty?: string; department?: string; level?: string; admissionYear?: number; graduationYear?: number | null; studentDocumentPath?: string | null; referralCode?: string | null };
 };
 
@@ -15,6 +16,12 @@ function appUrl() {
   const configured = process.env.UNIECO_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
   if (configured) return configured.replace(/\/$/, '');
   return 'https://uniecoghana.com';
+}
+
+function normalizeGhanaPhone(value: string | undefined): string | null {
+  const digits = String(value || '').replace(/\D/g, '');
+  const local = digits.startsWith('233') ? `0${digits.slice(3)}` : digits.length === 9 && digits.startsWith('2') ? `0${digits}` : digits;
+  return /^0\d{9}$/.test(local) ? local : null;
 }
 
 export async function POST(request: NextRequest) {
@@ -82,8 +89,23 @@ export async function POST(request: NextRequest) {
     if (providerError || !provider?.is_enabled) return NextResponse.json({ error: 'Paystack is not available.' }, { status: 503 });
     const channels = permittedChannels(provider.supported_methods || [], provider.config?.channels);
     if (!channels.length) return NextResponse.json({ error: 'No Paystack payment channels are currently configured for this merchant.' }, { status: 503 });
+    const metadata = { unieco_payment_reference: payment.payment_reference, purpose: String(payment.payment_type || body.purpose), user_id: user.id, ...(body.registration?.universityId ? { university_id: body.registration.universityId } : {}) };
+
+    if (body.mobileMoney) {
+      if (!channels.includes('mobile_money')) return NextResponse.json({ error: 'Mobile Money is not currently enabled for this merchant.' }, { status: 503 });
+      const phone = normalizeGhanaPhone(body.mobileMoney.phone);
+      const providerCode = body.mobileMoney.provider;
+      if (!phone || !providerCode || !['mtn', 'atl', 'vod'].includes(providerCode)) {
+        return NextResponse.json({ error: 'Enter a valid Ghana Mobile Money number and select MTN, Telecel, or AirtelTigo.' }, { status: 400 });
+      }
+      const charge = await chargePaystackMobileMoney({ email: user.email, amountGhs: Number(payment.amount), reference: payment.payment_reference, phone, provider: providerCode, metadata });
+      const { error: markError } = await admin.rpc('record_paystack_checkout_initialized', { p_payment_reference: payment.payment_reference, p_provider_environment: getPaystackMode() });
+      if (markError) return NextResponse.json({ error: 'The Mobile Money prompt was created but could not be recorded safely. Please contact support.' }, { status: 422 });
+      return NextResponse.json({ reference: charge.reference, status: 'pending', mobileMoney: { status: charge.status, displayText: charge.displayText } }, { headers: { 'Cache-Control': 'no-store' } });
+    }
+
     const callbackUrl = `${appUrl()}/payments/callback`;
-    const checkout = await initializePaystackTransaction({ email: user.email, amountGhs: Number(payment.amount), reference: payment.payment_reference, callbackUrl, channels, metadata: { unieco_payment_reference: payment.payment_reference, purpose: String(payment.payment_type || body.purpose), user_id: user.id, ...(body.registration?.universityId ? { university_id: body.registration.universityId } : {}) } });
+    const checkout = await initializePaystackTransaction({ email: user.email, amountGhs: Number(payment.amount), reference: payment.payment_reference, callbackUrl, channels, metadata });
     const { error: markError } = await admin.rpc('record_paystack_checkout_initialized', { p_payment_reference: payment.payment_reference, p_provider_environment: getPaystackMode() });
     if (markError) return NextResponse.json({ error: 'Checkout was created but could not be recorded safely. Please contact support.' }, { status: 422 });
     return NextResponse.json({ reference: checkout.reference, authorizationUrl: checkout.authorizationUrl, status: 'pending' }, { headers: { 'Cache-Control': 'no-store' } });

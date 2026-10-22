@@ -40,7 +40,7 @@ export function SiteHeader() {
 
   useEffect(() => {
     if (!user) return;
-    getUnreadNotificationCount().then(setUnreadNotifs);
+    getUnreadNotificationCount().then(setUnreadNotifs).catch(() => setUnreadNotifs(0));
   }, [user]);
 
   const handleSignOut = async () => {

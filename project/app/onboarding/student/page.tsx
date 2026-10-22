@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
+import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
@@ -79,6 +80,8 @@ function StudentOnboarding() {
   const [paymentRequired, setPaymentRequired] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'checkout' | 'mobile_money'>('checkout');
+  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'mtn' | 'atl' | 'vod'>('mtn');
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
@@ -115,17 +118,24 @@ function StudentOnboarding() {
     });
   }, []);
 
-  if (!unisLoaded) {
+  useEffect(() => {
+    let active = true;
     supabase
       .from('universities')
       .select('id, name, short_name, city, region, institution_type, campus_launch_status')
       .eq('is_enabled', true)
       .order('name')
       .then(({ data }) => {
+        if (!active) return;
         setUniversities(data || []);
         setUnisLoaded(true);
+      })
+      .then(undefined, () => {
+        if (active) setUnisLoaded(true);
       });
-  }
+
+    return () => { active = false; };
+  }, []);
 
   const updateForm = (key: keyof FormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -209,7 +219,7 @@ function StudentOnboarding() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           purpose: 'student_registration',
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: createIdempotencyKey(),
           registration: {
             universityId: form.university_id,
             phone: form.phone,
@@ -223,17 +233,24 @@ function StudentOnboarding() {
             studentDocumentPath: form.student_id_document_url || null,
             referralCode,
           },
+          ...(paymentMethod === 'mobile_money' ? {
+            mobileMoney: { phone: form.phone, provider: mobileMoneyProvider },
+          } : {}),
         }),
       });
-      const result = await response.json() as { authorizationUrl?: string; error?: string };
-      if (!response.ok || !result.authorizationUrl) throw new Error(result.error || 'Payment could not be initialized.');
+      const result = await response.json() as { authorizationUrl?: string; reference?: string; mobileMoney?: { displayText?: string }; error?: string };
+      if (!response.ok || (!result.authorizationUrl && !result.mobileMoney?.displayText) || !result.reference) throw new Error(result.error || 'Payment could not be initialized.');
       window.sessionStorage.removeItem('unieco_pending_referral_code');
       if (form.avatar_url) {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
         if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. Retry payment from onboarding.');
       }
       // Redirecting to Paystack is only checkout UX; activation is webhook-authoritative.
-      window.location.assign(result.authorizationUrl);
+      if (result.mobileMoney) {
+        router.push(`/payments/callback?reference=${encodeURIComponent(result.reference)}&channel=mobile_money`);
+      } else if (result.authorizationUrl) {
+        window.location.assign(result.authorizationUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -538,6 +555,35 @@ function StudentOnboarding() {
               </div>}
               <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be applied to this registration. Eligible successful registrations may earn the referrer GH₵2 after the settlement period. Terms apply.</p>
 
+              {!cashInviteToken && (
+                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Choose how to pay</p>
+                    <p className="mt-1 text-xs text-muted-foreground">The direct Mobile Money option sends the prompt to the phone number above and avoids the hosted checkout screen.</p>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <button type="button" onClick={() => setPaymentMethod('checkout')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'checkout' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
+                      <span className="font-semibold">Paystack checkout</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">Card or Mobile Money</span>
+                    </button>
+                    <button type="button" onClick={() => setPaymentMethod('mobile_money')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
+                      <span className="font-semibold">Direct Mobile Money</span>
+                      <span className="mt-1 block text-xs text-muted-foreground">Send a prompt to your phone</span>
+                    </button>
+                  </div>
+                  {paymentMethod === 'mobile_money' && (
+                    <Select value={mobileMoneyProvider} onValueChange={(value: 'mtn' | 'atl' | 'vod') => setMobileMoneyProvider(value)}>
+                      <SelectTrigger aria-label="Mobile Money network"><SelectValue placeholder="Select Mobile Money network" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mtn">MTN Mobile Money</SelectItem>
+                        <SelectItem value="vod">Telecel Cash</SelectItem>
+                        <SelectItem value="atl">AirtelTigo Money</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} className="flex-1">
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -545,7 +591,7 @@ function StudentOnboarding() {
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {cashInviteToken ? 'Complete cash registration' : 'Continue to payment · GH₵10.00'}
+                  {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt · GH₵10.00' : 'Continue to payment · GH₵10.00'}
                 </Button>
               </div>
             </motion.div>

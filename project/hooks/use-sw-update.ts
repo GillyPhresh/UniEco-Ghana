@@ -56,6 +56,8 @@ export function useServiceWorkerUpdate(): UpdateState {
           }
         });
       });
+    }).catch(() => {
+      // Some Safari privacy modes reject service-worker registration access.
     });
 
     // Poll for updates every 5 minutes

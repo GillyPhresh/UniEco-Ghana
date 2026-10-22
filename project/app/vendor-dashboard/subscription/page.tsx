@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useVendor } from '@/hooks/use-vendor';
 import { useAuth } from '@/lib/auth/auth-context';
+import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import {
   getCurrentSubscription, initiateSubscriptionPayment, startPaystackCheckout,
   cancelSubscription, reactivateSubscription,
@@ -92,7 +93,7 @@ function Content() {
     try {
       if (selectedProvider === 'paystack') {
         const { authorizationUrl, error } = await startPaystackCheckout({
-          purpose: 'subscription', vendorId: vendor.id, idempotencyKey: crypto.randomUUID(),
+          purpose: 'subscription', vendorId: vendor.id, idempotencyKey: createIdempotencyKey(),
         });
         if (error || !authorizationUrl) {
           const message = error || 'Could not start Paystack checkout.';
@@ -110,7 +111,7 @@ function Content() {
         mobileNumber: selectedProvider !== 'manual' ? mobileNumber : undefined,
         mobileNetwork: selectedProvider !== 'manual' ? selectedMethod : undefined,
         autoRenew,
-        idempotencyKey: crypto.randomUUID(),
+        idempotencyKey: createIdempotencyKey(),
       });
 
       if (initError || !payment) {

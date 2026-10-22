@@ -10,6 +10,23 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISSAL_KEY = 'unieco-pwa-install-dismissed';
 const DISMISSAL_TTL = 1000 * 60 * 60 * 24 * 30; // 30 days
 
+function readDismissal(): string | null {
+  try {
+    return window.localStorage.getItem(DISMISSAL_KEY);
+  } catch {
+    // Safari private browsing and strict privacy modes can deny storage.
+    return null;
+  }
+}
+
+function writeDismissal(value: string): void {
+  try {
+    window.localStorage.setItem(DISMISSAL_KEY, value);
+  } catch {
+    // Installation remains usable even when browser storage is unavailable.
+  }
+}
+
 export function useInstallPrompt() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
   const [canInstall, setCanInstall] = useState(false);
@@ -28,7 +45,7 @@ export function useInstallPrompt() {
     }
 
     // Check if user previously dismissed
-    const dismissedAt = localStorage.getItem(DISMISSAL_KEY);
+    const dismissedAt = readDismissal();
     if (dismissedAt && Date.now() - parseInt(dismissedAt) < DISMISSAL_TTL) {
       return;
     }
@@ -54,7 +71,7 @@ export function useInstallPrompt() {
     await promptEvent.prompt();
     const choice = await promptEvent.userChoice;
     if (choice.outcome === 'dismissed') {
-      localStorage.setItem(DISMISSAL_KEY, Date.now().toString());
+      writeDismissal(Date.now().toString());
     }
     setPromptEvent(null);
     setCanInstall(false);
@@ -62,7 +79,7 @@ export function useInstallPrompt() {
   };
 
   const dismiss = () => {
-    localStorage.setItem(DISMISSAL_KEY, Date.now().toString());
+    writeDismissal(Date.now().toString());
     setCanInstall(false);
     setPromptEvent(null);
   };

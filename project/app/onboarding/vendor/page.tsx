@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
+import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,8 @@ function VendorOnboarding() {
   const [isStudent, setIsStudent] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'checkout' | 'mobile_money'>('checkout');
+  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'mtn' | 'atl' | 'vod'>('mtn');
   const [pin, setPin] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
   const [mapsLink, setMapsLink] = useState('');
   const [locationSource, setLocationSource] = useState<'owner_address' | 'owner_pin' | 'google_maps_link'>('owner_address');
@@ -178,16 +181,23 @@ function VendorOnboarding() {
         body: JSON.stringify({
           purpose: 'vendor_registration',
           vendorId,
-          idempotencyKey: crypto.randomUUID(),
+          idempotencyKey: createIdempotencyKey(),
+          ...(paymentMethod === 'mobile_money' ? {
+            mobileMoney: { phone: form.contact_phone, provider: mobileMoneyProvider },
+          } : {}),
         }),
       });
-      const paymentResult = await paymentResponse.json() as { authorizationUrl?: string; error?: string };
-      if (!paymentResponse.ok || !paymentResult.authorizationUrl) {
+      const paymentResult = await paymentResponse.json() as { authorizationUrl?: string; reference?: string; mobileMoney?: { displayText?: string }; error?: string };
+      if (!paymentResponse.ok || (!paymentResult.authorizationUrl && !paymentResult.mobileMoney?.displayText) || !paymentResult.reference) {
         throw new Error(paymentResult.error || 'Vendor registration payment could not be initialized.');
       }
 
       await refreshProfile();
-      window.location.assign(paymentResult.authorizationUrl);
+      if (paymentResult.mobileMoney) {
+        router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
+      } else if (paymentResult.authorizationUrl) {
+        window.location.assign(paymentResult.authorizationUrl);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -412,14 +422,43 @@ function VendorOnboarding() {
           </div>
 
           {!cashInviteToken && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-            Registration fee: <strong>GH₵20.00</strong>. You will be redirected to secure
-            Paystack checkout after submitting your business details. Your vendor access
-            starts only after the payment is verified.
+            Registration fee: <strong>GH₵20.00</strong>. Choose Paystack checkout or send
+            a direct Mobile Money prompt after submitting your business details. Your
+            vendor access starts only after the payment is verified.
           </div>}
+
+          {!cashInviteToken && (
+            <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Choose how to pay</p>
+                <p className="mt-1 text-xs text-muted-foreground">Direct Mobile Money sends the prompt to the contact number above and avoids the hosted checkout screen.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button type="button" onClick={() => setPaymentMethod('checkout')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'checkout' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
+                  <span className="font-semibold">Paystack checkout</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Card or Mobile Money</span>
+                </button>
+                <button type="button" onClick={() => setPaymentMethod('mobile_money')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
+                  <span className="font-semibold">Direct Mobile Money</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">Send a prompt to your phone</span>
+                </button>
+              </div>
+              {paymentMethod === 'mobile_money' && (
+                <Select value={mobileMoneyProvider} onValueChange={(value: 'mtn' | 'atl' | 'vod') => setMobileMoneyProvider(value)}>
+                  <SelectTrigger aria-label="Mobile Money network"><SelectValue placeholder="Select Mobile Money network" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mtn">MTN Mobile Money</SelectItem>
+                    <SelectItem value="vod">Telecel Cash</SelectItem>
+                    <SelectItem value="atl">AirtelTigo Money</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
 
           <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="w-full">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {cashInviteToken ? 'Complete cash registration' : 'Pay GH₵20 and continue'}
+            {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt · GH₵20' : 'Pay GH₵20 and continue'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </div>

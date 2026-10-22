@@ -8,8 +8,10 @@
   - Non-GET requests: Network Only (never cached)
 */
 
-const SHELL_CACHE = 'unieco-shell-v4';
-const CONTENT_CACHE = 'unieco-content-v4';
+// Bump both caches when the client shell changes so installed mobile PWAs do
+// not keep serving a stale bundle after a production deployment.
+const SHELL_CACHE = 'unieco-shell-v5';
+const CONTENT_CACHE = 'unieco-content-v5';
 const OFFLINE_URL = '/offline';
 
 const SHELL_ASSETS = [

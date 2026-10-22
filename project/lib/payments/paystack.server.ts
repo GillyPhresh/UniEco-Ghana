@@ -2,6 +2,7 @@ import 'server-only';
 
 export type PaystackMode = 'test' | 'live';
 export type PaystackChannel = 'card' | 'mobile_money' | 'bank_transfer';
+export type PaystackMobileMoneyProvider = 'mtn' | 'atl' | 'vod';
 
 const PAYSTACK_API = 'https://api.paystack.co';
 
@@ -65,6 +66,49 @@ export async function initializePaystackTransaction(input: {
     throw new Error(payload.message || 'Paystack could not initialize this payment');
   }
   return { authorizationUrl: payload.data.authorization_url, reference: payload.data.reference };
+}
+
+/**
+ * Starts Paystack's native Ghana MoMo charge flow. This avoids relying on the
+ * hosted checkout's mobile Safari UI, which can fail before it returns a
+ * useful provider response. The final payment state still comes only from
+ * the verified Paystack webhook.
+ */
+export async function chargePaystackMobileMoney(input: {
+  email: string;
+  amountGhs: number;
+  reference: string;
+  phone: string;
+  provider: PaystackMobileMoneyProvider;
+  metadata: Record<string, string>;
+}) {
+  const response = await fetch(`${PAYSTACK_API}/charge`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: input.email,
+      amount: String(Math.round(input.amountGhs * 100)),
+      currency: 'GHS',
+      reference: input.reference,
+      mobile_money: { phone: input.phone, provider: input.provider },
+      metadata: input.metadata,
+    }),
+    cache: 'no-store',
+  });
+  const payload = await response.json() as {
+    status?: boolean;
+    message?: string;
+    data?: { reference?: string; status?: string; display_text?: string; id?: string | number };
+  };
+  if (!response.ok || !payload.status || !payload.data?.reference || payload.data.reference !== input.reference) {
+    throw new Error(payload.message || 'Paystack could not start the Mobile Money prompt');
+  }
+  return {
+    reference: payload.data.reference,
+    status: payload.data.status || 'pending',
+    displayText: payload.data.display_text || 'Approve the Mobile Money prompt on your phone to complete payment.',
+    providerReference: payload.data.id ? String(payload.data.id) : null,
+  };
 }
 
 export async function verifyPaystackTransaction(reference: string) {
