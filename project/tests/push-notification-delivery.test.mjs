@@ -29,3 +29,19 @@ test('direct messages create an in-app notification and queue push only for subs
   assert.match(migration, /AFTER INSERT ON public\.messages/);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.queue_direct_message_notification/);
 });
+
+test('direct messages request a trusted queue flush without exposing provider secrets', async () => {
+  const [client, route, scheduler] = await Promise.all([
+    read('lib/data/communication-client.ts'),
+    read('app/api/notifications/dispatch-queue/route.ts'),
+    read('docs/SUPABASE_PUSH_QUEUE_SCHEDULER.sql'),
+  ]);
+
+  assert.match(client, /fetch\('\/api\/notifications\/dispatch-queue'/);
+  assert.match(route, /UNIECO_INTERNAL_FUNCTION_SECRET/);
+  assert.match(route, /x-unieco-internal-secret/);
+  assert.doesNotMatch(route, /VAPID_PRIVATE_KEY/);
+  assert.match(scheduler, /cron\.schedule/);
+  assert.match(scheduler, /vault\.decrypted_secrets/);
+  assert.match(scheduler, /dispatch-communication-queue/);
+});

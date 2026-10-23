@@ -19,6 +19,8 @@ staging project.
 
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `UNIECO_INTERNAL_FUNCTION_SECRET`
+- `VAPID_PUBLIC_KEY` — the public Web Push key returned by the authenticated
+  push-config route.
 
 These must never be prefixed `NEXT_PUBLIC_` or committed. They are only needed
 when the corresponding trusted server/Edge Function capability is deployed.

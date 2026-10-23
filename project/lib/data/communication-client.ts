@@ -175,9 +175,15 @@ export async function sendMessage(
   });
   if (error) return { error: error.message };
 
-  // Outbound communication and provider delivery are intentionally not
-  // dispatched from the browser. The message RPC is the complete client path;
-  // a future trusted server dispatcher may consume messaging events separately.
+  // The message RPC/trigger owns creation of the in-app notification and
+  // trusted push queue event. Ask the server to flush that queue immediately;
+  // delivery failures must not turn a successfully saved message into an
+  // apparent send failure. A scheduled worker remains the durable fallback.
+  void fetch('/api/notifications/dispatch-queue', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+  }).catch(() => undefined);
 
   return { error: null, messageId: data };
 }

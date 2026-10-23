@@ -16,7 +16,14 @@ export async function POST(request: Request) {
     const auth = typeof body.auth === 'string' ? body.auth : '';
     const expirationTime = typeof body.expirationTime === 'number' ? new Date(body.expirationTime).toISOString() : null;
 
-    if (!endpoint || !p256dh || !auth || endpoint.length > 2048) {
+    let endpointUrl: URL;
+    try {
+      endpointUrl = new URL(endpoint);
+    } catch {
+      return NextResponse.json({ error: 'Invalid push endpoint' }, { status: 400 });
+    }
+
+    if (endpointUrl.protocol !== 'https:' || !p256dh || !auth || endpoint.length > 2048 || p256dh.length > 512 || auth.length > 512) {
       return NextResponse.json({ error: 'Invalid push subscription' }, { status: 400 });
     }
 

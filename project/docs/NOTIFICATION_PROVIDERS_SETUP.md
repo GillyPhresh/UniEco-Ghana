@@ -60,16 +60,52 @@ The public key is returned only to authenticated users by
 `/api/notifications/push-config`. The private key must never be exposed to the
 browser. Users enable push from Dashboard → Notifications → Preferences.
 
+For production, put the values in these exact locations:
+
+- Supabase Edge Function secrets: `VAPID_SUBJECT`, `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, and `UNIECO_ENABLE_OUTBOUND_PROVIDERS=true`.
+- Railway server variables: `VAPID_PUBLIC_KEY`,
+  `UNIECO_INTERNAL_FUNCTION_SECRET`, and the existing Supabase server values.
+  Only the public VAPID key is needed by the browser-facing Next.js route.
+
+The production Supabase project reference is `inslzwciwhberfpljmod`. Do not use
+the older `...fpjlmod` spelling.
+
 ## 4. Deployment order
 
-1. Add the secrets in Supabase Edge Function settings.
-2. Add the same server-only values in Railway Variables.
-3. Deploy the Edge Functions `send-email`, `send-push`, and
-   `dispatch-communication-queue`.
-4. Deploy the application.
-5. Sign in with a test account, enable push, and verify the subscription is
+1. In Supabase, enable the `pg_cron`, `pg_net`, and `vault` extensions if they
+   are not already enabled.
+2. In the production SQL Editor, save the project URL and the same internal
+   secret used by Supabase Edge Functions in Vault. Never paste the secret into
+   Git or chat:
+
+```sql
+select vault.create_secret(
+  'https://inslzwciwhberfpljmod.supabase.co',
+  'unieco_project_url'
+);
+select vault.create_secret(
+  '<paste-the-existing-UNIECO_INTERNAL_FUNCTION_SECRET-here>',
+  'unieco_internal_function_secret'
+);
+```
+
+3. Run [`SUPABASE_PUSH_QUEUE_SCHEDULER.sql`](./SUPABASE_PUSH_QUEUE_SCHEDULER.sql)
+   in that same SQL Editor. It invokes the trusted queue every minute. Direct
+   messages also request an immediate server-side flush, so message push does
+   not wait for the next minute; the cron job is the durable fallback for
+   payments, referrals, email, and administrative notifications.
+4. Deploy the Edge Functions from the project directory:
+
+```powershell
+npx.cmd supabase@latest functions deploy send-push --project-ref inslzwciwhberfpljmod --use-api
+npx.cmd supabase@latest functions deploy dispatch-communication-queue --project-ref inslzwciwhberfpljmod --use-api
+```
+
+5. Deploy the application to Railway.
+6. Sign in with a test account, enable push, and verify the subscription is
    present in `push_subscriptions`.
-6. Send one test email and one test push before enabling broad notification
+7. Send one test email and one test push before enabling broad notification
    categories.
 
 The provider switch is intentionally off until the credentials and dispatcher
