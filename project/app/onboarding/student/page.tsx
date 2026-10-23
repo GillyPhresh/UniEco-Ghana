@@ -1,11 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { createIdempotencyKey } from '@/lib/utils/idempotency';
+import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
+import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
+import { studentOnboardingSchema } from '@/lib/validation';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
@@ -33,10 +36,12 @@ import {
 } from 'lucide-react';
 
 const STEPS = [
-  { id: 'personal', label: 'Personal', icon: User },
-  { id: 'university', label: 'University', icon: GraduationCap },
-  { id: 'verification', label: 'Verification', icon: ShieldCheck },
+  { id: 'contact', label: 'Contact', hint: 'Phone and photo', icon: User },
+  { id: 'study', label: 'Study', hint: 'Campus and programme', icon: GraduationCap },
+  { id: 'finish', label: 'Finish', hint: 'ID and payment', icon: ShieldCheck },
 ] as const;
+
+const DRAFT_PREFIX = 'unieco_student_registration_draft';
 
 interface FormData {
   phone: string;
@@ -85,6 +90,9 @@ function StudentOnboarding() {
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const paymentAttemptKeyRef = useRef<string | null>(null);
   const [form, setForm] = useState<FormData>({
     phone: '',
     avatar_url: '',
@@ -98,6 +106,22 @@ function StudentOnboarding() {
     graduation_year: undefined,
     student_id_document_url: '',
   });
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const draft = readRegistrationDraft<FormData>(`${DRAFT_PREFIX}:${user.id}`);
+    if (draft) {
+      setForm(draft.data);
+      setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
+      setDraftRestored(true);
+    }
+    setDraftReady(true);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !draftReady) return;
+    writeRegistrationDraft(`${DRAFT_PREFIX}:${user.id}`, step, form);
+  }, [draftReady, form, step, user?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -137,7 +161,8 @@ function StudentOnboarding() {
     return () => { active = false; };
   }, []);
 
-  const updateForm = (key: keyof FormData, value: string | number) => {
+  const updateForm = (key: keyof FormData, value: string | number | undefined) => {
+    paymentAttemptKeyRef.current = null;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -150,10 +175,11 @@ function StudentOnboarding() {
       .toLocaleLowerCase()
       .includes(query);
   });
+  const selectedUniversity = universities.find((university) => university.id === form.university_id);
 
   const validateStep = (): string | null => {
     if (step === 0) {
-      if (!form.phone || form.phone.length < 10) return 'Enter a valid phone number';
+      if (!isValidGhanaPhone(form.phone)) return 'Enter a valid Ghana phone number, for example 0244 123 456';
     }
     if (step === 1) {
       if (!form.university_id) return 'Select your university';
@@ -161,7 +187,7 @@ function StudentOnboarding() {
       if (!form.faculty) return 'Enter your faculty';
       if (!form.department) return 'Enter your department';
       if (!form.level) return 'Select your level';
-      if (!form.index_number) return 'Enter your index/student number';
+      if (!form.index_number || form.index_number.trim().length < 3) return 'Enter your index/student number';
     }
     return null;
   };
@@ -176,6 +202,11 @@ function StudentOnboarding() {
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
+  const clearDraft = () => {
+    if (user?.id) clearRegistrationDraft(`${DRAFT_PREFIX}:${user.id}`);
+    setDraftRestored(false);
+  };
+
   const handleBack = () => {
     setError(null);
     setStep((s) => Math.max(s - 1, 0));
@@ -187,6 +218,18 @@ function StudentOnboarding() {
     setSubmitting(true);
 
     try {
+      const parsed = studentOnboardingSchema.safeParse({
+        university_id: form.university_id,
+        programme: form.programme.trim(),
+        faculty: form.faculty.trim(),
+        department: form.department.trim(),
+        level: form.level,
+        index_number: form.index_number.trim(),
+        admission_year: form.admission_year,
+        graduation_year: form.graduation_year,
+        phone: normalizeGhanaPhone(form.phone),
+      });
+      if (!parsed.success) throw new Error(parsed.error.errors[0]?.message || 'Check your registration details.');
       const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
       if (cashInviteToken) {
         const { error: cashError } = await supabase.rpc('redeem_cash_student_registration', {
@@ -205,6 +248,7 @@ function StudentOnboarding() {
         if (cashError) throw new Error(cashError.message);
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
         window.sessionStorage.removeItem('unieco_pending_referral_code');
+        clearDraft();
         router.push('/onboarding/complete?registration=cash');
         return;
       }
@@ -214,19 +258,21 @@ function StudentOnboarding() {
         });
         if (referralAttachError) throw new Error(referralAttachError.message);
       }
+      const idempotencyKey = paymentAttemptKeyRef.current || createIdempotencyKey();
+      paymentAttemptKeyRef.current = idempotencyKey;
       const response = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           purpose: 'student_registration',
-          idempotencyKey: createIdempotencyKey(),
+          idempotencyKey,
           registration: {
             universityId: form.university_id,
-            phone: form.phone,
-            studentIdNumber: form.index_number,
-            program: form.programme,
-            faculty: form.faculty,
-            department: form.department,
+            phone: normalizeGhanaPhone(form.phone),
+            studentIdNumber: form.index_number.trim(),
+            program: form.programme.trim(),
+            faculty: form.faculty.trim(),
+            department: form.department.trim(),
             level: form.level,
             admissionYear: form.admission_year,
             graduationYear: form.graduation_year || null,
@@ -234,7 +280,7 @@ function StudentOnboarding() {
             referralCode,
           },
           ...(paymentMethod === 'mobile_money' ? {
-            mobileMoney: { phone: form.phone, provider: mobileMoneyProvider },
+            mobileMoney: { phone: normalizeGhanaPhone(form.phone), provider: mobileMoneyProvider },
           } : {}),
         }),
       });
@@ -245,6 +291,7 @@ function StudentOnboarding() {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
         if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. Retry payment from onboarding.');
       }
+      clearDraft();
       // Redirecting to Paystack is only checkout UX; activation is webhook-authoritative.
       if (result.mobileMoney) {
         router.push(`/payments/callback?reference=${encodeURIComponent(result.reference)}&channel=mobile_money`);
@@ -279,13 +326,32 @@ function StudentOnboarding() {
   return (
     <AuthLayout
       title="Complete your student profile"
-      subtitle="This helps us verify your identity and connect you to your campus"
+      subtitle="About 2 minutes · your progress is saved on this device"
       backHref="/signin"
       backLabel="Sign out"
     >
       <div className="space-y-6">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-foreground">Your registration is protected</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                We only use these details to verify your student account. Payment activation happens only after Paystack confirms the transaction.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {draftRestored && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
+            <span><strong>Welcome back.</strong> Your unfinished registration has been restored.</span>
+            <button type="button" onClick={clearDraft} className="shrink-0 text-xs font-semibold underline underline-offset-2">Dismiss</button>
+          </div>
+        )}
+
         {/* Progress indicator */}
-        <div className="flex items-center justify-between">
+        <div aria-label={`Registration step ${step + 1} of ${STEPS.length}`} className="flex items-start justify-between">
           {STEPS.map((s, i) => (
             <div key={s.id} className="flex flex-1 items-center">
               <div className="flex flex-col items-center">
@@ -307,6 +373,7 @@ function StudentOnboarding() {
                 >
                   {s.label}
                 </span>
+                <span className="mt-0.5 hidden text-[10px] text-muted-foreground sm:block">{s.hint}</span>
               </div>
               {i < STEPS.length - 1 && (
                 <div
@@ -353,12 +420,16 @@ function StudentOnboarding() {
                 <Label htmlFor="phone">Phone number</Label>
                 <Input
                   id="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  maxLength={15}
                   placeholder="e.g. 0244 123 456"
                   value={form.phone}
                   onChange={(e) => updateForm('phone', e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  We use this for order updates and important notifications
+                  Use the number you will use for Mobile Money. It is also used for order updates and important notifications.
                 </p>
               </div>
 
@@ -398,6 +469,7 @@ function StudentOnboarding() {
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="university-search"
                     value={universitySearch}
                     onChange={(event) => setUniversitySearch(event.target.value)}
                     placeholder="Search all listed institutions"
@@ -422,7 +494,7 @@ function StudentOnboarding() {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {universities.length} listed institution{universities.length === 1 ? '' : 's'} available for registration.
+                  {unisLoaded ? `${universities.length} listed institution${universities.length === 1 ? '' : 's'} available.` : 'Loading listed institutions…'}
                 </p>
               </div>
 
@@ -432,6 +504,7 @@ function StudentOnboarding() {
                   id="programme"
                   placeholder="e.g. Computer Science"
                   value={form.programme}
+                  maxLength={120}
                   onChange={(e) => updateForm('programme', e.target.value)}
                 />
               </div>
@@ -443,6 +516,7 @@ function StudentOnboarding() {
                     id="faculty"
                     placeholder="e.g. Science"
                     value={form.faculty}
+                    maxLength={120}
                     onChange={(e) => updateForm('faculty', e.target.value)}
                   />
                 </div>
@@ -452,6 +526,7 @@ function StudentOnboarding() {
                     id="department"
                     placeholder="e.g. Computer Science"
                     value={form.department}
+                    maxLength={120}
                     onChange={(e) => updateForm('department', e.target.value)}
                   />
                 </div>
@@ -496,11 +571,11 @@ function StudentOnboarding() {
                   id="index_number"
                   placeholder="e.g. 730000000"
                   value={form.index_number}
+                  maxLength={80}
                   onChange={(e) => updateForm('index_number', e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  This is your university-issued student ID number. We use it to verify
-                  you are a real student.
+                  Use your university-issued student ID number. It is visible only to authorized verification staff.
                 </p>
               </div>
 
@@ -525,15 +600,25 @@ function StudentOnboarding() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-4"
             >
+              <div className="rounded-xl border border-border bg-muted/20 p-4">
+                <p className="text-sm font-semibold text-foreground">Review your details</p>
+                <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <div><dt className="text-muted-foreground">Phone</dt><dd className="mt-0.5 break-words font-medium">{form.phone || 'Not entered'}</dd></div>
+                  <div><dt className="text-muted-foreground">University</dt><dd className="mt-0.5 break-words font-medium">{selectedUniversity?.short_name || selectedUniversity?.name || 'Not selected'}</dd></div>
+                  <div><dt className="text-muted-foreground">Programme</dt><dd className="mt-0.5 break-words font-medium">{form.programme || 'Not entered'}</dd></div>
+                  <div><dt className="text-muted-foreground">Level</dt><dd className="mt-0.5 font-medium">{form.level ? `Level ${form.level}` : 'Not selected'}</dd></div>
+                </dl>
+                <button type="button" onClick={() => setStep(1)} className="mt-3 text-xs font-semibold text-primary underline underline-offset-2">Edit study details</button>
+              </div>
+
               <div className="rounded-lg border border-border bg-muted/30 p-4">
                 <p className="text-sm text-muted-foreground">
-                  Upload a photo of your student ID card. This helps us verify your
-                  identity and protect the community from fake accounts.
+                  Upload a clear photo of your student ID card if available. It speeds up verification, but you can continue without it.
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label>Student ID card photo</Label>
+                <Label>Student ID card photo <span className="font-normal text-muted-foreground">(optional)</span></Label>
                 <FileUploadButton
                   bucket="student-documents"
                   onUpload={(url) => updateForm('student_id_document_url', url)}
@@ -550,10 +635,10 @@ function StudentOnboarding() {
 
               {!cashInviteToken && <div className="rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-info-foreground">
-                  Student registration fee: GH₵10.00. Your account is activated only after Paystack confirms the payment. Student verification is reviewed separately.
+                  Student registration fee: GH₵10.00. Your account is activated only after the payment is verified. Student verification is reviewed separately.
                 </p>
               </div>}
-              <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be applied to this registration. Eligible successful registrations may earn the referrer GH₵2 after the settlement period. Terms apply.</p>
+              <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be attached automatically. Eligible successful registrations may earn the referrer GH₵2 after the settlement period.</p>
 
               {!cashInviteToken && (
                 <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
@@ -616,15 +701,28 @@ function FileUploadButton({
   label: string;
 }) {
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
+    setUploadError(null);
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Choose a file smaller than 5 MB.');
+      e.target.value = '';
+      return;
+    }
+    if (bucket === 'student-documents' && !file.type.startsWith('image/')) {
+      setUploadError('Student ID must be an image file.');
+      e.target.value = '';
+      return;
+    }
     setUploading(true);
-    const ext = file.name.split('.').pop();
+    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
     const path = `${userId}/${bucket}-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(bucket).upload(path, file);
     if (error) {
+      setUploadError('Could not upload the file. Try again.');
       setUploading(false);
       return;
     }
@@ -648,9 +746,11 @@ function FileUploadButton({
         <Upload className="h-4 w-4" />
       )}
       {uploading ? 'Uploading...' : label}
+      {uploadError && <span className="basis-full text-center text-xs text-destructive">{uploadError}</span>}
       <input
         type="file"
         accept={accept}
+        capture={bucket === 'student-documents' ? 'environment' : undefined}
         onChange={handleUpload}
         className="hidden"
         disabled={uploading}

@@ -25,7 +25,7 @@ import {
   GraduationCap,
   Store,
   Check,
-  ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
@@ -107,10 +107,18 @@ export default function SignUpPage() {
 
   return (
     <AuthLayout
-      title="Create your account"
-      subtitle="Join the UniEco Ghana campus community"
+      title="Join UniEco Ghana"
+      subtitle="Create your account in less than 2 minutes"
     >
       <div className="space-y-6">
+        <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+          <div>
+            <p className="font-semibold text-foreground">Simple and secure</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, you go straight to your profile and registration payment.</p>
+          </div>
+        </div>
+
         {authError && (
           <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -128,7 +136,7 @@ export default function SignUpPage() {
               className="space-y-4"
             >
               <p className="text-center text-sm text-muted-foreground">
-                How will you use UniEco?
+                Choose how you will use UniEco. We will guide you through only the details you need.
               </p>
 
               <AccountTypeCard
@@ -147,14 +155,7 @@ export default function SignUpPage() {
                 onClick={() => setAccountType('external_vendor')}
               />
 
-              <Button
-                className="w-full"
-                disabled={!accountType}
-                onClick={() => accountType && setAccountType(accountType)}
-              >
-                Continue
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <p className="text-center text-xs text-muted-foreground">Tap Student or Business to continue.</p>
             </motion.div>
           ) : (
             <motion.div
@@ -183,6 +184,10 @@ export default function SignUpPage() {
                 </button>
               </div>
 
+              <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground">
+                <strong className="text-foreground">Fastest option:</strong> continue with Google. You will not be asked to look for a confirmation email.
+              </div>
+
               <Button
                 variant="outline"
                 className="w-full"
@@ -204,7 +209,7 @@ export default function SignUpPage() {
                 </span>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Full name</Label>
                   <div className="relative">
@@ -212,6 +217,7 @@ export default function SignUpPage() {
                     <Input
                       id="full_name"
                       placeholder="Ama Serwaa"
+                      autoFocus
                       className="pl-9"
                       autoComplete="name"
                       {...register('full_name')}
@@ -339,6 +345,8 @@ function AccountTypeCard({
   return (
     <button
       type="button"
+      aria-pressed={selected}
+      aria-label={`Choose ${title} account`}
       onClick={onClick}
       className={`flex w-full items-start gap-4 rounded-xl border p-4 text-left transition-all ${
         selected

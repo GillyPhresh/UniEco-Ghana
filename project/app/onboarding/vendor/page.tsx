@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { createIdempotencyKey } from '@/lib/utils/idempotency';
+import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
+import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
@@ -32,10 +34,21 @@ import {
   Upload,
   Check,
   Info,
+  ArrowLeft,
+  MapPin,
+  ShieldCheck,
 } from 'lucide-react';
 import { isSupportedGoogleMapsUrl, parseGoogleMapsLinkCoordinates } from '@/lib/maps';
 
 type FormData = z.infer<typeof vendorRegistrationSchema>;
+
+const VENDOR_STEPS = [
+  { label: 'Business', hint: 'What you offer', icon: Store },
+  { label: 'Location', hint: 'Where to find you', icon: MapPin },
+  { label: 'Finish', hint: 'Verify and pay', icon: ShieldCheck },
+] as const;
+
+const DRAFT_PREFIX = 'unieco_vendor_registration_draft';
 
 export default function VendorOnboardingPage() {
   return (
@@ -48,10 +61,10 @@ export default function VendorOnboardingPage() {
 function VendorOnboarding() {
   const { user, refreshProfile } = useAuth();
   const router = useRouter();
+  const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadedDoc, setUploadedDoc] = useState(false);
-  const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
   const [isStudent, setIsStudent] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
@@ -60,6 +73,9 @@ function VendorOnboarding() {
   const [pin, setPin] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
   const [mapsLink, setMapsLink] = useState('');
   const [locationSource, setLocationSource] = useState<'owner_address' | 'owner_pin' | 'google_maps_link'>('owner_address');
+  const [draftRestored, setDraftRestored] = useState(false);
+  const [draftReady, setDraftReady] = useState(false);
+  const paymentAttemptKeyRef = useRef<string | null>(null);
   const [form, setForm] = useState<FormData>({
     business_name: '',
     business_category: '',
@@ -74,18 +90,46 @@ function VendorOnboarding() {
   });
 
   useEffect(() => {
-    supabase
-      .from('universities')
-      .select('id, name')
-      .eq('is_enabled', true)
-      .order('name')
-      .then(({ data }) => setUniversities(data || []));
-
     if (user?.studentProfile) {
       setIsStudent(true);
       setForm((prev) => ({ ...prev, vendor_type: 'student_vendor' }));
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const draft = readRegistrationDraft<{
+      form: FormData;
+      mapsLink: string;
+      pin: typeof pin;
+      locationSource: typeof locationSource;
+      paymentMethod: typeof paymentMethod;
+      mobileMoneyProvider: typeof mobileMoneyProvider;
+    }>(`${DRAFT_PREFIX}:${user.id}`);
+    if (draft) {
+      setForm(draft.data.form);
+      setMapsLink(draft.data.mapsLink);
+      setPin(draft.data.pin);
+      setLocationSource(draft.data.locationSource);
+      setPaymentMethod(draft.data.paymentMethod);
+      setMobileMoneyProvider(draft.data.mobileMoneyProvider);
+      setStep(Math.min(Math.max(draft.step, 0), VENDOR_STEPS.length - 1));
+      setDraftRestored(true);
+    }
+    setDraftReady(true);
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id || !draftReady) return;
+    writeRegistrationDraft(`${DRAFT_PREFIX}:${user.id}`, step, {
+      form,
+      mapsLink,
+      pin,
+      locationSource,
+      paymentMethod,
+      mobileMoneyProvider,
+    });
+  }, [draftReady, form, locationSource, mapsLink, mobileMoneyProvider, paymentMethod, pin, step, user?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -105,10 +149,12 @@ function VendorOnboarding() {
   }, []);
 
   const updateForm = (key: keyof FormData, value: string) => {
+    paymentAttemptKeyRef.current = null;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleMapsLinkChange = (value: string) => {
+    paymentAttemptKeyRef.current = null;
     setMapsLink(value);
     const coordinates = parseGoogleMapsLinkCoordinates(value);
     if (coordinates) {
@@ -117,11 +163,59 @@ function VendorOnboarding() {
     }
   };
 
+  const validateStep = (): string | null => {
+    if (step === 0) {
+      if (!form.business_name.trim()) return 'Enter your business name.';
+      if (!form.business_category) return 'Choose a business category.';
+      if (form.description.trim().length < 20) return 'Tell students a little more about your business.';
+      if (!form.product_service_type.trim()) return 'Describe what you sell or offer.';
+    }
+    if (step === 1) {
+      if (!form.location_address.trim()) return 'Enter your business address.';
+      if (!form.location_city.trim()) return 'Enter your city.';
+      if (!form.location_region) return 'Select your region.';
+      if (!isValidGhanaPhone(form.contact_phone)) return 'Enter a valid Ghana contact number, for example 0244 123 456.';
+    }
+    return null;
+  };
+
+  const handleNext = () => {
+    const validationError = validateStep();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setError(null);
+    setStep((current) => Math.min(current + 1, VENDOR_STEPS.length - 1));
+  };
+
+  const handleBack = () => {
+    setError(null);
+    setStep((current) => Math.max(current - 1, 0));
+  };
+
+  const clearDraft = () => {
+    if (user?.id) clearRegistrationDraft(`${DRAFT_PREFIX}:${user.id}`);
+    setDraftRestored(false);
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     setError(null);
 
-    const result = vendorRegistrationSchema.safeParse(form);
+    const normalizedForm = {
+      ...form,
+      business_name: form.business_name.trim(),
+      business_category: form.business_category.trim(),
+      description: form.description.trim(),
+      location_address: form.location_address.trim(),
+      location_city: form.location_city.trim(),
+      location_region: form.location_region.trim(),
+      product_service_type: form.product_service_type.trim(),
+      contact_phone: normalizeGhanaPhone(form.contact_phone),
+      contact_email: (form.contact_email || '').trim(),
+    };
+    const result = vendorRegistrationSchema.safeParse(normalizedForm);
     if (!result.success) {
       setError(result.error.errors[0]?.message || 'Check all required fields');
       return;
@@ -136,16 +230,16 @@ function VendorOnboarding() {
       // The database creates the application, role transition, and vendor
       // record. Payment activation remains webhook-authoritative.
       const { data: registration, error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
-        p_business_name: form.business_name,
-        p_business_category: form.business_category,
-        p_description: form.description,
-        p_location_address: form.location_address,
-        p_location_city: form.location_city,
-        p_location_region: form.location_region,
-        p_product_service_type: form.product_service_type,
-        p_contact_phone: form.contact_phone,
-        p_contact_email: form.contact_email || null,
-        p_vendor_type: form.vendor_type,
+        p_business_name: normalizedForm.business_name,
+        p_business_category: normalizedForm.business_category,
+        p_description: normalizedForm.description,
+        p_location_address: normalizedForm.location_address,
+        p_location_city: normalizedForm.location_city,
+        p_location_region: normalizedForm.location_region,
+        p_product_service_type: normalizedForm.product_service_type,
+        p_contact_phone: normalizedForm.contact_phone,
+        p_contact_email: normalizedForm.contact_email || null,
+        p_vendor_type: normalizedForm.vendor_type,
       });
       if (registrationError) throw new Error(registrationError.message);
       const vendorId = (registration as { vendor_id?: string } | null)?.vendor_id;
@@ -154,9 +248,9 @@ function VendorOnboarding() {
         p_vendor_id: vendorId,
         p_latitude: pin.latitude,
         p_longitude: pin.longitude,
-        p_address: form.location_address,
-        p_city: form.location_city,
-        p_region: form.location_region,
+        p_address: normalizedForm.location_address,
+        p_city: normalizedForm.location_city,
+        p_region: normalizedForm.location_region,
         p_maps_url: mapsLink.trim() || null,
         p_selection_source: locationSource,
         p_public_visibility: 'business_location',
@@ -170,20 +264,23 @@ function VendorOnboarding() {
         });
         if (cashError) throw new Error(cashError.message);
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        clearDraft();
         await refreshProfile();
         router.push('/onboarding/complete?registration=cash');
         return;
       }
 
+      const idempotencyKey = paymentAttemptKeyRef.current || createIdempotencyKey();
+      paymentAttemptKeyRef.current = idempotencyKey;
       const paymentResponse = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           purpose: 'vendor_registration',
           vendorId,
-          idempotencyKey: createIdempotencyKey(),
+          idempotencyKey,
           ...(paymentMethod === 'mobile_money' ? {
-            mobileMoney: { phone: form.contact_phone, provider: mobileMoneyProvider },
+            mobileMoney: { phone: normalizedForm.contact_phone, provider: mobileMoneyProvider },
           } : {}),
         }),
       });
@@ -193,6 +290,7 @@ function VendorOnboarding() {
       }
 
       await refreshProfile();
+      clearDraft();
       if (paymentResult.mobileMoney) {
         router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
       } else if (paymentResult.authorizationUrl) {
@@ -208,7 +306,17 @@ function VendorOnboarding() {
   const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    const ext = file.name.split('.').pop();
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Choose a verification document smaller than 5 MB.');
+      e.target.value = '';
+      return;
+    }
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      setError('Upload an image or PDF verification document.');
+      e.target.value = '';
+      return;
+    }
+    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
     const path = `${user.id}/vendor-verification-${Date.now()}.${ext}`;
     const { error } = await supabase.storage
       .from('vendor-documents')
@@ -226,12 +334,47 @@ function VendorOnboarding() {
       subtitle={
         isStudent
           ? 'Turn your student hustle into a verified campus business'
-          : 'Set up your business profile to reach students on campus'
+          : 'About 3 minutes · your progress is saved on this device'
       }
       backHref="/signin"
       backLabel="Sign out"
     >
       <div className="space-y-6">
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">Build trust from day one</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">Your business is reviewed before it is published. Payment activates access; it does not bypass verification.</p>
+            </div>
+          </div>
+        </div>
+
+        {draftRestored && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
+            <span><strong>Welcome back.</strong> Your unfinished business registration has been restored.</span>
+            <button type="button" onClick={clearDraft} className="shrink-0 text-xs font-semibold underline underline-offset-2">Dismiss</button>
+          </div>
+        )}
+
+        <div aria-label={`Registration step ${step + 1} of ${VENDOR_STEPS.length}`} className="flex items-start justify-between">
+          {VENDOR_STEPS.map((item, index) => {
+            const Icon = item.icon;
+            return (
+              <div key={item.label} className="flex flex-1 items-start">
+                <div className="flex min-w-0 flex-col items-center">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${index < step ? 'border-primary bg-primary text-primary-foreground' : index === step ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>
+                    {index < step ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
+                  </div>
+                  <span className={`mt-1.5 text-xs font-medium ${index <= step ? 'text-foreground' : 'text-muted-foreground'}`}>{item.label}</span>
+                  <span className="mt-0.5 hidden text-[10px] text-muted-foreground sm:block">{item.hint}</span>
+                </div>
+                {index < VENDOR_STEPS.length - 1 && <div className={`mx-2 mt-5 h-0.5 flex-1 rounded ${index < step ? 'bg-primary' : 'bg-border'}`} />}
+              </div>
+            );
+          })}
+        </div>
+
         {isStudent && (
           <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
@@ -263,6 +406,8 @@ function VendorOnboarding() {
         )}
 
         <div className="space-y-4">
+          {step === 0 && (
+            <>
           <div className="space-y-2">
             <Label htmlFor="business_name">Business name</Label>
             <div className="relative">
@@ -271,6 +416,7 @@ function VendorOnboarding() {
                 id="business_name"
                 placeholder="e.g. Campus Snack Hub"
                 className="pl-9"
+                maxLength={120}
                 value={form.business_name}
                 onChange={(e) => updateForm('business_name', e.target.value)}
               />
@@ -317,15 +463,25 @@ function VendorOnboarding() {
               id="product_service_type"
               placeholder="e.g. Pastries, printing services, tutorials"
               value={form.product_service_type}
+              maxLength={120}
               onChange={(e) => updateForm('product_service_type', e.target.value)}
             />
           </div>
 
+          <Button onClick={handleNext} className="w-full">
+            Continue to location <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
           <div className="space-y-2">
             <Label htmlFor="location_address">Business address</Label>
             <Input
               id="location_address"
               placeholder="e.g. Hall 4, Room 12 or Main Market, Stall 5"
+              maxLength={180}
               value={form.location_address}
               onChange={(e) => updateForm('location_address', e.target.value)}
             />
@@ -337,6 +493,7 @@ function VendorOnboarding() {
               <Input
                 id="location_city"
                 placeholder="e.g. Sunyani"
+                maxLength={80}
                 value={form.location_city}
                 onChange={(e) => updateForm('location_city', e.target.value)}
               />
@@ -380,6 +537,10 @@ function VendorOnboarding() {
               <Label htmlFor="contact_phone">Contact phone</Label>
               <Input
                 id="contact_phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                maxLength={15}
                 placeholder="e.g. 0244 123 456"
                 value={form.contact_phone}
                 onChange={(e) => updateForm('contact_phone', e.target.value)}
@@ -390,11 +551,33 @@ function VendorOnboarding() {
               <Input
                 id="contact_email"
                 type="email"
+                autoComplete="email"
+                maxLength={160}
                 placeholder="business@example.com"
                 value={form.contact_email}
                 onChange={(e) => updateForm('contact_email', e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={handleBack} className="flex-1"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+            <Button onClick={handleNext} className="flex-1">Continue to finish <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+          <div className="rounded-xl border border-border bg-muted/20 p-4">
+            <p className="text-sm font-semibold text-foreground">Review your business details</p>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+              <div><dt className="text-muted-foreground">Business</dt><dd className="mt-0.5 break-words font-medium">{form.business_name || 'Not entered'}</dd></div>
+              <div><dt className="text-muted-foreground">Category</dt><dd className="mt-0.5 break-words font-medium">{form.business_category || 'Not selected'}</dd></div>
+              <div><dt className="text-muted-foreground">City</dt><dd className="mt-0.5 break-words font-medium">{form.location_city || 'Not entered'}</dd></div>
+              <div><dt className="text-muted-foreground">Phone</dt><dd className="mt-0.5 break-words font-medium">{form.contact_phone || 'Not entered'}</dd></div>
+            </dl>
+            <button type="button" onClick={() => setStep(0)} className="mt-3 text-xs font-semibold text-primary underline underline-offset-2">Edit business details</button>
           </div>
 
           <div className="space-y-2">
@@ -461,6 +644,9 @@ function VendorOnboarding() {
             {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt · GH₵20' : 'Pay GH₵20 and continue'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
+          <Button variant="outline" onClick={handleBack} disabled={submitting} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" />Back to edit details</Button>
+            </>
+          )}
         </div>
       </div>
     </AuthLayout>
