@@ -126,10 +126,11 @@ function DashboardContent() {
   return (
     <>
       <SiteHeader />
-      <main className="workspace-page min-h-[calc(100vh-7rem)] py-6 sm:py-8">
-        <div className="container">
+      <main className="workspace-page min-h-[calc(100vh-7rem)] py-6 sm:py-10">
+        <div className="container max-w-7xl">
         {/* Welcome area */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 rounded-2xl border border-border/80 bg-card p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Welcome back, {firstName}
@@ -153,6 +154,7 @@ function DashboardContent() {
             <Badge variant="outline">
               {user.profile?.role_id === 2 ? 'Student' : user.profile?.role_id === 3 ? 'Student Vendor' : 'Member'}
             </Badge>
+          </div>
           </div>
         </div>
 
@@ -193,13 +195,13 @@ function DashboardContent() {
           <div className="space-y-6 lg:col-span-2">
             {/* Quick actions */}
             <div>
-              <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">Quick actions</h2>
+              <h2 className="mb-3 font-display text-lg font-bold tracking-tight text-foreground">Your shortcuts</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {QUICK_ACTIONS.map((action) => (
                   <Link
                     key={action.label}
                     href={action.href}
-                    className="group flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
+                    className="feed-card group flex flex-col items-start gap-3 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                   >
                     <span className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.color}`}>
                       <action.icon className="h-5 w-5" />
@@ -215,7 +217,7 @@ function DashboardContent() {
             {/* Recommendations */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <h2 className="flex items-center gap-1.5 font-display text-lg font-bold tracking-tight text-foreground">
                   <TrendingUp className="h-4 w-4 text-primary" />
                   Popular businesses
                 </h2>
@@ -246,7 +248,7 @@ function DashboardContent() {
             {/* Upcoming events */}
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <h2 className="flex items-center gap-1.5 font-display text-lg font-bold tracking-tight text-foreground">
                   <Calendar className="h-4 w-4 text-primary" />
                   Upcoming events
                 </h2>
@@ -296,7 +298,7 @@ function DashboardContent() {
             {!loading && recentVendors.length > 0 && (
               <div>
                 <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <h2 className="flex items-center gap-1.5 font-display text-lg font-bold tracking-tight text-foreground">
                     <Clock className="h-4 w-4 text-primary" />
                     Recently viewed
                   </h2>
@@ -315,6 +317,23 @@ function DashboardContent() {
 
           {/* Right column — sidebar */}
           <div className="space-y-6">
+            {/* Identity card */}
+            <Card className="overflow-hidden">
+              <div className="h-16 bg-gradient-to-r from-primary/80 via-primary to-accent/80" />
+              <CardContent className="relative p-5 pt-0">
+                <div className="-mt-7 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-card bg-primary/10 text-lg font-bold text-primary shadow-sm">
+                  {firstName.slice(0, 1).toUpperCase()}
+                </div>
+                <p className="mt-3 font-display text-base font-bold text-foreground">{user.profile?.full_name || 'UniEco member'}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{user.studentProfile?.program_of_study || 'Member of the UniEco Ghana network'}</p>
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
+                  <span className="text-muted-foreground">Profile strength</span>
+                  <span className="font-bold text-primary">{profileCompletion}%</span>
+                </div>
+                <Link href="/profile" className="mt-3 inline-flex items-center text-sm font-semibold text-primary hover:underline">View profile <ArrowRight className="ml-1 h-3.5 w-3.5" /></Link>
+              </CardContent>
+            </Card>
+
             {/* Saved items summary */}
             <Card>
               <CardHeader className="pb-3">

@@ -10,7 +10,7 @@
     --brand-red: 4 82% 53%;
     --brand-ink: 210 31% 8%;
     /* Surfaces */
-    --background: 0 0% 100%;
+    --background: 210 20% 97%;
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
@@ -182,9 +182,11 @@
   .ghana-stripe {
     background: linear-gradient(90deg, #d62828 0 33.333%, #f2b134 33.333% 66.666%, #168a45 66.666% 100%);
   }
-  .workspace-page { background: #f7f8f8; }
-  .workspace-card { @apply rounded-xl border border-border bg-card shadow-sm; }
-  .app-surface { @apply rounded-2xl border border-border bg-card shadow-sm; }
+  .workspace-page { background: #f3f2ef; }
+  .workspace-card { @apply rounded-xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)]; }
+  .app-surface { @apply rounded-2xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)]; }
+  .feed-card { @apply rounded-xl border border-border/80 bg-card shadow-[0_1px_2px_rgba(15,23,42,0.04)]; }
+  .surface-hover { @apply transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/25 hover:shadow-md; }
   .app-section { @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8; }
   .scrollbar-thin {
     scrollbar-width: thin;

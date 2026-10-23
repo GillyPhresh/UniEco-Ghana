@@ -27,9 +27,9 @@ export function BusinessCard({ vendor }: BusinessCardProps) {
       : null;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+    <div className="feed-card group flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
       {/* Cover / logo area */}
-      <Link href={`/business/${vendor.business_slug}`} className="relative flex h-32 items-center justify-center bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10">
+      <Link href={`/business/${vendor.business_slug}`} className="relative flex h-36 items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10">
         {vendor.logo_url ? (
           <img
             src={vendor.logo_url}
@@ -50,9 +50,9 @@ export function BusinessCard({ vendor }: BusinessCardProps) {
       </Link>
 
       {/* Content */}
-      <div className="flex flex-1 flex-col p-4">
+      <div className="flex flex-1 flex-col p-5">
         <Link href={`/business/${vendor.business_slug}`}>
-          <h3 className="font-display font-semibold text-foreground group-hover:text-primary transition-colors">
+          <h3 className="font-display text-base font-bold text-foreground transition-colors group-hover:text-primary">
             {vendor.business_name}
           </h3>
         </Link>

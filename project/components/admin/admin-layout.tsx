@@ -192,17 +192,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const sidebar = (
       <div className="flex h-full flex-col">
-      <div className="relative flex h-16 items-center gap-3 border-b border-border px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+      <div className="relative flex h-[4.5rem] items-center gap-3 border-b border-border px-5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <ShieldCheck className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
-          <span className="block truncate font-display text-sm font-bold">UniEco Ghana</span>
-          <span className="block text-[11px] text-muted-foreground">Management console</span>
+          <span className="block truncate font-display text-sm font-bold tracking-tight">UniEco Ghana</span>
+          <span className="block text-[11px] font-medium text-muted-foreground">Professional console</span>
         </div>
       </div>
 
-      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-5">
+      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-6">
         {navGroups.map(group => (
           <div key={group.label}>
             <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">{group.label}</p>
@@ -219,7 +219,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     className={cn(
                       'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-sm'
+                        ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10'
                         : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
                     )}
                   >
@@ -233,7 +233,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="border-t border-border bg-card/80 p-3">
+      <div className="border-t border-border bg-muted/20 p-3">
         <Link href="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to site
         </Link>
@@ -245,9 +245,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-[#f3f2ef]">
       {/* Desktop sidebar */}
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:block">
         {sidebar}
       </aside>
 

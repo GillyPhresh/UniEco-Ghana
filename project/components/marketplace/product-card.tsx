@@ -32,7 +32,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <Link href={`/marketplace/product/${product.id}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:border-primary/30 hover:shadow-md">
+      <Card className="group h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
             <img src={image} alt={product.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
@@ -52,7 +52,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </Badge>
           )}
         </div>
-        <div className="p-3">
+        <div className="p-4">
           <p className="truncate text-sm font-semibold text-foreground">{product.name}</p>
           {product.vendor && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{product.vendor.business_name}</p>
@@ -97,7 +97,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
   return (
     <Link href={`/marketplace/service/${service.id}`}>
-      <Card className="group h-full overflow-hidden transition-all hover:border-primary/30 hover:shadow-md">
+      <Card className="group h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
             <img src={image} alt={service.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
@@ -110,7 +110,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
             Service
           </Badge>
         </div>
-        <div className="p-3">
+        <div className="p-4">
           <p className="truncate text-sm font-semibold text-foreground">{service.name}</p>
           {service.vendor && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{service.vendor.business_name}</p>

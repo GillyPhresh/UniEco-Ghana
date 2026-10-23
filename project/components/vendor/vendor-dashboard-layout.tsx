@@ -42,8 +42,8 @@ export function VendorSidebar({ vendorName, isVerified, subscriptionStatus }: {
 
   return (
     <nav className="flex flex-col gap-1">
-      <div className="mb-3 px-3">
-        <p className="truncate text-sm font-semibold text-foreground">{vendorName}</p>
+      <div className="mb-4 rounded-xl border border-border/80 bg-muted/30 p-3">
+        <p className="truncate text-sm font-bold text-foreground">{vendorName}</p>
         <div className="mt-1.5 flex flex-wrap gap-1.5">
           {isVerified ? (
             <Badge className="bg-success/10 text-success border-success/20 text-xs">
@@ -76,7 +76,7 @@ export function VendorSidebar({ vendorName, isVerified, subscriptionStatus }: {
             href={item.href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-primary/10 text-primary'
+                ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10'
                 : 'text-muted-foreground hover:bg-muted hover:text-foreground'
             }`}
           >
@@ -101,8 +101,8 @@ export function VendorDashboardLayout({ children, vendorName, isVerified, subscr
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-64 shrink-0 border-r border-border bg-card/50 lg:block">
-        <div className="h-full overflow-y-auto p-3">
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-72 shrink-0 border-r border-border bg-card lg:block">
+        <div className="h-full overflow-y-auto p-4">
           <VendorSidebar
             vendorName={vendorName}
             isVerified={isVerified}
@@ -112,10 +112,10 @@ export function VendorDashboardLayout({ children, vendorName, isVerified, subscr
       </aside>
 
       {/* Mobile sidebar trigger */}
-      <div className="fixed bottom-4 left-4 z-40 lg:hidden">
+      <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-4 z-40 lg:hidden">
         <Sheet>
           <SheetTrigger asChild>
-            <Button size="icon" className="h-12 w-12 rounded-full shadow-lg">
+            <Button size="icon" className="h-12 w-12 rounded-full shadow-lg shadow-primary/20">
               <Menu className="h-5 w-5" />
             </Button>
           </SheetTrigger>
@@ -139,8 +139,10 @@ export function VendorDashboardLayout({ children, vendorName, isVerified, subscr
 
       {/* Main content */}
       <div className="flex-1 min-w-0">
-        <div className="container max-w-6xl py-6 sm:py-8 px-4 sm:px-6">
+        <div className="workspace-page min-h-screen max-w-none py-6 sm:py-8">
+          <div className="container max-w-6xl px-4 sm:px-6">
           {children}
+          </div>
         </div>
       </div>
     </div>

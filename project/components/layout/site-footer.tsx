@@ -5,12 +5,12 @@ import { footerLinks, siteConfig } from '@/lib/constants/site';
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-border bg-muted/30">
-      <div className="container py-14">
+    <footer className="border-t border-border bg-card">
+      <div className="container py-16">
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-6">
           <div className="lg:col-span-2">
             <Logo />
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">
               {siteConfig.tagline} The campus marketplace built for every tertiary
               institution in Ghana.
             </p>
@@ -77,7 +77,7 @@ function SocialLink({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted/50 text-muted-foreground transition-colors hover:border-primary hover:bg-primary/10 hover:text-primary"
     >
       {children}
     </a>
