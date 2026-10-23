@@ -10,6 +10,7 @@ type VerifiedEvent = {
   amount: number;
   currency: string;
   payload: Record<string, unknown>;
+  providerEnvironment?: 'test' | 'live';
 };
 
 function json(body: Record<string, unknown>, status: number) {
@@ -42,10 +43,17 @@ function statusFromProvider(value: unknown): "success" | "failed" | "cancelled" 
   return null;
 }
 
+function paystackEnvironment(secret: string): 'test' | 'live' {
+  if (secret.startsWith('sk_live_')) return 'live';
+  if (secret.startsWith('sk_test_')) return 'test';
+  throw new Error('Unsupported Paystack secret format');
+}
+
 async function verifyPaystack(req: Request, raw: string, payload: Record<string, unknown>): Promise<VerifiedEvent> {
   const secret = Deno.env.get("PAYSTACK_SECRET_KEY");
   const signature = req.headers.get("x-paystack-signature");
   if (!secret || !signature || !equalConstantTime(await hmacHex("SHA-512", secret, raw), signature.toLowerCase())) throw new Error("Invalid Paystack signature");
+  const providerEnvironment = paystackEnvironment(secret);
   if (payload.event !== "charge.success") throw new Error("Unsupported Paystack event");
   const data = payload.data as Record<string, unknown> | undefined;
   if (!data?.reference || !data?.id) throw new Error("Invalid Paystack payload");
@@ -60,7 +68,7 @@ async function verifyPaystack(req: Request, raw: string, payload: Record<string,
   const amount = Number(verifiedData?.amount);
   const status = statusFromProvider(verifiedData?.status);
   if (!verification.ok || !verified.status || !verifiedData || String(verifiedData.reference) !== String(data.reference) || String(verifiedData.id) !== String(data.id) || !Number.isFinite(amount) || status !== "success") throw new Error("Paystack transaction verification failed");
-  return { provider: "paystack", eventId: String(verifiedData.id), paymentReference: String(verifiedData.reference), providerReference: String(verifiedData.id), status, amount: amount / 100, currency: String(verifiedData.currency || "GHS"), payload };
+  return { provider: "paystack", eventId: String(verifiedData.id), paymentReference: String(verifiedData.reference), providerReference: String(verifiedData.id), status, amount: amount / 100, currency: String(verifiedData.currency || "GHS"), payload, providerEnvironment };
 }
 
 async function verifyFlutterwave(req: Request, payload: Record<string, unknown>): Promise<VerifiedEvent> {
@@ -94,7 +102,7 @@ Deno.serve(async (req: Request) => {
         p_status: event.status,
         p_amount: event.amount,
         p_currency: event.currency,
-        p_provider_environment: Deno.env.get("PAYSTACK_MODE") === "live" ? "live" : "test",
+        p_provider_environment: event.providerEnvironment,
         p_signature: req.headers.get("x-paystack-signature"),
         p_payload: event.payload,
       });

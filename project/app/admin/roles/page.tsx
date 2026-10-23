@@ -163,10 +163,25 @@ function Content() {
 
       {/* Permission matrix */}
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
+        <CardContent className="p-0">
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-8 rounded" />)}</div>
           ) : (
+            <>
+              <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile permission matrix">
+                {permissions.map(perm => (
+                  <article key={perm} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                    <p className="text-sm font-semibold">{PERMISSION_LABELS[perm]}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {roles.map(role => ROLE_PERMISSIONS[role]?.includes(perm) && (
+                        <Badge key={role} className="bg-success/10 text-success">{ROLE_LABELS[role]}</Badge>
+                      ))}
+                      {!roles.some(role => ROLE_PERMISSIONS[role]?.includes(perm)) && <span className="text-sm text-muted-foreground">No assigned roles</span>}
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -191,6 +206,8 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

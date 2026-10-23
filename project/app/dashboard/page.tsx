@@ -82,33 +82,30 @@ function DashboardContent() {
     );
     setProfileCompletion(completion);
 
-    const { data: featured } = await supabase
+    const businessIds = recent.filter((r) => r.item_type === 'business').map((r) => r.item_id);
+    const featuredQuery = supabase
       .from('vendors')
       .select(`*, university:universities(id, name, short_name, slug)`)
       .eq('is_active', true)
       .order('rating_avg', { ascending: false })
       .limit(4);
-    setRecommendedVendors((featured || []) as unknown as VendorWithRelations[]);
-
-    if (recent.length > 0) {
-      const businessIds = recent.filter((r) => r.item_type === 'business').map((r) => r.item_id);
-      if (businessIds.length > 0) {
-        const { data: rv } = await supabase
-          .from('vendors')
-          .select(`*, university:universities(id, name, short_name, slug)`)
-          .in('id', businessIds)
-          .limit(4);
-        setRecentVendors((rv || []) as unknown as VendorWithRelations[]);
-      }
-    }
-
-    const { data: events } = await supabase
+    const recentQuery = businessIds.length > 0
+      ? supabase
+        .from('vendors')
+        .select(`*, university:universities(id, name, short_name, slug)`)
+        .in('id', businessIds)
+        .limit(4)
+      : Promise.resolve({ data: null });
+    const eventsQuery = supabase
       .from('events')
       .select('id, title, slug, start_time, location')
       .eq('is_published', true)
       .gte('start_time', new Date().toISOString())
       .order('start_time', { ascending: true })
       .limit(3);
+    const [{ data: featured }, { data: recentBusinesses }, { data: events }] = await Promise.all([featuredQuery, recentQuery, eventsQuery]);
+    setRecommendedVendors((featured || []) as unknown as VendorWithRelations[]);
+    setRecentVendors((recentBusinesses || []) as unknown as VendorWithRelations[]);
     setUpcomingEvents(events || []);
 
     setLoading(false);

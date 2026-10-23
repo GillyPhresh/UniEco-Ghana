@@ -12,7 +12,7 @@ import { getAdminPayments } from '@/lib/data/payment-client';
 import { downloadAdminCsv } from '@/lib/data/admin-export-client';
 import type { AdminPayment } from '@/lib/types/payment';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
-import { CreditCard, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { CreditCard, Download, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function AdminPaymentsPage() {
@@ -29,6 +29,7 @@ function Content() {
   const [filter, setFilter] = useState('all');
   const [loadError, setLoadError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [reconcilingReference, setReconcilingReference] = useState<string | null>(null);
   const pageSize = 20;
 
   const loadPayments = useCallback(async () => {
@@ -49,6 +50,26 @@ function Content() {
 
   useEffect(() => { void loadPayments(); }, [loadPayments]);
 
+  const reconcilePayment = async (reference: string) => {
+    setReconcilingReference(reference);
+    try {
+      const response = await fetch('/api/admin/payments/reconcile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ reference }),
+      });
+      const body = await response.json() as { payment?: { status?: string }; error?: string };
+      if (!response.ok) throw new Error(body.error || 'Unable to verify this payment.');
+      toast.success(body.payment?.status === 'success' ? 'Payment confirmed and dashboard updated.' : 'Payment status refreshed.');
+      await loadPayments();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to verify this payment.');
+    } finally {
+      setReconcilingReference(null);
+    }
+  };
+
   const handleExport = async () => {
     setExporting(true);
     try {
@@ -61,21 +82,27 @@ function Content() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 max-w-7xl">
-      <div className="flex items-center justify-between">
+    <div className="max-w-7xl space-y-4 p-4 sm:p-6">
+      <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <CreditCard className="h-6 w-6 text-primary" /> Payments
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">{total} transactions</p>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || loading || !!loadError}>
+        <div className="flex w-full gap-2 sm:w-auto">
+          <Button variant="outline" size="sm" onClick={() => void loadPayments()} disabled={loading} className="flex-1 sm:flex-none">
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting || loading || !!loadError} className="flex-1 sm:flex-none">
           <Download className="mr-2 h-4 w-4" /> {exporting ? 'Preparing…' : 'Export'}
         </Button>
       </div>
 
+      </div>
+
       <Tabs value={filter} onValueChange={v => { setFilter(v); setPage(0); }}>
-        <TabsList className="flex flex-wrap h-auto">
+        <TabsList className="flex h-auto w-full justify-start overflow-x-auto sm:w-auto">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="success">Successful</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
@@ -102,6 +129,7 @@ function Content() {
               {payments.map(p => <article key={p.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{p.payment_reference || 'Payment reference unavailable'}</p><p className="mt-1 break-words text-sm">{p.user?.full_name || p.user?.email || 'User unavailable'}</p></div><Badge className="shrink-0">{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge></div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-0.5 font-semibold">GH₵{p.amount.toFixed(2)}</dd></div><div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="mt-0.5 capitalize">{p.provider}</dd></div><div><dt className="text-xs text-muted-foreground">Type</dt><dd className="mt-0.5 capitalize">{p.payment_type}</dd></div><div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</dd></div></dl>
+                {p.provider === 'paystack' && ['pending', 'initiated'].includes(p.status) && p.payment_reference && <Button variant="outline" size="sm" className="mt-4 min-h-10 w-full" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-2 h-4 w-4 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />{reconcilingReference === p.payment_reference ? 'Checking Paystack…' : 'Verify payment status'}</Button>}
               </article>)}
             </div>
             <div className="hidden lg:block">
@@ -115,6 +143,7 @@ function Content() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -127,6 +156,7 @@ function Content() {
                     <TableCell className="font-medium">GH₵{p.amount.toFixed(2)}</TableCell>
                     <TableCell><Badge className={PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.color || 'bg-muted text-muted-foreground'}>{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</TableCell>
+                    <TableCell>{p.provider === 'paystack' && ['pending', 'initiated'].includes(p.status) && p.payment_reference ? <Button variant="ghost" size="sm" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />Verify</Button> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

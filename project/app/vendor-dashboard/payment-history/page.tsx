@@ -85,6 +85,25 @@ function Content() {
       ) : (
         <Card>
           <CardContent className="p-0">
+            <div className="space-y-3 p-3 lg:hidden" aria-label="Mobile payment history list">
+              {payments.map(p => (
+                <article key={p.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="break-all font-mono text-xs text-muted-foreground">{p.payment_reference || 'Payment reference unavailable'}</p>
+                      <p className="mt-1 text-sm font-medium capitalize">{p.payment_type.replaceAll('_', ' ')}</p>
+                    </div>
+                    <Badge className="shrink-0">{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge>
+                  </div>
+                  <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm">
+                    <div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-0.5 font-semibold">GHS {p.amount.toFixed(2)}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="mt-0.5 capitalize">{p.provider}</dd></div>
+                    <div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</dd></div>
+                  </dl>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto lg:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -109,6 +128,7 @@ function Content() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
