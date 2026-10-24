@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Package,
   Search,
+  ShieldCheck,
   Settings,
   ShoppingCart,
   Store,
@@ -121,6 +122,11 @@ export function SiteHeader() {
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
                 <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unreadNotifs} />
               </div>
+              {user.role === 'super_admin' && (
+                <Button asChild size="sm" variant="outline" className="hidden border-primary/30 text-primary hover:bg-primary/10 lg:inline-flex">
+                  <Link href="/admin" aria-label="Open management system"><ShieldCheck className="mr-1.5 h-4 w-4" />Management system</Link>
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-muted" aria-label="Open account menu">
@@ -142,6 +148,7 @@ export function SiteHeader() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push('/profile')}><Settings className="mr-2 h-4 w-4" />Profile &amp; settings</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/dashboard')}><LayoutDashboard className="mr-2 h-4 w-4" />My dashboard</DropdownMenuItem>
+                  {user.role === 'super_admin' && <DropdownMenuItem onClick={() => router.push('/admin')}><ShieldCheck className="mr-2 h-4 w-4 text-primary" />Management system</DropdownMenuItem>}
                   <DropdownMenuItem onClick={() => router.push('/marketplace')}><ShoppingCart className="mr-2 h-4 w-4" />Marketplace</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/orders')}><Package className="mr-2 h-4 w-4" />My orders</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/wishlist')}><Heart className="mr-2 h-4 w-4" />Saved items</DropdownMenuItem>
@@ -183,6 +190,7 @@ export function SiteHeader() {
                 {user && (
                   <nav className="flex flex-col gap-1 border-t border-border px-4 py-4" aria-label="Account">
                     <SheetClose asChild><Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><LayoutDashboard className="h-5 w-5 text-primary" />My dashboard</Link></SheetClose>
+                    {user.role === 'super_admin' && <SheetClose asChild><Link href="/admin" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><ShieldCheck className="h-5 w-5" />Management system</Link></SheetClose>}
                     <SheetClose asChild><Link href="/dashboard/messages" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><MessageSquare className="h-5 w-5 text-primary" />Messages</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/notifications" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Bell className="h-5 w-5 text-primary" />Notifications</Link></SheetClose>
                     <SheetClose asChild><Link href="/start-business" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Store className="h-5 w-5 text-primary" />Start a business</Link></SheetClose>
