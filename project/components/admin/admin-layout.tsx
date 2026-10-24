@@ -191,21 +191,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const sidebar = (
-      <div className="flex h-full flex-col">
-      <div className="relative flex h-[4.5rem] items-center gap-3 border-b border-border px-5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+      <div className="flex h-full flex-col bg-[#0b1220] text-white">
+      <div className="relative flex h-[5.25rem] items-center gap-3 border-b border-white/10 px-5">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
           <ShieldCheck className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0">
           <span className="block truncate font-display text-sm font-bold tracking-tight">UniEco Ghana</span>
-          <span className="block text-[11px] font-medium text-muted-foreground">Professional console</span>
+          <span className="block text-[11px] font-medium text-white/50">Management console</span>
         </div>
       </div>
 
-      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-6">
+      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-5">
         {navGroups.map(group => (
           <div key={group.label}>
-            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground/60">{group.label}</p>
+            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{group.label}</p>
             <div className="space-y-0.5">
               {group.items.map(item => {
                 const Icon = ICON_MAP[item.icon] || Shield;
@@ -217,10 +217,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     onClick={() => setMobileNavOpen(false)}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
-                      'group flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                      'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
                       isActive
-                        ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10'
-                        : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(16,185,129,0.18)]'
+                        : 'text-white/65 hover:bg-white/10 hover:text-white'
                     )}
                   >
                     <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-105" />
@@ -233,21 +233,21 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         ))}
       </nav>
 
-      <div className="border-t border-border bg-muted/20 p-3">
-        <Link href="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+      <div className="border-t border-white/10 bg-white/[0.03] p-3">
+        <Link href="/" className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/55 hover:bg-white/10 hover:text-white">
           <ArrowLeft className="h-3.5 w-3.5" /> Back to site
         </Link>
         {user && (
-          <p className="px-3 mt-1 text-xs text-muted-foreground truncate">{user.email}</p>
+          <p className="mt-1 truncate px-3 text-xs text-white/40">{user.email}</p>
         )}
       </div>
     </div>
   );
 
   return (
-    <div className="flex min-h-screen bg-[#f3f2ef]">
+    <div className="flex min-h-screen bg-[#eef1f5]">
       {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-border bg-card lg:block">
+      <aside className="hidden w-[17rem] shrink-0 border-r border-slate-800 bg-[#0b1220] lg:block">
         {sidebar}
       </aside>
 
@@ -255,14 +255,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <div className="flex min-h-screen flex-1 flex-col lg:hidden">
           {/* Top bar */}
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border bg-card/95 px-3 backdrop-blur sm:px-4">
+          <header className="sticky top-0 z-30 flex h-[4.25rem] items-center gap-3 border-b border-border bg-white/95 px-3 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur sm:px-4">
             <SheetTrigger asChild>
               <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" aria-label="Open management menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
             <div className="min-w-0 flex-1">
-              <span className="block truncate font-display text-sm font-bold">{activeItem?.label || 'Management console'}</span>
+              <span className="block truncate font-display text-sm font-bold text-slate-900">{activeItem?.label || 'Management console'}</span>
               <span className="block truncate text-[11px] capitalize text-muted-foreground">UniEco Ghana · {user?.role?.replaceAll('_', ' ') || 'admin'}</span>
             </div>
             <div
@@ -286,7 +286,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </main>
 
           <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-6px_20px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="Mobile admin shortcuts">
-            <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
+            <div className="mx-auto grid max-w-lg grid-cols-4 gap-1 rounded-2xl border border-border/80 bg-white/95 p-1 shadow-[0_-8px_28px_rgba(15,23,42,0.08)]">
               {mobileQuickLinks.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href || (href !== '/admin' && pathname.startsWith(href));
                 return (
@@ -310,13 +310,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
           </nav>
         </div>
-        <SheetContent side="left" className="w-[88vw] max-w-[22rem] p-0">
+        <SheetContent side="left" className="w-[88vw] max-w-[22rem] border-white/10 bg-[#0b1220] p-0 text-white">
           {sidebar}
         </SheetContent>
       </Sheet>
 
       {/* Desktop content area */}
-      <div className="workspace-page hidden min-w-0 flex-1 flex-col overflow-hidden lg:flex">
+      <div className="workspace-page hidden min-h-screen min-w-0 flex-1 flex-col overflow-hidden lg:flex">
         <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
         </main>
