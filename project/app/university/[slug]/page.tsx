@@ -13,6 +13,7 @@ import {
 } from '@/lib/data/public-queries';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { siteConfig } from '@/lib/constants/site';
+import { getLocalUniversityBranding } from '@/lib/data/university-branding';
 import { Building2, MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap, Image as ImageIcon } from 'lucide-react';
 
 interface PageProps {
@@ -29,8 +30,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${university.name} (${university.short_name}) — Businesses, Events & Services | ${siteConfig.name}`;
   const description = `Discover businesses, food vendors, services, and events at ${university.name} in ${university.city}. Find everything around ${university.short_name} campus on UniEco Ghana.`;
   const canonicalUrl = `${siteConfig.url}/university/${university.slug}`;
-  const isUenr = university.slug.toLowerCase() === 'uenr';
-  const ogImage = university.hero_image_url || university.logo_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : '/og-image.png');
+  const localBranding = getLocalUniversityBranding(university.slug);
+  const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/og-image.png';
   const ogImageAlt = university.hero_alt_text || university.logo_alt_text || `${university.name} campus`;
 
   return {
@@ -99,11 +100,9 @@ export default async function UniversityPage({ params }: PageProps) {
   const studentBusinesses = vendors.filter((v) => v.is_student_business);
   const verifiedBusinesses = vendors.filter((v) => v.is_verified);
 
-  // UENR has approved local brand assets while its database branding fields
-  // are still being completed by the university administrator.
-  const isUenr = university.slug.toLowerCase() === 'uenr';
-  const logoUrl = university.logo_url || (isUenr ? '/assets/universities/UENR/UENR_LOGO.png' : null);
-  const heroImageUrl = university.landmark_image_url || university.hero_image_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : null);
+  const localBranding = getLocalUniversityBranding(university.slug);
+  const logoUrl = university.logo_url || localBranding.logoUrl;
+  const heroImageUrl = university.landmark_image_url || university.hero_image_url || localBranding.campusUrl;
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
   const heroAlt = university.hero_alt_text || `${university.name} campus landmark`;

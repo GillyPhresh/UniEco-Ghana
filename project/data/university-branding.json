@@ -1,0 +1,1446 @@
+{
+  "sdd-ubids": {
+    "slug": "sdd-ubids",
+    "shortName": "SDD-UBIDS",
+    "name": "Simon Diedong Dombo University of Business and Integrated Development Studies",
+    "sourceUrl": "https://ubids.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/sdd-ubids/logo.png",
+      "sourcePage": "https://ubids.edu.gh/",
+      "sourceUrl": "https://ubids.edu.gh/wp-content/uploads/2026/01/ubids_logo_new.png",
+      "contentType": "image/png",
+      "bytes": 20142,
+      "sha256": "50b2f9259733ab8696e89fdcaeb9435f3be703dc8dce8f8cffd9483b0212170e",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/sdd-ubids/campus.jpg",
+      "sourcePage": "https://ubids.edu.gh/",
+      "sourceUrl": "https://ubids.edu.gh/wp-content/uploads/2024/01/ubids_bsc_construction.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 349285,
+      "sha256": "47eb7ae0770d3e056eb98bdd56e1a4ca6c7ad5531bec5e37dbb0d2bbd22c90a9",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:07.636Z"
+  },
+  "gimpa": {
+    "slug": "gimpa",
+    "shortName": "GIMPA",
+    "name": "Ghana Institute of Management and Public Administration",
+    "sourceUrl": "https://gimpa.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": "Official homepage and assets currently fail certificate validation in the downloader; no insecure copy was imported.",
+    "checkedAt": "2026-10-24T21:48:07.619Z"
+  },
+  "knust": {
+    "slug": "knust",
+    "shortName": "KNUST",
+    "name": "Kwame Nkrumah University of Science and Technology",
+    "sourceUrl": "https://www.knust.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/knust/logo.png",
+      "sourcePage": "https://www.knust.edu.gh/about",
+      "sourceUrl": "https://www.knust.edu.gh/themes/custom/adepts/images/knustlogo.png",
+      "contentType": "image/png",
+      "bytes": 20981,
+      "sha256": "5f8f2cb05209a50b869cf1bc4384a36a6b53f6e610c73272666431190d9c01ac",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/knust/campus.jpg",
+      "sourcePage": "https://www.knust.edu.gh/about",
+      "sourceUrl": "https://www.knust.edu.gh/themes/custom/adepts/images/aboutknustimg.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 81292,
+      "sha256": "7e1896456480110e4a2afd0a1b7ad6109e3e5811a12e2e4c9b605cbaebb650f7",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:07.627Z"
+  },
+  "uew": {
+    "slug": "uew",
+    "shortName": "UEW",
+    "name": "University of Education, Winneba",
+    "sourceUrl": "https://uew.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/uew/logo.png",
+      "sourcePage": "https://uew.edu.gh/",
+      "sourceUrl": "https://uew.edu.gh/themes/custom/pinaman/images/logos/uew-logo-w.png",
+      "contentType": "image/png",
+      "bytes": 41218,
+      "sha256": "97f0fb864fe5927ea6bb7d55ec4b218ffce05f519f44a12c5f50b3e3fa3e6e09",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/uew/campus.jpg",
+      "sourcePage": "https://uew.edu.gh/",
+      "sourceUrl": "https://uew.edu.gh/sites/default/files/2023-12/uew_hall_img_link.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 73944,
+      "sha256": "ce020fab2a610cc11ff5a04429b90d03707e4f24bd0fab348ef0f74018ede2e9",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:10.363Z"
+  },
+  "ucc": {
+    "slug": "ucc",
+    "shortName": "UCC",
+    "name": "University of Cape Coast",
+    "sourceUrl": "https://ucc.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ucc/logo.png",
+      "sourcePage": "https://ucc.edu.gh/",
+      "sourceUrl": "https://ucc.edu.gh/img/ucc-logos/horizontal-logo/white-horizontal-logo/ucclogo_horizontal_white.png",
+      "contentType": "image/png",
+      "bytes": 54187,
+      "sha256": "f2814d4e815f69489829574a6e7911b38bab7314342e7945d26672cfb4a8fe26",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ucc/campus.png",
+      "sourcePage": "https://ucc.edu.gh/",
+      "sourceUrl": "https://ucc.edu.gh/img/graduate.png",
+      "contentType": "image/png",
+      "bytes": 179946,
+      "sha256": "b2bb518540109cc5053446ac16732829dbc6e442ad21f37457884d1c74e22a67",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:09.951Z"
+  },
+  "uds": {
+    "slug": "uds",
+    "shortName": "UDS",
+    "name": "University for Development Studies",
+    "sourceUrl": "https://uds.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/uds/logo.ico",
+      "sourcePage": "https://uds.edu.gh/",
+      "sourceUrl": "https://uds.edu.gh/favicon.ico",
+      "contentType": "image/x-icon",
+      "bytes": 108486,
+      "sha256": "3fbec7ffaea1527c98e3eb5d809e377587f6a1b6d366b89f8fe8e452aa7ecbcd",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/uds/campus.jpg",
+      "sourcePage": "https://uds.edu.gh/",
+      "sourceUrl": "https://uds.edu.gh/udsimgs/uds6785img8657.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 451597,
+      "sha256": "e133f6e3a7cb82b9bc9ef28f7c2b4ea2c2d6621b54c3ee177eb37c8a46cfdc46",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:09.761Z"
+  },
+  "aamusted": {
+    "slug": "aamusted",
+    "shortName": "AAMUSTED",
+    "name": "Akenten Appiah-Menka University of Skills Training and Entrepreneurial Development",
+    "sourceUrl": "https://usted.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/aamusted/logo.jpg",
+      "sourcePage": "https://usted.edu.gh/gallery/",
+      "sourceUrl": "https://aamusted.edu.gh/wp-content/uploads/2022/08/uni-logo-2-768x224.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 33900,
+      "sha256": "f844d615261379676ace2822d4db7aeaeacf462c87a71efed78e4210bb3048ea",
+      "score": 36
+    },
+    "campus": {
+      "path": "/assets/universities/aamusted/campus.jpg",
+      "sourcePage": "https://usted.edu.gh/",
+      "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2026/10/DIGIMARKT_Conference_web-banner.jpg-scaled.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 409945,
+      "sha256": "a5c1d5e30e3795d9014c620e0b3b6e5dc340dc25e73dd46663040139074a4182",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:07.172Z"
+  },
+  "uenr": {
+    "slug": "uenr",
+    "shortName": "UENR",
+    "name": "University of Energy and Natural Resources",
+    "sourceUrl": "https://uenr.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/UENR/logo.png",
+      "sourcePage": "https://uenr.edu.gh/",
+      "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/2021/01/uenr-logo-websites-new.png",
+      "contentType": "image/png",
+      "bytes": 2806,
+      "sha256": "ea9ee24b400b0d1b960f23839a39ad93768906135c57572880014255375169ea",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/UENR/campus.jpg",
+      "sourcePage": "https://uenr.edu.gh/",
+      "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/2026/10/2A36851275AFD7ACB5D4-5th_-819x1024.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 193046,
+      "sha256": "2518930f67d493a5444ae585ddc0288174344b9b79073e3ff8639f2a6287a86b",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:12.515Z"
+  },
+  "gctu": {
+    "slug": "gctu",
+    "shortName": "GCTU",
+    "name": "Ghana Communication Technology University",
+    "sourceUrl": "https://site.gctu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/gctu/logo.png",
+      "sourcePage": "https://site.gctu.edu.gh/",
+      "sourceUrl": "https://site.gctu.edu.gh/wp-content/themes/gctu/assets/images/logo.png",
+      "contentType": "image/png",
+      "bytes": 72053,
+      "sha256": "dbd3aca9e2a16e32590df41c57d5844f511d4c9dc28c7d135f2b2be95ee38e37",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/gctu/campus.jpg",
+      "sourcePage": "https://site.gctu.edu.gh/",
+      "sourceUrl": "https://site.gctu.edu.gh/wp-content/uploads/gtuc/photogallery/MoU_with_Celltell/1.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 133942,
+      "sha256": "d4a91dd656f0cecf79ca3ea57735f257e0da50063f1e4f393dba84a5a251927f",
+      "score": 36
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:07.603Z"
+  },
+  "uhas": {
+    "slug": "uhas",
+    "shortName": "UHAS",
+    "name": "University of Health and Allied Sciences",
+    "sourceUrl": "https://www.uhas.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/uhas/logo.png",
+      "sourcePage": "https://www.uhas.edu.gh/uhas/",
+      "sourceUrl": "https://www.uhas.edu.gh/uhas/sites/default/files/UHA%20Logo.png",
+      "contentType": "image/png",
+      "bytes": 241046,
+      "sha256": "607c05e46198b8414e0cdca9a03d86a1ef7925608b19e062f2dcecca281fb453",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/uhas/campus.jpg",
+      "sourcePage": "https://www.uhas.edu.gh/uhas/",
+      "sourceUrl": "https://www.uhas.edu.gh/uhas/themes/custom/uhas/assets/images/UHASimag.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 1689317,
+      "sha256": "586640ca8d270be5eb339ddd6c11e971bbeba1f3620409c98f8be0111a966e90",
+      "score": 24
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:12.541Z"
+  },
+  "utas": {
+    "slug": "utas",
+    "shortName": "UTAS",
+    "name": "University of Technology and Applied Sciences",
+    "sourceUrl": "https://utas.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/utas/logo.png",
+      "sourcePage": "https://utas.edu.gh/campus-safety-tips/",
+      "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2025/12/UTAS-LOGO.png",
+      "contentType": "image/png",
+      "bytes": 101588,
+      "sha256": "090b08e237a494b9840433b86846c524fca73d6b5673bf3e639c43d22eded2dc",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/utas/campus.webp",
+      "sourcePage": "https://utas.edu.gh/",
+      "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2026/06/UTAS-7th-Congregation-7-Large-1.webp",
+      "contentType": "image/webp",
+      "bytes": 42788,
+      "sha256": "397a11b62e114ebe52c09888cdfcf8dff678893b12097348574304e6c35a1e41",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:07.591Z"
+  },
+  "umat": {
+    "slug": "umat",
+    "shortName": "UMaT",
+    "name": "University of Mines and Technology",
+    "sourceUrl": "https://umat.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/umat/logo.png",
+      "sourcePage": "https://umat.edu.gh/",
+      "sourceUrl": "https://umat.edu.gh/images/logo.png",
+      "contentType": "image/png",
+      "bytes": 7482,
+      "sha256": "48ee6d0d5506253d07b5375196d84f5af76b89551211ca6e3d4f306fe33797d7",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/umat/campus.jpg",
+      "sourcePage": "https://umat.edu.gh/",
+      "sourceUrl": "https://umat.edu.gh/images/Slideshow/2024/UMaT-cover.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 101444,
+      "sha256": "77aae3c6d78a6c6afba10c946e57f3d7f3e9242ce9124d8edf7518aeb4c39ece",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:14.768Z"
+  },
+  "ug": {
+    "slug": "ug",
+    "shortName": "UG",
+    "name": "University of Ghana",
+    "sourceUrl": "https://ug.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ug/logo.svg",
+      "sourcePage": "https://ug.edu.gh/",
+      "sourceUrl": "https://ug.edu.gh/themes/custom/ugtheme/logo.svg",
+      "contentType": "image/svg+xml",
+      "bytes": 138787,
+      "sha256": "4025f5113b83744145445bdd1009bdf00805f911885d176da092a79feb9e3aea",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ug/campus.jpg",
+      "sourcePage": "https://ug.edu.gh/",
+      "sourceUrl": "https://ug.edu.gh/sites/default/files/2026-10/UBS%20Awards%20Winning%20Team.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 154923,
+      "sha256": "2c47b26fca7bcfc799332f689cb1784028a72030a40c24497ce8efb886215095",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:14.538Z"
+  },
+  "uesd": {
+    "slug": "uesd",
+    "shortName": "UESD",
+    "name": "University of Environment and Sustainable Development",
+    "sourceUrl": "https://www.uesd.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/uesd/logo.jpg",
+      "sourcePage": "https://www.uesd.edu.gh/",
+      "sourceUrl": "https://www.uesd.edu.gh/athuboas/2022/09/allogo.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 495986,
+      "sha256": "9aabb28f5e96ca27d1e2fc51995138bbcfaee464db0578aa659833c7f9e2eab6",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/uesd/campus.png",
+      "sourcePage": "https://www.uesd.edu.gh/",
+      "sourceUrl": "https://www.uesd.edu.gh/athuboas/2026/08/HPbanner.png",
+      "contentType": "image/png",
+      "bytes": 1978271,
+      "sha256": "eabb390e4c31e4124eacd26bb6da77e038a80db80702cec12c61bf8146326a93",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:13.213Z"
+  },
+  "dhltu": {
+    "slug": "dhltu",
+    "shortName": "DHLTU",
+    "name": "Dr. Hilla Limann Technical University",
+    "sourceUrl": "https://www.dhltu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/dhltu/logo.png",
+      "sourcePage": "https://www.dhltu.edu.gh/",
+      "sourceUrl": "https://www.dhltu.edu.gh/assets/brand/logo.png",
+      "contentType": "image/png",
+      "bytes": 8036,
+      "sha256": "8706f00bb3677b86d9b2adc7b8e807f52d1a023d5d6468ebded659844a99cbb0",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/dhltu/campus.jpg",
+      "sourcePage": "https://www.dhltu.edu.gh/",
+      "sourceUrl": "https://www.dhltu.edu.gh/assets/images/hero/admissions.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 797732,
+      "sha256": "26fa6cdbbb618c0b78180b1a92cbe575ef04e1798282e1421c5e935a17c843d7",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:20.868Z"
+  },
+  "atu": {
+    "slug": "atu",
+    "shortName": "ATU",
+    "name": "Accra Technical University",
+    "sourceUrl": "https://atu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/atu/logo.png",
+      "sourcePage": "https://atu.edu.gh/campus-facilities/",
+      "sourceUrl": "https://atu.edu.gh/wp-content/uploads/2024/07/ATU-LOGO-AUTHENTIC-edit-150x150.png",
+      "contentType": "image/png",
+      "bytes": 11455,
+      "sha256": "c7d82f2f96c3e13f450425fbc76a9f54dfb9cf73cb2128ff2e273c17d311d2d6",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/atu/campus.jpg",
+      "sourcePage": "https://atu.edu.gh/",
+      "sourceUrl": "https://atu.edu.gh/wp-content/uploads/2024/08/580A0873-1024x683.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 119703,
+      "sha256": "5da35bdba7a1449ebb91496cfd6d289007890eafd7127638e18ab77ac5fc9d5d",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:18.113Z"
+  },
+  "unimac": {
+    "slug": "unimac",
+    "shortName": "UniMAC",
+    "name": "University of Media, Arts and Communication",
+    "sourceUrl": "https://unimac.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/unimac/logo.png",
+      "sourcePage": "https://unimac.edu.gh/",
+      "sourceUrl": "https://unimac.edu.gh/wp-content/uploads/2023/01/logo.png",
+      "contentType": "image/png",
+      "bytes": 9457,
+      "sha256": "95e6e85d141f4a4f6c727caa455b6b9432a2a32fef71e6580f6a0fa230d59af2",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/unimac/campus.jpg",
+      "sourcePage": "https://unimac.edu.gh/",
+      "sourceUrl": "https://unimac.edu.gh/wp-content/uploads/2026/08/Alumni-Slider.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 349211,
+      "sha256": "aa75789e87e62e61df3da0add5779a0d5269c8c4efcb3496b9cf4d9e8b9307b6",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:14.693Z"
+  },
+  "upsa": {
+    "slug": "upsa",
+    "shortName": "UPSA",
+    "name": "University of Professional Studies, Accra",
+    "sourceUrl": "https://upsa.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/upsa/logo.png",
+      "sourcePage": "https://upsa.edu.gh/",
+      "sourceUrl": "https://upsa.edu.gh/wp-content/uploads/2023/03/upsa-logo-new.png",
+      "contentType": "image/png",
+      "bytes": 31573,
+      "sha256": "64f589f80405b7c750c5bfe717064e6ebc45e3cd0a17f87da43944833fe06118",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/upsa/campus.jpg",
+      "sourcePage": "https://upsa.edu.gh/",
+      "sourceUrl": "https://upsa.edu.gh/wp-content/uploads/2026/09/UPSA-Orientation-2026-Web-Banner-2000x700-1.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 278873,
+      "sha256": "d0ec844c72edf758dccad9d523822bb8acbd7deb84b54ac7197512ac9dcbad86",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:15.688Z"
+  },
+  "btu": {
+    "slug": "btu",
+    "shortName": "BTU",
+    "name": "Bolgatanga Technical University",
+    "sourceUrl": "https://bolgatu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/btu/logo.png",
+      "sourcePage": "https://bolgatu.edu.gh/",
+      "sourceUrl": "https://bolgatu.edu.gh/wp-content/uploads/2026/05/YCI-Horizontal-Logo-Colour-768x270-1.png",
+      "contentType": "image/png",
+      "bytes": 13684,
+      "sha256": "569dd9b7cc2030920feb752f577e6582ecf28f43f05a160a1b4a7e73c1a60e51",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/btu/campus.png",
+      "sourcePage": "https://bolgatu.edu.gh/",
+      "sourceUrl": "https://bolgatu.edu.gh/wp-content/uploads/2026/05/log-for-blk-bg.png",
+      "contentType": "image/png",
+      "bytes": 875792,
+      "sha256": "ec0a424a66d34774c7949de001d451a6d642a3c437ad8ae52903253758c89b46",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:18.460Z"
+  },
+  "kstu": {
+    "slug": "kstu",
+    "shortName": "KsTU",
+    "name": "Kumasi Technical University",
+    "sourceUrl": "https://kstu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/kstu/logo.png",
+      "sourcePage": "https://kstu.edu.gh/",
+      "sourceUrl": "https://kstu.edu.gh/sites/default/files/kstu-new_0.png",
+      "contentType": "image/png",
+      "bytes": 29779,
+      "sha256": "b6ef02284bd5786a5fefb494b7c99fef4c6ad1e7fd41c3014a3d2f64484ac5c1",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/kstu/campus.jpg",
+      "sourcePage": "https://kstu.edu.gh/",
+      "sourceUrl": "https://kstu.edu.gh/sites/default/files/2026-10/Hostel.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 77261,
+      "sha256": "a944cd8ac048cdbd1b9220943fd97708ea58f4418e13432404b7a94d34a7701c",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:23.150Z"
+  },
+  "ktu": {
+    "slug": "ktu",
+    "shortName": "KTU",
+    "name": "Koforidua Technical University",
+    "sourceUrl": "https://ktu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ktu/logo.png",
+      "sourcePage": "https://ktu.edu.gh/campus",
+      "sourceUrl": "https://ktu.edu.gh/storage/branding/ktu-logo-white-hero.png",
+      "contentType": "image/png",
+      "bytes": 22246,
+      "sha256": "61589cc72c094367a11f6f1e6f7676b296f1f974173c17f0d54254ab3f6d3c9d",
+      "score": 60
+    },
+    "campus": {
+      "path": "/assets/universities/ktu/campus.png",
+      "sourcePage": "https://ktu.edu.gh/",
+      "sourceUrl": "https://ktu.edu.gh/storage/media/images/smiling-students-in-a-bright-lecture-hall-ktu-ji4O2z.png",
+      "contentType": "image/png",
+      "bytes": 2365710,
+      "sha256": "4b125b67cc1ec25c1e4f0b47c33194b629cce90e247799279fc9cb5890764d0a",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:22.840Z"
+  },
+  "cctu": {
+    "slug": "cctu",
+    "shortName": "CCTU",
+    "name": "Cape Coast Technical University",
+    "sourceUrl": "https://cctu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/cctu/logo.png",
+      "sourcePage": "https://cctu.edu.gh/site/index",
+      "sourceUrl": "https://cctu.edu.gh/site/img/logo/logo_header.png",
+      "contentType": "image/png",
+      "bytes": 21352,
+      "sha256": "6f0890fdabd12c5ad13f3085dcd6596a5027712ff025d056607854d4ef3ce180",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/cctu/campus.jpg",
+      "sourcePage": "https://cctu.edu.gh/site/index",
+      "sourceUrl": "https://cctu.edu.gh/site/cms/app/images/slider/2856351.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 183579,
+      "sha256": "aaa658984b0fbd802b8a264d7a87198fc0ded79127fc5e2ffb3b356be60c20b9",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:19.492Z"
+  },
+  "stu": {
+    "slug": "stu",
+    "shortName": "STU",
+    "name": "Sunyani Technical University",
+    "sourceUrl": "https://stu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/stu/logo.png",
+      "sourcePage": "https://stu.edu.gh/",
+      "sourceUrl": "https://stu.edu.gh/images/logo_desktop.png",
+      "contentType": "image/png",
+      "bytes": 20938,
+      "sha256": "1d43fb9c268cd95974430d9324238cca7c159eb3aa2244515902ae4738386f8d",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/stu/campus.jpg",
+      "sourcePage": "https://stu.edu.gh/",
+      "sourceUrl": "https://stu.edu.gh/images/news/Newmont%20Ahafo%20North%20Supports%20STU.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 44032,
+      "sha256": "4bfbdf155bb64842c713463c9e333b0ff6cc9afdc761e696e27d318ba121566c",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:24.966Z"
+  },
+  "htu": {
+    "slug": "htu",
+    "shortName": "HTU",
+    "name": "Ho Technical University",
+    "sourceUrl": "https://htu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/htu/logo.png",
+      "sourcePage": "https://htu.edu.gh/gallery/",
+      "sourceUrl": "https://htu.edu.gh/wp-content/uploads/2022/06/HTU-LOGO-PNG-1.png",
+      "contentType": "image/png",
+      "bytes": 383600,
+      "sha256": "9a45bf1a3540d4bc616a316a04c5db5ac03d0aa27660589b8d2156d2baf2044b",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/htu/campus.jpg",
+      "sourcePage": "https://htu.edu.gh/",
+      "sourceUrl": "https://htu.edu.gh/wp-content/uploads/2022/06/MG_0153.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 607572,
+      "sha256": "ba67269473e7a4089c49e0ecb8c4653c034c5b0a292013b4da1f2e27893d8495",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:22.453Z"
+  },
+  "accra-metropolitan-university": {
+    "slug": "accra-metropolitan-university",
+    "shortName": "Accra Metropolitan",
+    "name": "Accra Metropolitan University",
+    "sourceUrl": "https://web.accramet.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/accra-metropolitan-university/logo.png",
+      "sourcePage": "https://web.accramet.edu.gh/",
+      "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2024/12/cropped-ACCRA-MET-LOGO-3-e1734601385892.png",
+      "contentType": "image/png",
+      "bytes": 9861,
+      "sha256": "6fca2486ccd9d419cfa976e780ae46874adf987c63ca56084d5241a272ca2da5",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/accra-metropolitan-university/campus.jpg",
+      "sourcePage": "https://web.accramet.edu.gh/",
+      "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/slider/cache/4c4dcb1e98b13a2b44b28180be016297/PRE_-_BAR_COURSE_II.jpg.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 191411,
+      "sha256": "c0d843ff0ecdc66be95a456eb6cb7aaad2ecb0f420b67d3a1b5516f8946b716d",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:30.809Z"
+  },
+  "academic-city-university": {
+    "slug": "academic-city-university",
+    "shortName": "Academic City",
+    "name": "Academic City University",
+    "sourceUrl": "https://acity.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/academic-city-university/logo.png",
+      "sourcePage": "https://acity.edu.gh/",
+      "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2025/01/Academic-City-red-white-logo-448x134.png",
+      "contentType": "image/png",
+      "bytes": 21850,
+      "sha256": "b7740fd099ce16ac252646b43d1ed5130fd8c8f9238472e1393b85974bace70d",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/academic-city-university/campus.jpg",
+      "sourcePage": "https://acity.edu.gh/",
+      "sourceUrl": "https://acity.edu.gh/wp-content/uploads/revslider/slide-6/academic-city-college.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 110728,
+      "sha256": "03a167dc7730bed5b10c27e126c9209bcda3caecef2d937915bfed6c51eee2e0",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:30.331Z"
+  },
+  "akrofi-christaller-institute": {
+    "slug": "akrofi-christaller-institute",
+    "shortName": "Akrofi-Christaller Institute",
+    "name": "Akrofi-Christaller Institute of Theology, Mission and Culture",
+    "sourceUrl": "https://www.aci.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": "Official domain currently serves a suspended-page response; no third-party logo copy was imported.",
+    "checkedAt": "2026-10-24T21:48:33.251Z"
+  },
+  "all-nations-university": {
+    "slug": "all-nations-university",
+    "shortName": "ANU",
+    "name": "All Nations University",
+    "sourceUrl": "https://anu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/all-nations-university/logo.png",
+      "sourcePage": "https://anu.edu.gh/about",
+      "sourceUrl": "https://anu.edu.gh/_next/image?url=%2Fimages%2Fpng%2Fanu-logo.png&w=96&q=75",
+      "contentType": "image/png",
+      "bytes": 6004,
+      "sha256": "6018f216126fa150eab5f4cf79339e5653e094e1c3223bc7cca37a508109c5c5",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/all-nations-university/campus.jpg",
+      "sourcePage": "https://anu.edu.gh/",
+      "sourceUrl": "https://anu.edu.gh/_next/image?url=https%3A%2F%2Fanu-media.s3.eu-north-1.amazonaws.com%2Fmedia%2Fproduction%2Fimage%2F2026%2F08%2F56ec1c73-2ff7-4514-b0bd-a48991b04cd5%2Fimg_20260819_160754_470.jpg.jpg&w=2560&q=75",
+      "contentType": "image/jpeg",
+      "bytes": 132465,
+      "sha256": "038505007b7c812524ee55a2d9ce59f98b43846bb66b7a2fac7f38d1d6b34ff8",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:36.227Z"
+  },
+  "tatu": {
+    "slug": "tatu",
+    "shortName": "TaTU",
+    "name": "Tamale Technical University",
+    "sourceUrl": "https://tatu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/tatu/logo.png",
+      "sourcePage": "https://tatu.edu.gh/gallery/",
+      "sourceUrl": "https://tatu.edu.gh/wp-content/uploads/2026/07/tatu_logo-1.png",
+      "contentType": "image/png",
+      "bytes": 13390,
+      "sha256": "7cbefc3a82f67992a25cdd48eb07fab6aaf2f81b649e212c9c33d39023f76af1",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/tatu/campus.png",
+      "sourcePage": "https://tatu.edu.gh/",
+      "sourceUrl": "https://tatu.edu.gh/wp-content/uploads/2026/08/arctug_2028_tatu_hero_banner_web.png",
+      "contentType": "image/png",
+      "bytes": 2038899,
+      "sha256": "20116af8314de67328879d72774e432242c3fa9a3ff3352555ca0e0c18d0a976",
+      "score": 24
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:26.222Z"
+  },
+  "central-university": {
+    "slug": "central-university",
+    "shortName": "CU",
+    "name": "Central University",
+    "sourceUrl": "https://www.central.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/central-university/logo.png",
+      "sourcePage": "https://central.edu.gh/",
+      "sourceUrl": "https://central.edu.gh/static/img/Central-Uni-logo.png",
+      "contentType": "image/png",
+      "bytes": 444470,
+      "sha256": "c23030c254d5886afeb4fe7727c7edc14d2c3495310d3b128be5a377033c6052",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/central-university/campus.jpg",
+      "sourcePage": "https://central.edu.gh/",
+      "sourceUrl": "https://webcms.central.edu.gh/wp-content/uploads/2026/01/Students-Centred-4.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 443964,
+      "sha256": "35383db4b4e2c018a3d2fd80e3e3215efad76f4a0c9e7890a6264f9f419f56d3",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:42.196Z"
+  },
+  "catholic-university": {
+    "slug": "catholic-university",
+    "shortName": "CUG",
+    "name": "Catholic University of Ghana",
+    "sourceUrl": "https://cug.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/catholic-university/logo.jpg",
+      "sourcePage": "https://cug.edu.gh/gallery",
+      "sourceUrl": "https://cug.edu.gh/frontend/images/cug_logo_new.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 22944,
+      "sha256": "5248407c9f22958583fa212862dc2d384fa3f4cc25cd81fe37a4d34947886f5a",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/catholic-university/campus.png",
+      "sourcePage": "https://cug.edu.gh/",
+      "sourceUrl": "https://cug.edu.gh/uploads/slider/1767726763.png",
+      "contentType": "image/png",
+      "bytes": 1939003,
+      "sha256": "e9c46100ecf7d59d2ae2c5e12dc1305bf6daab7c452f2009bb395d28e8099e98",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:37.448Z"
+  },
+  "ttu": {
+    "slug": "ttu",
+    "shortName": "TTU",
+    "name": "Takoradi Technical University",
+    "sourceUrl": "https://ttu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ttu/logo.png",
+      "sourcePage": "https://ttu.edu.gh/campus-accommodation/",
+      "sourceUrl": "https://ttu.edu.gh/wp-content/uploads/2026/04/TTU-FINAL-LOGO-01-2-scaled.png",
+      "contentType": "image/png",
+      "bytes": 2025504,
+      "sha256": "7eed7175229fbd66751c1b31b18dae8f3422e2d23f417745f8fb8d1cead64639",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ttu/campus.png",
+      "sourcePage": "https://ttu.edu.gh/",
+      "sourceUrl": "https://ttu.edu.gh/wp-content/uploads/2026/04/Slider2.png",
+      "contentType": "image/png",
+      "bytes": 2106377,
+      "sha256": "78583f26dd89796aa09686f79d188257901ddf4c8d04a0dc0822b6ec36f0bda5",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:26.160Z"
+  },
+  "ashesi": {
+    "slug": "ashesi",
+    "shortName": "Ashesi",
+    "name": "Ashesi University",
+    "sourceUrl": "https://ashesi.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ashesi/logo.webp",
+      "sourcePage": "https://ashesi.edu.gh/campus-cohesion/",
+      "sourceUrl": "https://ashesi.edu.gh/wp-content/uploads/2024/05/Ashesi_University_Logo-5.webp",
+      "contentType": "image/webp",
+      "bytes": 6630,
+      "sha256": "dcf9185bf6015efa6e2e123be2969604236b2c9d9bba6ef2c53bf412ed5a3a01",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ashesi/campus.jpg",
+      "sourcePage": "https://ashesi.edu.gh/",
+      "sourceUrl": "https://ashesi.edu.gh/wp-content/uploads/2026/10/Ashesi-MTN-MOU-e1791307361895-768x402.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 48498,
+      "sha256": "ab30f95dd601f488c444ccdc16450568d542dccc0bdadfb1c65de6751493cfa4",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:36.428Z"
+  },
+  "garden-city-university": {
+    "slug": "garden-city-university",
+    "shortName": "Garden City",
+    "name": "Garden City University",
+    "sourceUrl": "https://www.gcu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/garden-city-university/logo.png",
+      "sourcePage": "https://www.gcu.edu.gh/",
+      "sourceUrl": "https://www.gcu.edu.gh/assets/images/logo/gcu_logo_site_2.png",
+      "contentType": "image/png",
+      "bytes": 794851,
+      "sha256": "d3124ad515fdaf6cb099802248021ebfb29d30389dc99e9a41fec0f16a173210",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/garden-city-university/campus.jpg",
+      "sourcePage": "https://www.gcu.edu.gh/",
+      "sourceUrl": "https://www.gcu.edu.gh/assets/images/bgs/front.JPG",
+      "contentType": "image/jpeg",
+      "bytes": 5372314,
+      "sha256": "162cf636759736f01279996c8172b7426936b53f9a7490ec4e7c313300409775",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:50.175Z"
+  },
+  "african-university-of-communication-and-business": {
+    "slug": "african-university-of-communication-and-business",
+    "shortName": "AUCB",
+    "name": "African University of Communication and Business",
+    "sourceUrl": "https://aucb.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/african-university-of-communication-and-business/logo.png",
+      "sourcePage": "https://aucb.edu.gh/",
+      "sourceUrl": "https://aucb.edu.gh/wp-content/uploads/2026/06/aucb-logo-1000-x-1000-pixels.png",
+      "contentType": "image/png",
+      "bytes": 175140,
+      "sha256": "4c530de0b83ebe1336ff09b62857ec0ffa3cd88be2418500302eb89c812ab61a",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/african-university-of-communication-and-business/campus.jpg",
+      "sourcePage": "https://aucb.edu.gh/",
+      "sourceUrl": "https://aucb.edu.gh/wp-content/uploads/2026/06/aucb-default-social-share-image.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 659687,
+      "sha256": "f09b1b99d50ed0a4a2c1ed791e55456174dec85929bc427c082bf74cd316042c",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:33.048Z"
+  },
+  "ensign-global-university": {
+    "slug": "ensign-global-university",
+    "shortName": "Ensign Global",
+    "name": "Ensign Global University",
+    "sourceUrl": "https://ensign.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ensign-global-university/logo.png",
+      "sourcePage": "https://ensign.edu.gh/",
+      "sourceUrl": "https://ensign.edu.gh/uploads/85be3d4af7274165ee6882f1244d52f9ccc016ac.png",
+      "contentType": "image/png",
+      "bytes": 59441,
+      "sha256": "c9b8956d280ceb253a9b416db82c948edadb680a5843c47e15985f5052adb1e8",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/ensign-global-university/campus.png",
+      "sourcePage": "https://ensign.edu.gh/about",
+      "sourceUrl": "https://ensign.edu.gh/uploads/09b1e4800714dbec2c83aba1c5b44b12ccdfcb19.png",
+      "contentType": "image/png",
+      "bytes": 2517117,
+      "sha256": "d83fbce1024fbbf48944079af6ff7c22e550a5436fab9e7d37dd66ab95db0b4d",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:42.791Z"
+  },
+  "entrance-university-of-health-sciences": {
+    "slug": "entrance-university-of-health-sciences",
+    "shortName": "Entrance University",
+    "name": "Entrance University of Health Sciences",
+    "sourceUrl": "https://euhs.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/entrance-university-of-health-sciences/logo.png",
+      "sourcePage": "https://euhs.edu.gh/",
+      "sourceUrl": "https://euhs.edu.gh/wp-content/uploads/2026/01/Web_Logo-01-scaled.png",
+      "contentType": "image/png",
+      "bytes": 192318,
+      "sha256": "9ab3dcc01c937b6769c17680629640d72832c0cb1b19394a473a81fa7dba9711",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "status": "logo_only",
+    "reviewNote": "Official site publishes a logo but no campus photograph was exposed in its public page assets.",
+    "checkedAt": "2026-10-24T21:48:43.766Z"
+  },
+  "family-health-university": {
+    "slug": "family-health-university",
+    "shortName": "Family Health",
+    "name": "Family Health University",
+    "sourceUrl": "https://fhu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/family-health-university/logo.png",
+      "sourcePage": "https://fhu.edu.gh/",
+      "sourceUrl": "https://fhu.edu.gh/wp-content/uploads/2026/02/Add-a-little-bit-of-body-text-2.png",
+      "contentType": "image/png",
+      "bytes": 37956,
+      "sha256": "1bda4547af27143768973ec1e8fba08f9bf6b4b1230beab77e5d4fffb14a2899",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/family-health-university/campus.jpg",
+      "sourcePage": "https://fhu.edu.gh/",
+      "sourceUrl": "https://fhu.edu.gh/wp-content/uploads/2026/05/Untitled-design-45.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 115607,
+      "sha256": "b683178ac5bcc41bb11a1791f7fa5a80ea3b64fef31c4d90dfad11ab31d0350a",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:47.262Z"
+  },
+  "christian-service-university": {
+    "slug": "christian-service-university",
+    "shortName": "CSU",
+    "name": "Christian Service University",
+    "sourceUrl": "https://www.csuc.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/christian-service-university/logo.jpg",
+      "sourcePage": "https://www.csuc.edu.gh/",
+      "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2023/03/csuc-logo.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 47703,
+      "sha256": "d9d7b7d9f41b7cd557de30d54fe901e25dbc76b3553b8c36a6fbe6ec30421b51",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/christian-service-university/campus.jpg",
+      "sourcePage": "https://www.csuc.edu.gh/",
+      "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2023/09/IMG_0305-1024x683.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 203128,
+      "sha256": "5cdfba6daa27aba4bd0480d5a1402467ff641f19350f3255e14082970daff141",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:42.212Z"
+  },
+  "heritage-christian-university": {
+    "slug": "heritage-christian-university",
+    "shortName": "Heritage Christian",
+    "name": "Heritage Christian University",
+    "sourceUrl": "https://hcu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/heritage-christian-university/logo.png",
+      "sourcePage": "https://hcu.edu.gh/",
+      "sourceUrl": "https://hcu.edu.gh/wp-content/uploads/2026/06/cccu_logo_brand_163px.png",
+      "contentType": "image/png",
+      "bytes": 2622,
+      "sha256": "33c78fe020f66fc024f7dd1a04fa6c930d28733ee622a2bdff6ac818752169a5",
+      "score": 60
+    },
+    "campus": {
+      "path": "/assets/universities/heritage-christian-university/campus.jpg",
+      "sourcePage": "https://hcu.edu.gh/",
+      "sourceUrl": "https://hcu.edu.gh/wp-content/uploads/2026/10/LIBRARY-778-X-785.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 235670,
+      "sha256": "150d1cd58318ecc8adcc029970b1fda983c1c8856c347c27403111ea835de9fb",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:50.771Z"
+  },
+  "kaaf-university": {
+    "slug": "kaaf-university",
+    "shortName": "KAAF",
+    "name": "KAAF University",
+    "sourceUrl": "https://www.kaafuni.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/kaaf-university/logo.png",
+      "sourcePage": "https://www.kaafuni.edu.gh/about",
+      "sourceUrl": "https://www.kaafuni.edu.gh/static/uploads/my-logo.png",
+      "contentType": "image/png",
+      "bytes": 121634,
+      "sha256": "0fcf68ebc944afabf066afa8dad434d5ee05bf0b4936056cd7c5c30f03488102",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/kaaf-university/campus.jpg",
+      "sourcePage": "https://www.kaafuni.edu.gh/",
+      "sourceUrl": "https://www.kaafuni.edu.gh/static/uploads/community_20260221_003147_640825374_1297953672380325_8293766663062524547_n.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 839371,
+      "sha256": "22b06bb36e81dbf2da27f9bfdebefb33b8e2d45040031f6154ac27b7a51f1d5e",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:51.216Z"
+  },
+  "knutsford-university": {
+    "slug": "knutsford-university",
+    "shortName": "Knutsford",
+    "name": "Knutsford University",
+    "sourceUrl": "https://knutsford.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/knutsford-university/logo.png",
+      "sourcePage": "https://knutsford.edu.gh/gallery/",
+      "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2026/08/Knuntsford-University-New-Official-Logo_v1-scaled.png",
+      "contentType": "image/png",
+      "bytes": 344987,
+      "sha256": "2df698261af09ff1be3795fd4f0b2d0229cf1eac48bfb34a56604e6c98c36d77",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/knutsford-university/campus.jpg",
+      "sourcePage": "https://knutsford.edu.gh/",
+      "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2026/08/New-Knutsford-Campus-view.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 98011,
+      "sha256": "1cd6d0b3231b03f9c8b1d5d31b2f354d559ad0e883b6aa82a104b4a26c5c04f5",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:57.237Z"
+  },
+  "pentecost-university": {
+    "slug": "pentecost-university",
+    "shortName": "Pentecost University",
+    "name": "Pentecost University",
+    "sourceUrl": "https://pentvars.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/pentecost-university/logo.png",
+      "sourcePage": "https://pentvars.edu.gh/",
+      "sourceUrl": "https://pentvars.edu.gh/wp-content/themes/eduma-child/images/puc-social-logo.png",
+      "contentType": "image/png",
+      "bytes": 33183,
+      "sha256": "5554f6a9b5f0650f24890a397d2485c1dab00ceb72fa61621f55d46425e6d856",
+      "score": 36
+    },
+    "campus": {
+      "path": "/assets/universities/pentecost-university/campus.png",
+      "sourcePage": "https://pentvars.edu.gh/gallery/",
+      "sourceUrl": "https://pentvars.edu.gh/wp-content/themes/eduma-child/images/pentvar-location-map.png",
+      "contentType": "image/png",
+      "bytes": 22951,
+      "sha256": "c4024d63250b14ba411d34e50aa793853cbf63d12f4a6a01373c092613e380de",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:58.299Z"
+  },
+  "thrivus-university": {
+    "slug": "thrivus-university",
+    "shortName": "Thrivus University",
+    "name": "Thrivus University for Biomedical Science and Technology",
+    "sourceUrl": "https://thrivusinstitute.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/thrivus-university/logo.png",
+      "sourcePage": "https://thrivusinstitute.edu.gh/",
+      "sourceUrl": "https://thrivusinstitute.edu.gh/wp-content/uploads/2025/02/Asset-2@4x-300x74.fw_.png",
+      "contentType": "image/png",
+      "bytes": 68896,
+      "sha256": "14ff8fe12a48d4890937637e10feac16458cca8f8ed4b0b0ef19cf8e88b53667",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/thrivus-university/campus.jpg",
+      "sourcePage": "https://thrivusinstitute.edu.gh/",
+      "sourceUrl": "https://thrivusinstitute.edu.gh/wp-content/uploads/2021/11/WhatsApp-Image-2021-11-05-at-3.00.51-PM-1.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 152335,
+      "sha256": "9434076f4f86c1ff512b9f9488a5ac1804648eb0ee5b6277634fdfc438e5e8e1",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:02.966Z"
+  },
+  "trinity-theological-seminary": {
+    "slug": "trinity-theological-seminary",
+    "shortName": "Trinity Seminary",
+    "name": "Trinity Theological Seminary",
+    "sourceUrl": "https://trinity.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/trinity-theological-seminary/logo.webp",
+      "sourcePage": "https://trinity.edu.gh/",
+      "sourceUrl": "https://trinity.edu.gh/main/img/logo.webp",
+      "contentType": "image/webp",
+      "bytes": 6878,
+      "sha256": "97c7f9091c596df680b5d0fabf85fb3772b87c4afefbe546dd9e30c8ed74564d",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/trinity-theological-seminary/campus.webp",
+      "sourcePage": "https://trinity.edu.gh/",
+      "sourceUrl": "https://trinity.edu.gh/main/img/slider1.webp",
+      "contentType": "image/webp",
+      "bytes": 63286,
+      "sha256": "efe8411f0b8b9eadecd94dda5ed1f8d1b1fd353c102e5f70e381abe3f1765a95",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:03.331Z"
+  },
+  "senes-professional-college-accra": {
+    "slug": "senes-professional-college-accra",
+    "shortName": "SENES Professional College",
+    "name": "SENES Professional College, Accra",
+    "sourceUrl": null,
+    "logo": null,
+    "campus": null,
+    "status": "no_official_site_published",
+    "reviewNote": "No official website was published in the directory source, so no asset was fabricated.",
+    "checkedAt": "2026-10-24T21:49:06.499Z"
+  },
+  "methodist-university": {
+    "slug": "methodist-university",
+    "shortName": "Methodist University",
+    "name": "Methodist University",
+    "sourceUrl": "https://mug.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/methodist-university/logo.png",
+      "sourcePage": "https://mug.edu.gh/gallery/",
+      "sourceUrl": "https://mug.edu.gh/wp-content/uploads/elementor/thumbs/MUG-LOGO-2026-rjyibx31ndt0zluviqf2ps5wq870l9169mpkrom5ek.png",
+      "contentType": "image/png",
+      "bytes": 26483,
+      "sha256": "78a8fd4942d0dfdb4be5a5483e9520bda2666d150658b735d00610e94ae6a882",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/methodist-university/campus.png",
+      "sourcePage": "https://mug.edu.gh/",
+      "sourceUrl": "https://mug.edu.gh/wp-content/uploads/2024/04/Screenshot-2024-04-25-at-15-12-09-Methodist-University-Ghana-@mug_ghana-%E2%80%A2-Instagram-photos-and-videos.png",
+      "contentType": "image/png",
+      "bytes": 33607,
+      "sha256": "0f261eb7cd0e8565747bd88602019987f51419052dd4835f85e2cfbdd1be3703",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:57.306Z"
+  },
+  "nibs-university": {
+    "slug": "nibs-university",
+    "shortName": "NiBS",
+    "name": "NiBS University",
+    "sourceUrl": "https://nibs.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/nibs-university/logo.png",
+      "sourcePage": "https://nibs.edu.gh/",
+      "sourceUrl": "https://nibs.edu.gh/wp-content/uploads/2024/08/real-logo-NiBS-Updated-no-accra-scaled.png",
+      "contentType": "image/png",
+      "bytes": 90274,
+      "sha256": "c5b7869b3f1aeac00e36ec2f3ae905ef0c3b2a54f18f0084be17cee9cfe33446",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/nibs-university/campus.webp",
+      "sourcePage": "https://nibs.edu.gh/",
+      "sourceUrl": "https://themewant.com/products/wordpress/unipix/wp-content/uploads/2024/07/campus-life-bg-1-66850e62cf1e8.webp",
+      "contentType": "image/webp",
+      "bytes": 20160,
+      "sha256": "84c3c7bc59fb3a260a20f09328251908551be45c633ed7135e827e54b4b70e7e",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:48:57.894Z"
+  },
+  "valley-view-university": {
+    "slug": "valley-view-university",
+    "shortName": "Valley View",
+    "name": "Valley View University",
+    "sourceUrl": "https://www.vvu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/valley-view-university/logo.png",
+      "sourcePage": "https://www.vvu.edu.gh/",
+      "sourceUrl": "https://www.vvu.edu.gh/uploads/settings/img_1787164583_6a85f7a74e4a8.png",
+      "contentType": "image/png",
+      "bytes": 15531,
+      "sha256": "7e9f3a6ebcf5c8954d68d4b0beefd497f13f2f6cbae32c23b675e696235607e9",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/valley-view-university/campus.jpg",
+      "sourcePage": "https://www.vvu.edu.gh/",
+      "sourceUrl": "https://www.vvu.edu.gh/Education-Website-and-AdminPanel/images/slider/7fad7c8323436bba7220bf53e30f2a68.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 492537,
+      "sha256": "7e32312d644dfb98df336862d39f336e5a70567c49cd3abcd7c0095a925f9bdb",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:06.475Z"
+  },
+  "ghana-armed-forces-command-and-staff-college": {
+    "slug": "ghana-armed-forces-command-and-staff-college",
+    "shortName": "GAFCSC",
+    "name": "Ghana Armed Forces Command and Staff College",
+    "sourceUrl": "https://www.gafcscmil.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ghana-armed-forces-command-and-staff-college/logo.png",
+      "sourcePage": "https://www.gafcscmil.edu.gh/",
+      "sourceUrl": "https://www.gafcscmil.edu.gh/logo.png",
+      "contentType": "image/png",
+      "bytes": 21846,
+      "sha256": "f77b24ef5c1738c2ac0f39822565cd245b254d7d32282340e9e804ade020e62c",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ghana-armed-forces-command-and-staff-college/campus.jpg",
+      "sourcePage": "https://www.gafcscmil.edu.gh/",
+      "sourceUrl": "https://gafcscmil.edu.gh/uploads/noticeboard/7a04ca7e4920d64ea50226a9f2f2a23f.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 654411,
+      "sha256": "596d4aeefe4c2b26458a29dc1ec4143cd68ae098a655741c112b31b493d1d748",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:06.503Z"
+  },
+  "university-of-gold-coast": {
+    "slug": "university-of-gold-coast",
+    "shortName": "UGC",
+    "name": "University of Gold Coast",
+    "sourceUrl": "https://ugc.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/university-of-gold-coast/logo.png",
+      "sourcePage": "https://ugc.edu.gh/",
+      "sourceUrl": "https://ugc.edu.gh/wp-content/uploads/2025/10/Asset-1-1-1.png",
+      "contentType": "image/png",
+      "bytes": 83532,
+      "sha256": "041516fc26abe224d657dfdc01c33ddb5f5246e57e3f3d62f935bada62ba9c75",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/university-of-gold-coast/campus.jpg",
+      "sourcePage": "https://ugc.edu.gh/",
+      "sourceUrl": "https://ugc.edu.gh/wp-content/uploads/2026/06/Sliders-01.jpg-scaled.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 296771,
+      "sha256": "f9ff754484891b878910e71ec383ca9c2d99efad3abdb0eeb56b664c8c264fd0",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:04.911Z"
+  },
+  "presbyterian-university": {
+    "slug": "presbyterian-university",
+    "shortName": "Presbyterian University",
+    "name": "Presbyterian University",
+    "sourceUrl": "https://www.presbyuniversity.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/presbyterian-university/logo.jpg",
+      "sourcePage": "https://www.presbyuniversity.edu.gh/site/",
+      "sourceUrl": "https://www.presbyuniversity.edu.gh/site/wp-content/uploads/2022/09/University-Logo-New-02.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 638188,
+      "sha256": "c3099c13ac030572950b72b007c894d8e591d1cbd4f637027eebb2792fa33814",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/presbyterian-university/campus.jpg",
+      "sourcePage": "https://www.presbyuniversity.edu.gh/site/",
+      "sourceUrl": "https://www.presbyuniversity.edu.gh/site/wp-content/uploads/2026/10/Web-Banner-01-1-scaled.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 211397,
+      "sha256": "e1b7e19f8474b63a3b110c892fc3de6c6459e29bd94c19960b0e842bcf0e5c84",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:01.104Z"
+  },
+  "regional-maritime-university": {
+    "slug": "regional-maritime-university",
+    "shortName": "RMU",
+    "name": "Regional Maritime University",
+    "sourceUrl": "https://rmu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/regional-maritime-university/logo.jpg",
+      "sourcePage": "https://rmu.edu.gh/gallery/",
+      "sourceUrl": "https://rmu.edu.gh/wp-content/uploads/2026/08/LOGO-1-800x288.jpeg",
+      "contentType": "image/jpeg",
+      "bytes": 41712,
+      "sha256": "c70989572d4a9f14e40a858b8a0c5469b0dc94a32a9697b332da5b05982093ca",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/regional-maritime-university/campus.jpg",
+      "sourcePage": "https://rmu.edu.gh/",
+      "sourceUrl": "https://rmu.edu.gh/wp-content/uploads/photo-gallery/Congregation_2026/thumb/1000366129.jpg?bwg=1785328797",
+      "contentType": "image/jpeg",
+      "bytes": 43492,
+      "sha256": "726b91be199702dfbdbd8aa85ac4cd2d4c9adbd876271f5833744d90e972ee4d",
+      "score": 24
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:09.180Z"
+  },
+  "national-defence-university": {
+    "slug": "national-defence-university",
+    "shortName": "NDU",
+    "name": "National Defence University, Ghana",
+    "sourceUrl": "https://ndu.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/national-defence-university/logo.png",
+      "sourcePage": "https://ndu.edu.gh/",
+      "sourceUrl": "https://ndu.edu.gh/website/ndulogo.png",
+      "contentType": "image/png",
+      "bytes": 387867,
+      "sha256": "429b34b66ff05f5ca0b8aac16665c3b84ab5329e884378a23c8ebe256a381a34",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/national-defence-university/campus.jpg",
+      "sourcePage": "https://ndu.edu.gh/",
+      "sourceUrl": "https://ndu.edu.gh/ndu/public/storage/posts/main/EqolXvfUSzohcHomgbZJAOSRfMKjd8bs6DZRAPGS.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 557386,
+      "sha256": "9f53b990ad09a05e124a955deaa9b2cf0a4ac43cc2dd274b118cb5a9f6361daa",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-24T21:49:09.522Z"
+  }
+}

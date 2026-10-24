@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Building2, MapPin, ArrowRight, Store } from 'lucide-react';
 import { Section, SectionHeading, Reveal } from '@/components/landing/section';
+import { getLocalUniversityBranding } from '@/lib/data/university-branding';
 
 interface UniversitySectionProps {
   universities: {
@@ -33,7 +34,9 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
 
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {universities.map((uni, i) => {
-          const landmarkImage = uni.landmark_image_url || uni.hero_image_url;
+          const localBranding = getLocalUniversityBranding(uni.slug);
+          const landmarkImage = uni.landmark_image_url || uni.hero_image_url || localBranding.campusUrl;
+          const logoUrl = uni.logo_url || localBranding.logoUrl;
           const initials = uni.short_name.slice(0, 3).toUpperCase();
 
           return (
@@ -59,10 +62,10 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent" />
                   <div className="absolute bottom-3 left-4 flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm">
-                    {uni.logo_url ? (
+                    {logoUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={uni.logo_url}
+                        src={logoUrl}
                         alt={uni.logo_alt_text || `${uni.name} logo`}
                         className="max-h-full max-w-full object-contain"
                         loading="lazy"
