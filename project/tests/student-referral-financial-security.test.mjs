@@ -5,16 +5,17 @@ import test from 'node:test';
 const root = new URL('..', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 
-test('student registration checkout uses existing Paystack adapter and database-selected intent', async () => {
+test('student registration completes free while paid Paystack flows remain server-controlled', async () => {
   const [route, adapter, onboarding, callback] = await Promise.all([
     read('app/api/payments/paystack/initialize/route.ts'), read('lib/payments/paystack.server.ts'),
     read('app/onboarding/student/page.tsx'), read('app/payments/callback/page.tsx'),
   ]);
-  assert.match(route, /begin_student_registration_payment/);
+  assert.match(route, /begin_vendor_registration_payment/);
   assert.match(route, /amountGhs: Number\(payment\.amount\)/);
-  assert.match(route, /student_registration/);
   assert.match(adapter, /Math\.round\(input\.amountGhs \* 100\)/);
-  assert.match(onboarding, /purpose: 'student_registration'/);
+  assert.match(onboarding, /complete_student_registration/);
+  assert.doesNotMatch(onboarding, /purpose: 'student_registration'/);
+  assert.match(onboarding, /registration=free/);
   assert.doesNotMatch(onboarding, /\.from\('payments'\)\s*\.(insert|update)/);
   assert.doesNotMatch(onboarding, /\.from\('student_profiles'\)\s*\.(insert|update)/);
   assert.match(callback, /\/api\/payments\/status/);

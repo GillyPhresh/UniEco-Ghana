@@ -18,7 +18,7 @@ export default function PaymentCallbackPage() {
 
 function PaymentCallbackContent() {
   const params = useSearchParams();
-  const reference = params.get('reference');
+  const reference = params.get('reference') || params.get('trxref');
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
