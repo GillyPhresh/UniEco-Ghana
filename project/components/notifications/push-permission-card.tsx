@@ -5,6 +5,7 @@ import { Bell, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { subscribeToPush } from '@/lib/data/communication-client';
+import { supabase } from '@/lib/supabase/client';
 
 function decodeBase64Url(value: string) {
   const padding = '='.repeat((4 - (value.length % 4)) % 4);
@@ -19,7 +20,14 @@ async function getPushRegistration(): Promise<ServiceWorkerRegistration> {
     updateViaCache: 'none',
   });
   await registration.update().catch(() => undefined);
-  return registration;
+  return navigator.serviceWorker.ready;
+}
+
+async function getSessionHeaders(): Promise<HeadersInit> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token
+    ? { Authorization: `Bearer ${session.access_token}` }
+    : {};
 }
 
 export function PushPermissionCard() {
@@ -66,7 +74,10 @@ export function PushPermissionCard() {
     setBusy(true);
     setSyncError(null);
     try {
-      const configResponse = await fetch('/api/notifications/push-config');
+      const configResponse = await fetch('/api/notifications/push-config', {
+        headers: await getSessionHeaders(),
+        cache: 'no-store',
+      });
       const config = await configResponse.json();
       if (!configResponse.ok) throw new Error(config.error || 'Push notifications are not configured.');
 

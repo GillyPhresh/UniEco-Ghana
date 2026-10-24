@@ -506,9 +506,13 @@ export async function subscribeToPush(
     expiration_time?: string | null;
   },
 ): Promise<{ error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: HeadersInit = { 'Content-Type': 'application/json' };
+  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+
   const response = await fetch('/api/notifications/push-subscription', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     credentials: 'same-origin',
     body: JSON.stringify({
       endpoint: subscription.endpoint,

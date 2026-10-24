@@ -6,7 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   const authClient = await createServerClient();
-  const { data: { user } } = await authClient.auth.getUser();
+  const bearerToken = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const { data: { user } } = bearerToken
+    ? await authClient.auth.getUser(bearerToken)
+    : await authClient.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
   try {
