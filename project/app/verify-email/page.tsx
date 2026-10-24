@@ -33,7 +33,7 @@ export default function VerifyEmailPage() {
         <div>
           <h2 className="font-display text-xl font-semibold">Your account is ready</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Continue to your profile and registration payment. You do not need to wait for an email.
+            Continue to your profile and finish registration. You do not need to wait for an email.
           </p>
         </div>
         <Button asChild className="w-full">

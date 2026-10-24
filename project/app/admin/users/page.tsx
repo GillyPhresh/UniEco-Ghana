@@ -20,6 +20,16 @@ import { ROLE_IDS, type UserRole } from '@/lib/types';
 import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, Trash2, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
+function formatAccountStatus(status: string) {
+  return status.replaceAll('_', ' ');
+}
+
+function accountStatusClass(status: string) {
+  if (status === 'active') return 'bg-success/10 text-success';
+  if (status === 'suspended' || status === 'inactive') return 'bg-destructive/10 text-destructive';
+  return 'bg-warning/10 text-warning';
+}
+
 export default function AdminUsersPage() {
   return (
     <AdminRouteGuard><AdminLayout><UsersContent /></AdminLayout></AdminRouteGuard>
@@ -201,8 +211,8 @@ function UsersContent() {
                       <Badge variant="outline" className="shrink-0 capitalize">{roleName.replaceAll('_', ' ')}</Badge>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2">
-                      <Badge className={u.status === 'active' ? 'bg-success/10 text-success' : u.status === 'suspended' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}>
-                        {u.status}
+                      <Badge className={accountStatusClass(u.status)}>
+                        {formatAccountStatus(u.status)}
                       </Badge>
                       {u.university?.name && <span className="text-xs text-muted-foreground">{u.university.name}</span>}
                     </div>
@@ -237,8 +247,8 @@ function UsersContent() {
                     <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
                     <TableCell><Badge variant="outline">{(u.role as { name?: string })?.name || 'student'}</Badge></TableCell>
                     <TableCell>
-                      <Badge className={u.status === 'active' ? 'bg-success/10 text-success' : u.status === 'suspended' ? 'bg-destructive/10 text-destructive' : 'bg-warning/10 text-warning'}>
-                        {u.status}
+                      <Badge className={accountStatusClass(u.status)}>
+                        {formatAccountStatus(u.status)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.university?.name || '—'}</TableCell>
@@ -276,7 +286,7 @@ function UsersContent() {
                 <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
                 <div className="mt-2 flex gap-2">
                   <Badge variant="outline">{(selectedUser.role as { name?: string })?.name || 'student'}</Badge>
-                  <Badge className={selectedUser.status === 'active' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{selectedUser.status}</Badge>
+                  <Badge className={accountStatusClass(selectedUser.status)}>{formatAccountStatus(selectedUser.status)}</Badge>
                 </div>
               </div>
 
@@ -310,10 +320,14 @@ function UsersContent() {
                   <Button variant="destructive" size="sm" className="flex-1" disabled={actionLoading} onClick={() => requestUserAction({ kind: 'suspend' })}>
                     <Ban className="mr-2 h-4 w-4" /> Suspend
                   </Button>
-                ) : (
+                ) : selectedUser.status === 'suspended' || selectedUser.status === 'inactive' ? (
                   <Button size="sm" className="flex-1" disabled={actionLoading} onClick={() => requestUserAction({ kind: 'reactivate' })}>
                     <CheckCircle className="mr-2 h-4 w-4" /> Reactivate
                   </Button>
+                ) : (
+                  <p className="flex-1 rounded-md border border-border bg-muted/30 px-3 py-2 text-center text-xs text-muted-foreground">
+                    This account is not suspended. Verification is managed separately.
+                  </p>
                 )}
               </div>
             </div>

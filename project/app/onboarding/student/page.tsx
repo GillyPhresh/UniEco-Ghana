@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
-import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { studentOnboardingSchema } from '@/lib/validation';
@@ -38,7 +37,7 @@ import {
 const STEPS = [
   { id: 'contact', label: 'Contact', hint: 'Phone and photo', icon: User },
   { id: 'study', label: 'Study', hint: 'Campus and programme', icon: GraduationCap },
-  { id: 'finish', label: 'Finish', hint: 'ID and payment', icon: ShieldCheck },
+  { id: 'finish', label: 'Finish', hint: 'ID and review', icon: ShieldCheck },
 ] as const;
 
 const DRAFT_PREFIX = 'unieco_student_registration_draft';
@@ -82,17 +81,13 @@ function StudentOnboarding() {
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [paymentRequired, setPaymentRequired] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'checkout' | 'mobile_money'>('checkout');
-  const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'mtn' | 'atl' | 'vod'>('mtn');
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
-  const paymentAttemptKeyRef = useRef<string | null>(null);
   const [form, setForm] = useState<FormData>({
     phone: '',
     avatar_url: '',
@@ -125,18 +120,16 @@ function StudentOnboarding() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    setPaymentRequired(params.get('payment_required') === '1');
     const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
     if (!token) return;
     setCashInviteLoading(true);
     supabase.rpc('get_registration_access_invite', { p_token: token }).then(({ data, error: inviteError }) => {
       const invite = data as { valid?: boolean; audience?: string; message?: string } | null;
       if (inviteError || !invite?.valid || invite.audience !== 'student') {
-        setError(invite?.message || 'This cash registration link is invalid or expired. You can continue with standard payment.');
+        setError(invite?.message || 'This registration link is invalid or expired. You can continue without a payment.');
         setCashInviteToken(null);
       } else {
         setCashInviteToken(token);
-        setPaymentRequired(false);
       }
       setCashInviteLoading(false);
     });
@@ -162,7 +155,6 @@ function StudentOnboarding() {
   }, []);
 
   const updateForm = (key: keyof FormData, value: string | number | undefined) => {
-    paymentAttemptKeyRef.current = null;
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
@@ -252,52 +244,27 @@ function StudentOnboarding() {
         router.push('/onboarding/complete?registration=cash');
         return;
       }
-      if (referralCode) {
-        const { error: referralAttachError } = await supabase.rpc('attach_my_referral_code', {
-          p_referral_code: referralCode,
-        });
-        if (referralAttachError) throw new Error(referralAttachError.message);
-      }
-      const idempotencyKey = paymentAttemptKeyRef.current || createIdempotencyKey();
-      paymentAttemptKeyRef.current = idempotencyKey;
-      const response = await fetch('/api/payments/paystack/initialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          purpose: 'student_registration',
-          idempotencyKey,
-          registration: {
-            universityId: form.university_id,
-            phone: normalizeGhanaPhone(form.phone),
-            studentIdNumber: form.index_number.trim(),
-            program: form.programme.trim(),
-            faculty: form.faculty.trim(),
-            department: form.department.trim(),
-            level: form.level,
-            admissionYear: form.admission_year,
-            graduationYear: form.graduation_year || null,
-            studentDocumentPath: form.student_id_document_url || null,
-            referralCode,
-          },
-          ...(paymentMethod === 'mobile_money' ? {
-            mobileMoney: { phone: normalizeGhanaPhone(form.phone), provider: mobileMoneyProvider },
-          } : {}),
-        }),
+      const { error: registrationError } = await supabase.rpc('complete_student_registration', {
+        p_university_id: form.university_id,
+        p_phone: normalizeGhanaPhone(form.phone),
+        p_student_id_number: form.index_number.trim(),
+        p_program: form.programme.trim(),
+        p_faculty: form.faculty.trim(),
+        p_department: form.department.trim(),
+        p_level: form.level,
+        p_admission_year: form.admission_year,
+        p_graduation_year: form.graduation_year || null,
+        p_student_document_path: form.student_id_document_url || null,
+        p_referral_code: referralCode || null,
       });
-      const result = await response.json() as { authorizationUrl?: string; reference?: string; mobileMoney?: { displayText?: string }; error?: string };
-      if (!response.ok || (!result.authorizationUrl && !result.mobileMoney?.displayText) || !result.reference) throw new Error(result.error || 'Payment could not be initialized.');
+      if (registrationError) throw new Error(registrationError.message);
       window.sessionStorage.removeItem('unieco_pending_referral_code');
       if (form.avatar_url) {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
-        if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. Retry payment from onboarding.');
+        if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. You can add it from your profile.');
       }
       clearDraft();
-      // Redirecting to Paystack is only checkout UX; activation is webhook-authoritative.
-      if (result.mobileMoney) {
-        router.push(`/payments/callback?reference=${encodeURIComponent(result.reference)}&channel=mobile_money`);
-      } else if (result.authorizationUrl) {
-        window.location.assign(result.authorizationUrl);
-      }
+      router.push('/onboarding/complete?registration=free');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -337,7 +304,7 @@ function StudentOnboarding() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-foreground">Your registration is protected</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                We only use these details to verify your student account. Payment activation happens only after Paystack confirms the transaction.
+                Your account is active immediately after registration. Student verification is reviewed separately and does not block basic platform access.
               </p>
             </div>
           </div>
@@ -397,13 +364,6 @@ function StudentOnboarding() {
           <div className="rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
             <p className="font-semibold">Cash registration approved</p>
             <p className="mt-1">This one-time link was issued by UniEco Ghana administration. You will not be sent to Paystack.</p>
-          </div>
-        )}
-
-        {!cashInviteToken && paymentRequired && !error && (
-          <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
-            <p className="font-semibold">Registration payment required</p>
-            <p className="mt-1">Complete the GH₵10 registration payment below before you can access the UniEco Ghana platform.</p>
           </div>
         )}
 
@@ -635,39 +595,10 @@ function StudentOnboarding() {
 
               {!cashInviteToken && <div className="rounded-lg border border-info/30 bg-info/5 p-3">
                 <p className="text-xs text-info-foreground">
-                  Student registration fee: GH₵10.00. Your account is activated only after the payment is verified. Student verification is reviewed separately.
+                  No registration payment is required. Your account becomes active as soon as you submit these details. Student verification is reviewed separately.
                 </p>
               </div>}
               <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be attached automatically. Eligible successful registrations may earn the referrer GH₵2 after the settlement period.</p>
-
-              {!cashInviteToken && (
-                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Choose how to pay</p>
-                    <p className="mt-1 text-xs text-muted-foreground">The direct Mobile Money option sends the prompt to the phone number above and avoids the hosted checkout screen.</p>
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <button type="button" onClick={() => setPaymentMethod('checkout')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'checkout' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
-                      <span className="font-semibold">Paystack checkout</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">Card or Mobile Money</span>
-                    </button>
-                    <button type="button" onClick={() => setPaymentMethod('mobile_money')} className={`rounded-lg border p-3 text-left text-sm ${paymentMethod === 'mobile_money' ? 'border-primary bg-primary/5' : 'border-border bg-background'}`}>
-                      <span className="font-semibold">Direct Mobile Money</span>
-                      <span className="mt-1 block text-xs text-muted-foreground">Send a prompt to your phone</span>
-                    </button>
-                  </div>
-                  {paymentMethod === 'mobile_money' && (
-                    <Select value={mobileMoneyProvider} onValueChange={(value: 'mtn' | 'atl' | 'vod') => setMobileMoneyProvider(value)}>
-                      <SelectTrigger aria-label="Mobile Money network"><SelectValue placeholder="Select Mobile Money network" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="mtn">MTN Mobile Money</SelectItem>
-                        <SelectItem value="vod">Telecel Cash</SelectItem>
-                        <SelectItem value="atl">AirtelTigo Money</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              )}
 
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} className="flex-1">
@@ -676,7 +607,7 @@ function StudentOnboarding() {
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt · GH₵10.00' : 'Continue to payment · GH₵10.00'}
+                  {cashInviteToken ? 'Complete cash registration' : 'Complete free registration'}
                 </Button>
               </div>
             </motion.div>

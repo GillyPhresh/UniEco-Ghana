@@ -45,11 +45,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // A Google signup must always enter the payment-gated onboarding flow. The
-  // cookie is only a navigation hint and must not be allowed to accidentally
-  // send a newly-created account into the platform before registration payment.
+  // A Google signup must complete the appropriate onboarding flow. Student
+  // access is free; business/vendor registration keeps its separate payment
+  // requirement.
   const onboardingDestination = intent === 'student'
-    ? '/onboarding/student?payment_required=1'
+    ? '/onboarding/student'
     : intent === 'external_vendor'
       ? '/onboarding/vendor?payment_required=1'
       : destination;

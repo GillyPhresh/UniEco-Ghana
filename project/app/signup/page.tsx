@@ -115,7 +115,7 @@ export default function SignUpPage() {
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <p className="font-semibold text-foreground">Simple and secure</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, you go straight to your profile and registration payment.</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, students complete their profile and can start using UniEco Ghana immediately.</p>
           </div>
         </div>
 
