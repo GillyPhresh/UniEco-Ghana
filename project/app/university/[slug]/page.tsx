@@ -103,7 +103,7 @@ export default async function UniversityPage({ params }: PageProps) {
   // are still being completed by the university administrator.
   const isUenr = university.slug.toLowerCase() === 'uenr';
   const logoUrl = university.logo_url || (isUenr ? '/assets/universities/UENR/UENR_LOGO.png' : null);
-  const heroImageUrl = university.hero_image_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : null);
+  const heroImageUrl = university.landmark_image_url || university.hero_image_url || (isUenr ? '/assets/universities/UENR/uenr-campus.jpg' : null);
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
   const heroAlt = university.hero_alt_text || `${university.name} campus landmark`;
