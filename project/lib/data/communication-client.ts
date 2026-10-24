@@ -506,21 +506,34 @@ export async function subscribeToPush(
     expiration_time?: string | null;
   },
 ): Promise<{ error: string | null }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const headers: HeadersInit = { 'Content-Type': 'application/json' };
-  if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+  const body = JSON.stringify({
+    endpoint: subscription.endpoint,
+    p256dh: subscription.p256dh_key || subscription.keys?.p256dh,
+    auth: subscription.auth_key || subscription.keys?.auth,
+    expirationTime: subscription.expirationTime,
+  });
 
-  const response = await fetch('/api/notifications/push-subscription', {
-    method: 'POST',
-    headers,
-    credentials: 'same-origin',
-    body: JSON.stringify({
-      endpoint: subscription.endpoint,
-      p256dh: subscription.p256dh_key || subscription.keys?.p256dh,
-      auth: subscription.auth_key || subscription.keys?.auth,
-      expirationTime: subscription.expirationTime,
-    }),
-  }).catch(() => null);
+  const postSubscription = async () => {
+    let { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      const refreshed = await supabase.auth.refreshSession();
+      session = refreshed.data.session;
+    }
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+    return fetch('/api/notifications/push-subscription', {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body,
+    });
+  };
+
+  let response = await postSubscription().catch(() => null);
+  if (response?.status === 401) {
+    await supabase.auth.refreshSession();
+    response = await postSubscription().catch(() => null);
+  }
   if (!response) return { error: 'Could not reach UniEco to save this device.' };
   if (response.ok) return { error: null };
   const result = await response.json().catch(() => ({}));
