@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, MapPin, ArrowRight, Store } from 'lucide-react';
+import { MapPin, ArrowRight, Store } from 'lucide-react';
 import { Section, SectionHeading, Reveal } from '@/components/landing/section';
 import { getLocalUniversityBranding } from '@/lib/data/university-branding';
+import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
 
 interface UniversitySectionProps {
   universities: {
@@ -35,9 +36,8 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
       <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {universities.map((uni, i) => {
           const localBranding = getLocalUniversityBranding(uni.slug);
-          const landmarkImage = uni.landmark_image_url || uni.hero_image_url || localBranding.campusUrl;
-          const logoUrl = uni.logo_url || localBranding.logoUrl;
-          const initials = uni.short_name.slice(0, 3).toUpperCase();
+          const landmarkImage = uni.landmark_image_url || uni.hero_image_url;
+          const logoUrl = uni.logo_url;
 
           return (
             <Reveal key={uni.id} delay={i * 0.08}>
@@ -46,31 +46,25 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
                 className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
               >
                 <div className="relative h-32 overflow-hidden">
-                  {landmarkImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={landmarkImage}
-                      alt={uni.hero_alt_text || `${uni.name} campus landmark`}
-                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="relative flex h-full items-center justify-center overflow-hidden bg-gradient-to-br from-primary/20 via-emerald-50 to-accent/20 dark:from-primary/20 dark:via-emerald-950/40 dark:to-accent/20">
-                      <Building2 className="h-14 w-14 text-primary/25" aria-hidden="true" />
-                      <span className="absolute bottom-2 right-3 rounded-full bg-background/75 px-2 py-1 text-[10px] font-medium text-muted-foreground backdrop-blur-sm">Campus image coming soon</span>
-                    </div>
-                  )}
+                  <UniversityMedia
+                    src={landmarkImage}
+                    fallbackSrc={localBranding.campusUrl}
+                    alt={uni.hero_alt_text || `${uni.name} campus landmark`}
+                    name={uni.name}
+                    shortName={uni.short_name}
+                    kind="campus"
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent" />
                   <div className="absolute bottom-3 left-4 flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm">
-                    {logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={logoUrl}
-                        alt={uni.logo_alt_text || `${uni.name} logo`}
-                        className="max-h-full max-w-full object-contain"
-                        loading="lazy"
-                      />
-                    ) : <span aria-label={`${uni.name} logo placeholder`}>{initials}</span>}
+                    <UniversityLogo
+                      src={logoUrl}
+                      fallbackSrc={localBranding.logoUrl}
+                      alt={uni.logo_alt_text || `${uni.name} logo`}
+                      name={uni.name}
+                      shortName={uni.short_name}
+                      className="object-contain"
+                    />
                   </div>
                 </div>
 

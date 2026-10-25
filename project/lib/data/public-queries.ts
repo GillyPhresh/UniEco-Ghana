@@ -230,6 +230,28 @@ export async function getEventsByUniversity(universityId: string, limit = 6) {
   return (data || []) as unknown as (EventItem & { university: Pick<University, 'id' | 'name' | 'short_name' | 'slug'> | null })[];
 }
 
+export async function getUniversityAnnouncementsByUniversity(universityId: string, limit = 6) {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('university_announcements')
+    .select('id, university_id, title, body, announcement_type, is_active, is_pinned, created_at')
+    .eq('university_id', universityId)
+    .eq('is_active', true)
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  return (data || []) as Array<{
+    id: string;
+    university_id: string;
+    title: string;
+    body: string;
+    announcement_type: string;
+    is_active: boolean;
+    is_pinned: boolean;
+    created_at: string;
+  }>;
+}
+
 export async function getEventBySlug(slug: string) {
   const supabase = await createClient();
   const { data } = await supabase

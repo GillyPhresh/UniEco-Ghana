@@ -10,11 +10,13 @@ import {
   getUniversityBySlug,
   getVendorsByUniversity,
   getEventsByUniversity,
+  getUniversityAnnouncementsByUniversity,
 } from '@/lib/data/public-queries';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { siteConfig } from '@/lib/constants/site';
 import { getLocalUniversityBranding } from '@/lib/data/university-branding';
-import { Building2, MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap, Image as ImageIcon } from 'lucide-react';
+import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
+import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap } from 'lucide-react';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -85,9 +87,10 @@ export default async function UniversityPage({ params }: PageProps) {
   const university = await getUniversityBySlug(slug);
   if (!university) notFound();
 
-  const [vendors, events] = await Promise.all([
+  const [vendors, events, announcements] = await Promise.all([
     getVendorsByUniversity(university.id, 20),
     getEventsByUniversity(university.id, 6),
+    getUniversityAnnouncementsByUniversity(university.id, 6),
   ]);
 
   const universityCategoryCounts: Record<string, number> = {};
@@ -102,11 +105,29 @@ export default async function UniversityPage({ params }: PageProps) {
 
   const localBranding = getLocalUniversityBranding(university.slug);
   const logoUrl = university.logo_url || localBranding.logoUrl;
-  const heroImageUrl = university.landmark_image_url || university.hero_image_url || localBranding.campusUrl;
+  const heroImageUrl = university.landmark_image_url || university.hero_image_url;
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
-  const heroAlt = university.hero_alt_text || `${university.name} campus landmark`;
-  const hasHeroImage = !!heroImageUrl;
+  const campusStories: CampusStory[] = [
+    ...events.map((event) => ({
+      id: `event-${event.id}`,
+      kind: 'event' as const,
+      title: event.title,
+      description: event.description,
+      imageUrl: event.cover_image_url,
+      href: `/events/${event.slug}`,
+      label: 'Campus event',
+      dateLabel: formatDate(event.start_time),
+    })),
+    ...announcements.map((announcement) => ({
+      id: `news-${announcement.id}`,
+      kind: 'news' as const,
+      title: announcement.title,
+      description: announcement.body,
+      label: announcement.is_pinned ? 'Pinned campus news' : 'Campus news',
+      dateLabel: new Date(announcement.created_at).toLocaleDateString('en-GH', { month: 'short', day: 'numeric' }),
+    })),
+  ];
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -142,84 +163,50 @@ export default async function UniversityPage({ params }: PageProps) {
       />
       <SiteHeader />
       <main>
-        {/* Hero */}
-        <section className="relative overflow-hidden border-b border-border">
-          {/* Hero/Landmark image background */}
-          {hasHeroImage ? (
-            <>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={heroImageUrl!}
-                alt={heroAlt}
-                className="absolute inset-0 h-full w-full object-cover"
-                loading="eager"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background via-background/80 to-background/40" />
-            </>
-          ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-card to-accent/5">
-              <div className="absolute inset-0 bg-dot opacity-20 mask-fade-bottom" />
-            </div>
-          )}
-
-          <div className="container relative py-12 sm:py-16">
-            <nav className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+        {/* Mobile-first campus showcase */}
+        <section className="border-b border-border bg-gradient-to-b from-primary/5 via-background to-background">
+          <div className="container py-6 sm:py-10">
+            <nav className="mb-5 flex items-center gap-2 text-sm text-muted-foreground">
               <Link href="/#universities" className="hover:text-foreground">Universities</Link>
               <span>/</span>
               <span className="text-foreground">{university.short_name}</span>
             </nav>
-            <div className="flex items-start gap-5">
-              {/* Logo — preserves aspect ratio, works on all backgrounds */}
-              {logoUrl ? (
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/90 p-2 shadow-md backdrop-blur-sm sm:h-20 sm:w-20">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={logoUrl}
-                    alt={logoAlt}
-                    className="max-h-full max-w-full object-contain"
-                  />
+            <div className="grid items-center gap-7 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10">
+              <div>
+                <div className="flex items-start gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white p-2 shadow-md sm:h-20 sm:w-20">
+                    <UniversityLogo
+                      src={logoUrl}
+                      fallbackSrc={localBranding.logoUrl}
+                      alt={logoAlt}
+                      name={university.name}
+                      shortName={university.short_name}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">UniEco campus</p>
+                    <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
+                      {university.name}
+                    </h1>
+                    <p className="mt-1 text-lg font-medium text-primary">{university.short_name}</p>
+                  </div>
                 </div>
-              ) : (
-                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:h-20 sm:w-20">
-                  <Building2 className="h-8 w-8 sm:h-10 sm:w-10" />
-                </span>
-              )}
-              <div className="flex-1">
-                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-                  {university.name}
-                </h1>
-                <p className="mt-1 text-lg font-medium text-primary">{university.short_name}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-primary" />
-                    {university.city}, {university.region}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Store className="h-4 w-4 text-primary" />
-                    {vendors.length} businesses
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    {events.length} events
-                  </span>
+                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4 text-primary" />{university.city}, {university.region}</span>
+                  <span className="flex items-center gap-1.5"><Store className="h-4 w-4 text-primary" />{vendors.length} businesses</span>
+                  <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{events.length} events</span>
                 </div>
-                {university.description && (
-                  <p className="mt-4 max-w-2xl text-sm text-muted-foreground text-pretty sm:text-base">
-                    {university.description}
-                  </p>
-                )}
-                {!hasHeroImage && (
-                  <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/70">
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    Campus image coming soon
-                  </p>
-                )}
-                {hasHeroImage && university.image_credit && (
-                  <p className="mt-3 text-xs text-muted-foreground/60">
-                    Image credit: {university.image_credit}
-                  </p>
-                )}
+                {university.description && <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{university.description}</p>}
+                {university.image_credit && <p className="mt-4 text-xs text-muted-foreground/70">Image credit: {university.image_credit}</p>}
               </div>
+              <CampusShowcase
+                universityName={university.name}
+                universityShortName={university.short_name}
+                campusImageUrl={heroImageUrl}
+                localCampusImageUrl={localBranding.campusUrl}
+                stories={campusStories}
+              />
             </div>
           </div>
         </section>
@@ -364,8 +351,20 @@ export default async function UniversityPage({ params }: PageProps) {
                   href={`/events/${event.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
                 >
-                  <div className="relative flex h-32 items-center justify-center bg-gradient-to-br from-accent/15 via-primary/5 to-secondary/10">
-                    <Calendar className="h-8 w-8 text-primary/30" />
+                  <div className="relative h-40 overflow-hidden bg-gradient-to-br from-accent/15 via-primary/5 to-secondary/10">
+                    <UniversityMedia
+                      src={event.cover_image_url}
+                      fallbackSrc={localBranding.campusUrl || heroImageUrl}
+                      alt={`${event.title} at ${university.short_name}`}
+                      name={university.name}
+                      shortName={university.short_name}
+                      kind="campus"
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 to-transparent" />
+                    <span className="absolute bottom-3 left-3 inline-flex items-center gap-1.5 rounded-full bg-slate-950/65 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                      <Calendar className="h-3.5 w-3.5" /> Upcoming event
+                    </span>
                   </div>
                   <div className="flex flex-1 flex-col p-4">
                     <h3 className="font-display font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
