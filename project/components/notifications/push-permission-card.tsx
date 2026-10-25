@@ -92,7 +92,7 @@ async function getPushConfig(): Promise<{ publicKey: string }> {
   return result as { publicKey: string };
 }
 
-export function PushPermissionCard() {
+export function PushPermissionCard({ onboarding = false }: { onboarding?: boolean }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -209,7 +209,7 @@ export function PushPermissionCard() {
           </div>
           <div>
             <p className="font-semibold">Device notifications</p>
-            <p className="mt-1 text-sm text-muted-foreground">Receive important UniEco updates even when the site is closed.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{onboarding ? 'Receive messages, order updates, and campus alerts even when the site is closed.' : 'Receive important UniEco updates even when the site is closed.'}</p>
             {support && <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{support.message}</p>}
             {syncError && <p className="mt-2 text-xs font-medium text-destructive">{syncError}</p>}
           </div>
@@ -217,7 +217,7 @@ export function PushPermissionCard() {
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-44">
           <Button type="button" size="sm" onClick={enablePush} disabled={busy || !support?.supported} className="w-full">
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : enabled ? <RefreshCw className="mr-2 h-4 w-4" /> : <Smartphone className="mr-2 h-4 w-4" />}
-            {enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : 'Enable push'}
+            {enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : onboarding ? 'Turn on notifications' : 'Enable push'}
           </Button>
           {enabled && <Button type="button" size="sm" variant="outline" onClick={sendTestPush} disabled={busy} className="w-full"><Send className="mr-2 h-4 w-4" /> Send test notification</Button>}
         </div>

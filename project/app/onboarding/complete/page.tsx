@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, GraduationCap, Store, ArrowRight } from 'lucide-react';
+import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 
 export default function OnboardingCompletePage() {
   return (
@@ -61,6 +62,12 @@ function CompleteScreen() {
               status="pending"
             />
           )}
+        </div>
+
+        <div className="space-y-2 text-left">
+          <p className="px-1 text-sm font-semibold text-foreground">Stay up to date</p>
+          <p className="px-1 text-sm text-muted-foreground">Turn on UniEco notifications now to receive messages, order updates, and important campus alerts on this device.</p>
+          <PushPermissionCard onboarding />
         </div>
 
         <Button onClick={() => router.push('/')} size="lg" className="w-full">
