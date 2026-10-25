@@ -33,7 +33,7 @@ import {
   getConversations, getMessages, sendMessage, markMessagesRead,
   getOrCreateConversation, getConversationRecipient, searchConversations,
   uploadMessageAttachment, validateAttachment, deleteMessage,
-  deleteMessageAttachment, searchMessageRecipients,
+  deleteMessageAttachment, searchMessageContacts,
   blockUser, reportMessage, isUserBlocked,
   resolveMessageAttachmentUrl,
 } from '@/lib/data/communication-client';
@@ -55,6 +55,25 @@ function timeAgo(dateString: string): string {
 
 function formatTime(dateString: string): string {
   return new Date(dateString).toLocaleTimeString('en-GH', { hour: 'numeric', minute: '2-digit' });
+}
+
+function formatMessageDate(dateString: string): string {
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  if (date.toDateString() === today.toDateString()) return 'Today';
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+  return date.toLocaleDateString('en-GH', { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+function conversationPreview(conv: ConversationWithDetails): string {
+  if (conv.last_message?.body) return conv.last_message.body;
+  return conv.last_message ? 'Attachment' : 'Start a conversation';
+}
+
+function initials(name: string | null | undefined): string {
+  return name?.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
 }
 
 function ProtectedAttachment({ reference, messageType }: { reference: string; messageType: MessageType }) {
@@ -146,7 +165,12 @@ function MessagesContent() {
   useEffect(() => {
     if (targetUserId && user) {
       (async () => {
-        const convId = await getOrCreateConversation(targetUserId, orderParam ?? undefined);
+        const result = await getOrCreateConversation(targetUserId, orderParam ?? undefined);
+        if (result.error) {
+          toast({ title: 'Could not open conversation', description: result.error, variant: 'destructive' });
+          return;
+        }
+        const convId = result.id;
         if (convId) {
           const all = await getConversations();
           setConversations(all);
@@ -170,7 +194,7 @@ function MessagesContent() {
       })();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetUserId, user, orderParam]);
+  }, [targetUserId, user, orderParam, toast]);
 
   // Realtime subscription for active conversation
   useEffect(() => {
@@ -409,11 +433,11 @@ function MessagesContent() {
       return;
     }
     setRecipientSearching(true);
-    setRecipientResults(await searchMessageRecipients(query));
+    setRecipientResults(await searchMessageContacts(query));
     setRecipientSearching(false);
   };
 
-  const startStudentConversation = (recipient: MessageRecipient) => {
+  const startConversation = (recipient: MessageRecipient) => {
     setShowNewMessage(false);
     setRecipientQuery('');
     setRecipientResults([]);
@@ -475,206 +499,148 @@ function MessagesContent() {
   return (
     <>
       <SiteHeader />
-      <main className="container py-6 sm:py-8">
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Messages
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Contact vendors directly and keep track of your conversations.
-          </p>
+      <main className="container px-4 pb-24 pt-4 sm:py-8 lg:pb-8">
+        <div className={`mb-4 sm:mb-6 ${mobileShowChat ? 'hidden lg:block' : 'block'}`}>
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your inbox</p>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Messages</h1>
+              <p className="mt-1 max-w-xl text-sm text-muted-foreground">Chat with businesses and people on UniEco Ghana.</p>
+            </div>
+            <span className="hidden rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground sm:inline-flex">Private conversations</span>
+          </div>
         </div>
 
-        <Card className="overflow-hidden">
-          <div className="grid h-[calc(100dvh-10rem)] min-h-[32rem] max-h-[42rem] grid-cols-1 sm:grid-cols-[300px_minmax(0,1fr)]">
-            {/* Conversation list */}
-            <div className={`min-h-0 border-r border-border flex flex-col ${mobileShowChat ? 'hidden sm:flex' : 'flex'}`}>
-              {/* Search */}
-              <div className="border-b border-border p-3">
-                <Button size="sm" className="mb-3 w-full" onClick={() => setShowNewMessage(true)}>
+        <Card className="-mx-4 overflow-hidden rounded-none border-x-0 shadow-none sm:mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
+          <div className="grid h-[calc(100dvh-9rem)] min-h-[34rem] grid-cols-1 lg:h-[min(46rem,calc(100dvh-12rem))] lg:grid-cols-[minmax(19rem,24rem)_minmax(0,1fr)]">
+            {/* Mobile-first conversation list */}
+            <section className={`min-h-0 flex-col bg-background lg:border-r lg:border-border ${mobileShowChat ? 'hidden lg:flex' : 'flex'}`} aria-label="Conversations">
+              <div className="shrink-0 border-b border-border p-3 sm:p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-semibold text-foreground">Chats</h2>
+                    <p className="text-xs text-muted-foreground">{conversations.length ? `${conversations.length} conversation${conversations.length === 1 ? '' : 's'}` : 'Start a new conversation'}</p>
+                  </div>
+                  <MessageSquare className="h-5 w-5 text-primary" aria-hidden="true" />
+                </div>
+                <Button className="mb-3 h-11 w-full rounded-xl" onClick={() => setShowNewMessage(true)}>
                   <MessageSquare className="mr-2 h-4 w-4" /> New message
                 </Button>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
-                    type="text"
+                    type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search conversations..."
-                    className="pl-9"
+                    placeholder="Search chats"
+                    aria-label="Search conversations"
+                    className="h-11 rounded-xl bg-muted/30 pl-9"
                   />
                 </div>
               </div>
 
-              {/* List */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                 {loading ? (
                   <div className="space-y-2 p-3">
-                    {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+                    {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[4.5rem] rounded-xl" />)}
                   </div>
                 ) : filteredConversations.length > 0 ? (
-                  <div className="space-y-1 p-2">
-                    {filteredConversations.map((conv) => (
-                      <button
-                        key={conv.id}
-                        onClick={() => openConversation(conv)}
-                        className={`flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors ${
-                          activeConvId === conv.id ? 'bg-primary/10' : 'hover:bg-muted/50'
-                        }`}
-                      >
-                        <Avatar className="h-10 w-10 shrink-0">
-                          <AvatarImage src={getPublicAvatarUrl(conv.other_participant?.avatar_url)} alt="" className="object-cover" />
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {conv.other_participant?.full_name?.split(' ').map((n) => n[0]).join('') || '?'}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="truncate text-sm font-medium text-foreground">
-                              {conv.other_participant?.full_name || 'Unknown'}
-                            </p>
-                            {conv.unread_count > 0 && (
-                              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
-                                {conv.unread_count}
-                              </span>
-                            )}
-                          </div>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {conv.last_message?.body || 'No messages yet'}
-                          </p>
-                          {conv.order_id && (
-                            <p className="mt-0.5 text-xs font-medium text-primary">Order conversation</p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
+                  <div className="divide-y divide-border">
+                    {filteredConversations.map((conv) => {
+                      const otherName = conv.other_participant?.full_name || 'UniEco contact';
+                      const lastMessage = conv.last_message;
+                      return (
+                        <button
+                          key={conv.id}
+                          onClick={() => openConversation(conv)}
+                          className={`flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-muted/70 lg:hover:bg-muted/50 ${activeConvId === conv.id ? 'bg-primary/5 lg:bg-primary/10' : ''}`}
+                        >
+                          <Avatar className="h-12 w-12 shrink-0">
+                            <AvatarImage src={getPublicAvatarUrl(conv.other_participant?.avatar_url)} alt="" className="object-cover" />
+                            <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">{initials(otherName)}</AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center justify-between gap-2">
+                              <span className={`truncate text-sm ${conv.unread_count > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}>{otherName}</span>
+                              {lastMessage && <span className={`shrink-0 text-[11px] ${conv.unread_count > 0 ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{timeAgo(lastMessage.created_at)}</span>}
+                            </span>
+                            <span className="mt-1 flex items-center gap-1.5">
+                              {lastMessage?.sender_id === user?.id && <CheckCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Sent by you" />}
+                              <span className={`truncate text-xs ${conv.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{conversationPreview(conv)}</span>
+                              {conv.unread_count > 0 && <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">{conv.unread_count}</span>}
+                            </span>
+                            {conv.order_id && <span className="mt-1 block text-[11px] font-medium text-primary">Order conversation</span>}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="flex h-full items-center justify-center p-6 text-center">
-                    <div>
-                      <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        {searchQuery ? 'No conversations found' : 'No conversations yet. Contact a vendor from their business page to start chatting.'}
-                      </p>
-                      {!searchQuery && (
-                        <Button asChild variant="outline" size="sm" className="mt-3">
-                          <Link href="/discover">Find businesses</Link>
-                        </Button>
-                      )}
+                  <div className="flex h-full items-center justify-center p-8 text-center">
+                    <div className="max-w-xs">
+                      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquare className="h-7 w-7" /></span>
+                      <p className="mt-4 text-sm font-semibold text-foreground">{searchQuery ? 'No chats found' : 'Your inbox is ready'}</p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{searchQuery ? 'Try another name or message.' : 'Message a business from its page, or start a new chat here.'}</p>
+                      {!searchQuery && <Button asChild variant="outline" size="sm" className="mt-4 rounded-xl"><Link href="/discover">Find businesses</Link></Button>}
                     </div>
                   </div>
                 )}
               </div>
-            </div>
+            </section>
 
-            {/* Chat area */}
-            <div className={`min-h-0 min-w-0 flex flex-col ${mobileShowChat ? 'flex' : 'hidden sm:flex'}`}>
+            {/* WhatsApp-style chat panel */}
+            <section className={`min-h-0 min-w-0 flex-col bg-muted/20 ${mobileShowChat ? 'flex' : 'hidden lg:flex'}`} aria-label="Open conversation">
               {activeConvId && activeOtherUser ? (
                 <>
-                  {/* Chat header */}
-                  <div className="flex items-center gap-3 border-b border-border p-3">
-                    <button
-                      onClick={() => setMobileShowChat(false)}
-                      className="sm:hidden flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
+                  <div className="z-10 flex shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-4">
+                    <button type="button" onClick={() => setMobileShowChat(false)} aria-label="Back to conversations" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted lg:hidden">
+                      <ArrowLeft className="h-5 w-5" />
                     </button>
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-10 w-10 shrink-0">
                       <AvatarImage src={getPublicAvatarUrl(activeOtherUser.avatar_url)} alt="" className="object-cover" />
-                      <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                        {activeOtherUser.full_name?.split(' ').map((n) => n[0]).join('') || '?'}
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">{initials(activeOtherUser.full_name)}</AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-foreground">{activeOtherUser.full_name}</p>
-                      {isTyping && (
-                        <p className="text-xs text-primary">typing...</p>
-                      )}
-                      {activeConv?.order_id && (
-                        <Link href={`/orders/${activeConv.order_id}`} className="text-xs text-primary hover:underline">
-                          View linked order
-                        </Link>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{activeOtherUser.full_name || 'UniEco contact'}</p>
+                      <p className="truncate text-xs text-muted-foreground">{isTyping ? 'Typing…' : activeConv?.order_id ? 'Order conversation' : 'UniEco conversation'}</p>
                     </div>
+                    {activeConv?.order_id && <Link href={`/orders/${activeConv.order_id}`} className="hidden rounded-full border border-border px-3 py-1.5 text-xs font-medium text-primary hover:bg-muted sm:inline-flex">View order</Link>}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted">
-                          <MoreVertical className="h-4 w-4" />
-                        </button>
+                        <button type="button" aria-label="Conversation options" className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><MoreVertical className="h-5 w-5" /></button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setShowReport(true)}>
-                          <Flag className="mr-2 h-4 w-4" />
-                          Report conversation
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setShowBlock(true)} className="text-destructive">
-                          <Ban className="mr-2 h-4 w-4" />
-                          {blocked ? 'Unblock user' : 'Block user'}
-                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowReport(true)}><Flag className="mr-2 h-4 w-4" />Report conversation</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowBlock(true)} className="text-destructive"><Ban className="mr-2 h-4 w-4" />{blocked ? 'Unblock user' : 'Block user'}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
 
-                  {/* Messages */}
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/10 p-4">
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5">
                     {loadingMessages ? (
-                      <div className="space-y-3">
-                        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-2/3 rounded-lg" />)}
-                      </div>
+                      <div className="space-y-3"><Skeleton className="h-12 w-3/4 rounded-2xl" /><Skeleton className="ml-auto h-16 w-2/3 rounded-2xl" /><Skeleton className="h-10 w-1/2 rounded-2xl" /></div>
                     ) : messages.length > 0 ? (
-                      <div className="space-y-3">
-                        {messages.map((msg) => {
+                      <div className="space-y-2">
+                        {messages.map((msg, index) => {
                           const isMine = msg.sender_id === user?.id;
+                          const previousMessage = messages[index - 1];
+                          const showDate = !previousMessage || formatMessageDate(previousMessage.created_at) !== formatMessageDate(msg.created_at);
                           if (msg.is_deleted) {
-                            return (
-                              <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                                <div className="rounded-2xl bg-muted/50 px-4 py-2 text-xs italic text-muted-foreground">
-                                  Message deleted
-                                </div>
-                              </div>
-                            );
+                            return <div key={msg.id}>{showDate && <div className="my-3 text-center"><span className="rounded-full bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">{formatMessageDate(msg.created_at)}</span></div>}<div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}><div className="rounded-2xl bg-muted px-4 py-2 text-xs italic text-muted-foreground">Message deleted</div></div></div>;
                           }
                           return (
-                            <div
-                              key={msg.id}
-                              className={`group flex ${isMine ? 'justify-end' : 'justify-start'}`}
-                            >
-                              <div
-                                className={`max-w-[85%] break-words rounded-2xl px-4 py-2 text-sm sm:max-w-[80%] ${
-                                  isMine
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted text-foreground'
-                                }`}
-                              >
-                                {msg.message_type === 'link' && msg.body ? (
-                                  <a
-                                    href={msg.body}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="underline"
-                                  >
-                                    {msg.body}
-                                  </a>
-                                ) : msg.body ? (
-                                  <p>{msg.body}</p>
-                                ) : null}
-                                {renderAttachment(msg)}
-                                <div className={`mt-0.5 flex items-center gap-1 ${isMine ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
-                                  <span className="text-xs">{formatTime(msg.created_at)}</span>
-                                  {isMine && msg.is_read && <CheckCheck className="h-3 w-3" />}
-                                </div>
-                                {isMine && !msg.id.startsWith('temp-') && (
-                                  <div className="mt-1 hidden gap-2 group-hover:flex">
-                                    {msg.attachment_url && (
-                                      <button onClick={() => handleDeleteAttachment(msg)} className="text-xs text-destructive/70 hover:text-destructive">
-                                        <Trash2 className="h-3 w-3 inline" /> Remove attachment
-                                      </button>
-                                    )}
-                                    <button onClick={() => handleDeleteMessage(msg.id)} className="text-xs text-destructive/70 hover:text-destructive">
-                                      <Trash2 className="h-3 w-3 inline" /> Delete message
-                                    </button>
+                            <div key={msg.id}>
+                              {showDate && <div className="my-3 text-center"><span className="rounded-full bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">{formatMessageDate(msg.created_at)}</span></div>}
+                              <div className={`group flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[88%] break-words px-3.5 py-2 text-sm shadow-sm sm:max-w-[75%] ${isMine ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground' : 'rounded-2xl rounded-bl-md bg-background text-foreground'}`}>
+                                  {msg.message_type === 'link' && msg.body ? <a href={msg.body} target="_blank" rel="noopener noreferrer" className="underline">{msg.body}</a> : msg.body ? <p className="whitespace-pre-wrap leading-5">{msg.body}</p> : null}
+                                  {renderAttachment(msg)}
+                                  <div className={`mt-1 flex items-center justify-end gap-1 ${isMine ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
+                                    <span className="text-[10px]">{formatTime(msg.created_at)}</span>
+                                    {isMine && <CheckCheck className={`h-3.5 w-3.5 ${msg.is_read ? '' : 'opacity-50'}`} aria-label={msg.is_read ? 'Read' : 'Sent'} />}
                                   </div>
-                                )}
+                                  {isMine && !msg.id.startsWith('temp-') && <div className="mt-1 hidden gap-2 group-hover:flex"><button onClick={() => handleDeleteMessage(msg.id)} className="text-[11px] text-destructive/80 hover:text-destructive"><Trash2 className="mr-1 inline h-3 w-3" />Delete</button>{msg.attachment_url && <button onClick={() => handleDeleteAttachment(msg)} className="text-[11px] text-destructive/80 hover:text-destructive"><Trash2 className="mr-1 inline h-3 w-3" />Remove attachment</button>}</div>}
+                                </div>
                               </div>
                             </div>
                           );
@@ -682,103 +648,25 @@ function MessagesContent() {
                         <div ref={messagesEndRef} />
                       </div>
                     ) : (
-                      <div className="flex h-full items-center justify-center text-center">
-                        <div>
-                          <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
-                          <p className="mt-2 text-sm text-muted-foreground">Start the conversation</p>
-                        </div>
-                      </div>
+                      <div className="flex h-full items-center justify-center text-center"><div><span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquare className="h-7 w-7" /></span><p className="mt-3 text-sm font-semibold text-foreground">Start the conversation</p><p className="mt-1 text-xs text-muted-foreground">Say hello and keep everything in one place.</p></div></div>
                     )}
                   </div>
 
-                  {/* Attachment preview */}
-                  {attachmentPreview && (
-                    <div className="border-t border-border bg-muted/20 px-3 py-2">
-                      <div className="relative inline-block rounded-lg border border-border bg-background p-1">
-                        <img src={attachmentPreview} alt="Selected image preview" className="h-20 max-w-[12rem] rounded-md object-cover" />
-                        <button
-                          type="button"
-                          aria-label="Remove selected attachment"
-                          onClick={() => { setAttachment(null); setAttachmentPreview(null); }}
-                          className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {attachment && !attachmentPreview && (
-                    <div className="border-t border-border bg-muted/20 px-3 py-2">
-                      <div className="inline-flex max-w-full items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="truncate">{attachment.name}</span>
-                        <button
-                          type="button"
-                          aria-label="Remove selected attachment"
-                          onClick={() => setAttachment(null)}
-                          className="ml-1 text-muted-foreground hover:text-destructive"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  {attachmentPreview && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="relative inline-block rounded-xl border border-border bg-muted p-1"><img src={attachmentPreview} alt="Selected image preview" className="h-20 max-w-[12rem] rounded-lg object-cover" /><button type="button" aria-label="Remove selected attachment" onClick={() => { setAttachment(null); setAttachmentPreview(null); }} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground"><X className="h-3 w-3" /></button></div></div>}
+                  {attachment && !attachmentPreview && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{attachment.name}</span><button type="button" aria-label="Remove selected attachment" onClick={() => setAttachment(null)} className="ml-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button></div></div>}
 
-                  {/* Input */}
-                  <div className="border-t border-border bg-background p-3">
-                    {blocked ? (
-                      <div className="rounded-lg bg-muted p-3 text-center text-sm text-muted-foreground">
-                        You have blocked this user. Unblock them from the menu above to send messages.
-                      </div>
-                    ) : (
-                      <>
-                        <form
-                          onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                          className="flex items-end gap-2"
-                        >
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          className="hidden"
-                          onChange={handleFileSelect}
-                          accept="image/*,.pdf,.doc,.docx,.txt"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          aria-label="Attach a file"
-                          title="Attach an image, PDF, Word document, or text file (maximum 10 MB)"
-                          disabled={sending}
-                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          <Paperclip className="h-4 w-4" />
-                        </button>
-                        <Input
-                          type="text"
-                          value={newMessage}
-                          onChange={(e) => handleMessageChange(e.target.value)}
-                          placeholder="Type a message..."
-                          className="flex-1"
-                          disabled={sending}
-                        />
-                        <Button type="submit" size="icon" aria-label="Send message" title="Send message" disabled={(!newMessage.trim() && !attachment) || sending}>
-                          <Send className="h-4 w-4" />
-                        </Button>
-                        </form>
-                        <p className="mt-2 text-xs text-muted-foreground">Images, PDF, Word, or text files up to 10 MB.</p>
-                      </>
-                    )}
+                  <div className="shrink-0 border-t border-border bg-background/95 px-3 pt-2 backdrop-blur sm:px-4 sm:pb-3" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
+                    {blocked ? <div className="rounded-xl bg-muted p-3 text-center text-sm text-muted-foreground">You have blocked this user. Unblock them from the menu above to send messages.</div> : <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2">
+                      <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.txt" />
+                      <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach a file" title="Attach an image or document (maximum 10 MB)" disabled={sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-5 w-5" /></button>
+                      <Input type="text" value={newMessage} onChange={(e) => handleMessageChange(e.target.value)} placeholder="Type a message" aria-label="Message" className="h-11 rounded-full bg-muted/30 px-4" disabled={sending} />
+                      <Button type="submit" size="icon" aria-label="Send message" title="Send message" className="h-11 w-11 shrink-0 rounded-full" disabled={(!newMessage.trim() && !attachment) || sending}><Send className="h-5 w-5" /></Button>
+                    </form>}
+                    <p className="mt-1.5 hidden text-[11px] text-muted-foreground sm:block">Images, PDF, Word, or text files up to 10 MB.</p>
                   </div>
                 </>
-              ) : (
-                <div className="flex h-full items-center justify-center text-center">
-                  <div>
-                    <MessageSquare className="mx-auto h-12 w-12 text-muted-foreground/40" />
-                    <p className="mt-3 text-sm text-muted-foreground">Select a conversation to view messages</p>
-                  </div>
-                </div>
-              )}
-            </div>
+              ) : <div className="flex h-full items-center justify-center p-8 text-center"><div><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary"><MessageSquare className="h-8 w-8" /></span><p className="mt-4 text-sm font-semibold text-foreground">Select a chat to start</p><p className="mt-1 max-w-xs text-sm text-muted-foreground">Your conversations with businesses and students will appear here.</p></div></div>}
+            </section>
           </div>
         </Card>
       </main>
@@ -830,19 +718,19 @@ function MessagesContent() {
       <Dialog open={showNewMessage} onOpenChange={setShowNewMessage}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New student message</DialogTitle>
-            <DialogDescription>Search students at your university by name. Email addresses are never shown.</DialogDescription>
+            <DialogTitle>New student message or business chat</DialogTitle>
+            <DialogDescription>Search for a business or student. Email addresses are never shown.</DialogDescription>
           </DialogHeader>
-          <Input value={recipientQuery} onChange={(event) => handleRecipientSearch(event.target.value)} placeholder="Enter at least two characters" autoFocus />
+          <Input value={recipientQuery} onChange={(event) => handleRecipientSearch(event.target.value)} placeholder="Search by name" autoFocus />
           <div className="max-h-64 space-y-1 overflow-y-auto">
             {recipientSearching && <p className="p-2 text-sm text-muted-foreground">Searching…</p>}
             {!recipientSearching && recipientQuery.trim().length >= 2 && recipientResults.length === 0 && (
-              <p className="p-2 text-sm text-muted-foreground">No eligible students found.</p>
+              <p className="p-2 text-sm text-muted-foreground">No messageable contacts found.</p>
             )}
             {recipientResults.map((recipient) => (
-              <button key={recipient.id} onClick={() => startStudentConversation(recipient)} className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-muted">
-                <Avatar className="h-9 w-9"><AvatarFallback>{recipient.full_name?.split(' ').map((part) => part[0]).join('') || '?'}</AvatarFallback></Avatar>
-                <span className="text-sm font-medium">{recipient.full_name || 'Student'}</span>
+              <button key={recipient.id} onClick={() => startConversation(recipient)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-muted">
+                <Avatar className="h-10 w-10"><AvatarImage src={getPublicAvatarUrl(recipient.avatar_url)} alt="" /><AvatarFallback className="bg-primary/10 text-primary">{initials(recipient.full_name)}</AvatarFallback></Avatar>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{recipient.full_name || 'Contact'}</span><span className="block text-xs text-muted-foreground">{recipient.subtitle || (recipient.kind === 'business' ? 'Business' : 'Student')}</span></span>
               </button>
             ))}
           </div>
