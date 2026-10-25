@@ -73,50 +73,20 @@ export async function searchMessageRecipients(query: string): Promise<MessageRec
 }
 
 /**
- * Search all safe, messageable contacts for the composer. Student search is
- * kept behind its university-scoped RPC; active businesses are public
- * marketplace records and can be searched separately without exposing email
- * addresses or private profile fields.
+ * Search all safe, messageable contacts for the composer through the
+ * participant-safe server-side read model. The RPC returns display names only
+ * and keeps university, block, and account-restriction rules on the server.
  */
 export async function searchMessageContacts(query: string): Promise<MessageRecipient[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
-  const [{ data: students }, { data: vendors }, { data: { user } }] = await Promise.all([
-    supabase.rpc('search_message_recipients', { p_query: trimmed, p_limit: 10 }),
-    supabase
-      .from('vendors')
-      .select('owner_id, business_name, logo_url')
-      .eq('is_active', true)
-      .ilike('business_name', `%${trimmed}%`)
-      .limit(10),
-    supabase.auth.getUser(),
-  ]);
-
-  const studentResults = ((students || []) as MessageRecipient[]).map((student) => ({
-    ...student,
-    kind: 'student' as const,
-    subtitle: 'Student',
-  }));
-  const businessResults = ((vendors || []) as Array<{
-    owner_id: string | null;
-    business_name: string | null;
-    logo_url: string | null;
-  }>)
-    .filter((vendor) => vendor.owner_id && vendor.owner_id !== user?.id)
-    .map((vendor) => ({
-      id: vendor.owner_id as string,
-      full_name: vendor.business_name,
-      avatar_url: vendor.logo_url,
-      kind: 'business' as const,
-      subtitle: 'Business',
-    }));
-
-  const unique = new Map<string, MessageRecipient>();
-  [...businessResults, ...studentResults].forEach((contact) => {
-    if (!unique.has(contact.id)) unique.set(contact.id, contact);
+  const { data, error } = await supabase.rpc('search_message_contacts', {
+    p_query: trimmed,
+    p_limit: 12,
   });
-  return Array.from(unique.values()).slice(0, 12);
+
+  return error ? [] : (data || []) as MessageRecipient[];
 }
 
 export async function getConversations(
