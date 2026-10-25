@@ -33,11 +33,9 @@ export async function GET(request: Request) {
   // subscriptions that the sender is unable to authenticate.
   let publicKey = process.env.VAPID_PUBLIC_KEY;
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/+$/, '');
-  const internalSecret = process.env.UNIECO_INTERNAL_FUNCTION_SECRET;
-  if (supabaseUrl && internalSecret) {
+  if (supabaseUrl) {
     try {
       const response = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        headers: { 'x-unieco-internal-secret': internalSecret },
         cache: 'no-store',
         signal: AbortSignal.timeout(5000),
       });

@@ -38,8 +38,9 @@ Deno.serve(async (req: Request) => {
   }
 
   if (req.method === "GET") {
-    const authFailure = requireInternalRequest(req);
-    if (authFailure) return authFailure;
+    // The VAPID public key is intentionally public; only POST delivery needs
+    // the internal secret. Returning it here keeps browser subscription setup
+    // aligned with the key used by this sender.
     const vapidPublicKey = normalizeVapidKey(Deno.env.get("VAPID_PUBLIC_KEY"), 65, true);
     if (!vapidPublicKey) {
       return new Response(JSON.stringify({ error: "Push provider not configured" }), {
