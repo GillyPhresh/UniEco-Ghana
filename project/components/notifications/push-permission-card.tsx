@@ -148,6 +148,10 @@ export function PushPermissionCard() {
       if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
       const registration = await getPushRegistration();
+      const existingSubscription = await registration.pushManager.getSubscription();
+      // A refresh deliberately creates a new subscription. This repairs a
+      // subscription created with an older VAPID public key or browser token.
+      if (existingSubscription && enabled) await existingSubscription.unsubscribe();
       const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: decodeBase64Url(config.publicKey),

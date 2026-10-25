@@ -15,6 +15,20 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
 
+  if (req.method === "GET") {
+    const authFailure = requireInternalRequest(req);
+    if (authFailure) return authFailure;
+    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    if (!vapidPublicKey) {
+      return new Response(JSON.stringify({ error: "Push provider not configured" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(JSON.stringify({ publicKey: vapidPublicKey }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -68,6 +82,7 @@ Deno.serve(async (req: Request) => {
     webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
     let sentCount = 0;
     let failedCount = 0;
+    let lastFailure: string | null = null;
 
     for (const sub of subs) {
       try {
@@ -90,6 +105,7 @@ Deno.serve(async (req: Request) => {
       } catch (error) {
         failedCount++;
         const statusCode = (error as { statusCode?: number })?.statusCode;
+        lastFailure = describePushFailure(statusCode);
         if (statusCode === 404 || statusCode === 410) {
           await supabase.from("push_subscriptions").update({ is_active: false }).eq("id", sub.id);
         }
@@ -102,10 +118,12 @@ Deno.serve(async (req: Request) => {
       recipient_id: recipientId,
       status: sentCount > 0 ? "sent" : "failed",
       provider,
+      error_message: sentCount > 0 ? null : lastFailure,
     });
 
     return new Response(JSON.stringify({
       success: sentCount > 0,
+      error: sentCount > 0 ? undefined : lastFailure || "Push provider rejected delivery.",
       provider,
       providerReference: `push_${Date.now()}`,
       sentCount,
@@ -118,3 +136,11 @@ Deno.serve(async (req: Request) => {
     });
   }
 });
+
+function describePushFailure(statusCode?: number): string {
+  if (statusCode === 400) return "Push provider rejected the subscription. Refresh this device connection.";
+  if (statusCode === 401) return "Push provider rejected the VAPID credentials. Refresh this device connection.";
+  if (statusCode === 404 || statusCode === 410) return "This device subscription has expired. Refresh this device connection.";
+  if (statusCode === 429) return "Push provider rate limit reached. Try again shortly.";
+  return statusCode ? `Push provider delivery failed (HTTP ${statusCode}).` : "Push provider delivery failed.";
+}
