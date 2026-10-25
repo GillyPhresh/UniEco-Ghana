@@ -16,7 +16,11 @@ type PushSupport = {
 function decodeBase64Url(value: string) {
   const padding = '='.repeat((4 - (value.length % 4)) % 4);
   const base64 = (value + padding).replace(/-/g, '+').replace(/_/g, '/');
-  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  const bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
+  if (bytes.length !== 65 || bytes[0] !== 4) {
+    throw new Error('The production VAPID public key is invalid. Please regenerate one VAPID key pair and use the public key on both Railway and Supabase.');
+  }
+  return bytes;
 }
 
 function getPushSupport(): PushSupport {

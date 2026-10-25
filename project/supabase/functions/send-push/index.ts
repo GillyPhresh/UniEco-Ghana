@@ -10,6 +10,28 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+function normalizeVapidKey(value: string | undefined, expectedBytes: number, publicKey = false): string | null {
+  if (!value) return null;
+  let key = value.trim().replace(/^['"`]|['"`]$/g, '');
+  const label = publicKey ? '(?:vapid[_ -]?public[_ -]?key|public\\s+key)' : '(?:vapid[_ -]?private[_ -]?key|private\\s+key)';
+  const labeled = key.match(new RegExp(`${label}\\s*[:=]\\s*([A-Za-z0-9+/_-]+={0,2})`, 'i'));
+  if (labeled?.[1]) key = labeled[1];
+  key = key.replace(/\s+/g, '');
+  if (!key || key.includes('BEGIN') || key.includes('END')) return null;
+
+  try {
+    const padding = '='.repeat((4 - (key.length % 4)) % 4);
+    const decoded = atob((key + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = Uint8Array.from(decoded, (character) => character.charCodeAt(0));
+    if (bytes.length !== expectedBytes || (publicKey && bytes[0] !== 4)) return null;
+    let normalized = '';
+    for (const byte of bytes) normalized += String.fromCharCode(byte);
+    return btoa(normalized).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
@@ -18,7 +40,7 @@ Deno.serve(async (req: Request) => {
   if (req.method === "GET") {
     const authFailure = requireInternalRequest(req);
     if (authFailure) return authFailure;
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
+    const vapidPublicKey = normalizeVapidKey(Deno.env.get("VAPID_PUBLIC_KEY"), 65, true);
     if (!vapidPublicKey) {
       return new Response(JSON.stringify({ error: "Push provider not configured" }), {
         status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -47,9 +69,9 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const vapidSubject = Deno.env.get("VAPID_SUBJECT");
-    const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
-    const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
+    const vapidSubject = Deno.env.get("VAPID_SUBJECT")?.trim();
+    const vapidPublicKey = normalizeVapidKey(Deno.env.get("VAPID_PUBLIC_KEY"), 65, true);
+    const vapidPrivateKey = normalizeVapidKey(Deno.env.get("VAPID_PRIVATE_KEY"), 32);
 
     if (!vapidSubject || !vapidPublicKey || !vapidPrivateKey) {
       return new Response(JSON.stringify({

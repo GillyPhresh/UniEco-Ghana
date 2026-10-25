@@ -3,6 +3,23 @@ import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+function normalizeVapidPublicKey(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  let key = value.trim().replace(/^['"`]|['"`]$/g, '');
+  const labeled = key.match(/(?:vapid[_ -]?public[_ -]?key|public\s+key)\s*[:=]\s*([A-Za-z0-9+/_-]+={0,2})/i);
+  if (labeled?.[1]) key = labeled[1];
+  key = key.replace(/\s+/g, '');
+  if (!key || key.includes('BEGIN') || key.includes('END')) return null;
+
+  try {
+    const bytes = Buffer.from(key.replace(/-/g, '+').replace(/_/g, '/'), 'base64');
+    if (bytes.length !== 65 || bytes[0] !== 4) return null;
+    return bytes.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const bearerToken = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -30,9 +47,12 @@ export async function GET(request: Request) {
       // Fall back to the Railway public key if the function is temporarily unavailable.
     }
   }
-  if (!publicKey) return NextResponse.json({ error: 'Push notifications are not configured' }, { status: 503 });
+  const normalizedPublicKey = normalizeVapidPublicKey(publicKey);
+  if (!normalizedPublicKey) {
+    return NextResponse.json({ error: 'Push provider public key is invalid. Regenerate one VAPID key pair and use its public key on both Railway and Supabase.' }, { status: 503 });
+  }
 
-  return NextResponse.json({ publicKey }, {
+  return NextResponse.json({ publicKey: normalizedPublicKey }, {
     headers: { 'Cache-Control': 'no-store' },
   });
 }
