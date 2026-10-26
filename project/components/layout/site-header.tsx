@@ -12,6 +12,7 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   Menu,
   MessageSquare,
   Package,
@@ -45,6 +46,7 @@ import { getUnreadNotificationCount } from '@/lib/data/student-client';
 const networkLinks = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/discover', label: 'Discover', icon: Compass },
+  { href: '/campus-mate', label: 'Campus Mate', icon: MapPinned },
   { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
   { href: '/events', label: 'Events', icon: CalendarDays },
   { href: '/universities', label: 'Universities', icon: University },
@@ -150,6 +152,7 @@ export function SiteHeader() {
                   <DropdownMenuItem onClick={() => router.push('/dashboard')}><LayoutDashboard className="mr-2 h-4 w-4" />My dashboard</DropdownMenuItem>
                   {user.role === 'super_admin' && <DropdownMenuItem onClick={() => router.push('/admin')}><ShieldCheck className="mr-2 h-4 w-4 text-primary" />Management system</DropdownMenuItem>}
                   <DropdownMenuItem onClick={() => router.push('/marketplace')}><ShoppingCart className="mr-2 h-4 w-4" />Marketplace</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push('/campus-mate')}><MapPinned className="mr-2 h-4 w-4 text-primary" />Campus Mate</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/orders')}><Package className="mr-2 h-4 w-4" />My orders</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/wishlist')}><Heart className="mr-2 h-4 w-4" />Saved items</DropdownMenuItem>
                   {isVendor(user.role) && <DropdownMenuItem onClick={() => router.push('/vendor-dashboard')}><Briefcase className="mr-2 h-4 w-4" />Vendor dashboard</DropdownMenuItem>}
@@ -191,6 +194,7 @@ export function SiteHeader() {
                   <nav className="flex flex-col gap-1 border-t border-border px-4 py-4" aria-label="Account">
                     <SheetClose asChild><Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><LayoutDashboard className="h-5 w-5 text-primary" />My dashboard</Link></SheetClose>
                     {user.role === 'super_admin' && <SheetClose asChild><Link href="/admin" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><ShieldCheck className="h-5 w-5" />Management system</Link></SheetClose>}
+                    <SheetClose asChild><Link href="/campus-mate" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><MapPinned className="h-5 w-5" />Campus Mate</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/messages" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><MessageSquare className="h-5 w-5 text-primary" />Messages</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/notifications" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Bell className="h-5 w-5 text-primary" />Notifications</Link></SheetClose>
                     <SheetClose asChild><Link href="/start-business" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Store className="h-5 w-5 text-primary" />Start a business</Link></SheetClose>

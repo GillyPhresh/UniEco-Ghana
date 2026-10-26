@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Search, ShoppingCart, Package, User } from 'lucide-react';
+import { Home, MapPinned, ShoppingCart, Package, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
-  { href: '/discover', label: 'Discover', icon: Search },
+  { href: '/campus-mate', label: 'Mate', icon: MapPinned },
   { href: '/orders', label: 'Orders', icon: Package },
   { href: '/dashboard', label: 'Account', icon: User },
 ];
@@ -30,7 +30,7 @@ export function MobileBottomNav() {
     : [
         { href: '/', label: 'Home', icon: Home },
         { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
-        { href: '/discover', label: 'Discover', icon: Search },
+        { href: '/campus-mate', label: 'Mate', icon: MapPinned },
         { href: '/events', label: 'Events', icon: Package },
         { href: '/signin', label: 'Sign in', icon: User },
       ];

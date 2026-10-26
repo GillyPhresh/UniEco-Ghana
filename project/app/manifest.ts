@@ -21,6 +21,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: 'Discover Businesses', url: '/discover?source=pwa_shortcut', description: 'Find campus businesses near you' },
+      { name: 'Campus Mate', url: '/campus-mate?source=pwa_shortcut', description: 'Find places and get directions around campus' },
       { name: 'Marketplace', url: '/marketplace?source=pwa_shortcut', description: 'Browse products and services' },
       { name: 'My Orders', url: '/orders?source=pwa_shortcut', description: 'Track your orders' },
       { name: 'Sign in', url: '/signin?source=pwa_shortcut' },
