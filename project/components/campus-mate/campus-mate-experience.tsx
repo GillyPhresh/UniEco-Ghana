@@ -116,6 +116,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]['id']>('all');
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [mapTarget, setMapTarget] = useState(campusSearchText(university));
+  const [mapLoaded, setMapLoaded] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
   const [locationMessage, setLocationMessage] = useState('');
 
@@ -165,13 +166,17 @@ export function CampusMateExperience({ university, universities, places }: Campu
 
   const choosePlace = (place: CampusMatePlace) => {
     setSelectedPlaceId(place.id);
+    setMapLoaded(false);
     setMapTarget(placeSearchText(place, university));
   };
 
   const clearSelection = () => {
     setSelectedPlaceId(null);
+    setMapLoaded(false);
     setMapTarget(campusSearchText(university));
   };
+
+  const resetMapPreview = () => setMapLoaded(false);
 
   const searchEverywhereUrl = getGoogleMapsSearchUrl(
     searchQuery.trim() ? `${searchQuery.trim()}, ${campusSearchText(university)}` : campusSearchText(university),
@@ -228,7 +233,19 @@ export function CampusMateExperience({ university, universities, places }: Campu
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               allowFullScreen
+              onLoad={() => setMapLoaded(true)}
+              onError={resetMapPreview}
             />
+            {!mapLoaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.18),transparent_35%),linear-gradient(135deg,#e2e8f0,#f8fafc)] p-6 text-center">
+                <div className="max-w-xs rounded-2xl border border-white/80 bg-white/95 p-5 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><Map className="h-6 w-6" /></div>
+                  <p className="mt-3 font-bold text-slate-950 dark:text-white">Campus map preview</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Open Google Maps for the live map and turn-by-turn navigation.</p>
+                  {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open Google Maps</a>}
+                </div>
+              </div>
+            )}
             <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2 sm:inset-x-5 sm:top-5">
               <div className="pointer-events-auto max-w-[calc(100%-3.25rem)] rounded-xl border border-white/70 bg-white/95 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">You are exploring</p>

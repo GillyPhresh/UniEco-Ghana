@@ -26,7 +26,7 @@ const nextConfig = {
         {
           // Next.js requires inline bootstrap scripts/styles. External sources
           // are limited to the current Supabase project family, approved public
-          // images, and the existing OpenStreetMap iframe.
+          // images, and the Google Maps preview used by Campus Mate.
           key: 'Content-Security-Policy',
           value: [
             "default-src 'self'",
@@ -39,6 +39,7 @@ const nextConfig = {
             "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com",
             "font-src 'self' data:",
             "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+            "frame-src 'self' https://www.google.com https://maps.google.com",
             "worker-src 'self' blob:",
             "manifest-src 'self'",
           ].join('; '),
