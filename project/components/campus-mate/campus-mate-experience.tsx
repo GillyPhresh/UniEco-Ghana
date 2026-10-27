@@ -16,6 +16,7 @@ import {
   MapPinned,
   Navigation,
   Phone,
+  Share2,
   Search,
   Star,
   Store,
@@ -89,10 +90,31 @@ const filters = [
   { id: 'all', label: 'Everything', query: '' },
   { id: 'event', label: 'Events', query: '' },
   { id: 'Food & Drinks', label: 'Food', query: 'food' },
+  { id: 'Pharmacy', label: 'Pharmacy', query: 'pharmacy' },
+  { id: 'Banks & ATMs', label: 'Banks', query: 'bank' },
+  { id: 'Transport', label: 'Transport', query: 'transport' },
+  { id: 'Supermarkets', label: 'Groceries', query: 'supermarket' },
+  { id: 'Hospitals & Clinics', label: 'Health', query: 'hospital clinic' },
   { id: 'Printing & Photocopy', label: 'Printing', query: 'printing' },
   { id: 'Repairs', label: 'Repairs', query: 'repairs' },
   { id: 'Accommodation', label: 'Hostels', query: 'hostel' },
+  { id: 'Markets', label: 'Markets', query: 'market' },
+  { id: 'Places of Worship', label: 'Worship', query: 'church mosque' },
+  { id: 'Fitness', label: 'Fitness', query: 'gym fitness' },
+  { id: 'Fuel Stations', label: 'Fuel', query: 'fuel station' },
+  { id: 'Police & Safety', label: 'Safety', query: 'police' },
   { id: 'Other Services', label: 'Services', query: 'services' },
+] as const;
+
+const quickSearches = [
+  { label: 'Food nearby', query: 'food', emoji: '🍛' },
+  { label: 'Hostels', query: 'hostel', emoji: '🛏️' },
+  { label: 'Pharmacies', query: 'pharmacy', emoji: '💊' },
+  { label: 'Banks & ATMs', query: 'bank', emoji: '🏦' },
+  { label: 'Transport', query: 'transport', emoji: '🚌' },
+  { label: 'Health care', query: 'hospital clinic', emoji: '🏥' },
+  { label: 'Groceries', query: 'supermarket', emoji: '🛒' },
+  { label: 'Printing', query: 'printing', emoji: '🖨️' },
 ] as const;
 
 function campusSearchText(university: CampusMateUniversity) {
@@ -145,6 +167,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [googleSearchCompleted, setGoogleSearchCompleted] = useState(false);
   const [discoverySource, setDiscoverySource] = useState<'Google Maps' | 'OpenStreetMap' | null>(null);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<DiscoveredPlace | null>(null);
+  const [shareMessage, setShareMessage] = useState('');
 
   const campusMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&output=embed`;
   const campusDirectionsUrl = getGoogleMapsSearchUrl(campusSearchText(university));
@@ -210,6 +233,25 @@ export function CampusMateExperience({ university, universities, places }: Campu
     setSelectedGooglePlace(null);
     setMapLoaded(false);
     setMapTarget(campusSearchText(university));
+  };
+
+  const shareCampus = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${university.short_name || university.name} Campus Mate`,
+          text: `Explore places around ${university.name} on UniEco Ghana.`,
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareMessage('Campus link copied.');
+    } catch {
+      setShareMessage('Sharing was cancelled.');
+    }
+    window.setTimeout(() => setShareMessage(''), 2500);
   };
 
   const searchGooglePlaces = async (queryOverride?: string) => {
@@ -334,6 +376,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
             <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2 sm:inset-x-5 sm:bottom-5">
               {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-lg transition hover:bg-primary/90"><Navigation className="mr-2 h-4 w-4" /> Open live map</a>}
               <button type="button" onClick={requestLocation} className="inline-flex min-h-11 items-center rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/95 dark:text-white"><LocateFixed className="mr-2 h-4 w-4 text-primary" /> Near me</button>
+              <button type="button" onClick={() => void shareCampus()} className="inline-flex min-h-11 items-center rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/95 dark:text-white"><Share2 className="mr-2 h-4 w-4 text-primary" /> Share</button>
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
@@ -367,6 +410,30 @@ export function CampusMateExperience({ university, universities, places }: Campu
               </button>;
             })}
           </div>
+
+          <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-slate-950 dark:text-white">Popular around campus</p>
+                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">One tap to find everyday essentials</p>
+              </div>
+              <span className="hidden text-xs font-semibold text-primary sm:inline">Free community search</span>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {quickSearches.map((item) => (
+                <button
+                  key={item.query}
+                  type="button"
+                  onClick={() => { setSearchQuery(item.query); setActiveFilter('all'); void searchGooglePlaces(item.query); }}
+                  className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-xs font-bold text-slate-700 transition active:scale-[0.98] hover:border-primary/50 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <span className="text-base" aria-hidden="true">{item.emoji}</span>
+                  <span className="truncate">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {shareMessage && <p className="mt-3 text-center text-xs font-semibold text-primary" role="status">{shareMessage}</p>}
         </section>
 
         {(googleSearchCompleted || googlePlacesLoading) && (
