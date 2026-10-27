@@ -12,6 +12,7 @@ import type {
 import { CATEGORY_ICONS, ALL_CATEGORIES } from '@/lib/constants/categories';
 import { normalizeSearchTerm } from '@/lib/utils/search';
 import type { VendorWithRelations } from '@/lib/types/extended';
+import type { BusinessGalleryItem } from '@/lib/types/vendor';
 
 export { CATEGORY_ICONS, ALL_CATEGORIES };
 export type { VendorWithRelations };
@@ -140,6 +141,17 @@ export async function getVendorLocation(vendorId: string) {
     .eq('owner_id', vendorId)
     .maybeSingle();
   return data as Location | null;
+}
+
+export async function getVendorGallery(vendorId: string): Promise<BusinessGalleryItem[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from('business_gallery')
+    .select('*')
+    .eq('vendor_id', vendorId)
+    .order('sort_order')
+    .order('created_at', { ascending: true });
+  return (data || []) as BusinessGalleryItem[];
 }
 
 export async function getVendorProducts(vendorId: string) {

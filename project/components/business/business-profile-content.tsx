@@ -18,10 +18,12 @@ import { toggleSaveItem, isItemSaved, trackRecentlyViewed, checkExistingReview, 
 import Link from 'next/link';
 import type { VendorWithRelations } from '@/lib/types/extended';
 import type { Product, Service, Review, Location, Vendor } from '@/lib/types';
+import type { BusinessGalleryItem } from '@/lib/types/vendor';
 
 interface BusinessProfileContentProps {
   vendor: VendorWithRelations;
   location: Location | null;
+  gallery: BusinessGalleryItem[];
   products: (Product & { business: { id: string; name: string; slug: string } })[];
   services: (Service & { business: { id: string; name: string; slug: string } })[];
   reviews: (Review & { reviewer: { full_name: string | null; avatar_url: string | null } | null })[];
@@ -35,6 +37,7 @@ function formatGHS(amount: number): string {
 export function BusinessProfileContent({
   vendor,
   location,
+  gallery,
   products,
   services,
   reviews,
@@ -344,11 +347,46 @@ export function BusinessProfileContent({
 
             {/* Gallery tab */}
             <TabsContent value="gallery" className="mt-4">
-              <EmptyState
-                icon={Image}
-                title="Gallery is empty"
-                description={`${vendor.business_name} has not uploaded any photos yet.`}
-              />
+              {gallery.length > 0 ? (
+                <div className="space-y-3">
+                  <div>
+                    <h3 className="text-base font-semibold text-foreground">Shop photos</h3>
+                    <p className="text-sm text-muted-foreground">
+                      See the storefront, interior, products, and current offers before you visit.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {gallery.map((item) => (
+                      <a
+                        key={item.id}
+                        href={item.image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm"
+                      >
+                        <div className="aspect-square overflow-hidden bg-muted">
+                          <img
+                            src={item.image_url}
+                            alt={item.caption || `${vendor.business_name} shop photo`}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                        {item.caption && (
+                          <p className="truncate px-3 py-2 text-xs text-muted-foreground">{item.caption}</p>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState
+                  icon={Image}
+                  title="Gallery is empty"
+                  description={`${vendor.business_name} has not uploaded any photos yet.`}
+                />
+              )}
             </TabsContent>
 
             {/* Reviews tab */}

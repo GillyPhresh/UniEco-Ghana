@@ -127,9 +127,16 @@ function GalleryContent() {
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Gallery</h1>
           <p className="mt-1 text-sm text-muted-foreground">Showcase your storefront, products, and promotions.</p>
         </div>
-        <Button onClick={() => { setForm({ image_url: '', caption: '', image_type: 'general' }); setShowUploadDialog(true); }}>
-          <Plus className="mr-2 h-4 w-4" /> Add Image
-        </Button>
+        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+          <label className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90">
+            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ImageIcon className="mr-2 h-4 w-4" />}
+            {uploading ? 'Uploading…' : 'Take shop photo'}
+            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { void handleFileUpload(event); setShowUploadDialog(true); }} disabled={uploading} />
+          </label>
+          <Button variant="outline" onClick={() => { setForm({ image_url: '', caption: '', image_type: 'general' }); setShowUploadDialog(true); }}>
+            <Plus className="mr-2 h-4 w-4" /> Add from gallery
+          </Button>
+        </div>
       </div>
 
       {dataLoading ? (

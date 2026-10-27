@@ -6,6 +6,7 @@ import { BusinessProfileContent } from '@/components/business/business-profile-c
 import {
   getVendorBySlug,
   getVendorLocation,
+  getVendorGallery,
   getVendorProducts,
   getVendorServices,
   getVendorReviews,
@@ -53,8 +54,9 @@ export default async function BusinessProfilePage({ params }: PageProps) {
   const vendor = await getVendorBySlug(slug);
   if (!vendor) notFound();
 
-  const [location, products, services, reviews, relatedVendors] = await Promise.all([
+  const [location, gallery, products, services, reviews, relatedVendors] = await Promise.all([
     getVendorLocation(vendor.id),
+    getVendorGallery(vendor.id),
     getVendorProducts(vendor.id),
     getVendorServices(vendor.id),
     getVendorReviews(vendor.id),
@@ -95,6 +97,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
         <BusinessProfileContent
           vendor={vendor}
           location={location}
+          gallery={gallery}
           products={products}
           services={services}
           reviews={reviews}
