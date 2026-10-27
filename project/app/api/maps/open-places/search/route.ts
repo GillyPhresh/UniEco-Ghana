@@ -52,7 +52,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   services: 'Services',
 };
 
-const geocodeCache = new Map<string, { expiresAt: number; result: { latitude: number; longitude: number; address: string } }>();
+const geocodeCache = new Map<string, { expiresAt: number; result: { latitude: number; longitude: number; address: string; approximate: boolean } }>();
 const placesCache = new Map<string, { expiresAt: number; places: Array<Record<string, unknown>> }>();
 let lastNominatimRequestAt = 0;
 
@@ -91,27 +91,41 @@ async function geocodeCampus(campus: string) {
   const cached = geocodeCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) return cached.result;
 
-  await waitForNominatimWindow();
-  const url = new URL(NOMINATIM_URL);
-  url.searchParams.set('q', `${campus}, Ghana`);
-  url.searchParams.set('format', 'jsonv2');
-  url.searchParams.set('limit', '1');
-  url.searchParams.set('countrycodes', 'gh');
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
-    signal: AbortSignal.timeout(12000),
-    cache: 'no-store',
-  });
-  if (!response.ok) throw new Error('OpenStreetMap could not locate this campus right now.');
-  const results = await response.json() as GeoResult[];
-  const latitude = Number(results[0]?.lat);
-  const longitude = Number(results[0]?.lon);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
-    throw new Error('This campus is not mapped yet. Try opening the campus in Google Maps instead.');
+  const parts = campus.split(',').map((part) => part.trim()).filter(Boolean);
+  const queries = [
+    `${campus}, Ghana`,
+    parts.length >= 3 ? `${parts.slice(1, 3).join(', ')}, Ghana` : '',
+    parts.length >= 2 ? `${parts[1]}, Ghana` : '',
+  ].filter((query, index, all) => query && all.indexOf(query) === index);
+
+  for (let index = 0; index < queries.length; index += 1) {
+    await waitForNominatimWindow();
+    const url = new URL(NOMINATIM_URL);
+    url.searchParams.set('q', queries[index]);
+    url.searchParams.set('format', 'jsonv2');
+    url.searchParams.set('limit', '1');
+    url.searchParams.set('countrycodes', 'gh');
+    const response = await fetch(url, {
+      headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+      signal: AbortSignal.timeout(12000),
+      cache: 'no-store',
+    });
+    if (!response.ok) continue;
+    const results = await response.json() as GeoResult[];
+    const latitude = Number(results[0]?.lat);
+    const longitude = Number(results[0]?.lon);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    const result = {
+      latitude,
+      longitude,
+      address: safeText(results[0]?.display_name, queries[index]),
+      approximate: index > 0,
+    };
+    geocodeCache.set(cacheKey, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, result });
+    return result;
   }
-  const result = { latitude, longitude, address: safeText(results[0]?.display_name, `${campus}, Ghana`) };
-  geocodeCache.set(cacheKey, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, result });
-  return result;
+
+  throw new Error('This campus is not mapped yet. Try opening the campus in Google Maps instead.');
 }
 
 function overpassQuery(latitude: number, longitude: number, query: string) {
@@ -199,7 +213,7 @@ export async function GET(request: NextRequest) {
   try {
     const location = await geocodeCampus(campus);
     const places = await searchOverpass(location.latitude, location.longitude, query);
-    return NextResponse.json({ places, attribution: 'OpenStreetMap contributors', campusAddress: location.address }, {
+    return NextResponse.json({ places, attribution: 'OpenStreetMap contributors', campusAddress: location.address, locationIsApproximate: location.approximate }, {
       headers: { 'Cache-Control': 'private, max-age=900, stale-while-revalidate=3600' },
     });
   } catch (error) {

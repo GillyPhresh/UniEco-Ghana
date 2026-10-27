@@ -230,7 +230,15 @@ export function CampusMateExperience({ university, universities, places }: Campu
         campus: campusSearchText(university),
       });
       const response = await fetch(`/api/maps/open-places/search?${params.toString()}`, { cache: 'no-store' });
-      const result = await response.json() as { places?: DiscoveredPlace[]; error?: string };
+      const responseText = await response.text();
+      let result: { places?: DiscoveredPlace[]; error?: string } = {};
+      try {
+        result = JSON.parse(responseText) as { places?: DiscoveredPlace[]; error?: string };
+      } catch {
+        throw new Error(response.ok
+          ? 'Free community place search returned an unreadable response.'
+          : 'Free community place search is temporarily unavailable. Please try again in a moment.');
+      }
       if (!response.ok) {
         throw new Error(result.error || 'Free community place search is temporarily unavailable.');
       }
