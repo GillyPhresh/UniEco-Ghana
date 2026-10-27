@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-GH',
     dir: 'ltr',
     icons: [
-      { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+      { src: '/unieco-favicon.png', sizes: '1280x1280', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       { name: 'Discover Businesses', url: '/discover?source=pwa_shortcut', description: 'Find campus businesses near you' },

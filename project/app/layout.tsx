@@ -64,9 +64,9 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-    shortcut: '/icon.svg',
-    apple: '/icon.svg',
+    icon: [{ url: '/unieco-favicon.png', type: 'image/png', sizes: '1280x1280' }],
+    shortcut: '/unieco-favicon.png',
+    apple: '/unieco-favicon.png',
   },
   robots: {
     index: true,
@@ -106,7 +106,7 @@ const jsonLd = {
       url: siteConfig.url,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteConfig.url}/icon.svg`,
+        url: `${siteConfig.url}/unieco-favicon.png`,
       },
       slogan: siteConfig.tagline,
       areaServed: {
