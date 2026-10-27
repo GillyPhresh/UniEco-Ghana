@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const URL_TTL_SECONDS = 300;
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://uniecoghana.com',
+  'Access-Control-Allow-Origin': 'https://www.uniecoghana.com',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   Vary: 'Origin',

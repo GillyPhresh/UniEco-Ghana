@@ -1,6 +1,6 @@
 # UniEco Ghana email operations
 
-All user-facing links in these messages must use `https://uniecoghana.com`.
+All user-facing links in these messages must use `https://www.uniecoghana.com`.
 
 ## Provider configuration
 
@@ -37,8 +37,8 @@ Transactional messages are generated server-side. Admin broadcast content is esc
 
 ## Smoke test
 
-1. Create a test account on `https://uniecoghana.com/signup`.
+1. Create a test account on `https://www.uniecoghana.com/signup`.
 2. Confirm a `registration_welcome` event is queued and an email is received.
 3. Use a Paystack test payment and verify `payment_successful` plus the receipt email after the verified webhook.
-4. From `https://uniecoghana.com/admin/broadcasts`, create a small test broadcast, submit it, approve it, and queue it for delivery.
+4. From `https://www.uniecoghana.com/admin/broadcasts`, create a small test broadcast, submit it, approve it, and queue it for delivery.
 5. Check Resend logs, the UniEco Communication Hub, and the failed/queued counts before sending to a larger audience.

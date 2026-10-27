@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient, createClient as createTokenClient } from '@supabase/supabase-js';
 import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels, type PaystackMobileMoneyProvider } from '@/lib/payments/paystack.server';
+import { siteConfig } from '@/lib/constants/site';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,8 +15,10 @@ type RequestBody = {
 
 function appUrl() {
   const configured = process.env.UNIECO_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/$/, '');
-  return 'https://uniecoghana.com';
+  if (configured) {
+    return configured.replace(/\/+$/, '').replace(/^https:\/\/uniecoghana\.com$/, siteConfig.url);
+  }
+  return siteConfig.url;
 }
 
 function normalizeGhanaPhone(value: string | undefined): string | null {

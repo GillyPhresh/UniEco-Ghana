@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { siteConfig } from '@/lib/constants/site';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const publicOrigin = process.env.NEXT_PUBLIC_SITE_URL || 'https://uniecoghana.com';
+  const publicOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '').replace(
+    /^https:\/\/uniecoghana\.com$/,
+    siteConfig.url,
+  ) || siteConfig.url;
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next');
   const cookieNext = request.cookies.get('unieco_oauth_next')?.value;

@@ -19,8 +19,8 @@ test('canonical metadata uses the configured UniEco Ghana public URL', async () 
     read('Dockerfile'),
   ]);
   assert.ok(site.includes(String.raw`process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/+$/, '')`));
-  assert.match(site, /\|\| 'https:\/\/uniecoghana\.com'/);
-  assert.doesNotMatch(site, /https:\/\/uniecghana\.com|https:\/\/www\.uniecoghana\.com/);
+  assert.match(site, /https:\/\/www\.uniecoghana\.com/);
+  assert.doesNotMatch(site, /\|\| 'https:\/\/uniecoghana\.com'/);
   assert.match(dockerfile, /ARG UNIECO_PUBLIC_APP_URL/);
   assert.match(dockerfile, /ENV UNIECO_PUBLIC_APP_URL=\$UNIECO_PUBLIC_APP_URL/);
 });
@@ -36,10 +36,10 @@ test('robots excludes private user and administration routes', async () => {
   assert.match(serviceWorker, /NEVER_CACHE_PATTERNS = \[[\s\S]*?'\/wishlist'/);
 });
 
-test('www traffic is redirected to the canonical custom domain', async () => {
+test('root traffic is redirected to the canonical www custom domain', async () => {
   const middleware = await read('middleware.ts');
-  assert.match(middleware, /hostname === 'www\.uniecoghana\.com'/);
-  assert.match(middleware, /canonicalUrl\.hostname = 'uniecoghana\.com'/);
+  assert.match(middleware, /hostname === 'uniecoghana\.com'/);
+  assert.match(middleware, /canonicalUrl\.hostname = 'www\.uniecoghana\.com'/);
   assert.match(middleware, /canonicalUrl\.port = ''/);
   assert.match(middleware, /NextResponse\.redirect\(canonicalUrl, 308\)/);
 });

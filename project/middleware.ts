@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 
 export async function middleware(request: Parameters<typeof updateSession>[0]) {
   const hostname = request.headers.get('host')?.split(':')[0].toLowerCase();
-  if (hostname === 'www.uniecoghana.com') {
+  if (hostname === 'uniecoghana.com') {
     const canonicalUrl = request.nextUrl.clone();
-    canonicalUrl.hostname = 'uniecoghana.com';
+    canonicalUrl.hostname = 'www.uniecoghana.com';
     canonicalUrl.port = '';
     canonicalUrl.protocol = 'https:';
     return NextResponse.redirect(canonicalUrl, 308);
