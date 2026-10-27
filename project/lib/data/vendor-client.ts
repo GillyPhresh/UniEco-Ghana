@@ -1,7 +1,8 @@
 'use client';
 
 import { supabase } from '@/lib/supabase/client';
-import type { Vendor, Product, Service, Subscription, Review } from '@/lib/types';
+import type { Vendor, Product, Service, Subscription, Review, Location } from '@/lib/types';
+import type { VendorLocationValue } from '@/lib/types/location';
 import type {
   BusinessGalleryItem,
   BusinessHour,
@@ -31,6 +32,31 @@ export async function getVendorProfile(): Promise<Vendor | null> {
     .maybeSingle();
 
   return data as Vendor | null;
+}
+
+export async function getMyVendorLocation(vendorId: string): Promise<Location | null> {
+  const { data } = await supabase
+    .from('locations')
+    .select('*')
+    .eq('owner_type', 'vendor')
+    .eq('owner_id', vendorId)
+    .maybeSingle();
+  return data as Location | null;
+}
+
+export async function setMyVendorLocation(vendorId: string, location: VendorLocationValue): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('set_my_vendor_location', {
+    p_vendor_id: vendorId,
+    p_latitude: location.latitude,
+    p_longitude: location.longitude,
+    p_address: location.address.trim() || null,
+    p_city: location.city.trim() || null,
+    p_region: location.region.trim() || null,
+    p_maps_url: location.mapsUrl.trim() || null,
+    p_selection_source: location.source,
+    p_public_visibility: 'business_location',
+  });
+  return { error: error?.message || null };
 }
 
 export async function updateVendorProfile(

@@ -542,8 +542,8 @@ export function BusinessProfileContent({
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h3 className="mb-3 font-display font-semibold text-foreground">Location</h3>
             <MapPreview
-              latitude={location?.latitude || null}
-              longitude={location?.longitude || null}
+              latitude={vendor.location_verification_status === 'verified' ? location?.latitude || null : null}
+              longitude={vendor.location_verification_status === 'verified' ? location?.longitude || null : null}
               label={vendor.business_name}
               address={location?.address_line}
               city={location?.city}

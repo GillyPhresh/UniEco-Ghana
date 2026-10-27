@@ -74,6 +74,7 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
   const places: CampusMatePlace[] = [
     ...vendors.map((vendor) => {
       const location = Array.isArray(vendor.location) ? vendor.location[0] : vendor.location;
+      const locationVerified = vendor.location_verification_status === 'verified';
       return {
         id: vendor.id,
         kind: 'business' as const,
@@ -83,8 +84,8 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
         address: location?.address_line || location?.label || null,
         city: location?.city || selectedUniversity.city,
         region: location?.region || selectedUniversity.region,
-        latitude: vendor.gps_latitude ?? location?.latitude ?? null,
-        longitude: vendor.gps_longitude ?? location?.longitude ?? null,
+        latitude: locationVerified ? vendor.gps_latitude ?? location?.latitude ?? null : null,
+        longitude: locationVerified ? vendor.gps_longitude ?? location?.longitude ?? null : null,
         image_url: vendor.logo_url || vendor.cover_image_url,
         href: vendor.business_slug ? `/business/${vendor.business_slug}` : null,
         rating: vendor.rating_avg || null,

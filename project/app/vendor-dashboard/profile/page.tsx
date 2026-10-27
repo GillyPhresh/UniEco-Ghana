@@ -6,7 +6,9 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
-import { updateVendorProfile, calculateVendorProfileCompletion, uploadVendorImage } from '@/lib/data/vendor-client';
+import { getMyVendorLocation, setMyVendorLocation, updateVendorProfile, calculateVendorProfileCompletion, uploadVendorImage } from '@/lib/data/vendor-client';
+import { VendorLocationCapture } from '@/components/vendor/vendor-location-capture';
+import type { VendorLocationValue } from '@/lib/types/location';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +39,18 @@ function VendorProfileContent() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [form, setForm] = useState<Record<string, unknown>>({});
+  const [locationDirty, setLocationDirty] = useState(false);
+  const [locationValue, setLocationValue] = useState<VendorLocationValue>({
+    latitude: null,
+    longitude: null,
+    accuracy: null,
+    capturedAt: null,
+    address: '',
+    city: '',
+    region: '',
+    mapsUrl: '',
+    source: 'owner_address',
+  });
 
   useEffect(() => {
     if (vendor) {
@@ -54,6 +68,32 @@ function VendorProfileContent() {
         is_temporarily_closed: vendor.is_temporarily_closed,
       });
     }
+  }, [vendor]);
+
+  useEffect(() => {
+    if (!vendor) return;
+    let active = true;
+    void getMyVendorLocation(vendor.id).then((location) => {
+      if (!active) return;
+      const locationWithReview = location as (typeof location & { last_confirmed_at?: string | null }) | null;
+      setLocationValue({
+        latitude: vendor.gps_latitude ?? location?.latitude ?? null,
+        longitude: vendor.gps_longitude ?? location?.longitude ?? null,
+        accuracy: null,
+        capturedAt: vendor.location_last_confirmed_at ?? locationWithReview?.last_confirmed_at ?? null,
+        address: location?.address_line || '',
+        city: location?.city || '',
+        region: location?.region || '',
+        mapsUrl: vendor.location_maps_url || '',
+        source: vendor.location_selection_source === 'google_maps_link'
+          ? 'google_maps_link'
+          : vendor.location_selection_source === 'owner_pin' || vendor.gps_latitude != null
+            ? 'owner_pin'
+            : 'owner_address',
+      });
+      setLocationDirty(false);
+    });
+    return () => { active = false; };
   }, [vendor]);
 
   if (loading) {
@@ -113,6 +153,15 @@ function VendorProfileContent() {
     if (error) {
       toast.error('Could not save changes: ' + error);
     } else {
+      if (locationDirty) {
+        const { error: locationError } = await setMyVendorLocation(vendor.id, locationValue);
+        if (locationError) {
+          toast.error('Profile saved, but the shop location could not be submitted: ' + locationError);
+          setSaving(false);
+          return;
+        }
+        setLocationDirty(false);
+      }
       toast.success('Business profile updated successfully');
       reload();
     }
@@ -322,6 +371,15 @@ function VendorProfileContent() {
               <Input id="service_radius_km" type="number" value={form.service_radius_km as string || ''} onChange={e => update('service_radius_km', e.target.value)} placeholder="e.g. 5" />
             </div>
           )}
+
+          <VendorLocationCapture
+            value={locationValue}
+            onChange={(next) => {
+              setLocationValue(next);
+              setLocationDirty(true);
+            }}
+            showAddressFields
+          />
 
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>

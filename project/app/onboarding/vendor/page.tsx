@@ -38,7 +38,9 @@ import {
   MapPin,
   ShieldCheck,
 } from 'lucide-react';
-import { isSupportedGoogleMapsUrl, parseGoogleMapsLinkCoordinates } from '@/lib/maps';
+import { isSupportedGoogleMapsUrl } from '@/lib/maps';
+import { VendorLocationCapture } from '@/components/vendor/vendor-location-capture';
+import type { VendorLocationValue } from '@/lib/types/location';
 
 type FormData = z.infer<typeof vendorRegistrationSchema>;
 
@@ -73,6 +75,8 @@ function VendorOnboarding() {
   const [pin, setPin] = useState<{ latitude: number | null; longitude: number | null }>({ latitude: null, longitude: null });
   const [mapsLink, setMapsLink] = useState('');
   const [locationSource, setLocationSource] = useState<'owner_address' | 'owner_pin' | 'google_maps_link'>('owner_address');
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(null);
+  const [locationCapturedAt, setLocationCapturedAt] = useState<string | null>(null);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const paymentAttemptKeyRef = useRef<string | null>(null);
@@ -103,6 +107,8 @@ function VendorOnboarding() {
       mapsLink: string;
       pin: typeof pin;
       locationSource: typeof locationSource;
+      locationAccuracy: number | null;
+      locationCapturedAt: string | null;
       paymentMethod: typeof paymentMethod;
       mobileMoneyProvider: typeof mobileMoneyProvider;
     }>(`${DRAFT_PREFIX}:${user.id}`);
@@ -111,6 +117,8 @@ function VendorOnboarding() {
       setMapsLink(draft.data.mapsLink);
       setPin(draft.data.pin);
       setLocationSource(draft.data.locationSource);
+      setLocationAccuracy(draft.data.locationAccuracy ?? null);
+      setLocationCapturedAt(draft.data.locationCapturedAt ?? null);
       setPaymentMethod(draft.data.paymentMethod);
       setMobileMoneyProvider(draft.data.mobileMoneyProvider);
       setStep(Math.min(Math.max(draft.step, 0), VENDOR_STEPS.length - 1));
@@ -126,10 +134,12 @@ function VendorOnboarding() {
       mapsLink,
       pin,
       locationSource,
+      locationAccuracy,
+      locationCapturedAt,
       paymentMethod,
       mobileMoneyProvider,
     });
-  }, [draftReady, form, locationSource, mapsLink, mobileMoneyProvider, paymentMethod, pin, step, user?.id]);
+  }, [draftReady, form, locationAccuracy, locationCapturedAt, locationSource, mapsLink, mobileMoneyProvider, paymentMethod, pin, step, user?.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -153,14 +163,13 @@ function VendorOnboarding() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleMapsLinkChange = (value: string) => {
+  const handleLocationChange = (value: VendorLocationValue) => {
     paymentAttemptKeyRef.current = null;
-    setMapsLink(value);
-    const coordinates = parseGoogleMapsLinkCoordinates(value);
-    if (coordinates) {
-      setPin(coordinates);
-      setLocationSource('google_maps_link');
-    }
+    setPin({ latitude: value.latitude, longitude: value.longitude });
+    setMapsLink(value.mapsUrl);
+    setLocationSource(value.source);
+    setLocationAccuracy(value.accuracy);
+    setLocationCapturedAt(value.capturedAt);
   };
 
   const validateStep = (): string | null => {
@@ -518,19 +527,20 @@ function VendorOnboarding() {
             </div>
           </div>
 
-          <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
-            <div>
-              <Label>Confirm the business location</Label>
-              <p className="mt-1 text-xs text-muted-foreground">Enter the actual address and, where available, coordinates or a Google Maps link. UniEco reviews the submission before publishing it.</p>
-            </div>
-            <Input aria-label="Google Maps location link" placeholder="Optional Google Maps link" value={mapsLink} onChange={(event) => handleMapsLinkChange(event.target.value)} />
-            <p className="text-xs text-muted-foreground">Use Share → Copy link in Google Maps. Some short links do not contain coordinates; the link will still be sent for review.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Input aria-label="Latitude" type="number" step="any" placeholder="Latitude (optional)" value={pin.latitude ?? ''} onChange={(event) => { setLocationSource('owner_pin'); setPin((current) => ({ ...current, latitude: event.target.value ? Number(event.target.value) : null })); }} />
-              <Input aria-label="Longitude" type="number" step="any" placeholder="Longitude (optional)" value={pin.longitude ?? ''} onChange={(event) => { setLocationSource('owner_pin'); setPin((current) => ({ ...current, longitude: event.target.value ? Number(event.target.value) : null })); }} />
-            </div>
-            <p className="text-xs text-muted-foreground">{pin.latitude != null && pin.longitude != null ? `${pin.latitude.toFixed(6)}, ${pin.longitude.toFixed(6)} will be submitted for review.` : 'No coordinates supplied; the address will remain unconfirmed until reviewed.'}</p>
-          </div>
+          <VendorLocationCapture
+            value={{
+              latitude: pin.latitude,
+              longitude: pin.longitude,
+              accuracy: locationAccuracy,
+              capturedAt: locationCapturedAt,
+              address: form.location_address,
+              city: form.location_city,
+              region: form.location_region,
+              mapsUrl: mapsLink,
+              source: locationSource,
+            }}
+            onChange={handleLocationChange}
+          />
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
