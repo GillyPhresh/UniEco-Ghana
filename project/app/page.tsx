@@ -33,10 +33,10 @@ export default async function Home() {
     getTotalProductCount(),
   ]);
 
-  const vendorCounts: Record<string, number> = {};
-  for (const uni of universities) {
-    vendorCounts[uni.id] = await getVendorCountByUniversity(uni.id);
-  }
+  const vendorCountEntries = await Promise.all(
+    universities.map(async (uni) => [uni.id, await getVendorCountByUniversity(uni.id)] as const),
+  );
+  const vendorCounts = Object.fromEntries(vendorCountEntries);
 
   return (
     <>

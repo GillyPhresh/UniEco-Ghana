@@ -67,7 +67,7 @@ function DiscoverContent() {
       setLoading(true);
       let query = supabase
         .from('vendors')
-        .select(`*, university:universities(id, name, short_name, slug)`)
+        .select(`*, university:universities(id, name, short_name, slug, region)`)
         .eq('is_active', true);
 
       if (category) query = query.eq('business_type', category);
@@ -85,6 +85,10 @@ function DiscoverContent() {
       const { data } = await query;
       let result = (data || []) as unknown as VendorWithRelations[];
 
+      if (region) {
+        result = result.filter((vendor) => (vendor.university as { region?: string } | null)?.region === region);
+      }
+
       if (minRating > 0) {
         result = result.filter((v) => (v.rating_avg || 0) >= minRating);
       }
@@ -99,6 +103,7 @@ function DiscoverContent() {
     let count = 0;
     if (category) count++;
     if (universityFilter) count++;
+    if (region) count++;
     if (verifiedOnly) count++;
     if (minRating > 0) count++;
     return count;
@@ -203,6 +208,24 @@ function DiscoverContent() {
               </div>
 
               {/* Minimum rating */}
+              {/* Region filter */}
+              <div className="mb-4">
+                <label className="mb-2 block text-xs font-medium text-muted-foreground">Region</label>
+                <Select
+                  value={region || ALL_FILTER_VALUE}
+                  onValueChange={(value) => setRegion(value === ALL_FILTER_VALUE ? '' : value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="All regions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ALL_FILTER_VALUE}>All regions</SelectItem>
+                    {REGIONS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Minimum rating */}
               <div className="mb-4">
                 <label className="mb-2 block text-xs font-medium text-muted-foreground">Minimum rating</label>
                 <div className="flex gap-1.5">
@@ -277,6 +300,7 @@ function DiscoverContent() {
                     onRemove={() => setUniversityFilter('')}
                   />
                 )}
+                {region && <FilterChip label={region} onRemove={() => setRegion('')} />}
                 {verifiedOnly && (
                   <FilterChip label="Verified only" onRemove={() => setVerifiedOnly(false)} />
                 )}

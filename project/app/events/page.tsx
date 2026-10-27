@@ -23,7 +23,9 @@ export const metadata = {
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return 'TBA';
-  return new Date(dateString).toLocaleDateString('en-GH', {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return 'TBA';
+  return date.toLocaleDateString('en-GH', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
@@ -33,7 +35,9 @@ function formatDate(dateString: string | null): string {
 
 function formatTime(dateString: string | null): string {
   if (!dateString) return '';
-  return new Date(dateString).toLocaleTimeString('en-GH', {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('en-GH', {
     hour: 'numeric',
     minute: '2-digit',
   });
