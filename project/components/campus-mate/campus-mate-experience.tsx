@@ -232,7 +232,10 @@ export function CampusMateExperience({ university, universities, places }: Campu
       }
       const response = await fetch(`/api/maps/places/search?${params.toString()}`, { cache: 'no-store' });
       const result = await response.json() as { places?: GoogleDiscoveredPlace[]; error?: string };
-      if (!response.ok) throw new Error(result.error || 'Google place search is temporarily unavailable.');
+      if (!response.ok) {
+        if (response.status === 503) throw new Error('In-app place discovery is not enabled, but you can search Google Maps for free below.');
+        throw new Error(result.error || 'Google place search is temporarily unavailable.');
+      }
       setGooglePlaces(result.places || []);
       if (!result.places?.length) setGooglePlacesError('Google Maps did not find a matching place around this campus.');
     } catch (error) {
@@ -373,7 +376,10 @@ export function CampusMateExperience({ university, universities, places }: Campu
             {googlePlacesLoading ? (
               <div className="mt-4 rounded-xl border border-blue-200 bg-white/80 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">Finding places around {university.short_name || university.name}…</div>
             ) : googlePlacesError ? (
-              <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white/70 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">{googlePlacesError}</div>
+              <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white/70 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">
+                <p>{googlePlacesError}</p>
+                {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-primary px-4 text-xs font-bold text-primary-foreground"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open free Google Maps search</a>}
+              </div>
             ) : (
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 {googlePlaces.map((place) => {

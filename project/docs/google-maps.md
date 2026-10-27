@@ -16,6 +16,8 @@ A vendor may submit an address without coordinates. Every submission is marked `
 
 When a user wants a destination that is not registered on UniEco, the app can open an encoded Google Maps search URL. Campus Mate can also perform an on-demand Google Places search through `/api/maps/places/search`. Results are shown as clearly labelled **Google Maps discovery** cards with attribution, live addresses, ratings, phone numbers, websites, and directions.
 
+If `GOOGLE_MAPS_PLACES_API_KEY` is absent, no paid Google request is made. Campus Mate falls back to a free, cross-device Google Maps search link; Google Maps URLs do not require an API key.
+
 Google-discovered places are deliberately not inserted into the `vendors` table or presented as UniEco-verified businesses. A Google listing does not prove that the owner has joined UniEco or authorised a UniEco profile. A future claim flow may let the actual owner submit the Google `place_id` and complete UniEco verification. The route does not persist Google place content; only the Google place ID is suitable for later claim matching.
 
 The Places API key must remain server-only in Railway as `GOOGLE_MAPS_PLACES_API_KEY`. Do not prefix it with `NEXT_PUBLIC_`, put it in client code, or commit it to Git. Google Places responses are requested on demand with a field mask and `Cache-Control: no-store`; add the Google Maps attribution whenever these cards are displayed. Google Maps Platform billing and API restrictions must be configured in the Google Cloud project before enabling this feature.
