@@ -60,7 +60,7 @@ export type CampusMatePlace = {
   start_time: string | null;
 };
 
-type GoogleDiscoveredPlace = {
+type DiscoveredPlace = {
   id: string;
   name: string;
   category: string;
@@ -73,6 +73,8 @@ type GoogleDiscoveredPlace = {
   rating: number | null;
   userRatingCount: number | null;
   businessStatus: string;
+  source: 'Google Maps' | 'OpenStreetMap';
+  osmUrl: string;
 };
 
 type CampusMateExperienceProps = {
@@ -84,17 +86,17 @@ type CampusMateExperienceProps = {
 type Coordinates = { latitude: number; longitude: number };
 
 const filters = [
-  { id: 'all', label: 'Everything' },
-  { id: 'event', label: 'Events' },
-  { id: 'Food & Drinks', label: 'Food' },
-  { id: 'Printing & Photocopy', label: 'Printing' },
-  { id: 'Repairs', label: 'Repairs' },
-  { id: 'Accommodation', label: 'Hostels' },
-  { id: 'Other Services', label: 'Services' },
+  { id: 'all', label: 'Everything', query: '' },
+  { id: 'event', label: 'Events', query: '' },
+  { id: 'Food & Drinks', label: 'Food', query: 'food' },
+  { id: 'Printing & Photocopy', label: 'Printing', query: 'printing' },
+  { id: 'Repairs', label: 'Repairs', query: 'repairs' },
+  { id: 'Accommodation', label: 'Hostels', query: 'hostel' },
+  { id: 'Other Services', label: 'Services', query: 'services' },
 ] as const;
 
 function campusSearchText(university: CampusMateUniversity) {
-  return [university.short_name || university.name, university.city, university.region, 'Ghana']
+  return [university.official_name || university.name, university.city, university.region, 'Ghana']
     .filter(Boolean)
     .join(', ');
 }
@@ -137,11 +139,12 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [mapLoaded, setMapLoaded] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
   const [locationMessage, setLocationMessage] = useState('');
-  const [googlePlaces, setGooglePlaces] = useState<GoogleDiscoveredPlace[]>([]);
+  const [googlePlaces, setGooglePlaces] = useState<DiscoveredPlace[]>([]);
   const [googlePlacesLoading, setGooglePlacesLoading] = useState(false);
   const [googlePlacesError, setGooglePlacesError] = useState('');
   const [googleSearchCompleted, setGoogleSearchCompleted] = useState(false);
-  const [selectedGooglePlace, setSelectedGooglePlace] = useState<GoogleDiscoveredPlace | null>(null);
+  const [discoverySource, setDiscoverySource] = useState<'Google Maps' | 'OpenStreetMap' | null>(null);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<DiscoveredPlace | null>(null);
 
   const campusMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&output=embed`;
   const campusDirectionsUrl = getGoogleMapsSearchUrl(campusSearchText(university));
@@ -195,7 +198,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
     setMapTarget(placeSearchText(place, university));
   };
 
-  const chooseGooglePlace = (place: GoogleDiscoveredPlace) => {
+  const chooseGooglePlace = (place: DiscoveredPlace) => {
     setSelectedPlaceId(null);
     setSelectedGooglePlace(place);
     setMapLoaded(false);
@@ -209,8 +212,8 @@ export function CampusMateExperience({ university, universities, places }: Campu
     setMapTarget(campusSearchText(university));
   };
 
-  const searchGooglePlaces = async () => {
-    const query = searchQuery.trim();
+  const searchGooglePlaces = async (queryOverride?: string) => {
+    const query = (queryOverride || searchQuery).trim();
     if (query.length < 2) {
       setGooglePlacesError('Type what you are looking for first, for example food, hostel, pharmacy, bank, printing or transport.');
       setGoogleSearchCompleted(true);
@@ -220,24 +223,20 @@ export function CampusMateExperience({ university, universities, places }: Campu
     setGooglePlacesLoading(true);
     setGooglePlacesError('');
     setGoogleSearchCompleted(true);
+    setDiscoverySource(null);
     try {
       const params = new URLSearchParams({
         q: query,
-        context: campusSearchText(university),
-        radius: '3000',
+        campus: campusSearchText(university),
       });
-      if (deviceLocation) {
-        params.set('lat', String(deviceLocation.latitude));
-        params.set('lng', String(deviceLocation.longitude));
-      }
-      const response = await fetch(`/api/maps/places/search?${params.toString()}`, { cache: 'no-store' });
-      const result = await response.json() as { places?: GoogleDiscoveredPlace[]; error?: string };
+      const response = await fetch(`/api/maps/open-places/search?${params.toString()}`, { cache: 'no-store' });
+      const result = await response.json() as { places?: DiscoveredPlace[]; error?: string };
       if (!response.ok) {
-        if (response.status === 503) throw new Error('In-app place discovery is not enabled, but you can search Google Maps for free below.');
-        throw new Error(result.error || 'Google place search is temporarily unavailable.');
+        throw new Error(result.error || 'Free community place search is temporarily unavailable.');
       }
+      setDiscoverySource('OpenStreetMap');
       setGooglePlaces(result.places || []);
-      if (!result.places?.length) setGooglePlacesError('Google Maps did not find a matching place around this campus.');
+      if (!result.places?.length) setGooglePlacesError('No mapped community places matched that search around this campus yet.');
     } catch (error) {
       setGooglePlaces([]);
       setGooglePlacesError(error instanceof Error ? error.message : 'Google place search is temporarily unavailable.');
@@ -344,7 +343,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
             <div className="flex w-full flex-col gap-2 sm:w-80 sm:flex-row">
               <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void searchGooglePlaces(); }} placeholder="Search this campus" aria-label="Search this campus" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800" />
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void searchGooglePlaces(); }} placeholder="Food, hostel, pharmacy, bank…" aria-label="Search this campus" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800" />
               </div>
               <button type="button" onClick={() => void searchGooglePlaces()} disabled={googlePlacesLoading} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-70">
                 <Globe2 className="mr-1.5 h-4 w-4" /> {googlePlacesLoading ? 'Searching…' : 'Search all places'}
@@ -355,7 +354,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
           <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Campus Mate filters">
             {filters.map((filter) => {
               const active = activeFilter === filter.id;
-              return <button key={filter.id} type="button" onClick={() => setActiveFilter(filter.id)} role="tab" aria-selected={active} className={cn('shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold transition', active ? 'border-primary bg-primary text-primary-foreground' : 'border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300')}>
+              return <button key={filter.id} type="button" onClick={() => { setActiveFilter(filter.id); if (filter.query) { setSearchQuery(filter.query); void searchGooglePlaces(filter.query); } }} role="tab" aria-selected={active} className={cn('shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold transition', active ? 'border-primary bg-primary text-primary-foreground' : 'border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300')}>
                 {filter.id !== 'all' && filter.id !== 'event' && <span className="mr-1">{CATEGORY_ICONS[filter.id] || '•'}</span>}{filter.label}
               </button>;
             })}
@@ -366,9 +365,9 @@ export function CampusMateExperience({ university, universities, places }: Campu
           <section className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5 dark:border-blue-900/60 dark:bg-blue-950/20">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Google Maps discovery</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">{discoverySource === 'OpenStreetMap' ? 'OpenStreetMap discovery' : 'Community place discovery'}</p>
                 <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-white">Places around this campus</h2>
-                <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">These places are discovered live from Google Maps. They are not UniEco vendors unless the owner joins and verifies the business.</p>
+                <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">Free community places are shown from OpenStreetMap. They are not UniEco vendors unless the owner joins and verifies the business.</p>
               </div>
               <Globe2 className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-300" />
             </div>
@@ -398,6 +397,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
                             <button type="button" onClick={() => chooseGooglePlace(place)} className="inline-flex min-h-9 items-center rounded-lg bg-blue-100 px-3 font-bold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200"><Map className="mr-1.5 h-3.5 w-3.5" /> View on map</button>
                             {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 font-bold text-primary-foreground"><Navigation className="mr-1.5 h-3.5 w-3.5" /> Directions</a>}
                             {place.googleMapsUri && <a href={place.googleMapsUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-blue-200 px-2.5 font-semibold text-blue-800 dark:border-blue-900/60 dark:text-blue-200"><ExternalLink className="mr-1 h-3.5 w-3.5" /> Google Maps</a>}
+                            {place.osmUrl && <a href={place.osmUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><ExternalLink className="mr-1 h-3.5 w-3.5" /> OpenStreetMap</a>}
                             {place.phone && <a href={`tel:${place.phone}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Phone className="mr-1 h-3.5 w-3.5" /> Call</a>}
                             {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Globe2 className="mr-1 h-3.5 w-3.5" /> Website</a>}
                           </div>
@@ -410,7 +410,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
                 })}
               </div>
             )}
-            <p className="mt-4 text-[11px] text-slate-500 dark:text-slate-400">Google Maps data and place information are provided by Google Maps. Open a place in Google Maps for the latest details.</p>
+            <p className="mt-4 text-[11px] text-slate-500 dark:text-slate-400">OpenStreetMap data is provided by OpenStreetMap contributors under the Open Database License. Place coverage depends on what the local community has mapped. Use Google Maps for the latest external details.</p>
           </section>
         )}
 
