@@ -13,6 +13,19 @@ type GeoResult = {
   display_name?: string;
 };
 
+type NominatimPlace = {
+  place_id?: number;
+  osm_type?: 'node' | 'way' | 'relation';
+  osm_id?: number;
+  lat?: string;
+  lon?: string;
+  name?: string;
+  display_name?: string;
+  type?: string;
+  category?: string;
+  extratags?: Record<string, string>;
+};
+
 type OverpassElement = {
   type: 'node' | 'way' | 'relation';
   id: number;
@@ -174,6 +187,58 @@ function mapElement(element: OverpassElement, query: string) {
   };
 }
 
+function mapNominatimPlace(place: NominatimPlace, query: string) {
+  const latitude = Number(place.lat);
+  const longitude = Number(place.lon);
+  if (!place.osm_type || !place.osm_id || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  const name = safeText(place.name || place.display_name?.split(',')[0], 'Unnamed place');
+  const osmUrl = `https://www.openstreetmap.org/${place.osm_type}/${place.osm_id}`;
+  return {
+    id: `osm-${place.osm_type}-${place.osm_id}`,
+    name,
+    category: CATEGORY_LABELS[categoryKey(query)] || friendlyCategory({ amenity: place.type || place.category || 'place' }, query),
+    address: safeText(place.display_name, `${name}, Ghana`),
+    latitude,
+    longitude,
+    googleMapsUri: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`,
+    websiteUri: safeText(place.extratags?.website || place.extratags?.['contact:website']),
+    phone: safeText(place.extratags?.phone || place.extratags?.['contact:phone']),
+    rating: null,
+    userRatingCount: null,
+    businessStatus: '',
+    source: 'OpenStreetMap',
+    osmUrl,
+  };
+}
+
+async function searchNominatimPlaces(latitude: number, longitude: number, query: string) {
+  const cacheKey = `nominatim:${latitude.toFixed(4)}:${longitude.toFixed(4)}:${normalizeQuery(query)}`;
+  const cached = placesCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.places;
+
+  await waitForNominatimWindow();
+  const url = new URL(NOMINATIM_URL);
+  const radiusDegrees = 0.04;
+  url.searchParams.set('q', query);
+  url.searchParams.set('format', 'jsonv2');
+  url.searchParams.set('limit', '20');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('extratags', '1');
+  url.searchParams.set('countrycodes', 'gh');
+  url.searchParams.set('viewbox', `${longitude - radiusDegrees},${latitude + radiusDegrees},${longitude + radiusDegrees},${latitude - radiusDegrees}`);
+  url.searchParams.set('bounded', '1');
+  const response = await fetch(url, {
+    headers: { Accept: 'application/json', 'User-Agent': USER_AGENT },
+    signal: AbortSignal.timeout(12000),
+    cache: 'no-store',
+  });
+  if (!response.ok) throw new Error(`OpenStreetMap search returned ${response.status}.`);
+  const results = await response.json() as NominatimPlace[];
+  const places = results.map((place) => mapNominatimPlace(place, query)).filter(Boolean).slice(0, 20) as Array<Record<string, unknown>>;
+  placesCache.set(cacheKey, { expiresAt: Date.now() + 15 * 60 * 1000, places });
+  return places;
+}
+
 async function searchOverpass(latitude: number, longitude: number, query: string) {
   const cacheKey = `${latitude.toFixed(4)}:${longitude.toFixed(4)}:${normalizeQuery(query)}`;
   const cached = placesCache.get(cacheKey);
@@ -186,7 +251,7 @@ async function searchOverpass(latitude: number, longitude: number, query: string
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': USER_AGENT },
         body: new URLSearchParams({ data: body }).toString(),
-        signal: AbortSignal.timeout(25000),
+        signal: AbortSignal.timeout(9000),
         cache: 'no-store',
       });
       if (!response.ok) {
@@ -212,7 +277,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const location = await geocodeCampus(campus);
-    const places = await searchOverpass(location.latitude, location.longitude, query);
+    let places: Array<Record<string, unknown>> = [];
+    try {
+      places = await searchNominatimPlaces(location.latitude, location.longitude, query);
+    } catch {
+      // Nominatim is the fast free search path. Overpass remains a fallback for richer OSM tags.
+      try {
+        places = await searchOverpass(location.latitude, location.longitude, query);
+      } catch {
+        places = [];
+      }
+    }
     return NextResponse.json({ places, attribution: 'OpenStreetMap contributors', campusAddress: location.address, locationIsApproximate: location.approximate }, {
       headers: { 'Cache-Control': 'private, max-age=900, stale-while-revalidate=3600' },
     });
