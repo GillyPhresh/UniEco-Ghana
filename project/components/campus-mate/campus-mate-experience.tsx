@@ -9,12 +9,15 @@ import {
   Check,
   ChevronRight,
   Compass,
+  Globe2,
   ExternalLink,
   LocateFixed,
   Map,
   MapPinned,
   Navigation,
+  Phone,
   Search,
+  Star,
   Store,
   X,
 } from 'lucide-react';
@@ -55,6 +58,21 @@ export type CampusMatePlace = {
   rating: number | null;
   verified: boolean;
   start_time: string | null;
+};
+
+type GoogleDiscoveredPlace = {
+  id: string;
+  name: string;
+  category: string;
+  address: string;
+  latitude: number | null;
+  longitude: number | null;
+  googleMapsUri: string;
+  websiteUri: string;
+  phone: string;
+  rating: number | null;
+  userRatingCount: number | null;
+  businessStatus: string;
 };
 
 type CampusMateExperienceProps = {
@@ -119,6 +137,11 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [mapLoaded, setMapLoaded] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
   const [locationMessage, setLocationMessage] = useState('');
+  const [googlePlaces, setGooglePlaces] = useState<GoogleDiscoveredPlace[]>([]);
+  const [googlePlacesLoading, setGooglePlacesLoading] = useState(false);
+  const [googlePlacesError, setGooglePlacesError] = useState('');
+  const [googleSearchCompleted, setGoogleSearchCompleted] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<GoogleDiscoveredPlace | null>(null);
 
   const campusMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&output=embed`;
   const campusDirectionsUrl = getGoogleMapsSearchUrl(campusSearchText(university));
@@ -147,6 +170,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
   }, [activeFilter, deviceLocation, places, searchQuery]);
 
   const selectedPlace = visiblePlaces.find(({ place }) => place.id === selectedPlaceId)?.place || null;
+  const selectedMapName = selectedPlace?.name || selectedGooglePlace?.name;
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -166,14 +190,57 @@ export function CampusMateExperience({ university, universities, places }: Campu
 
   const choosePlace = (place: CampusMatePlace) => {
     setSelectedPlaceId(place.id);
+    setSelectedGooglePlace(null);
     setMapLoaded(false);
     setMapTarget(placeSearchText(place, university));
   };
 
+  const chooseGooglePlace = (place: GoogleDiscoveredPlace) => {
+    setSelectedPlaceId(null);
+    setSelectedGooglePlace(place);
+    setMapLoaded(false);
+    setMapTarget([place.name, place.address].filter(Boolean).join(', '));
+  };
+
   const clearSelection = () => {
     setSelectedPlaceId(null);
+    setSelectedGooglePlace(null);
     setMapLoaded(false);
     setMapTarget(campusSearchText(university));
+  };
+
+  const searchGooglePlaces = async () => {
+    const query = searchQuery.trim();
+    if (query.length < 2) {
+      setGooglePlacesError('Type what you are looking for first, for example food, hostel, pharmacy, bank, printing or transport.');
+      setGoogleSearchCompleted(true);
+      return;
+    }
+
+    setGooglePlacesLoading(true);
+    setGooglePlacesError('');
+    setGoogleSearchCompleted(true);
+    try {
+      const params = new URLSearchParams({
+        q: query,
+        context: campusSearchText(university),
+        radius: '3000',
+      });
+      if (deviceLocation) {
+        params.set('lat', String(deviceLocation.latitude));
+        params.set('lng', String(deviceLocation.longitude));
+      }
+      const response = await fetch(`/api/maps/places/search?${params.toString()}`, { cache: 'no-store' });
+      const result = await response.json() as { places?: GoogleDiscoveredPlace[]; error?: string };
+      if (!response.ok) throw new Error(result.error || 'Google place search is temporarily unavailable.');
+      setGooglePlaces(result.places || []);
+      if (!result.places?.length) setGooglePlacesError('Google Maps did not find a matching place around this campus.');
+    } catch (error) {
+      setGooglePlaces([]);
+      setGooglePlacesError(error instanceof Error ? error.message : 'Google place search is temporarily unavailable.');
+    } finally {
+      setGooglePlacesLoading(false);
+    }
   };
 
   const resetMapPreview = () => setMapLoaded(false);
@@ -249,10 +316,10 @@ export function CampusMateExperience({ university, universities, places }: Campu
             <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2 sm:inset-x-5 sm:top-5">
               <div className="pointer-events-auto max-w-[calc(100%-3.25rem)] rounded-xl border border-white/70 bg-white/95 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">You are exploring</p>
-                <p className="mt-0.5 truncate text-sm font-bold text-slate-950 dark:text-white">{selectedPlace?.name || university.short_name || university.name}</p>
-                <p className="truncate text-xs text-slate-500">{selectedPlace ? 'Selected place' : campusSearchText(university)}</p>
+                <p className="mt-0.5 truncate text-sm font-bold text-slate-950 dark:text-white">{selectedMapName || university.short_name || university.name}</p>
+                <p className="truncate text-xs text-slate-500">{selectedPlace ? 'UniEco place' : selectedGooglePlace ? 'Google Maps place' : campusSearchText(university)}</p>
               </div>
-              {selectedPlace && <button type="button" onClick={clearSelection} className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/95 text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900/95 dark:text-white" aria-label="Show whole campus"><X className="h-4 w-4" /></button>}
+              {selectedMapName && <button type="button" onClick={clearSelection} className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/95 text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900/95 dark:text-white" aria-label="Show whole campus"><X className="h-4 w-4" /></button>}
             </div>
             <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2 sm:inset-x-5 sm:bottom-5">
               {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-lg transition hover:bg-primary/90"><Navigation className="mr-2 h-4 w-4" /> Open live map</a>}
@@ -271,9 +338,14 @@ export function CampusMateExperience({ university, universities, places }: Campu
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Campus directory</p>
               <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-white">What are you looking for?</h2>
             </div>
-            <div className="relative sm:w-72">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search this campus" aria-label="Search this campus" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800" />
+            <div className="flex w-full flex-col gap-2 sm:w-80 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void searchGooglePlaces(); }} placeholder="Search this campus" aria-label="Search this campus" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800" />
+              </div>
+              <button type="button" onClick={() => void searchGooglePlaces()} disabled={googlePlacesLoading} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-70">
+                <Globe2 className="mr-1.5 h-4 w-4" /> {googlePlacesLoading ? 'Searching…' : 'Search all places'}
+              </button>
             </div>
           </div>
 
@@ -286,6 +358,55 @@ export function CampusMateExperience({ university, universities, places }: Campu
             })}
           </div>
         </section>
+
+        {(googleSearchCompleted || googlePlacesLoading) && (
+          <section className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5 dark:border-blue-900/60 dark:bg-blue-950/20">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">Google Maps discovery</p>
+                <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-white">Places around this campus</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">These places are discovered live from Google Maps. They are not UniEco vendors unless the owner joins and verifies the business.</p>
+              </div>
+              <Globe2 className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-300" />
+            </div>
+
+            {googlePlacesLoading ? (
+              <div className="mt-4 rounded-xl border border-blue-200 bg-white/80 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">Finding places around {university.short_name || university.name}…</div>
+            ) : googlePlacesError ? (
+              <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white/70 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">{googlePlacesError}</div>
+            ) : (
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                {googlePlaces.map((place) => {
+                  const directionsUrl = getGoogleMapsDirectionsUrl({ latitude: place.latitude, longitude: place.longitude, address: place.address }, deviceLocation ? { latitude: deviceLocation.latitude, longitude: deviceLocation.longitude } : undefined);
+                  return (
+                    <article key={place.id} className="rounded-xl border border-blue-100 bg-white p-3 shadow-sm dark:border-blue-900/50 dark:bg-slate-900">
+                      <div className="flex gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"><Globe2 className="h-5 w-5" /></div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0"><p className="truncate font-bold text-slate-950 dark:text-white">{place.name}</p><p className="mt-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">{place.category}</p></div>
+                            {place.rating != null && <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-amber-600"><Star className="h-3.5 w-3.5 fill-current" /> {place.rating.toFixed(1)}</span>}
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{place.address || 'Address available in Google Maps'}</p>
+                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+                            <button type="button" onClick={() => chooseGooglePlace(place)} className="inline-flex min-h-9 items-center rounded-lg bg-blue-100 px-3 font-bold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200"><Map className="mr-1.5 h-3.5 w-3.5" /> View on map</button>
+                            {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 font-bold text-primary-foreground"><Navigation className="mr-1.5 h-3.5 w-3.5" /> Directions</a>}
+                            {place.googleMapsUri && <a href={place.googleMapsUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-blue-200 px-2.5 font-semibold text-blue-800 dark:border-blue-900/60 dark:text-blue-200"><ExternalLink className="mr-1 h-3.5 w-3.5" /> Google Maps</a>}
+                            {place.phone && <a href={`tel:${place.phone}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Phone className="mr-1 h-3.5 w-3.5" /> Call</a>}
+                            {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Globe2 className="mr-1 h-3.5 w-3.5" /> Website</a>}
+                          </div>
+                          {place.businessStatus && place.businessStatus !== 'OPERATIONAL' && <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Google status: {place.businessStatus.toLowerCase().replaceAll('_', ' ')}</p>}
+                          {place.userRatingCount != null && <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{place.userRatingCount.toLocaleString()} Google reviews · Google Maps</p>}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+            <p className="mt-4 text-[11px] text-slate-500 dark:text-slate-400">Google Maps data and place information are provided by Google Maps. Open a place in Google Maps for the latest details.</p>
+          </section>
+        )}
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">

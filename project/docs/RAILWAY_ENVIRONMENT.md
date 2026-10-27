@@ -21,6 +21,10 @@ staging project.
 - `UNIECO_INTERNAL_FUNCTION_SECRET`
 - `VAPID_PUBLIC_KEY` — the public Web Push key returned by the authenticated
   push-config route.
+- `GOOGLE_MAPS_PLACES_API_KEY` (optional) — server-only Google Places API key
+  used by Campus Mate's on-demand external place discovery. Restrict the key
+  to Places API web-service usage and configure billing/quota alerts in Google
+  Cloud before enabling it.
 
 These must never be prefixed `NEXT_PUBLIC_` or committed. They are only needed
 when the corresponding trusted server/Edge Function capability is deployed.
