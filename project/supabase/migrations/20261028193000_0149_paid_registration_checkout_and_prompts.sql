@@ -231,7 +231,7 @@ BEGIN
       WHERE redeemed_by = NEW.id AND audience = 'student'
         AND redeemed_at IS NOT NULL AND payment_method = 'cash'
     ) THEN RETURN NEW; END IF;
-    target_path := 'https://www.uniecoghana.com/onboarding/student?payment_required=1';
+    target_path := 'https://www.uniecoghana.com/payments/registration-checkout?role=student';
     title_text := 'Complete your UniEco registration';
     body_text := format('Your account is ready. Pay the one-time GH₵%s registration fee to unlock UniEco Ghana and start your student verification.', to_char(fee, 'FM999999990.00'));
   ELSE
@@ -255,7 +255,7 @@ BEGIN
       WHERE redeemed_by = NEW.id AND audience = 'vendor'
         AND redeemed_at IS NOT NULL AND payment_method = 'cash'
     ) THEN RETURN NEW; END IF;
-    target_path := 'https://www.uniecoghana.com/onboarding/vendor?payment_required=1';
+    target_path := 'https://www.uniecoghana.com/payments/registration-checkout?role=vendor';
     title_text := 'Complete your UniEco business registration';
     body_text := format('Your business account is ready. Pay the one-time GH₵%s registration fee to unlock vendor tools and submit your business for review.', to_char(fee, 'FM999999990.00'));
   END IF;
@@ -301,13 +301,13 @@ BEGIN
   IF intent = 'student' THEN
     SELECT registration_fee INTO fee FROM public.student_financial_settings WHERE singleton;
     already_paid := EXISTS (SELECT 1 FROM public.student_registration_payments registration JOIN public.payments payment ON payment.user_id = registration.user_id AND payment.entity_id = registration.user_id AND payment.payment_type = 'student_registration' AND payment.status = 'success' AND payment.amount = fee AND payment.currency = 'GHS' WHERE registration.user_id = NEW.user_id AND registration.status = 'paid');
-    target_path := 'https://www.uniecoghana.com/onboarding/student?payment_required=1';
+    target_path := 'https://www.uniecoghana.com/payments/registration-checkout?role=student';
     title_text := 'Finish your UniEco registration';
     body_text := format('Pay GH₵%s to unlock your UniEco Ghana student account.', to_char(fee, 'FM999999990.00'));
   ELSE
     SELECT vendor_registration_fee INTO fee FROM public.student_financial_settings WHERE singleton;
     already_paid := EXISTS (SELECT 1 FROM public.vendor_registration_payment_states state JOIN public.payments payment ON payment.id = state.payment_id AND payment.status = 'success' AND payment.payment_type = 'vendor_registration' AND payment.amount = fee AND payment.currency = 'GHS' WHERE state.owner_id = NEW.user_id AND state.state = 'paid');
-    target_path := 'https://www.uniecoghana.com/onboarding/vendor?payment_required=1';
+    target_path := 'https://www.uniecoghana.com/payments/registration-checkout?role=vendor';
     title_text := 'Finish your UniEco business registration';
     body_text := format('Pay GH₵%s to unlock your UniEco Ghana vendor tools.', to_char(fee, 'FM999999990.00'));
   END IF;
@@ -368,9 +368,9 @@ BEGIN
     RETURNING id INTO campaign_id;
     IF campaign_id IS NULL THEN CONTINUE; END IF;
     IF intent = 'student' THEN
-      PERFORM public.queue_user_communication(target.id, 'registration_payment_required', 'Complete your UniEco registration', format('Pay the one-time GH₵%s registration fee to unlock UniEco Ghana and start your student verification.', to_char(fee, 'FM999999990.00')), 'payments', 'https://www.uniecoghana.com/onboarding/student?payment_required=1', 'CreditCard', 'registration_payment_required', jsonb_build_object('registration_intent', 'student', 'amount', fee, 'currency', 'GHS'));
+      PERFORM public.queue_user_communication(target.id, 'registration_payment_required', 'Complete your UniEco registration', format('Pay the one-time GH₵%s registration fee to unlock UniEco Ghana and start your student verification.', to_char(fee, 'FM999999990.00')), 'payments', 'https://www.uniecoghana.com/payments/registration-checkout?role=student', 'CreditCard', 'registration_payment_required', jsonb_build_object('registration_intent', 'student', 'amount', fee, 'currency', 'GHS'));
     ELSE
-      PERFORM public.queue_user_communication(target.id, 'registration_payment_required', 'Complete your UniEco business registration', format('Pay the one-time GH₵%s registration fee to unlock vendor tools and submit your business for review.', to_char(fee, 'FM999999990.00')), 'payments', 'https://www.uniecoghana.com/onboarding/vendor?payment_required=1', 'CreditCard', 'registration_payment_required', jsonb_build_object('registration_intent', 'external_vendor', 'amount', fee, 'currency', 'GHS'));
+      PERFORM public.queue_user_communication(target.id, 'registration_payment_required', 'Complete your UniEco business registration', format('Pay the one-time GH₵%s registration fee to unlock vendor tools and submit your business for review.', to_char(fee, 'FM999999990.00')), 'payments', 'https://www.uniecoghana.com/payments/registration-checkout?role=vendor', 'CreditCard', 'registration_payment_required', jsonb_build_object('registration_intent', 'external_vendor', 'amount', fee, 'currency', 'GHS'));
     END IF;
     queued_count := queued_count + 1;
   END LOOP;

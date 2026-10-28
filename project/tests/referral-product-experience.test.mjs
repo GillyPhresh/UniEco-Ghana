@@ -53,3 +53,23 @@ test('health endpoint exposes deployment identity and disables caching', () => {
   assert.match(route, /Cache-Control/);
   assert.match(route, /no-store/);
 });
+
+test('unpaid registration reminders open direct Paystack checkout and preserve verified referral delivery', () => {
+  const migration = read('supabase/migrations/20261028210000_0151_daily_payment_reminder_checkout.sql');
+  const route = read('app/payments/registration-checkout/route.ts');
+  const promptMigration = read('supabase/migrations/20261028193000_0149_paid_registration_checkout_and_prompts.sql');
+  const email = read('supabase/functions/send-email/index.ts');
+
+  assert.match(migration, /resume_student_registration_payment/);
+  assert.match(migration, /resume_vendor_registration_payment/);
+  assert.match(migration, /15 18 \* \* \*/);
+  assert.match(migration, /communication_campaign_log/);
+  assert.match(migration, /payments\/registration-checkout\?role=student/);
+  assert.match(migration, /payments\/registration-checkout\?role=vendor/);
+  assert.match(route, /initializePaystackTransaction/);
+  assert.match(route, /record_paystack_checkout_initialized/);
+  assert.match(route, /payments\/callback/);
+  assert.match(promptMigration, /payments\/registration-checkout\?role=student/);
+  assert.match(promptMigration, /payments\/registration-checkout\?role=vendor/);
+  assert.match(email, /Pay securely with Paystack/);
+});

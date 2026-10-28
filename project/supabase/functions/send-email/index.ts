@@ -259,7 +259,7 @@ function renderEmail(input: {
       : 'Pay the one-time registration fee to unlock UniEco Ghana and start your student verification.';
     heading = registrationType === 'business' ? 'Finish your business registration' : 'Finish your student registration';
     copy = `<p>Hi ${name},</p><div style="border:1px solid #a7f3d0;background:#ecfdf5;border-radius:14px;padding:20px;margin:20px 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#047857;font-weight:700">Registration payment required</div><div style="font-size:30px;line-height:1.2;color:#064e3b;font-weight:800;margin-top:8px">${amount}</div><p style="margin:10px 0 0;color:#166534;font-size:14px">${accessCopy}</p></div><p style="color:#475569;font-size:14px">Use the secure Paystack checkout. We will only activate access after Paystack confirms the payment.</p>`;
-    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Continue registration</a>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Pay securely with Paystack</a>`;
     plainText = `Finish your UniEco Ghana registration\n\nHi ${String(meta.name || 'there')},\n\nRegistration payment required\nAmount: ${String(meta.amount ?? '')} ${String(meta.currency || 'GHS')}\n\n${accessCopy}\n\nContinue securely: ${actionUrl}`;
   } else if (template === 'payment_receipt') {
     heading = 'Payment receipt';
