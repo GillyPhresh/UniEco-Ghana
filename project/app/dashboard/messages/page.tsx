@@ -718,14 +718,14 @@ function MessagesContent() {
       <Dialog open={showNewMessage} onOpenChange={setShowNewMessage}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>New student message or business chat</DialogTitle>
-            <DialogDescription>Search for a business or student. Email addresses are never shown.</DialogDescription>
+            <DialogTitle>Start a new chat</DialogTitle>
+            <DialogDescription>Search any registered student or business by name. Email addresses are never shown.</DialogDescription>
           </DialogHeader>
           <Input value={recipientQuery} onChange={(event) => handleRecipientSearch(event.target.value)} placeholder="Search by name" autoFocus />
           <div className="max-h-64 space-y-1 overflow-y-auto">
             {recipientSearching && <p className="p-2 text-sm text-muted-foreground">Searching…</p>}
             {!recipientSearching && recipientQuery.trim().length >= 2 && recipientResults.length === 0 && (
-              <p className="p-2 text-sm text-muted-foreground">No messageable contacts found.</p>
+              <p className="p-2 text-sm text-muted-foreground">No registered student or business matched that name.</p>
             )}
             {recipientResults.map((recipient) => (
               <button key={recipient.id} onClick={() => startConversation(recipient)} className="flex w-full items-center gap-3 rounded-xl p-3 text-left hover:bg-muted">

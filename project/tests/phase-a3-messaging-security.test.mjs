@@ -53,7 +53,8 @@ test('student recipient search and attachment deletion remain private', async ()
   assert.match(client, /message-attachments'\)\.remove/);
   assert.match(client, /rpc\('clear_direct_message_attachment'/);
   assert.match(client, /body: string \| null/);
-  assert.match(page, /New student message/);
+  assert.match(page, /Start a new chat/);
+  assert.match(page, /registered student or business/);
   assert.match(page, /Remove attachment/);
   assert.match(page, /min-h-0 flex-1 overflow-y-auto/);
   assert.match(page, /msgText \|\| null/);
