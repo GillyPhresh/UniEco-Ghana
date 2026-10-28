@@ -66,7 +66,29 @@ const wideLogoPositions: Record<string, 'left' | 'center' | 'right'> = {
 // manifest-friendly logo file. Keep those verified local copies as a fallback
 // until the institution supplies a higher-resolution brand upload.
 const officialLogoOverrides: Record<string, string> = {
+  'anglican-university-college-of-technology': '/assets/universities/anglican-university-college-of-technology/logo-official.jpg',
+  'marshalls-university-college': '/assets/universities/marshalls-university-college/logo-official.png',
+  'mountcrest-university-college': '/assets/universities/mountcrest-university-college/logo-official.png',
+  'palm-university-college': '/assets/universities/palm-university-college/logo-official.png',
   'spiritan-university-college': '/assets/universities/spiritan-university-college/logo-official.jpg',
+};
+
+const officialCampusOverrides: Record<string, string> = {
+  ait: '/assets/universities/ait/campus-official.jpg',
+  'anglican-university-college-of-technology': '/assets/universities/anglican-university-college-of-technology/campus-official.jpg',
+  'marshalls-university-college': '/assets/universities/marshalls-university-college/campus-official.jpg',
+  'mountcrest-university-college': '/assets/universities/mountcrest-university-college/campus-official.png',
+  'palm-university-college': '/assets/universities/palm-university-college/campus-official.jpg',
+  'spiritan-university-college': '/assets/universities/spiritan-university-college/campus-official.jpg',
+};
+
+const officialSourcePages: Record<string, string> = {
+  ait: 'https://ait.edu.gh/',
+  'anglican-university-college-of-technology': 'https://angutech.edu.gh/',
+  'marshalls-university-college': 'https://marshalls.edu.gh/test/',
+  'mountcrest-university-college': 'https://mountcrestuniversity.edu.gh/',
+  'palm-university-college': 'https://palm.edu.gh/',
+  'spiritan-university-college': 'https://suc.edu.gh/',
 };
 
 /**
@@ -78,9 +100,9 @@ export function getLocalUniversityBranding(slug: string) {
   const record = records[brandingSlugAliases[slug] || slug];
   return {
     logoUrl: officialLogoOverrides[slug] || record?.logo?.path || null,
-    logoSourcePage: record?.logo?.sourcePage ?? null,
-    campusUrl: record?.campus?.path ?? null,
-    campusSourcePage: record?.campus?.sourcePage ?? null,
+    logoSourcePage: officialSourcePages[slug] || (record?.logo?.sourcePage ?? null),
+    campusUrl: officialCampusOverrides[slug] || record?.campus?.path || null,
+    campusSourcePage: officialSourcePages[slug] || (record?.campus?.sourcePage ?? null),
     status: record?.status ?? null,
   };
 }

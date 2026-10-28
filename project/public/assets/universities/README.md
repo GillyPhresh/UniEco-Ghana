@@ -6,4 +6,11 @@ The database branding fields remain authoritative. If an authorized university a
 
 Official marks and photographs remain subject to each institution's terms and intellectual-property rights. Do not reuse them outside UniEco Ghana without permission. Institutions without an accessible official asset source are deliberately left on the application's monogram/campus placeholder until an authorized source is supplied.
 
-The Spiritan University College crest fallback is sourced from the institution's official website at `https://suc.edu.gh/wp-content/uploads/2025/04/cropped-logo-1.jpg`.
+The following planned-profile fallbacks were sourced from official institutional sites:
+
+- Accra Institute of Technology: `https://ait.edu.gh/`
+- Anglican University College of Technology: `https://angutech.edu.gh/`
+- Marshalls University College: `https://marshalls.edu.gh/test/`
+- MountCrest University College: `https://mountcrestuniversity.edu.gh/`
+- Palm University College: `https://palm.edu.gh/`
+- Spiritan University College: `https://suc.edu.gh/`
