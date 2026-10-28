@@ -544,6 +544,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'ScrollText' },
       { label: 'Roles & Permissions', href: '/admin/roles', icon: 'ShieldCheck' },
+      { label: 'Platform Settings', href: '/admin/settings', icon: 'Settings2' },
     ],
   },
 ] as const;

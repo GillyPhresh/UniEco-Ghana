@@ -31,6 +31,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Sparkles,
+  Settings2,
   ShoppingBag,
   Store,
   Ticket,
@@ -50,6 +51,7 @@ const ICON_MAP: Record<string, typeof Shield> = {
   UserCheck: ShieldCheck, StoreCheck: Store, Flag: ShieldAlert, Star: ShieldCheck,
   ScrollText: FileText, RotateCcw: Activity,
   Sparkles,
+  Settings2,
 };
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
