@@ -37,7 +37,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
         {universities.map((uni, i) => {
           const localBranding = getLocalUniversityBranding(uni.slug);
           const landmarkImage = uni.landmark_image_url || uni.hero_image_url;
-          const logoUrl = uni.logo_url;
+          const logoUrl = localBranding.logoUrl || uni.logo_url;
 
           return (
             <Reveal key={uni.id} delay={i * 0.08}>

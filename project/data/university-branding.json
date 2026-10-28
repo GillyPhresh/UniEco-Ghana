@@ -163,8 +163,8 @@
       "sourcePage": "https://aamusted.edu.gh/application/",
       "sourceUrl": "https://itdirectorate.aamusted.edu.gh/wp-content/uploads/2024/07/aamusted-300x300.jpeg",
       "contentType": "image/jpeg",
-      "bytes": 8362,
-      "sha256": "11dc5a306fbdda30458107a8dd83534408efeb6cdc271562fcd7f863f9c9e20",
+      "bytes": 26220,
+      "sha256": "a1388c534c8a461b70d09596c7311a786735441720948b048382dd6f80d1e35b",
       "score": 100,
       "selection": "explicit_official_source"
     },
@@ -659,11 +659,12 @@
     "logo": {
       "path": "/assets/universities/accra-metropolitan-university/logo.png",
       "sourcePage": "https://web.accramet.edu.gh/",
-      "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2024/12/cropped-ACCRA-MET-LOGO-3-e1734601385892.png",
+      "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2024/11/cropped-amu-270x270.png",
       "contentType": "image/png",
-      "bytes": 9861,
-      "sha256": "6fca2486ccd9d419cfa976e780ae46874adf987c63ca56084d5241a272ca2da5",
-      "score": 30
+      "bytes": 122936,
+      "sha256": "9ba9b8301dda3322ead04c82b0ec4fcc1b5eac706d47a65ad97018e218a38435",
+      "score": 100,
+      "selection": "explicit_official_source"
     },
     "campus": {
       "path": "/assets/universities/accra-metropolitan-university/campus.jpg",
@@ -1469,7 +1470,8 @@
       "contentType": "image/png",
       "bytes": 51892,
       "sha256": "027d742f30482deabb8c53e49dfb672323a052a9c8a4cfe09c59d7d296487130",
-      "score": 30
+      "score": 100,
+      "selection": "explicit_official_source"
     },
     "campus": null,
     "status": "logo_only",

@@ -400,7 +400,7 @@ function Content() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleUniversities.map(uni => {
             const localBranding = getLocalUniversityBranding(uni.slug);
-            const logoUrl = uni.logo_url || localBranding.logoUrl;
+            const logoUrl = localBranding.logoUrl || uni.logo_url;
             const campusUrl = uni.hero_image_url || localBranding.campusUrl;
             const fullyBranded = Boolean(logoUrl && campusUrl);
 

@@ -39,7 +39,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
   }, {}), [universities]);
   const brandingStats = useMemo(() => universities.reduce((stats, university) => {
     const localBranding = getLocalUniversityBranding(university.slug);
-    const hasLogo = Boolean(university.logo_url || localBranding.logoUrl);
+    const hasLogo = Boolean(localBranding.logoUrl || university.logo_url);
     const hasCampus = Boolean(university.hero_image_url || university.landmark_image_url || localBranding.campusUrl);
     return { complete: stats.complete + Number(hasLogo && hasCampus), partial: stats.partial + Number(hasLogo !== hasCampus), pending: stats.pending + Number(!hasLogo && !hasCampus) };
   }, { complete: 0, partial: 0, pending: 0 }), [universities]);
@@ -47,7 +47,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
     const needle = query.trim().toLocaleLowerCase();
     return universities.filter((university) => {
       const localBranding = getLocalUniversityBranding(university.slug);
-      const hasBranding = Boolean(university.logo_url || university.hero_image_url || university.landmark_image_url || localBranding.logoUrl || localBranding.campusUrl);
+      const hasBranding = Boolean(localBranding.logoUrl || university.logo_url || university.hero_image_url || university.landmark_image_url || localBranding.campusUrl);
       const searchable = [university.name, university.official_name, university.short_name, university.abbreviation, university.slug, university.city, university.region, ...university.university_aliases.map((item) => item.alias)].filter(Boolean).join(' ').toLocaleLowerCase();
       return (type === allTypes || university.institution_type === type)
         && (region === 'All regions' || university.region === region)
@@ -85,7 +85,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
         {activeFilters > 0 && <button type="button" onClick={clearFilters} className="mt-3 inline-flex items-center text-xs font-semibold text-primary hover:underline"><X className="mr-1 h-3 w-3" /> Clear filters</button>}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((university) => { const localBranding = getLocalUniversityBranding(university.slug); const landmarkImage = university.landmark_image_url || university.hero_image_url; const logoUrl = university.logo_url; const hasOfficialBranding = Boolean(logoUrl || landmarkImage || localBranding.logoUrl || localBranding.campusUrl); return <Link key={university.id} href={`/university/${university.slug}`} className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+        {filtered.map((university) => { const localBranding = getLocalUniversityBranding(university.slug); const landmarkImage = university.landmark_image_url || university.hero_image_url; const logoUrl = localBranding.logoUrl || university.logo_url; const hasOfficialBranding = Boolean(logoUrl || landmarkImage || localBranding.campusUrl); return <Link key={university.id} href={`/university/${university.slug}`} className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
           <div className="relative"><UniversityMedia src={landmarkImage} fallbackSrc={localBranding.campusUrl} alt={university.hero_alt_text || `${university.name} campus landmark`} name={university.name} shortName={university.short_name} kind="campus" className="h-44 w-full object-cover sm:h-48" /><span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm ${hasOfficialBranding ? 'bg-white/90 text-primary' : 'bg-slate-950/70 text-white'}`}>{hasOfficialBranding ? 'Campus profile' : 'Profile being completed'}</span></div>
             <div className="p-4">
             <div className="flex gap-3"><div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm sm:h-16 sm:w-16"><UniversityLogo src={logoUrl} fallbackSrc={localBranding.logoUrl} alt={university.logo_alt_text || `Official logo of ${university.name}`} name={university.name} shortName={university.short_name} /></div><div className="min-w-0"><h2 className="truncate font-semibold group-hover:text-primary">{university.short_name}</h2><p className="line-clamp-2 text-sm text-muted-foreground">{university.official_name}</p></div></div>
