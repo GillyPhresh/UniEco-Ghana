@@ -26,7 +26,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:07.636Z"
+    "checkedAt": "2026-10-28T15:13:37.957Z"
   },
   "gimpa": {
     "slug": "gimpa",
@@ -37,7 +37,7 @@
     "campus": null,
     "status": "no_verified_assets",
     "reviewNote": "Official homepage and assets currently fail certificate validation in the downloader; no insecure copy was imported.",
-    "checkedAt": "2026-10-24T21:48:07.619Z"
+    "checkedAt": "2026-10-28T15:13:37.942Z"
   },
   "knust": {
     "slug": "knust",
@@ -65,7 +65,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:07.627Z"
+    "checkedAt": "2026-10-28T15:13:37.948Z"
   },
   "uew": {
     "slug": "uew",
@@ -94,7 +94,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:10.363Z"
+    "checkedAt": "2026-10-28T15:13:40.987Z"
   },
   "ucc": {
     "slug": "ucc",
@@ -122,7 +122,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:09.951Z"
+    "checkedAt": "2026-10-28T15:13:40.962Z"
   },
   "uds": {
     "slug": "uds",
@@ -151,7 +151,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:09.761Z"
+    "checkedAt": "2026-10-28T15:13:40.074Z"
   },
   "aamusted": {
     "slug": "aamusted",
@@ -170,15 +170,15 @@
     "campus": {
       "path": "/assets/universities/aamusted/campus.jpg",
       "sourcePage": "https://usted.edu.gh/",
-      "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2026/10/DIGIMARKT_Conference_web-banner.jpg-scaled.jpeg",
+      "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2026/10/42nd-library-conference-web-banner.jpeg",
       "contentType": "image/jpeg",
-      "bytes": 409945,
-      "sha256": "a5c1d5e30e3795d9014c620e0b3b6e5dc340dc25e73dd46663040139074a4182",
-      "score": 12
+      "bytes": 54527,
+      "sha256": "ba23e76c98d27ded944c92318ea992dc751cc0ac16e044b9e996e96aa2d3ddad",
+      "score": 24
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:07.172Z"
+    "checkedAt": "2026-10-28T15:13:37.766Z"
   },
   "uenr": {
     "slug": "uenr",
@@ -205,7 +205,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:12.515Z"
+    "checkedAt": "2026-10-28T15:13:41.068Z"
   },
   "gctu": {
     "slug": "gctu",
@@ -232,7 +232,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:07.603Z"
+    "checkedAt": "2026-10-28T15:13:37.931Z"
   },
   "uhas": {
     "slug": "uhas",
@@ -259,7 +259,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:12.541Z"
+    "checkedAt": "2026-10-28T15:13:42.455Z"
   },
   "utas": {
     "slug": "utas",
@@ -287,7 +287,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:07.591Z"
+    "checkedAt": "2026-10-28T15:13:37.917Z"
   },
   "umat": {
     "slug": "umat",
@@ -315,7 +315,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:14.768Z"
+    "checkedAt": "2026-10-28T15:13:44.976Z"
   },
   "ug": {
     "slug": "ug",
@@ -343,7 +343,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:14.538Z"
+    "checkedAt": "2026-10-28T15:13:43.093Z"
   },
   "uesd": {
     "slug": "uesd",
@@ -370,7 +370,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:13.213Z"
+    "checkedAt": "2026-10-28T15:13:42.818Z"
   },
   "dhltu": {
     "slug": "dhltu",
@@ -399,7 +399,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:20.868Z"
+    "checkedAt": "2026-10-28T15:13:48.772Z"
   },
   "atu": {
     "slug": "atu",
@@ -427,7 +427,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:18.113Z"
+    "checkedAt": "2026-10-28T15:13:46.183Z"
   },
   "unimac": {
     "slug": "unimac",
@@ -454,7 +454,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:14.693Z"
+    "checkedAt": "2026-10-28T15:13:43.560Z"
   },
   "upsa": {
     "slug": "upsa",
@@ -481,7 +481,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:15.688Z"
+    "checkedAt": "2026-10-28T15:13:45.465Z"
   },
   "btu": {
     "slug": "btu",
@@ -508,7 +508,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:18.460Z"
+    "checkedAt": "2026-10-28T15:13:47.423Z"
   },
   "kstu": {
     "slug": "kstu",
@@ -537,7 +537,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:23.150Z"
+    "checkedAt": "2026-10-28T15:13:52.432Z"
   },
   "ktu": {
     "slug": "ktu",
@@ -564,7 +564,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:22.840Z"
+    "checkedAt": "2026-10-28T15:13:51.919Z"
   },
   "cctu": {
     "slug": "cctu",
@@ -591,7 +591,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:19.492Z"
+    "checkedAt": "2026-10-28T15:13:48.024Z"
   },
   "stu": {
     "slug": "stu",
@@ -619,7 +619,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:24.966Z"
+    "checkedAt": "2026-10-28T15:13:52.585Z"
   },
   "htu": {
     "slug": "htu",
@@ -628,7 +628,7 @@
     "sourceUrl": "https://htu.edu.gh/",
     "logo": {
       "path": "/assets/universities/htu/logo.png",
-      "sourcePage": "https://htu.edu.gh/gallery/",
+      "sourcePage": "https://htu.edu.gh/about-tverc/",
       "sourceUrl": "https://htu.edu.gh/wp-content/uploads/2022/06/HTU-LOGO-PNG-1.png",
       "contentType": "image/png",
       "bytes": 383600,
@@ -647,7 +647,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:22.453Z"
+    "checkedAt": "2026-10-28T15:13:50.085Z"
   },
   "accra-metropolitan-university": {
     "slug": "accra-metropolitan-university",
@@ -674,7 +674,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:30.809Z"
+    "checkedAt": "2026-10-28T15:13:57.828Z"
   },
   "academic-city-university": {
     "slug": "academic-city-university",
@@ -701,7 +701,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:30.331Z"
+    "checkedAt": "2026-10-28T15:13:57.707Z"
   },
   "akrofi-christaller-institute": {
     "slug": "akrofi-christaller-institute",
@@ -712,7 +712,7 @@
     "campus": null,
     "status": "no_verified_assets",
     "reviewNote": "Official domain currently serves a suspended-page response; no third-party logo copy was imported.",
-    "checkedAt": "2026-10-24T21:48:33.251Z"
+    "checkedAt": "2026-10-28T15:14:00.921Z"
   },
   "all-nations-university": {
     "slug": "all-nations-university",
@@ -739,7 +739,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:36.227Z"
+    "checkedAt": "2026-10-28T15:14:01.971Z"
   },
   "tatu": {
     "slug": "tatu",
@@ -766,7 +766,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:26.222Z"
+    "checkedAt": "2026-10-28T15:13:55.477Z"
   },
   "central-university": {
     "slug": "central-university",
@@ -795,7 +795,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:42.196Z"
+    "checkedAt": "2026-10-28T15:14:06.381Z"
   },
   "catholic-university": {
     "slug": "catholic-university",
@@ -823,7 +823,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:37.448Z"
+    "checkedAt": "2026-10-28T15:14:05.940Z"
   },
   "ttu": {
     "slug": "ttu",
@@ -832,7 +832,7 @@
     "sourceUrl": "https://ttu.edu.gh/",
     "logo": {
       "path": "/assets/universities/ttu/logo.png",
-      "sourcePage": "https://ttu.edu.gh/campus-accommodation/",
+      "sourcePage": "https://ttu.edu.gh/gallery/",
       "sourceUrl": "https://ttu.edu.gh/wp-content/uploads/2026/04/TTU-FINAL-LOGO-01-2-scaled.png",
       "contentType": "image/png",
       "bytes": 2025504,
@@ -851,7 +851,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:26.160Z"
+    "checkedAt": "2026-10-28T15:13:54.089Z"
   },
   "ashesi": {
     "slug": "ashesi",
@@ -879,7 +879,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:36.428Z"
+    "checkedAt": "2026-10-28T15:14:04.559Z"
   },
   "garden-city-university": {
     "slug": "garden-city-university",
@@ -908,7 +908,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:50.175Z"
+    "checkedAt": "2026-10-28T15:14:17.205Z"
   },
   "african-university-of-communication-and-business": {
     "slug": "african-university-of-communication-and-business",
@@ -937,7 +937,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:33.048Z"
+    "checkedAt": "2026-10-28T15:13:58.788Z"
   },
   "ensign-global-university": {
     "slug": "ensign-global-university",
@@ -965,7 +965,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:42.791Z"
+    "checkedAt": "2026-10-28T15:14:09.404Z"
   },
   "entrance-university-of-health-sciences": {
     "slug": "entrance-university-of-health-sciences",
@@ -985,7 +985,7 @@
     "campus": null,
     "status": "logo_only",
     "reviewNote": "Official site publishes a logo but no campus photograph was exposed in its public page assets.",
-    "checkedAt": "2026-10-24T21:48:43.766Z"
+    "checkedAt": "2026-10-28T15:14:12.725Z"
   },
   "family-health-university": {
     "slug": "family-health-university",
@@ -1014,7 +1014,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:47.262Z"
+    "checkedAt": "2026-10-28T15:14:15.418Z"
   },
   "christian-service-university": {
     "slug": "christian-service-university",
@@ -1043,7 +1043,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:42.212Z"
+    "checkedAt": "2026-10-28T15:14:08.220Z"
   },
   "heritage-christian-university": {
     "slug": "heritage-christian-university",
@@ -1070,7 +1070,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:50.771Z"
+    "checkedAt": "2026-10-28T15:14:17.596Z"
   },
   "kaaf-university": {
     "slug": "kaaf-university",
@@ -1097,7 +1097,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:51.216Z"
+    "checkedAt": "2026-10-28T15:14:19.453Z"
   },
   "knutsford-university": {
     "slug": "knutsford-university",
@@ -1125,7 +1125,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:57.237Z"
+    "checkedAt": "2026-10-28T15:14:20.133Z"
   },
   "pentecost-university": {
     "slug": "pentecost-university",
@@ -1143,7 +1143,7 @@
     },
     "campus": {
       "path": "/assets/universities/pentecost-university/campus.png",
-      "sourcePage": "https://pentvars.edu.gh/gallery/",
+      "sourcePage": "https://pentvars.edu.gh/research/welcome-to-our-library/about-library/",
       "sourceUrl": "https://pentvars.edu.gh/wp-content/themes/eduma-child/images/pentvar-location-map.png",
       "contentType": "image/png",
       "bytes": 22951,
@@ -1152,7 +1152,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:58.299Z"
+    "checkedAt": "2026-10-28T15:14:23.075Z"
   },
   "thrivus-university": {
     "slug": "thrivus-university",
@@ -1181,7 +1181,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:02.966Z"
+    "checkedAt": "2026-10-28T15:14:25.828Z"
   },
   "trinity-theological-seminary": {
     "slug": "trinity-theological-seminary",
@@ -1208,7 +1208,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:03.331Z"
+    "checkedAt": "2026-10-28T15:14:27.532Z"
   },
   "senes-professional-college-accra": {
     "slug": "senes-professional-college-accra",
@@ -1219,7 +1219,7 @@
     "campus": null,
     "status": "no_official_site_published",
     "reviewNote": "No official website was published in the directory source, so no asset was fabricated.",
-    "checkedAt": "2026-10-24T21:49:06.499Z"
+    "checkedAt": "2026-10-28T15:14:30.325Z"
   },
   "methodist-university": {
     "slug": "methodist-university",
@@ -1228,7 +1228,7 @@
     "sourceUrl": "https://mug.edu.gh/",
     "logo": {
       "path": "/assets/universities/methodist-university/logo.png",
-      "sourcePage": "https://mug.edu.gh/gallery/",
+      "sourcePage": "https://mug.edu.gh/about-us/",
       "sourceUrl": "https://mug.edu.gh/wp-content/uploads/elementor/thumbs/MUG-LOGO-2026-rjyibx31ndt0zluviqf2ps5wq870l9169mpkrom5ek.png",
       "contentType": "image/png",
       "bytes": 26483,
@@ -1246,7 +1246,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:57.306Z"
+    "checkedAt": "2026-10-28T15:14:21.705Z"
   },
   "nibs-university": {
     "slug": "nibs-university",
@@ -1273,7 +1273,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:48:57.894Z"
+    "checkedAt": "2026-10-28T15:14:22.516Z"
   },
   "valley-view-university": {
     "slug": "valley-view-university",
@@ -1302,7 +1302,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:06.475Z"
+    "checkedAt": "2026-10-28T15:14:29.635Z"
   },
   "ghana-armed-forces-command-and-staff-college": {
     "slug": "ghana-armed-forces-command-and-staff-college",
@@ -1330,7 +1330,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:06.503Z"
+    "checkedAt": "2026-10-28T15:14:30.329Z"
   },
   "university-of-gold-coast": {
     "slug": "university-of-gold-coast",
@@ -1359,7 +1359,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:04.911Z"
+    "checkedAt": "2026-10-28T15:14:28.752Z"
   },
   "presbyterian-university": {
     "slug": "presbyterian-university",
@@ -1387,7 +1387,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:01.104Z"
+    "checkedAt": "2026-10-28T15:14:23.369Z"
   },
   "regional-maritime-university": {
     "slug": "regional-maritime-university",
@@ -1414,7 +1414,7 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:09.180Z"
+    "checkedAt": "2026-10-28T15:14:30.784Z"
   },
   "national-defence-university": {
     "slug": "national-defence-university",
@@ -1441,6 +1441,383 @@
     },
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-24T21:49:09.522Z"
+    "checkedAt": "2026-10-28T15:14:32.033Z"
+  },
+  "anglican-university-college-of-technology": {
+    "slug": "anglican-university-college-of-technology",
+    "shortName": "AUCT",
+    "name": "Anglican University College of Technology",
+    "sourceUrl": "https://aut.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:33.002Z"
+  },
+  "accra-institute-of-technology": {
+    "slug": "accra-institute-of-technology",
+    "shortName": "AIT",
+    "name": "Accra Institute of Technology",
+    "sourceUrl": "https://ait.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/accra-institute-of-technology/logo.png",
+      "sourcePage": "https://ait.edu.gh/about/",
+      "sourceUrl": "https://ait.edu.gh/wp-content/uploads/2024/02/ait-logo-png-e1709804120348.png",
+      "contentType": "image/png",
+      "bytes": 51892,
+      "sha256": "027d742f30482deabb8c53e49dfb672323a052a9c8a4cfe09c59d7d296487130",
+      "score": 30
+    },
+    "campus": null,
+    "status": "logo_only",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:32.106Z"
+  },
+  "bluecrest-college": {
+    "slug": "bluecrest-college",
+    "shortName": "BlueCrest",
+    "name": "BlueCrest College",
+    "sourceUrl": "https://bluecrest.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/bluecrest-college/logo.jpg",
+      "sourcePage": "https://bluecrest.edu.gh/",
+      "sourceUrl": "https://bluecrest.edu.gh/resources/img/logo-bcc.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 10196,
+      "sha256": "8cc34ed381c9d1db61bda5d9f0f797fc5e8cdf3cb9c8b6235539bce75ac1b706",
+      "score": 90
+    },
+    "campus": {
+      "path": "/assets/universities/bluecrest-college/campus.jpg",
+      "sourcePage": "https://bluecrest.edu.gh/",
+      "sourceUrl": "https://bluecrest.edu.gh/images/slider/bg-slider.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 101481,
+      "sha256": "312de0509315e99c0bc35c495f316d1f2b45a058bdb9d9b6907c3cb03cb41a43",
+      "score": 24
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:33.182Z"
+  },
+  "christ-apostolic-university-college": {
+    "slug": "christ-apostolic-university-college",
+    "shortName": "CAUC",
+    "name": "Christ Apostolic University College",
+    "sourceUrl": "https://cauc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:36.107Z"
+  },
+  "catholic-institute-of-business-and-technology": {
+    "slug": "catholic-institute-of-business-and-technology",
+    "shortName": "CIBT",
+    "name": "Catholic Institute of Business and Technology",
+    "sourceUrl": "https://cibt.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/catholic-institute-of-business-and-technology/logo.png",
+      "sourcePage": "https://cibt.edu.gh/gallery/",
+      "sourceUrl": "https://cibt.edu.gh/wp-content/uploads/2021/10/logo.png",
+      "contentType": "image/png",
+      "bytes": 14687,
+      "sha256": "ace0504653b206dace28f1e844b0df34a43649eef7222b820b11b7c75ac74ca9",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/catholic-institute-of-business-and-technology/campus.jpg",
+      "sourcePage": "https://cibt.edu.gh/about-admissions/",
+      "sourceUrl": "https://cibt.edu.gh/wp-content/uploads/2021/10/page-slider-1.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 179488,
+      "sha256": "93b455360d00f7a69b078361c4abf2b16a538ca2c07b10c964af8d0827872be5",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:34.336Z"
+  },
+  "evangelical-presbyterian-university-college": {
+    "slug": "evangelical-presbyterian-university-college",
+    "shortName": "EPUC",
+    "name": "Evangelical Presbyterian University College",
+    "sourceUrl": "https://epuc.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/evangelical-presbyterian-university-college/logo.png",
+      "sourcePage": "https://epuc.edu.gh/",
+      "sourceUrl": "https://epuc.edu.gh/_image?href=%2F_astro%2Fucc-logo.CkRkBLpE.png&w=156&h=33&f=png&fit=cover&position=center",
+      "contentType": "image/png",
+      "bytes": 10180,
+      "sha256": "02e30fa2c24e31788aec718ce555cc4a286d78260963121337e3895afda73759",
+      "score": 30
+    },
+    "campus": null,
+    "status": "logo_only",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:37.355Z"
+  },
+  "data-link-institute-of-business-and-technology": {
+    "slug": "data-link-institute-of-business-and-technology",
+    "shortName": "DLIBT",
+    "name": "Data Link Institute of Business and Technology",
+    "sourceUrl": "https://datalink.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/data-link-institute-of-business-and-technology/logo.png",
+      "sourcePage": "https://datalink.edu.gh/",
+      "sourceUrl": "https://datalink.edu.gh/assets/images/logo.png",
+      "contentType": "image/png",
+      "bytes": 13400,
+      "sha256": "721921944f7d061fc1f0073c5d95013aac87b0dad499204fb9e3d98a472ba611",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/data-link-institute-of-business-and-technology/campus.jpg",
+      "sourcePage": "https://datalink.edu.gh/",
+      "sourceUrl": "https://datalink.edu.gh/assets/images/gallery/DrAbigailwithstudentfrompolland.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 98715,
+      "sha256": "86fd432500864471bf72a33f1098da7cf88a780c93abfcbdfa644e98bfee4593",
+      "score": 12
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:36.472Z"
+  },
+  "islamic-university-college-ghana": {
+    "slug": "islamic-university-college-ghana",
+    "shortName": "IUCG",
+    "name": "Islamic University College, Ghana",
+    "sourceUrl": "https://iuc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.381Z"
+  },
+  "jayee-university-college": {
+    "slug": "jayee-university-college",
+    "shortName": "JUC",
+    "name": "Jayee University College",
+    "sourceUrl": "https://jayeeuniversity.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.492Z"
+  },
+  "kessben-university-college": {
+    "slug": "kessben-university-college",
+    "shortName": "KUC",
+    "name": "Kessben University College",
+    "sourceUrl": "https://kessben.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.679Z"
+  },
+  "dominion-university-college": {
+    "slug": "dominion-university-college",
+    "shortName": "DUC",
+    "name": "Dominion University College",
+    "sourceUrl": "https://duc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:36.665Z"
+  },
+  "ghana-christian-university-college": {
+    "slug": "ghana-christian-university-college",
+    "shortName": "GCUC",
+    "name": "Ghana Christian University College",
+    "sourceUrl": "https://www.ghanacu.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.277Z"
+  },
+  "ghana-baptist-university-college": {
+    "slug": "ghana-baptist-university-college",
+    "shortName": "GBUC",
+    "name": "Ghana Baptist University College",
+    "sourceUrl": "https://gbuc.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ghana-baptist-university-college/logo.png",
+      "sourcePage": "https://gbuc.edu.gh/",
+      "sourceUrl": "https://gbuc.edu.gh/IMG/logo.png",
+      "contentType": "image/png",
+      "bytes": 73815,
+      "sha256": "c11fa91617ccc9e41a669e07a55651bec8d3ac01b8e797a1b55f90118ac9ed6e",
+      "score": 30
+    },
+    "campus": {
+      "path": "/assets/universities/ghana-baptist-university-college/campus.png",
+      "sourcePage": "https://gbuc.edu.gh/",
+      "sourceUrl": "https://gbuc.edu.gh/IMG/bg.PNG",
+      "contentType": "image/png",
+      "bytes": 138854,
+      "sha256": "af3a0bcea78103e66f91edf714b2295fed674f961fcdc8fd2e263e157ea792ba",
+      "score": 6
+    },
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:39.295Z"
+  },
+  "kings-university-college": {
+    "slug": "kings-university-college",
+    "shortName": "KUC",
+    "name": "Kings University College",
+    "sourceUrl": "https://kuc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.874Z"
+  },
+  "lancaster-university-ghana": {
+    "slug": "lancaster-university-ghana",
+    "shortName": "LUG",
+    "name": "Lancaster University, Ghana",
+    "sourceUrl": "https://lancaster.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:40.911Z"
+  },
+  "maranatha-university-college": {
+    "slug": "maranatha-university-college",
+    "shortName": "MUC",
+    "name": "Maranatha University College",
+    "sourceUrl": "https://maranatha.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:41.058Z"
+  },
+  "marshalls-university-college": {
+    "slug": "marshalls-university-college",
+    "shortName": "MUC",
+    "name": "Marshalls University College",
+    "sourceUrl": "https://marshalls.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:41.930Z"
+  },
+  "mountcrest-university-college": {
+    "slug": "mountcrest-university-college",
+    "shortName": "Mountcrest",
+    "name": "Mountcrest University College",
+    "sourceUrl": "https://mountcrest.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:41.953Z"
+  },
+  "palm-university-college": {
+    "slug": "palm-university-college",
+    "shortName": "PUC",
+    "name": "Palm University College",
+    "sourceUrl": "https://palm.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:42.502Z"
+  },
+  "perez-university-college": {
+    "slug": "perez-university-college",
+    "shortName": "Pérez",
+    "name": "Perez University College",
+    "sourceUrl": "https://perez.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:45.885Z"
+  },
+  "radford-university-college": {
+    "slug": "radford-university-college",
+    "shortName": "RUC",
+    "name": "Radford University College",
+    "sourceUrl": "https://radford.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:45.934Z"
+  },
+  "regent-university-college": {
+    "slug": "regent-university-college",
+    "shortName": "Regent",
+    "name": "Regent University College of Science and Technology",
+    "sourceUrl": "https://regent.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:46.085Z"
+  },
+  "spiritan-university-college": {
+    "slug": "spiritan-university-college",
+    "shortName": "SUC",
+    "name": "Spiritan University College",
+    "sourceUrl": "https://spiritan.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:46.954Z"
+  },
+  "university-college-agriculture-environmental-studies": {
+    "slug": "university-college-agriculture-environmental-studies",
+    "shortName": "UCAES",
+    "name": "University College of Agriculture and Environmental Studies",
+    "sourceUrl": "https://ucaes.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:46.968Z"
+  },
+  "west-end-university-college": {
+    "slug": "west-end-university-college",
+    "shortName": "WEUC",
+    "name": "West End University College",
+    "sourceUrl": "https://weuc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:47.521Z"
+  },
+  "wisconsin-international-university-college": {
+    "slug": "wisconsin-international-university-college",
+    "shortName": "WIUC",
+    "name": "Wisconsin International University College",
+    "sourceUrl": "https://wiuc-ghana.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:50.922Z"
+  },
+  "zenith-university-college": {
+    "slug": "zenith-university-college",
+    "shortName": "ZUC",
+    "name": "Zenith University College",
+    "sourceUrl": "https://zuc.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-10-28T15:14:50.953Z"
   }
 }

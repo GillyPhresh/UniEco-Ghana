@@ -35,12 +35,14 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
   const filtered = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
     return universities.filter((university) => {
+      const localBranding = getLocalUniversityBranding(university.slug);
+      const hasBranding = Boolean(university.logo_url || university.hero_image_url || university.landmark_image_url || localBranding.logoUrl || localBranding.campusUrl);
       const searchable = [university.name, university.official_name, university.short_name, university.abbreviation, university.slug, university.city, university.region, ...university.university_aliases.map((item) => item.alias)].filter(Boolean).join(' ').toLocaleLowerCase();
       return (type === allTypes || university.institution_type === type)
         && (region === 'All regions' || university.region === region)
         && (ownership === 'All ownership' || university.ownership_type === ownership)
         && (status === 'All campus status' || statusLabel(university.campus_launch_status) === status)
-        && (branding === 'All branding' || (branding === 'branded' ? Boolean(university.logo_url || university.hero_image_url || university.landmark_image_url) : !university.logo_url && !university.hero_image_url && !university.landmark_image_url))
+        && (branding === 'All branding' || (branding === 'branded' ? hasBranding : !hasBranding))
         && (!verifiedOnly || university.is_verified)
         && (!needle || searchable.includes(needle));
     });
