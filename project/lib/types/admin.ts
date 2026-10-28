@@ -536,6 +536,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Broadcasts', href: '/admin/broadcasts', icon: 'Megaphone' },
       { label: 'Announcements', href: '/admin/announcements', icon: 'Bell' },
       { label: 'CMS', href: '/admin/cms', icon: 'FileText' },
+      { label: 'UniEco AI', href: '/admin/ai', icon: 'Sparkles' },
     ],
   },
   {

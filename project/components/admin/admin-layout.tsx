@@ -30,6 +30,7 @@ import {
   Shield,
   ShieldAlert,
   ShieldCheck,
+  Sparkles,
   ShoppingBag,
   Store,
   Ticket,
@@ -48,6 +49,7 @@ const ICON_MAP: Record<string, typeof Shield> = {
   Receipt, Ticket, Building2, Package, Wrench,
   UserCheck: ShieldCheck, StoreCheck: Store, Flag: ShieldAlert, Star: ShieldCheck,
   ScrollText: FileText, RotateCcw: Activity,
+  Sparkles,
 };
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
