@@ -160,12 +160,13 @@
     "sourceUrl": "https://usted.edu.gh/",
     "logo": {
       "path": "/assets/universities/aamusted/logo.jpg",
-      "sourcePage": "https://usted.edu.gh/gallery/",
-      "sourceUrl": "https://aamusted.edu.gh/wp-content/uploads/2022/08/uni-logo-2-768x224.jpg",
+      "sourcePage": "https://aamusted.edu.gh/application/",
+      "sourceUrl": "https://itdirectorate.aamusted.edu.gh/wp-content/uploads/2024/07/aamusted-300x300.jpeg",
       "contentType": "image/jpeg",
-      "bytes": 33900,
-      "sha256": "f844d615261379676ace2822d4db7aeaeacf462c87a71efed78e4210bb3048ea",
-      "score": 36
+      "bytes": 8362,
+      "sha256": "11dc5a306fbdda30458107a8dd83534408efeb6cdc271562fcd7f863f9c9e20",
+      "score": 100,
+      "selection": "explicit_official_source"
     },
     "campus": {
       "path": "/assets/universities/aamusted/campus.jpg",
@@ -408,12 +409,13 @@
     "sourceUrl": "https://atu.edu.gh/",
     "logo": {
       "path": "/assets/universities/atu/logo.png",
-      "sourcePage": "https://atu.edu.gh/campus-facilities/",
-      "sourceUrl": "https://atu.edu.gh/wp-content/uploads/2024/07/ATU-LOGO-AUTHENTIC-edit-150x150.png",
+      "sourcePage": "https://atu.edu.gh/the-emblem/",
+      "sourceUrl": "https://atu.edu.gh/wp-content/uploads/2024/07/ATU-LOGO-AUTHENTIC-edit-1024x980.png",
       "contentType": "image/png",
-      "bytes": 11455,
-      "sha256": "c7d82f2f96c3e13f450425fbc76a9f54dfb9cf73cb2128ff2e273c17d311d2d6",
-      "score": 30
+      "bytes": 152046,
+      "sha256": "68939aa328a3ce175c1d7049914cc4e94f993f838cef0336552b016e7b3296a7",
+      "score": 100,
+      "selection": "explicit_official_source"
     },
     "campus": {
       "path": "/assets/universities/atu/campus.jpg",
@@ -684,11 +686,12 @@
     "logo": {
       "path": "/assets/universities/academic-city-university/logo.png",
       "sourcePage": "https://acity.edu.gh/",
-      "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2025/01/Academic-City-red-white-logo-448x134.png",
+      "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2024/08/cropped-logo-icon-192x192.png",
       "contentType": "image/png",
-      "bytes": 21850,
-      "sha256": "b7740fd099ce16ac252646b43d1ed5130fd8c8f9238472e1393b85974bace70d",
-      "score": 30
+      "bytes": 4664,
+      "sha256": "e2f84686ced9394be00551efe7603509a330ebfe738403b683c859e3a377e44e",
+      "score": 100,
+      "selection": "explicit_official_source"
     },
     "campus": {
       "path": "/assets/universities/academic-city-university/campus.jpg",

@@ -56,7 +56,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-card via-card/25 to-transparent" />
-                  <div className="absolute bottom-3 left-4 flex h-12 w-12 items-center justify-center rounded-xl border border-white/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm">
+                  <div className="absolute bottom-3 left-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm sm:h-16 sm:w-16">
                     <UniversityLogo
                       src={logoUrl}
                       fallbackSrc={localBranding.logoUrl}

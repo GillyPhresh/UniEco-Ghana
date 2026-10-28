@@ -73,7 +73,7 @@ export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, 
 }
 
 export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, className = '' }: Omit<UniversityMediaProps, 'kind'>) {
-  return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" className={className} />;
+  return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" className={`block max-h-full max-w-full object-contain ${className}`} />;
 }
 
 export type CampusStory = {
