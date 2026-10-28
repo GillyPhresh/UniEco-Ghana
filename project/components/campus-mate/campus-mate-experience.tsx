@@ -12,6 +12,7 @@ import {
   Globe2,
   ExternalLink,
   LocateFixed,
+  Loader2,
   Map,
   MapPinned,
   Navigation,
@@ -160,6 +161,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [mapTarget, setMapTarget] = useState(campusSearchText(university));
   const [mapLoaded, setMapLoaded] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
+  const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
   const [googlePlaces, setGooglePlaces] = useState<DiscoveredPlace[]>([]);
   const [googlePlacesLoading, setGooglePlacesLoading] = useState(false);
@@ -198,18 +200,41 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const selectedPlace = visiblePlaces.find(({ place }) => place.id === selectedPlaceId)?.place || null;
   const selectedMapName = selectedPlace?.name || selectedGooglePlace?.name;
 
+  const visibleGooglePlaces = useMemo(() => {
+    if (!deviceLocation) return googlePlaces;
+    return [...googlePlaces].sort((left, right) => {
+      const leftCoordinates = left.latitude != null && left.longitude != null ? { latitude: left.latitude, longitude: left.longitude } : null;
+      const rightCoordinates = right.latitude != null && right.longitude != null ? { latitude: right.latitude, longitude: right.longitude } : null;
+      if (leftCoordinates && rightCoordinates) return distanceInKm(deviceLocation, leftCoordinates) - distanceInKm(deviceLocation, rightCoordinates);
+      if (leftCoordinates) return -1;
+      if (rightCoordinates) return 1;
+      return left.name.localeCompare(right.name);
+    });
+  }, [deviceLocation, googlePlaces]);
+
   const requestLocation = () => {
     if (!navigator.geolocation) {
       setLocationMessage('Location is not available on this device. You can still use Google Maps directions.');
       return;
     }
+    if (locating) return;
+    setLocating(true);
     setLocationMessage('Finding your location…');
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        setDeviceLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        const location = { latitude: coords.latitude, longitude: coords.longitude };
+        setDeviceLocation(location);
+        setMapLoaded(false);
+        setMapTarget(`${location.latitude}, ${location.longitude}`);
         setLocationMessage('Nearby places are now sorted first.');
+        setLocating(false);
       },
-      () => setLocationMessage('Location permission was not granted. You can still search and get directions.'),
+      (error) => {
+        setLocationMessage(error.code === error.PERMISSION_DENIED
+          ? 'Location permission was not granted. Allow location in your browser settings, then try Near me again.'
+          : 'We could not get your location yet. Check GPS or network access and try again.');
+        setLocating(false);
+      },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   };
@@ -375,13 +400,13 @@ export function CampusMateExperience({ university, universities, places }: Campu
             </div>
             <div className="absolute inset-x-3 bottom-3 flex flex-wrap gap-2 sm:inset-x-5 sm:bottom-5">
               {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-lg transition hover:bg-primary/90"><Navigation className="mr-2 h-4 w-4" /> Open live map</a>}
-              <button type="button" onClick={requestLocation} className="inline-flex min-h-11 items-center rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/95 dark:text-white"><LocateFixed className="mr-2 h-4 w-4 text-primary" /> Near me</button>
+              <button type="button" onClick={requestLocation} disabled={locating} className="inline-flex min-h-11 items-center rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white disabled:cursor-wait disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900/95 dark:text-white">{locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> : <LocateFixed className="mr-2 h-4 w-4 text-primary" />} {locating ? 'Finding you…' : 'Near me'}</button>
               <button type="button" onClick={() => void shareCampus()} className="inline-flex min-h-11 items-center rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-bold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/95 dark:text-white"><Share2 className="mr-2 h-4 w-4 text-primary" /> Share</button>
             </div>
           </div>
           <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
             <Map className="h-4 w-4 shrink-0 text-primary" />
-            <span>Live map and turn-by-turn navigation are provided by Google Maps.</span>
+            <span role="status">{locationMessage || 'Live map and turn-by-turn navigation are provided by Google Maps.'}</span>
           </div>
         </section>
 
@@ -456,7 +481,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
               </div>
             ) : (
               <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {googlePlaces.map((place) => {
+                {visibleGooglePlaces.map((place) => {
                   const directionsUrl = getGoogleMapsDirectionsUrl({ latitude: place.latitude, longitude: place.longitude, address: place.address }, deviceLocation ? { latitude: deviceLocation.latitude, longitude: deviceLocation.longitude } : undefined);
                   return (
                     <article key={place.id} className="rounded-xl border border-blue-100 bg-white p-3 shadow-sm dark:border-blue-900/50 dark:bg-slate-900">
@@ -467,7 +492,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
                             <div className="min-w-0"><p className="truncate font-bold text-slate-950 dark:text-white">{place.name}</p><p className="mt-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">{place.category}</p></div>
                             {place.rating != null && <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-amber-600"><Star className="h-3.5 w-3.5 fill-current" /> {place.rating.toFixed(1)}</span>}
                           </div>
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{place.address || 'Address available in Google Maps'}</p>
+                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{place.address || 'Address available in Google Maps'}{deviceLocation && place.latitude != null && place.longitude != null ? ` · ${distanceInKm(deviceLocation, { latitude: place.latitude, longitude: place.longitude }).toFixed(1)} km away` : ''}</p>
                           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
                             <button type="button" onClick={() => chooseGooglePlace(place)} className="inline-flex min-h-9 items-center rounded-lg bg-blue-100 px-3 font-bold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200"><Map className="mr-1.5 h-3.5 w-3.5" /> View on map</button>
                             {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 font-bold text-primary-foreground"><Navigation className="mr-1.5 h-3.5 w-3.5" /> Directions</a>}

@@ -36,6 +36,7 @@ export default function MarketplacePage() {
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('newest');
 
   const doSearch = useCallback(async () => {
     setSearching(true);
@@ -43,6 +44,7 @@ export default function MarketplacePage() {
       const { products, total, error } = await searchProducts({
         query: searchQuery.trim(),
         category: activeCategory || undefined,
+        sort: sortBy,
         limit: 12,
       });
       if (!error && normalizeSearchTerm(searchQuery)) {
@@ -56,7 +58,7 @@ export default function MarketplacePage() {
     } finally {
       setSearching(false);
     }
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, sortBy]);
 
   useEffect(() => {
     loadData();
@@ -70,7 +72,7 @@ export default function MarketplacePage() {
       setSearchResults([]);
       setSearchError(false);
     }
-  }, [searchQuery, activeCategory, doSearch]);
+  }, [searchQuery, activeCategory, sortBy, doSearch]);
 
   async function loadData() {
     setLoading(true);
@@ -118,7 +120,8 @@ export default function MarketplacePage() {
         </div>
 
         {/* Category chips */}
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-8 space-y-3">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           <button
             onClick={() => setActiveCategory(null)}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
@@ -138,6 +141,15 @@ export default function MarketplacePage() {
               {CATEGORY_ICONS[cat]} {cat}
             </button>
           ))}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">Choose a category, then search or browse the matching items.</p>
+            <label className="flex shrink-0 items-center gap-2 text-xs font-semibold text-muted-foreground">Sort
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 rounded-lg border border-input bg-card px-2 text-xs font-medium text-foreground outline-none focus:border-primary">
+                <option value="newest">Newest</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="rating">Recommended</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         {/* Search results */}
@@ -147,8 +159,8 @@ export default function MarketplacePage() {
               <h2 className="text-sm font-semibold text-foreground">
                 {searching ? 'Searching...' : `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}`}
               </h2>
-              {(searchQuery || activeCategory) && (
-                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setActiveCategory(null); }}>
+              {(searchQuery || activeCategory || sortBy !== 'newest') && (
+                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setActiveCategory(null); setSortBy('newest'); }}>
                   Clear filters
                 </Button>
               )}

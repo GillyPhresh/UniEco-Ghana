@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { SearchBar } from '@/components/shared/search-bar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Filter, X, Search, SlidersHorizontal } from 'lucide-react';
+import { Filter, X, Search, SlidersHorizontal, LocateFixed, Loader2 } from 'lucide-react';
 import { ALL_CATEGORIES, CATEGORY_ICONS } from '@/lib/constants/categories';
 import type { VendorWithRelations } from '@/lib/types/extended';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ const SORT_OPTIONS = [
   { value: 'rating', label: 'Top rated' },
   { value: 'name', label: 'Name (A-Z)' },
   { value: 'newest', label: 'Newest first' },
+  { value: 'nearby', label: 'Nearest to me' },
 ];
 
 const REGIONS = [
@@ -47,8 +48,13 @@ function DiscoverContent() {
   const [universityFilter, setUniversityFilter] = useState('');
   const [region, setRegion] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [deliveryOnly, setDeliveryOnly] = useState(false);
+  const [studentOnly, setStudentOnly] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [sortBy, setSortBy] = useState('rating');
+  const [nearbyLocation, setNearbyLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string }[]>([]);
   const [showFilters, setShowFilters] = useState(false);
@@ -63,6 +69,7 @@ function DiscoverContent() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadVendors() {
       setLoading(true);
       let query = supabase
@@ -73,12 +80,14 @@ function DiscoverContent() {
       if (category) query = query.eq('business_type', category);
       if (universityFilter) query = query.eq('university_id', universityFilter);
       if (verifiedOnly) query = query.eq('is_verified', true);
+      if (deliveryOnly) query = query.eq('delivery_available', true);
+      if (studentOnly) query = query.eq('is_student_business', true);
       const safeSearchQuery = normalizeSearchTerm(searchQuery);
       if (safeSearchQuery) {
         query = query.or(`business_name.ilike.%${safeSearchQuery}%,description.ilike.%${safeSearchQuery}%`);
       }
 
-      if (sortBy === 'rating') query = query.order('rating_avg', { ascending: false });
+      if (sortBy === 'rating' || sortBy === 'nearby') query = query.order('rating_avg', { ascending: false });
       else if (sortBy === 'name') query = query.order('business_name', { ascending: true });
       else query = query.order('created_at', { ascending: false });
 
@@ -93,11 +102,27 @@ function DiscoverContent() {
         result = result.filter((v) => (v.rating_avg || 0) >= minRating);
       }
 
-      setVendors(result);
-      setLoading(false);
+      if (sortBy === 'nearby' && nearbyLocation) {
+        const distance = (vendor: VendorWithRelations) => {
+          if (vendor.gps_latitude == null || vendor.gps_longitude == null) return Number.POSITIVE_INFINITY;
+          const latDelta = (vendor.gps_latitude - nearbyLocation.latitude) * Math.PI / 180;
+          const lonDelta = (vendor.gps_longitude - nearbyLocation.longitude) * Math.PI / 180;
+          const latOne = nearbyLocation.latitude * Math.PI / 180;
+          const latTwo = vendor.gps_latitude * Math.PI / 180;
+          const value = Math.sin(latDelta / 2) ** 2 + Math.sin(lonDelta / 2) ** 2 * Math.cos(latOne) * Math.cos(latTwo);
+          return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+        };
+        result.sort((left, right) => distance(left) - distance(right));
+      }
+
+      if (!cancelled) {
+        setVendors(result);
+        setLoading(false);
+      }
     }
-    loadVendors();
-  }, [category, universityFilter, region, verifiedOnly, minRating, sortBy, searchQuery]);
+    const timer = window.setTimeout(() => { void loadVendors(); }, searchQuery.trim() ? 220 : 0);
+    return () => { cancelled = true; window.clearTimeout(timer); };
+  }, [category, universityFilter, region, verifiedOnly, deliveryOnly, studentOnly, minRating, sortBy, searchQuery, nearbyLocation]);
 
   const activeFilters = useMemo(() => {
     let count = 0;
@@ -105,16 +130,43 @@ function DiscoverContent() {
     if (universityFilter) count++;
     if (region) count++;
     if (verifiedOnly) count++;
+    if (deliveryOnly) count++;
+    if (studentOnly) count++;
     if (minRating > 0) count++;
     return count;
-  }, [category, universityFilter, verifiedOnly, minRating]);
+  }, [category, universityFilter, region, verifiedOnly, deliveryOnly, studentOnly, minRating]);
 
   const clearFilters = () => {
     setCategory('');
     setUniversityFilter('');
     setRegion('');
     setVerifiedOnly(false);
+    setDeliveryOnly(false);
+    setStudentOnly(false);
     setMinRating(0);
+    setSortBy('rating');
+  };
+
+  const requestNearby = () => {
+    if (!navigator.geolocation) {
+      setLocationMessage('Location is not available on this device.');
+      return;
+    }
+    setLocating(true);
+    setLocationMessage('Finding businesses near you…');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setNearbyLocation({ latitude: coords.latitude, longitude: coords.longitude });
+        setSortBy('nearby');
+        setLocationMessage('Nearest businesses are now shown first.');
+        setLocating(false);
+      },
+      () => {
+        setLocationMessage('Location permission was not granted. You can still browse by campus and region.');
+        setLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
   };
 
   return (
@@ -207,6 +259,14 @@ function DiscoverContent() {
                 </Select>
               </div>
 
+              <div className="mb-4 grid gap-2 sm:grid-cols-2 lg:block">
+                <button type="button" onClick={requestNearby} disabled={locating} className="inline-flex min-h-11 items-center justify-center rounded-lg border border-primary/30 bg-primary/5 px-3 text-xs font-bold text-primary transition hover:bg-primary/10 disabled:cursor-wait disabled:opacity-70">
+                  {locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LocateFixed className="mr-2 h-4 w-4" />}
+                  {locating ? 'Finding you…' : 'Near me'}
+                </button>
+                {locationMessage && <p className="mt-2 text-xs leading-5 text-muted-foreground" role="status">{locationMessage}</p>}
+              </div>
+
               {/* Minimum rating */}
               {/* Region filter */}
               <div className="mb-4">
@@ -223,6 +283,17 @@ function DiscoverContent() {
                     {REGIONS.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="mb-4 space-y-3 border-t border-border pt-4">
+                <label className="flex cursor-pointer items-center justify-between gap-3">
+                  <span className="text-sm text-foreground">Delivery available</span>
+                  <input type="checkbox" checked={deliveryOnly} onChange={(event) => setDeliveryOnly(event.target.checked)} className="h-4 w-4 accent-primary" />
+                </label>
+                <label className="flex cursor-pointer items-center justify-between gap-3">
+                  <span className="text-sm text-foreground">Student businesses</span>
+                  <input type="checkbox" checked={studentOnly} onChange={(event) => setStudentOnly(event.target.checked)} className="h-4 w-4 accent-primary" />
+                </label>
               </div>
 
               {/* Minimum rating */}
@@ -304,6 +375,8 @@ function DiscoverContent() {
                 {verifiedOnly && (
                   <FilterChip label="Verified only" onRemove={() => setVerifiedOnly(false)} />
                 )}
+                {deliveryOnly && <FilterChip label="Delivery available" onRemove={() => setDeliveryOnly(false)} />}
+                {studentOnly && <FilterChip label="Student businesses" onRemove={() => setStudentOnly(false)} />}
                 {minRating > 0 && (
                   <FilterChip label={`${minRating}+ rating`} onRemove={() => setMinRating(0)} />
                 )}
