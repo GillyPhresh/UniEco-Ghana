@@ -188,6 +188,11 @@ export default function SignUpPage() {
                 <strong className="text-foreground">Fastest option:</strong> continue with Google. You will not be asked to look for a confirmation email.
               </div>
 
+              <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950">
+                <p className="font-semibold">Registration payment comes next</p>
+                <p className="mt-1 text-xs leading-5">After your short profile details, UniEco will open a secure Paystack checkout: GH₵10 for students or GH₵20 for businesses. Access starts only after Paystack confirms payment.</p>
+              </div>
+
               <Button
                 variant="outline"
                 className="w-full"

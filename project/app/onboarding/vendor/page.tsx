@@ -9,6 +9,7 @@ import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft }
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
+import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -619,6 +620,7 @@ function VendorOnboarding() {
             a direct Mobile Money prompt after submitting your business details. Your
             vendor access starts only after the payment is verified.
           </div>}
+          {!cashInviteToken && <PushPermissionCard onboarding />}
 
           {!cashInviteToken && (
             <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">

@@ -7,9 +7,11 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
+import { startPaystackCheckout } from '@/lib/data/payment-client';
 import { studentOnboardingSchema } from '@/lib/validation';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
+import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -244,27 +246,32 @@ function StudentOnboarding() {
         router.push('/onboarding/complete?registration=cash');
         return;
       }
-      const { error: registrationError } = await supabase.rpc('complete_student_registration', {
-        p_university_id: form.university_id,
-        p_phone: normalizeGhanaPhone(form.phone),
-        p_student_id_number: form.index_number.trim(),
-        p_program: form.programme.trim(),
-        p_faculty: form.faculty.trim(),
-        p_department: form.department.trim(),
-        p_level: form.level,
-        p_admission_year: form.admission_year,
-        p_graduation_year: form.graduation_year || null,
-        p_student_document_path: form.student_id_document_url || null,
-        p_referral_code: referralCode || null,
+      const payment = await startPaystackCheckout({
+        purpose: 'student_registration',
+        idempotencyKey: `student-registration-${crypto.randomUUID()}`,
+        registration: {
+          universityId: form.university_id,
+          phone: normalizeGhanaPhone(form.phone) || form.phone,
+          studentIdNumber: form.index_number.trim(),
+          program: form.programme.trim(),
+          faculty: form.faculty.trim(),
+          department: form.department.trim(),
+          level: form.level,
+          admissionYear: form.admission_year,
+          graduationYear: form.graduation_year || null,
+          studentDocumentPath: form.student_id_document_url || null,
+          referralCode: referralCode || null,
+        },
       });
-      if (registrationError) throw new Error(registrationError.message);
-      window.sessionStorage.removeItem('unieco_pending_referral_code');
+      if (payment.error || !payment.authorizationUrl || !payment.reference) {
+        throw new Error(payment.error || 'Registration payment could not be started. Please try again.');
+      }
       if (form.avatar_url) {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
-        if (avatarError) throw new Error('Registration was saved, but the profile photo could not be saved. You can add it from your profile.');
+        if (avatarError) throw new Error('Your payment setup is ready, but the profile photo could not be saved. You can add it later from your profile.');
       }
-      clearDraft();
-      router.push('/onboarding/complete?registration=free');
+      window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
+      window.location.assign(payment.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
@@ -304,7 +311,7 @@ function StudentOnboarding() {
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-foreground">Your registration is protected</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Your account is active immediately after registration. Student verification is reviewed separately and does not block basic platform access.
+                Your details are saved securely while Paystack confirms the one-time registration payment. Student verification is reviewed separately after payment.
               </p>
             </div>
           </div>
@@ -593,11 +600,17 @@ function StudentOnboarding() {
                 )}
               </div>
 
-              {!cashInviteToken && <div className="rounded-lg border border-info/30 bg-info/5 p-3">
-                <p className="text-xs text-info-foreground">
-                  No registration payment is required. Your account becomes active as soon as you submit these details. Student verification is reviewed separately.
-                </p>
+              {!cashInviteToken && <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">₵</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-foreground">One-time registration payment</p>
+                    <p className="mt-1 text-2xl font-bold tracking-tight text-primary">GH₵10.00</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Pay securely with Paystack using card or Mobile Money. Your student access and verification review start after the payment is confirmed.</p>
+                  </div>
+                </div>
               </div>}
+              {!cashInviteToken && <PushPermissionCard onboarding />}
               <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be attached automatically. Eligible successful registrations may earn the referrer GH₵2 after the settlement period.</p>
 
               <div className="flex gap-3">
@@ -607,7 +620,7 @@ function StudentOnboarding() {
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {cashInviteToken ? 'Complete cash registration' : 'Complete free registration'}
+                  {cashInviteToken ? 'Complete cash registration' : 'Pay GH₵10 and continue'}
                 </Button>
               </div>
             </motion.div>

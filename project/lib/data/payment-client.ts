@@ -11,7 +11,23 @@ import type {
 } from '@/lib/types/payment';
 
 export async function startPaystackCheckout(input: {
-  purpose: 'subscription' | 'marketplace'; vendorId?: string; orderId?: string; idempotencyKey: string;
+  purpose: 'subscription' | 'marketplace' | 'student_registration';
+  vendorId?: string;
+  orderId?: string;
+  idempotencyKey: string;
+  registration?: {
+    universityId: string;
+    phone: string;
+    studentIdNumber: string;
+    program: string;
+    faculty: string;
+    department: string;
+    level: string;
+    admissionYear: number;
+    graduationYear?: number | null;
+    studentDocumentPath?: string | null;
+    referralCode?: string | null;
+  };
 }): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null }> {
   const response = await fetch('/api/payments/paystack/initialize', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
