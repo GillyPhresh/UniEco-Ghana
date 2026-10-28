@@ -27,6 +27,9 @@ const records = manifest as Record<string, UniversityBrandingRecord>;
 // the institutions' familiar abbreviations. Keep this mapping in one place so
 // local official assets still resolve after directory reconciliation.
 const brandingSlugAliases: Record<string, string> = {
+  // CKT-UTAS was formally renamed UTAS in 2025/2026; both directory records
+  // point to the same institution and therefore share the official assets.
+  'ckt-utas': 'utas',
   'accra-technical-university': 'atu',
   'bolgatanga-technical-university': 'btu',
   'cape-coast-technical-university': 'cctu',

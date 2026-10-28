@@ -28,18 +28,24 @@ function FallbackMedia({ name, shortName, kind, className = '' }: Pick<Universit
   if (kind === 'logo') {
     return (
       <span className={`flex h-full w-full items-center justify-center rounded-[inherit] bg-gradient-to-br from-primary/15 via-white to-accent/20 text-center text-xs font-bold tracking-wide text-primary ${className}`} aria-label={`${name} logo placeholder`}>
-        {getInitials(name, shortName)}
+        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-white/80 px-1 text-[10px] font-extrabold shadow-sm">
+          {getInitials(name, shortName)}
+        </span>
       </span>
     );
   }
 
   return (
-    <span className={`flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/25 via-slate-950/10 to-accent/25 ${className}`} aria-label={`${name} campus image placeholder`}>
-      <span className="flex flex-col items-center gap-2 text-center text-primary/70">
-        <Building2 className="h-10 w-10" aria-hidden="true" />
-        <span className="rounded-full bg-background/70 px-3 py-1 text-xs font-medium backdrop-blur-sm">
-          {shortName || name} campus
+    <span className={`relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,.9),transparent_30%),linear-gradient(135deg,#d1fae5,#dbeafe_52%,#fef3c7)] ${className}`} aria-label={`${name} campus image placeholder`}>
+      <span className="absolute -right-8 -top-10 select-none text-[10rem] font-black leading-none text-primary/10">{getInitials(name, shortName)}</span>
+      <span className="relative flex max-w-[86%] flex-col items-center gap-2 text-center text-primary">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/80 bg-white/75 shadow-sm backdrop-blur-sm">
+          <Building2 className="h-7 w-7" aria-hidden="true" />
         </span>
+        <span className="rounded-full border border-white/80 bg-white/85 px-3 py-1 text-xs font-bold shadow-sm backdrop-blur-sm">
+          {shortName || name} campus profile
+        </span>
+        <span className="text-[11px] font-medium text-slate-600">Official campus image pending</span>
       </span>
     </span>
   );
