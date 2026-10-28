@@ -9,7 +9,7 @@ test('student registration starts the authoritative Paystack flow before activat
   const [student, payments, migration] = await Promise.all([
     read('app/onboarding/student/page.tsx'),
     read('app/api/payments/paystack/initialize/route.ts'),
-    read('supabase/migrations/20261028190000_0149_paid_registration_checkout_and_prompts.sql'),
+    read('supabase/migrations/20261028193000_0149_paid_registration_checkout_and_prompts.sql'),
   ]);
   assert.match(student, /startPaystackCheckout/);
   assert.match(student, /purpose: 'student_registration'/);
@@ -22,7 +22,7 @@ test('student registration starts the authoritative Paystack flow before activat
 
 test('registration payment communications include email and device push paths', async () => {
   const [migration, email, push] = await Promise.all([
-    read('supabase/migrations/20261028190000_0149_paid_registration_checkout_and_prompts.sql'),
+    read('supabase/migrations/20261028193000_0149_paid_registration_checkout_and_prompts.sql'),
     read('supabase/functions/send-email/index.ts'),
     read('app/api/notifications/push-subscription/route.ts'),
   ]);
@@ -31,6 +31,10 @@ test('registration payment communications include email and device push paths', 
   assert.match(migration, /queue_registration_payment_reminders/);
   assert.match(migration, /registration_payment_required/);
   assert.match(migration, /ARRAY\['push'\]::text\[\]/);
+  assert.match(migration, /raw_user_meta_data ->> 'registration_intent'/);
+  assert.match(migration, /intent IS NULL/);
+  assert.match(migration, /AFTER INSERT OR UPDATE OF preferences ON public\.profiles/);
+  assert.match(migration, /to_timestamp\(0\)/);
   assert.match(email, /template === 'registration_payment_required'/);
   assert.match(push, /push_subscriptions/);
 });

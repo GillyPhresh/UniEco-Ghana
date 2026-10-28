@@ -82,6 +82,36 @@ BEGIN
 END;
 $$;
 
+-- Preserve the account type selected on the sign-up form. Supabase places
+-- this hint in raw_user_meta_data; without copying it to the profile, the
+-- profile triggers below cannot distinguish a vendor registration from a
+-- student registration.
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+  registration_intent text := NEW.raw_user_meta_data ->> 'registration_intent';
+BEGIN
+  INSERT INTO public.profiles(id, email, role_id, full_name, avatar_url, preferences)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    2,
+    NEW.raw_user_meta_data ->> 'full_name',
+    NEW.raw_user_meta_data ->> 'avatar_url',
+    CASE
+      WHEN registration_intent IN ('student', 'external_vendor')
+        THEN jsonb_build_object('registration_intent', registration_intent)
+      ELSE '{}'::jsonb
+    END
+  );
+  RETURN NEW;
+END;
+$$;
+
 -- Keep the legacy completion RPC safe for older clients that still call it.
 -- The new client starts Paystack first and the webhook activates the account.
 CREATE OR REPLACE FUNCTION public.complete_student_registration(
@@ -173,24 +203,67 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $$
 DECLARE
-  intent text := COALESCE(NEW.preferences ->> 'registration_intent', 'student');
+  intent text := NEW.preferences ->> 'registration_intent';
   fee numeric(12,2);
   target_path text;
   title_text text;
   body_text text;
+  campaign_id uuid;
 BEGIN
-  IF NEW.role_id NOT IN (2, 3, 4) OR intent NOT IN ('student', 'external_vendor') THEN RETURN NEW; END IF;
+  IF NEW.role_id NOT IN (2, 3, 4)
+     OR intent IS NULL
+     OR intent NOT IN ('student', 'external_vendor') THEN RETURN NEW; END IF;
   IF intent = 'student' THEN
     SELECT registration_fee INTO fee FROM public.student_financial_settings WHERE singleton;
+    IF EXISTS (
+      SELECT 1
+      FROM public.student_registration_payments registration
+      JOIN public.payments payment
+        ON payment.user_id = registration.user_id
+       AND payment.entity_id = registration.user_id
+       AND payment.payment_type = 'student_registration'
+       AND payment.status = 'success'
+       AND payment.amount = fee
+       AND payment.currency = 'GHS'
+      WHERE registration.user_id = NEW.id AND registration.status = 'paid'
+    ) OR EXISTS (
+      SELECT 1 FROM public.registration_access_invites
+      WHERE redeemed_by = NEW.id AND audience = 'student'
+        AND redeemed_at IS NOT NULL AND payment_method = 'cash'
+    ) THEN RETURN NEW; END IF;
     target_path := 'https://www.uniecoghana.com/onboarding/student?payment_required=1';
     title_text := 'Complete your UniEco registration';
     body_text := format('Your account is ready. Pay the one-time GH₵%s registration fee to unlock UniEco Ghana and start your student verification.', to_char(fee, 'FM999999990.00'));
   ELSE
     SELECT vendor_registration_fee INTO fee FROM public.student_financial_settings WHERE singleton;
+    IF EXISTS (
+      SELECT 1
+      FROM public.vendors vendor
+      JOIN public.vendor_registration_payment_states state
+        ON state.vendor_id = vendor.id AND state.owner_id = NEW.id AND state.state = 'paid'
+      JOIN public.payments payment
+        ON payment.id = state.payment_id
+       AND payment.user_id = NEW.id
+       AND payment.vendor_id = vendor.id
+       AND payment.payment_type = 'vendor_registration'
+       AND payment.status = 'success'
+       AND payment.amount = fee
+       AND payment.currency = 'GHS'
+      WHERE vendor.owner_id = NEW.id
+    ) OR EXISTS (
+      SELECT 1 FROM public.registration_access_invites
+      WHERE redeemed_by = NEW.id AND audience = 'vendor'
+        AND redeemed_at IS NOT NULL AND payment_method = 'cash'
+    ) THEN RETURN NEW; END IF;
     target_path := 'https://www.uniecoghana.com/onboarding/vendor?payment_required=1';
     title_text := 'Complete your UniEco business registration';
     body_text := format('Your business account is ready. Pay the one-time GH₵%s registration fee to unlock vendor tools and submit your business for review.', to_char(fee, 'FM999999990.00'));
   END IF;
+  INSERT INTO public.communication_campaign_log(user_id, campaign_key, period_start)
+  VALUES (NEW.id, 'registration_payment_required', to_timestamp(0))
+  ON CONFLICT DO NOTHING
+  RETURNING id INTO campaign_id;
+  IF campaign_id IS NULL THEN RETURN NEW; END IF;
   PERFORM public.queue_user_communication(
     NEW.id, 'registration_payment_required', title_text, body_text,
     'payments', target_path, 'CreditCard', 'registration_payment_required',
@@ -202,7 +275,7 @@ $$;
 
 DROP TRIGGER IF EXISTS queue_registration_payment_prompt_after_profile ON public.profiles;
 CREATE TRIGGER queue_registration_payment_prompt_after_profile
-AFTER INSERT ON public.profiles
+AFTER INSERT OR UPDATE OF preferences ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.queue_registration_payment_prompt();
 
 -- If a user enables push after signup, deliver the pending payment reminder to
