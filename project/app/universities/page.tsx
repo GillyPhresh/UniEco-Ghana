@@ -3,7 +3,9 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { UniversityDirectory } from '@/components/universities/university-directory';
 import { getUniversityDirectory } from '@/lib/data/public-queries';
 
-export const dynamic = 'force-dynamic';
+// The directory is public data. A short cache keeps mobile navigation quick
+// while still allowing newly approved branding to appear without a deploy.
+export const revalidate = 300;
 
 export default async function UniversitiesPage() {
   const universities = await getUniversityDirectory();

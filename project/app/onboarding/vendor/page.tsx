@@ -70,6 +70,7 @@ function VendorOnboarding() {
   const [uploadedDoc, setUploadedDoc] = useState(false);
   const [isStudent, setIsStudent] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'checkout' | 'mobile_money'>('checkout');
   const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'mtn' | 'atl' | 'vod'>('mtn');
@@ -144,6 +145,8 @@ function VendorOnboarding() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const incomingReferral = params.get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
+    if (incomingReferral) setReferralCode(incomingReferral);
     const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
     if (!token) return;
     setCashInviteLoading(true);
@@ -237,6 +240,12 @@ function VendorOnboarding() {
 
     setSubmitting(true);
     try {
+      if (referralCode) {
+        const { error: referralError } = await supabase.rpc('attach_my_vendor_referral_code', {
+          p_referral_code: referralCode,
+        });
+        if (referralError) throw new Error(referralError.message);
+      }
       // The database creates the application, role transition, and vendor
       // record. Payment activation remains webhook-authoritative.
       const { data: registration, error: registrationError } = await supabase.rpc('create_vendor_registration_application', {
@@ -274,6 +283,7 @@ function VendorOnboarding() {
         });
         if (cashError) throw new Error(cashError.message);
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        window.sessionStorage.removeItem('unieco_pending_referral_code');
         clearDraft();
         await refreshProfile();
         router.push('/onboarding/complete?registration=cash');
@@ -301,6 +311,7 @@ function VendorOnboarding() {
 
       await refreshProfile();
       clearDraft();
+      window.sessionStorage.removeItem('unieco_pending_referral_code');
       if (paymentResult.mobileMoney) {
         router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
       } else if (paymentResult.authorizationUrl) {

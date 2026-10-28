@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import { Check, MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { getLocalUniversityBranding } from '@/lib/data/university-branding';
+import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
 import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
 
 type DirectoryUniversity = {
@@ -30,6 +30,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
   const [branding, setBranding] = useState('All branding');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const deferredQuery = useDeferredValue(query);
   const types = useMemo(() => Array.from(new Set(universities.map((university) => university.institution_type).filter((value): value is string => Boolean(value)))).sort(), [universities]);
   const regions = useMemo(() => Array.from(new Set(universities.map((university) => university.region).filter((value): value is string => Boolean(value)))).sort(), [universities]);
   const statusCounts = useMemo(() => universities.reduce<Record<string, number>>((counts, university) => {
@@ -44,7 +45,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
     return { complete: stats.complete + Number(hasLogo && hasCampus), partial: stats.partial + Number(hasLogo !== hasCampus), pending: stats.pending + Number(!hasLogo && !hasCampus) };
   }, { complete: 0, partial: 0, pending: 0 }), [universities]);
   const filtered = useMemo(() => {
-    const needle = query.trim().toLocaleLowerCase();
+    const needle = deferredQuery.trim().toLocaleLowerCase();
     return universities.filter((university) => {
       const localBranding = getLocalUniversityBranding(university.slug);
       const hasBranding = Boolean(localBranding.logoUrl || university.logo_url || university.hero_image_url || university.landmark_image_url || localBranding.campusUrl);
@@ -57,7 +58,7 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
         && (!verifiedOnly || university.is_verified)
         && (!needle || searchable.includes(needle));
     });
-  }, [branding, ownership, query, region, status, type, universities, verifiedOnly]);
+  }, [branding, deferredQuery, ownership, region, status, type, universities, verifiedOnly]);
 
   const activeFilters = [type !== allTypes, region !== 'All regions', ownership !== 'All ownership', status !== 'All campus status', branding !== 'All branding', verifiedOnly].filter(Boolean).length;
   const clearFilters = () => { setType(allTypes); setRegion('All regions'); setOwnership('All ownership'); setStatus('All campus status'); setBranding('All branding'); setVerifiedOnly(false); };
@@ -85,10 +86,10 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
         {activeFilters > 0 && <button type="button" onClick={clearFilters} className="mt-3 inline-flex items-center text-xs font-semibold text-primary hover:underline"><X className="mr-1 h-3 w-3" /> Clear filters</button>}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((university) => { const localBranding = getLocalUniversityBranding(university.slug); const landmarkImage = university.landmark_image_url || university.hero_image_url; const logoUrl = localBranding.logoUrl || university.logo_url; const hasOfficialBranding = Boolean(logoUrl || landmarkImage || localBranding.campusUrl); return <Link key={university.id} href={`/university/${university.slug}`} className="group overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+        {filtered.map((university) => { const localBranding = getLocalUniversityBranding(university.slug); const landmarkImage = university.landmark_image_url || university.hero_image_url; const logoUrl = university.logo_url || localBranding.logoUrl; const hasOfficialBranding = Boolean(logoUrl || landmarkImage || localBranding.campusUrl); return <Link key={university.id} prefetch href={`/university/${university.slug}`} className="group touch-manipulation overflow-hidden rounded-2xl border bg-card shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md active:scale-[0.995]">
           <div className="relative"><UniversityMedia src={landmarkImage} fallbackSrc={localBranding.campusUrl} alt={university.hero_alt_text || `${university.name} campus landmark`} name={university.name} shortName={university.short_name} kind="campus" className="h-44 w-full object-cover sm:h-48" /><span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm ${hasOfficialBranding ? 'bg-white/90 text-primary' : 'bg-slate-950/70 text-white'}`}>{hasOfficialBranding ? 'Campus profile' : 'Profile being completed'}</span></div>
             <div className="p-4">
-            <div className="flex gap-3"><div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-white p-1.5 text-xs font-bold text-primary shadow-sm sm:h-16 sm:w-16"><UniversityLogo src={logoUrl} fallbackSrc={localBranding.logoUrl} alt={university.logo_alt_text || `Official logo of ${university.name}`} name={university.name} shortName={university.short_name} /></div><div className="min-w-0"><h2 className="truncate font-semibold group-hover:text-primary">{university.short_name}</h2><p className="line-clamp-2 text-sm text-muted-foreground">{university.official_name}</p></div></div>
+            <div className="flex gap-3"><div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-white p-1 text-xs font-bold text-primary shadow-sm sm:h-16 sm:w-16"><UniversityLogo src={logoUrl} fallbackSrc={localBranding.logoUrl} logoObjectPosition={getUniversityLogoObjectPosition(university.slug)} alt={university.logo_alt_text || `Official logo of ${university.name}`} name={university.name} shortName={university.short_name} /></div><div className="min-w-0"><h2 className="truncate font-semibold group-hover:text-primary">{university.short_name}</h2><p className="line-clamp-2 text-sm text-muted-foreground">{university.official_name}</p></div></div>
             <div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{university.institution_type || 'Tertiary institution'}</span><span className="rounded-full bg-success/10 px-2 py-1 text-success">{statusLabel(university.campus_launch_status)}</span></div>
             <p className="mt-3 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{[university.city, university.region].filter(Boolean).join(', ') || 'Ghana'}</p>
           </div>

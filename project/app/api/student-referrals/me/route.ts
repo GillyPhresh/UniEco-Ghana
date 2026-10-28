@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
   const { data, error } = await supabase.rpc('get_my_referral_summary');
   if (error) return NextResponse.json({ error: 'Referral summary is not available for this account.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   const configured = process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/$/, '');
-  const publicBase = configured || request.nextUrl.origin;
+  const publicBase = configured || 'https://www.uniecoghana.com';
   const code = typeof ensured?.code === 'string' ? ensured.code : typeof data?.code === 'string' ? data.code : null;
   return NextResponse.json({
     summary: data,
     referralCode: code,
-    referralLink: code ? `${publicBase}/signup?ref=${encodeURIComponent(code)}` : null,
+    referralLink: code ? `${publicBase}/signup?ref=${encodeURIComponent(code)}&intent=student` : null,
   }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
 

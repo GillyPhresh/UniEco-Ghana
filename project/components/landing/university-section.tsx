@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { MapPin, ArrowRight, Store } from 'lucide-react';
 import { Section, SectionHeading, Reveal } from '@/components/landing/section';
-import { getLocalUniversityBranding } from '@/lib/data/university-branding';
+import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
 import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
 
 interface UniversitySectionProps {
@@ -37,7 +37,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
         {universities.map((uni, i) => {
           const localBranding = getLocalUniversityBranding(uni.slug);
           const landmarkImage = uni.landmark_image_url || uni.hero_image_url;
-          const logoUrl = localBranding.logoUrl || uni.logo_url;
+          const logoUrl = uni.logo_url || localBranding.logoUrl;
 
           return (
             <Reveal key={uni.id} delay={i * 0.08}>
@@ -63,6 +63,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
                       alt={uni.logo_alt_text || `${uni.name} logo`}
                       name={uni.name}
                       shortName={uni.short_name}
+                      logoObjectPosition={getUniversityLogoObjectPosition(uni.slug)}
                       className="object-contain"
                     />
                   </div>

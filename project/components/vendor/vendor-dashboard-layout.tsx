@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   LayoutDashboard, Store, Package, Wrench, Image as ImageIcon,
   Clock, MessageSquare, Star, BarChart3, CreditCard, Receipt,
-  Megaphone, Settings, ShieldCheck, Menu, ChevronRight, Wallet,
+  Megaphone, Settings, ShieldCheck, Menu, ChevronRight, Wallet, Gift,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { isVendor } from '@/lib/auth/permissions';
@@ -27,6 +27,7 @@ const NAV_ITEMS = [
   { icon: BarChart3, label: 'Analytics', href: '/vendor-dashboard/analytics' },
   { icon: CreditCard, label: 'Subscription', href: '/vendor-dashboard/subscription' },
   { icon: Wallet, label: 'Financial', href: '/vendor-dashboard/financial' },
+  { icon: Gift, label: 'Referrals', href: '/vendor-dashboard/referrals' },
   { icon: Receipt, label: 'Invoices', href: '/vendor-dashboard/invoices' },
   { icon: Wallet, label: 'Payment History', href: '/vendor-dashboard/payment-history' },
   { icon: Megaphone, label: 'Promotions', href: '/vendor-dashboard/promotions' },

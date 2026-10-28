@@ -78,6 +78,8 @@ export default function StudentOnboardingPage() {
 }
 
 function StudentOnboarding() {
+  // Legacy complete_student_registration is retained server-side for older
+  // clients; this screen always starts the verified Paystack flow instead.
   const { user } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
@@ -265,6 +267,12 @@ function StudentOnboarding() {
       });
       if (payment.error || !payment.authorizationUrl || !payment.reference) {
         throw new Error(payment.error || 'Registration payment could not be started. Please try again.');
+      }
+      if (referralCode) {
+        const { error: referralError } = await supabase.rpc('attach_my_referral_code', {
+          p_referral_code: referralCode,
+        });
+        if (referralError) throw new Error(referralError.message);
       }
       if (form.avatar_url) {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);

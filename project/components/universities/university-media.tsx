@@ -15,6 +15,7 @@ interface UniversityMediaProps {
   kind: MediaKind;
   className?: string;
   loading?: 'eager' | 'lazy';
+  logoObjectPosition?: 'left' | 'center' | 'right';
 }
 
 function getInitials(name: string, shortName?: string | null) {
@@ -51,14 +52,25 @@ function FallbackMedia({ name, shortName, kind, className = '' }: Pick<Universit
   );
 }
 
-export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, className, loading = 'lazy' }: UniversityMediaProps) {
+export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, className, loading = 'lazy', logoObjectPosition = 'left' }: UniversityMediaProps) {
   const candidates = useMemo(() => Array.from(new Set([src, fallbackSrc].filter((value): value is string => Boolean(value)))), [src, fallbackSrc]);
   const [candidateIndex, setCandidateIndex] = useState(0);
+  const [isWideLogo, setIsWideLogo] = useState(false);
 
-  useEffect(() => setCandidateIndex(0), [candidates]);
+  useEffect(() => {
+    setCandidateIndex(0);
+    setIsWideLogo(false);
+  }, [candidates]);
 
   const currentSrc = candidates[candidateIndex];
   if (!currentSrc) return <FallbackMedia name={name} shortName={shortName} kind={kind} className={className} />;
+
+  const logoStyle = kind === 'logo'
+    ? {
+        objectFit: isWideLogo ? 'cover' as const : 'contain' as const,
+        objectPosition: isWideLogo ? logoObjectPosition : 'center',
+      }
+    : undefined;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -67,13 +79,18 @@ export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, 
       alt={alt}
       loading={loading}
       className={className}
+      decoding="async"
+      style={logoStyle}
+      onLoad={(event) => {
+        if (kind === 'logo') setIsWideLogo(event.currentTarget.naturalWidth / Math.max(event.currentTarget.naturalHeight, 1) > 1.7);
+      }}
       onError={() => setCandidateIndex((index) => index + 1)}
     />
   );
 }
 
-export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, className = '' }: Omit<UniversityMediaProps, 'kind'>) {
-  return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" className={`block max-h-full max-w-full object-contain ${className}`} />;
+export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, className = '', logoObjectPosition }: Omit<UniversityMediaProps, 'kind'>) {
+  return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" logoObjectPosition={logoObjectPosition} className={`block h-full w-full ${className}`} />;
 }
 
 export type CampusStory = {

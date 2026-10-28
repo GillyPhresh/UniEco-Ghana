@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -39,6 +39,11 @@ export default function SignUpPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const intent = new URLSearchParams(window.location.search).get('intent');
+    if (intent === 'student' || intent === 'external_vendor') setAccountType(intent);
+  }, []);
+
   const {
     register,
     handleSubmit,
@@ -50,7 +55,7 @@ export default function SignUpPage() {
   const onSubmit = async (data: SignUpFormData) => {
     if (!accountType) return;
     setAuthError(null);
-    const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
+    const incomingReferral = new URLSearchParams(window.location.search).get('ref');
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
     // This is only a registration hint. The database revalidates and locks it at intent creation.
@@ -81,7 +86,8 @@ export default function SignUpPage() {
       const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
       const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
       const studentPath = studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student';
-      const vendorPath = inviteQuery ? `/onboarding/vendor?${inviteQuery}` : '/onboarding/vendor';
+      const vendorQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
+      const vendorPath = vendorQuery ? `/onboarding/vendor?${vendorQuery}` : '/onboarding/vendor';
       router.push(accountType === 'student' ? studentPath : vendorPath);
     }
   };
@@ -90,7 +96,7 @@ export default function SignUpPage() {
     setAuthError(null);
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
-    const incomingReferral = accountType === 'student' ? new URLSearchParams(window.location.search).get('ref') : null;
+    const incomingReferral = new URLSearchParams(window.location.search).get('ref');
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
     if (institutionAdminInvite) window.sessionStorage.setItem('unieco_pending_institution_admin_invite', institutionAdminInvite);

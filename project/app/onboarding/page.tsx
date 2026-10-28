@@ -20,7 +20,7 @@ export default function OnboardingPage() {
     const pendingInvite = window.sessionStorage.getItem('unieco_pending_registration_invite');
     const pendingReferral = window.sessionStorage.getItem('unieco_pending_referral_code');
     if (pendingInvite) params.set('invite', pendingInvite);
-    if (pendingReferral && intent !== 'external_vendor') params.set('ref', pendingReferral);
+    if (pendingReferral) params.set('ref', pendingReferral);
     const query = params.toString();
     if (user.role === 'external_vendor' || user.role === 'student_vendor' || intent === 'external_vendor') {
       router.replace(query ? `/onboarding/vendor?${query}` : '/onboarding/vendor');

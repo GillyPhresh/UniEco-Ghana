@@ -54,6 +54,21 @@ const brandingSlugAliases: Record<string, string> = {
   'university-of-technology-and-applied-sciences': 'utas',
 };
 
+// Some official marks are published as horizontal lockups: the crest is on
+// one side and the full institution name is beside it. Directory cards show
+// the crest in a square, so crop those lockups visually without changing the
+// source artwork. Square marks remain fully contained.
+const wideLogoPositions: Record<string, 'left' | 'center' | 'right'> = {
+  'lancaster-university-ghana': 'center',
+};
+
+// A few official sites publish only a small crest/favicon rather than a
+// manifest-friendly logo file. Keep those verified local copies as a fallback
+// until the institution supplies a higher-resolution brand upload.
+const officialLogoOverrides: Record<string, string> = {
+  'spiritan-university-college': '/assets/universities/spiritan-university-college/logo-official.jpg',
+};
+
 /**
  * Local branding is a safe display fallback. Database-provided branding remains
  * authoritative, so university administrators can replace these files through
@@ -62,10 +77,14 @@ const brandingSlugAliases: Record<string, string> = {
 export function getLocalUniversityBranding(slug: string) {
   const record = records[brandingSlugAliases[slug] || slug];
   return {
-    logoUrl: record?.logo?.path ?? null,
+    logoUrl: officialLogoOverrides[slug] || record?.logo?.path || null,
     logoSourcePage: record?.logo?.sourcePage ?? null,
     campusUrl: record?.campus?.path ?? null,
     campusSourcePage: record?.campus?.sourcePage ?? null,
     status: record?.status ?? null,
   };
+}
+
+export function getUniversityLogoObjectPosition(slug: string) {
+  return wideLogoPositions[slug] || 'left';
 }

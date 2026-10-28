@@ -14,7 +14,7 @@ import {
 } from '@/lib/data/public-queries';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { siteConfig } from '@/lib/constants/site';
-import { getLocalUniversityBranding } from '@/lib/data/university-branding';
+import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
 import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
 import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap } from 'lucide-react';
 
@@ -104,7 +104,7 @@ export default async function UniversityPage({ params }: PageProps) {
   const verifiedBusinesses = vendors.filter((v) => v.is_verified);
 
   const localBranding = getLocalUniversityBranding(university.slug);
-  const logoUrl = localBranding.logoUrl || university.logo_url;
+  const logoUrl = university.logo_url || localBranding.logoUrl;
   const heroImageUrl = university.landmark_image_url || university.hero_image_url;
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
@@ -181,6 +181,7 @@ export default async function UniversityPage({ params }: PageProps) {
                       alt={logoAlt}
                       name={university.name}
                       shortName={university.short_name}
+                        logoObjectPosition={getUniversityLogoObjectPosition(university.slug)}
                       className="object-contain"
                     />
                   </div>

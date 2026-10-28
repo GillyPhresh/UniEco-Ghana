@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createPublicServerClient } from '@/lib/supabase/public-server';
 import type {
   Vendor,
   Business,
@@ -59,7 +60,7 @@ export async function getIndexableEventSlugs(limit = 1000) {
 }
 
 export async function getUniversityDirectory() {
-  const supabase = await createClient();
+  const supabase = createPublicServerClient();
   const { data } = await supabase
     .from('universities')
     .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, landmark_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, university_aliases(alias)')

@@ -20,6 +20,8 @@ import {
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { getLocalUniversityBranding } from '@/lib/data/university-branding';
+import { getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
+import { UniversityLogo } from '@/components/universities/university-media';
 import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2, Search, ShieldCheck, Globe2, UserPlus, UserX, MapPin, Filter, ExternalLink, CheckCircle2, CircleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -400,7 +402,7 @@ function Content() {
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleUniversities.map(uni => {
             const localBranding = getLocalUniversityBranding(uni.slug);
-            const logoUrl = localBranding.logoUrl || uni.logo_url;
+            const logoUrl = uni.logo_url || localBranding.logoUrl;
             const campusUrl = uni.hero_image_url || localBranding.campusUrl;
             const fullyBranded = Boolean(logoUrl && campusUrl);
 
@@ -412,7 +414,7 @@ function Content() {
                 </div>
                 <CardContent className="p-4 pt-0">
                   <div className="-mt-8 flex items-end gap-3">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border-4 border-card bg-white p-2 shadow-md">{logoUrl ? <img src={logoUrl} alt={uni.logo_alt_text || `${uni.name} official logo`} className="max-h-full max-w-full object-contain" loading="lazy" /> : <GraduationCap className="h-7 w-7 text-primary" />}</div>
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-white p-1.5 shadow-md">{logoUrl ? <UniversityLogo src={logoUrl} name={uni.name} shortName={uni.short_name} logoObjectPosition={getUniversityLogoObjectPosition(uni.slug)} alt={uni.logo_alt_text || `${uni.name} official logo`} /> : <GraduationCap className="h-7 w-7 text-primary" />}</div>
                     <div className="min-w-0 pb-1"><p className="truncate text-base font-bold text-foreground">{uni.name}</p><p className="truncate text-xs font-medium text-primary">{uni.short_name}</p></div>
                   </div>
                   <div className="mt-3 space-y-1 text-xs text-muted-foreground"><p className="flex items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />{[uni.city, uni.region].filter(Boolean).join(', ') || 'Ghana'}</p>{uni.website_url ? <a href={uni.website_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 truncate hover:text-primary"><Globe2 className="h-3.5 w-3.5 shrink-0" />{uni.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}<ExternalLink className="h-3 w-3 shrink-0" /></a> : <p className="flex items-center gap-1.5 text-amber-600"><CircleAlert className="h-3.5 w-3.5 shrink-0" />Official website not added</p>}</div>
