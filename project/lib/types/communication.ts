@@ -28,22 +28,37 @@ export type DeliveryStatus =
 // ============================================================
 
 export type CommunicationEventType =
+  | 'student_welcome'
+  | 'vendor_welcome'
+  | 'student_verification_submitted'
+  | 'student_verification_approved'
+  | 'student_verification_rejected'
+  | 'vendor_verification_submitted'
+  | 'vendor_verification_approved'
+  | 'vendor_verification_rejected'
+  | 'profile_complete_nudge'
+  | 'weekly_student_digest'
+  | 'weekly_vendor_digest'
   | 'order_placed'
+  | 'order_received'
+  | 'order_status_update'
   | 'order_accepted'
   | 'order_cancelled'
   | 'payment_successful'
   | 'payment_failed'
-  | 'subscription_expiring'
   | 'vendor_approved'
   | 'vendor_rejected'
   | 'student_verified'
   | 'new_message'
   | 'new_review'
   | 'event_reminder'
+  | 'event_published'
+  | 'business_announcement'
+  | 'review_received'
+  | 'subscription_expiring'
   | 'ad_approved'
   | 'support_ticket_update'
-  | 'broadcast'
-  | 'business_announcement';
+  | 'broadcast';
 
 // ============================================================
 // Messaging
@@ -172,7 +187,7 @@ export type NotificationPreferences = {
 export const DEFAULT_CHANNEL_PREFS: CategoryChannelPrefs = {
   in_app: true,
   email: true,
-  push: false,
+  push: true,
   whatsapp: false,
   sms: false,
 };
@@ -199,13 +214,13 @@ export const NOTIFICATION_CATEGORIES_FULL: {
     key: 'messages',
     label: 'Messages',
     description: 'New messages from vendors or students',
-    defaultPrefs: { in_app: true, email: false, push: true, whatsapp: false, sms: false },
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
   },
   {
     key: 'businesses',
     label: 'Businesses',
     description: 'Business announcements and updates',
-    defaultPrefs: { in_app: true, email: false, push: false, whatsapp: false, sms: false },
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
   },
   {
     key: 'events',
@@ -217,7 +232,7 @@ export const NOTIFICATION_CATEGORIES_FULL: {
     key: 'reviews',
     label: 'Reviews',
     description: 'New reviews on your products or services',
-    defaultPrefs: { in_app: true, email: true, push: false, whatsapp: false, sms: false },
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
   },
   {
     key: 'subscriptions',
@@ -229,13 +244,19 @@ export const NOTIFICATION_CATEGORIES_FULL: {
     key: 'verification',
     label: 'Verification',
     description: 'Student and vendor verification updates',
-    defaultPrefs: { in_app: true, email: true, push: false, whatsapp: false, sms: false },
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
   },
   {
     key: 'announcements',
     label: 'Platform Announcements',
     description: 'Platform-wide and university announcements',
-    defaultPrefs: { in_app: true, email: true, push: false, whatsapp: false, sms: false },
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
+  },
+  {
+    key: 'general',
+    label: 'UniEco updates',
+    description: 'Account, service, and important platform updates',
+    defaultPrefs: { in_app: true, email: true, push: true, whatsapp: false, sms: false },
   },
 ];
 
