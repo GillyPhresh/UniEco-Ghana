@@ -39,4 +39,6 @@ test('Paystack callback routes both registration types to onboarding completion'
   const callback = await read('app/payments/callback/page.tsx');
   assert.match(callback, /payment\?\.payment_type === 'student_registration' \|\| payment\?\.payment_type === 'vendor_registration'/);
   assert.match(callback, /onboarding\/complete\?registration=paid/);
+  assert.match(callback, /Try payment again/);
+  assert.match(callback, /onboarding\/student\?payment_required=1/);
 });
