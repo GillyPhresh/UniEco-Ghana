@@ -58,6 +58,7 @@ export type CommunicationEventType =
   | 'subscription_expiring'
   | 'ad_approved'
   | 'support_ticket_update'
+  | 'admin_governance_digest'
   | 'broadcast';
 
 // ============================================================

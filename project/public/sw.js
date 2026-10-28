@@ -145,18 +145,43 @@ function decodeBase64Url(value) {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || '/dashboard/notifications';
+  const targetUrl = resolveNotificationUrl(event.notification.data?.url);
+  const targetHref = new URL(targetUrl, self.location.origin).href;
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
-      const existing = clients.find((client) => 'focus' in client);
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (clients) => {
+      // Keep the click inside the UniEco app even when a notification was
+      // created with the canonical www URL while the PWA is open on no-www.
+      const existing = clients.find(
+        (client) => client.url.startsWith(self.location.origin) && 'focus' in client
+      );
       if (existing) {
-        existing.navigate(targetUrl);
+        if ('navigate' in existing) await existing.navigate(targetHref);
         return existing.focus();
       }
-      return self.clients.openWindow(targetUrl);
+      return self.clients.openWindow(targetHref);
     })
   );
 });
+
+function resolveNotificationUrl(rawUrl) {
+  const fallback = '/dashboard/notifications';
+
+  try {
+    const parsed = new URL(rawUrl || fallback, self.location.origin);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return fallback;
+
+    const trustedHosts = new Set([
+      self.location.hostname,
+      'uniecoghana.com',
+      'www.uniecoghana.com',
+    ]);
+    if (!trustedHosts.has(parsed.hostname)) return fallback;
+
+    return `${parsed.pathname || '/'}${parsed.search}${parsed.hash}`;
+  } catch {
+    return fallback;
+  }
+}
 
 function shouldNeverCache(url) {
   return NEVER_CACHE_PATTERNS.some((p) => url.pathname.startsWith(p));

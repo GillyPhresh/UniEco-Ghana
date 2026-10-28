@@ -45,3 +45,29 @@ test('direct messages request a trusted queue flush without exposing provider se
   assert.match(scheduler, /vault\.decrypted_secrets/);
   assert.match(scheduler, /dispatch-communication-queue/);
 });
+
+test('notification clicks keep trusted www and no-www destinations inside the app', async () => {
+  const serviceWorker = await read('public/sw.js');
+
+  assert.match(serviceWorker, /resolveNotificationUrl\(event\.notification\.data\?\.url\)/);
+  assert.match(serviceWorker, /'www\.uniecoghana\.com'/);
+  assert.match(serviceWorker, /'uniecoghana\.com'/);
+  assert.match(serviceWorker, /const targetHref = new URL\(targetUrl, self\.location\.origin\)\.href/);
+  assert.match(serviceWorker, /existing\.navigate\(targetHref\)/);
+  assert.match(serviceWorker, /openWindow\(targetHref\)/);
+  assert.match(serviceWorker, /if \(!trustedHosts\.has\(parsed\.hostname\)\) return fallback/);
+});
+
+test('super admins receive a deduplicated governance digest with a management destination', async () => {
+  const migration = await read('supabase/migrations/20261028160000_0146_admin_governance_digest.sql');
+
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.queue_admin_governance_digest/);
+  assert.match(migration, /payment_reconciliation/);
+  assert.match(migration, /communication_failures/);
+  assert.match(migration, /pending_student_verification/);
+  assert.match(migration, /pending_vendor_verification/);
+  assert.match(migration, /queue_user_communication/);
+  assert.match(migration, /https:\/\/www\.uniecoghana\.com\/admin/);
+  assert.match(migration, /unieco-admin-governance-digest-hourly/);
+  assert.match(migration, /ON CONFLICT DO NOTHING/);
+});
