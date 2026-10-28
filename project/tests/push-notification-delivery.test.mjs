@@ -71,3 +71,15 @@ test('super admins receive a deduplicated governance digest with a management de
   assert.match(migration, /unieco-admin-governance-digest-hourly/);
   assert.match(migration, /ON CONFLICT DO NOTHING/);
 });
+
+test('the communication worker recovers stale processing claims safely', async () => {
+  const migration = await read('supabase/migrations/20261028170000_0147_recover_stuck_communication_queue.sql');
+
+  assert.match(migration, /recover_stuck_trusted_communication_events/);
+  assert.match(migration, /status = 'queued'/);
+  assert.match(migration, /attempt_count < 3/);
+  assert.match(migration, /status = 'failed'/);
+  assert.match(migration, /attempt_count >= 3/);
+  assert.match(migration, /PERFORM public\.recover_stuck_trusted_communication_events\(\)/);
+  assert.match(migration, /SELECT public\.recover_stuck_trusted_communication_events\(\)/);
+});
