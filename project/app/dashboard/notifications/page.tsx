@@ -24,6 +24,18 @@ import type { NotificationWithMeta, NotificationCategory } from '@/lib/types/com
 import { NOTIFICATION_CATEGORIES_FULL, NOTIFICATION_CATEGORY_LABELS } from '@/lib/types/communication';
 import Link from 'next/link';
 
+function normalizeNotificationActionUrl(value: string | null | undefined): string | null {
+  if (!value?.trim()) return null;
+  try {
+    const parsed = new URL(value.trim(), window.location.origin);
+    const trustedHosts = new Set([window.location.hostname, 'uniecoghana.com', 'www.uniecoghana.com']);
+    if (!['http:', 'https:'].includes(parsed.protocol) || !trustedHosts.has(parsed.hostname)) return null;
+    return `${parsed.pathname || '/'}${parsed.search}${parsed.hash}`;
+  } catch {
+    return null;
+  }
+}
+
 const TYPE_ICONS: Record<string, typeof Bell> = {
   message: MessageSquare,
   event: Calendar,
@@ -192,7 +204,7 @@ function NotificationsContent() {
             <div className="space-y-3 pr-4">
               {filtered.map((n) => {
                 const Icon = TYPE_ICONS[n.type || ''] || Bell;
-                const actionUrl = n.action_url || n.link;
+                const actionUrl = normalizeNotificationActionUrl(n.action_url || n.link);
                 return (
                   <Card
                     key={n.id}

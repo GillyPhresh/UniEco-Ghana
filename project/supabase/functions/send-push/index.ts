@@ -112,7 +112,7 @@ Deno.serve(async (req: Request) => {
         const pushPayload = JSON.stringify({
           title,
           body,
-          url: actionUrl || "/dashboard/notifications",
+          url: normalizePushActionUrl(actionUrl),
           icon: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           badge: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           tag: eventType || "notification",
@@ -166,4 +166,20 @@ function describePushFailure(statusCode?: number): string {
   if (statusCode === 404 || statusCode === 410) return "This device subscription has expired. Refresh this device connection.";
   if (statusCode === 429) return "Push provider rate limit reached. Try again shortly.";
   return statusCode ? `Push provider delivery failed (HTTP ${statusCode}).` : "Push provider delivery failed.";
+}
+
+const PUBLIC_ORIGIN = "https://www.uniecoghana.com";
+const TRUSTED_PUBLIC_HOSTS = new Set(["www.uniecoghana.com", "uniecoghana.com"]);
+
+function normalizePushActionUrl(value: unknown): string {
+  const fallback = "/dashboard/notifications";
+  if (typeof value !== "string" || !value.trim()) return fallback;
+
+  try {
+    const parsed = new URL(value.trim(), PUBLIC_ORIGIN);
+    if (parsed.protocol !== "https:" || !TRUSTED_PUBLIC_HOSTS.has(parsed.hostname)) return fallback;
+    return `${parsed.pathname || "/"}${parsed.search}${parsed.hash}`;
+  } catch {
+    return fallback;
+  }
 }
