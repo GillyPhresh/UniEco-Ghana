@@ -88,3 +88,12 @@ test('admin broadcasts carry one actionable destination across every channel', (
   assert.match(notifications, /Open task/);
   assert.match(notifications, /aria-label=\{`Open notification:/);
 });
+
+test('historical notification destinations are normalized to the canonical www host', () => {
+  const migration = read('supabase/migrations/20261029100000_normalize_canonical_notification_links.sql');
+  assert.match(migration, /public\.notifications/);
+  assert.match(migration, /public\.communication_events/);
+  assert.match(migration, /https:\/\/uniecoghana\.com/);
+  assert.match(migration, /https:\/\/www\.uniecoghana\.com/);
+  assert.match(migration, /jsonb_set/);
+});

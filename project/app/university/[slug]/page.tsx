@@ -104,7 +104,7 @@ export default async function UniversityPage({ params }: PageProps) {
   const verifiedBusinesses = vendors.filter((v) => v.is_verified);
 
   const localBranding = getLocalUniversityBranding(university.slug);
-  const logoUrl = university.logo_url || localBranding.logoUrl;
+  const logoUrl = localBranding.logoUrl || university.logo_url;
   const heroImageUrl = university.landmark_image_url || university.hero_image_url;
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;

@@ -225,7 +225,7 @@ function StudentOnboarding() {
         graduation_year: form.graduation_year,
         phone: normalizeGhanaPhone(form.phone),
       });
-      if (!parsed.success) throw new Error(parsed.error.errors[0]?.message || 'Check your registration details.');
+      if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Check your registration details.');
       const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
       if (cashInviteToken) {
         const { error: cashError } = await supabase.rpc('redeem_cash_student_registration', {

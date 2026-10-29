@@ -34,7 +34,7 @@ export const studentOnboardingSchema = z.object({
   faculty: z.string().min(2, 'Enter your faculty'),
   department: z.string().min(2, 'Enter your department'),
   level: z.enum(['100', '200', '300', '400', '500', '600', 'graduate'], {
-    errorMap: () => ({ message: 'Select your level' }),
+    error: 'Select your level',
   }),
   index_number: z
     .string()
