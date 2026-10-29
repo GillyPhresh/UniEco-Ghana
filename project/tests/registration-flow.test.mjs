@@ -71,6 +71,9 @@ test('student academic details are optional and selected from the mobile catalog
   assert.match(onboarding, /ACADEMIC_PROGRAMMES/);
   assert.match(onboarding, /ACADEMIC_FACULTIES/);
   assert.match(onboarding, /ACADEMIC_DEPARTMENTS/);
+  assert.match(onboarding, /RegistrationAutocomplete/);
+  assert.match(onboarding, /CommandInput/);
+  assert.match(onboarding, /Start typing your programme/);
   assert.match(onboarding, /Index \/ Student number <span className="font-normal text-muted-foreground">\(optional\)/);
   assert.match(catalogue, /Other \/ not listed yet/);
   assert.match(migration, /NULLIF\(trim\(p_student_id_number\),''\)/);

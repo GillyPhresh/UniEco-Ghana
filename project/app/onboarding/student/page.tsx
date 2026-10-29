@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -36,6 +38,73 @@ import {
   Upload,
   Search,
 } from 'lucide-react';
+
+type AutocompleteOption = { value: string; label: string };
+
+function RegistrationAutocomplete({
+  id,
+  label,
+  value,
+  options,
+  placeholder,
+  searchPlaceholder,
+  optional = false,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: AutocompleteOption[];
+  placeholder: string;
+  searchPlaceholder: string;
+  optional?: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = options.find((option) => option.value === value);
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id}>{label} {optional && <span className="font-normal text-muted-foreground">(optional)</span>}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            type="button"
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="min-h-11 w-full justify-between text-left font-normal"
+          >
+            <span className={selected ? 'truncate' : 'truncate text-muted-foreground'}>{selected?.label || placeholder}</span>
+            <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0">
+          <Command>
+            <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
+            <CommandList>
+              <CommandEmpty>No matching option found.</CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.label}
+                    onSelect={() => { onChange(option.value); setOpen(false); }}
+                    className="min-h-11"
+                  >
+                    <Check className={`mr-2 h-4 w-4 ${value === option.value ? 'opacity-100' : 'opacity-0'}`} />
+                    <span className="truncate">{option.label}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
 
 const STEPS = [
   { id: 'contact', label: 'Contact', hint: 'Phone and photo', icon: User },
@@ -89,7 +158,6 @@ function StudentOnboarding() {
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
-  const [universitySearch, setUniversitySearch] = useState('');
   const [unisLoaded, setUnisLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
@@ -163,16 +231,11 @@ function StudentOnboarding() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const visibleUniversities = universities.filter((university) => {
-    const query = universitySearch.trim().toLocaleLowerCase();
-    if (!query) return true;
-    return [university.name, university.short_name, university.city, university.region, university.institution_type]
-      .filter(Boolean)
-      .join(' ')
-      .toLocaleLowerCase()
-      .includes(query);
-  });
   const selectedUniversity = universities.find((university) => university.id === form.university_id);
+  const universityOptions: AutocompleteOption[] = universities.map((university) => ({
+    value: university.id,
+    label: `${university.name} (${university.short_name})${university.city ? ` — ${university.city}` : ''}`,
+  }));
 
   const validateStep = (): string | null => {
     if (step === 0) {
@@ -448,70 +511,52 @@ function StudentOnboarding() {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <Label htmlFor="university">University</Label>
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="university-search"
-                    value={universitySearch}
-                    onChange={(event) => setUniversitySearch(event.target.value)}
-                    placeholder="Search all listed institutions"
-                    className="pl-9"
-                    aria-label="Search listed institutions"
-                  />
-                </div>
-                <Select
+                <RegistrationAutocomplete
+                  id="university"
+                  label="University"
                   value={form.university_id}
-                  onValueChange={(v) => updateForm('university_id', v)}
-                >
-                  <SelectTrigger id="university">
-                    <SelectValue placeholder="Select your university" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {visibleUniversities.map((uni) => (
-                      <SelectItem key={uni.id} value={uni.id}>
-                        {uni.name} ({uni.short_name}){uni.city ? ` — ${uni.city}` : ''}
-                      </SelectItem>
-                    ))}
-                    {!visibleUniversities.length && <SelectItem value="__no_match__" disabled>No listed institution matches your search.</SelectItem>}
-                  </SelectContent>
-                </Select>
+                  options={universityOptions}
+                  placeholder="Start typing your university"
+                  searchPlaceholder="Type university name or abbreviation"
+                  onChange={(value) => updateForm('university_id', value)}
+                />
                 <p className="text-xs text-muted-foreground">
                   {unisLoaded ? `${universities.length} listed institution${universities.length === 1 ? '' : 's'} available.` : 'Loading listed institutions…'}
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="programme">Programme of study <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Select value={form.programme} onValueChange={(value) => updateForm('programme', value)}>
-                  <SelectTrigger id="programme" className="min-h-11">
-                    <SelectValue placeholder="Select your programme" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ACADEMIC_PROGRAMMES.map((programme) => <SelectItem key={programme} value={programme}>{programme}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <RegistrationAutocomplete
+                id="programme"
+                label="Programme of study"
+                value={form.programme}
+                options={ACADEMIC_PROGRAMMES.map((programme) => ({ value: programme, label: programme }))}
+                placeholder="Start typing your programme"
+                searchPlaceholder="Type programme name"
+                optional
+                onChange={(value) => updateForm('programme', value)}
+              />
 
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="faculty">Faculty <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                  <Select value={form.faculty} onValueChange={(value) => updateForm('faculty', value)}>
-                    <SelectTrigger id="faculty" className="min-h-11"><SelectValue placeholder="Select faculty" /></SelectTrigger>
-                    <SelectContent>
-                      {ACADEMIC_FACULTIES.map((faculty) => <SelectItem key={faculty} value={faculty}>{faculty}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="department">Department <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                  <Select value={form.department} onValueChange={(value) => updateForm('department', value)}>
-                    <SelectTrigger id="department" className="min-h-11"><SelectValue placeholder="Select department" /></SelectTrigger>
-                    <SelectContent>
-                      {ACADEMIC_DEPARTMENTS.map((department) => <SelectItem key={department} value={department}>{department}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <RegistrationAutocomplete
+                  id="faculty"
+                  label="Faculty"
+                  value={form.faculty}
+                  options={ACADEMIC_FACULTIES.map((faculty) => ({ value: faculty, label: faculty }))}
+                  placeholder="Start typing faculty"
+                  searchPlaceholder="Type faculty name"
+                  optional
+                  onChange={(value) => updateForm('faculty', value)}
+                />
+                <RegistrationAutocomplete
+                  id="department"
+                  label="Department"
+                  value={form.department}
+                  options={ACADEMIC_DEPARTMENTS.map((department) => ({ value: department, label: department }))}
+                  placeholder="Start typing department"
+                  searchPlaceholder="Type department name"
+                  optional
+                  onChange={(value) => updateForm('department', value)}
+                />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
