@@ -87,15 +87,6 @@ export async function getAdminUsers(params: {
   };
 }
 
-export async function resetNonAdminAccounts(confirmation: string, reason: string): Promise<{ deletedUserCount: number }> {
-  const { data, error } = await supabase.rpc('admin_reset_non_admin_accounts', {
-    p_confirmation: confirmation,
-    p_reason: reason,
-  });
-  if (error) throw new Error('Unable to reset non-admin accounts');
-  return { deletedUserCount: Number((data as { deleted_user_count?: number } | null)?.deleted_user_count || 0) };
-}
-
 export async function getAdminStudents(params: {
   search?: string;
   verificationStatus?: string;

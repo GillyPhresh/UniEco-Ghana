@@ -13,11 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { getAdminUsers, suspendUser, reactivateUser, assignUserRole, resetNonAdminAccounts } from '@/lib/data/admin-client';
+import { getAdminUsers, suspendUser, reactivateUser, assignUserRole } from '@/lib/data/admin-client';
 import type { AdminUserDirectoryItem } from '@/lib/types/admin';
 import { ROLE_LABELS } from '@/lib/auth/permissions';
 import { ROLE_IDS, type UserRole } from '@/lib/types';
-import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, AlertTriangle, Trash2, UserPlus } from 'lucide-react';
+import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 function formatAccountStatus(status: string) {
@@ -51,11 +51,6 @@ function UsersContent() {
   const [reason, setReason] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pendingAction, setPendingAction] = useState<{ kind: 'suspend' | 'reactivate' | 'role'; roleId?: number; roleLabel?: string } | null>(null);
-  const [resetOpen, setResetOpen] = useState(false);
-  const [resetConfirmation, setResetConfirmation] = useState('');
-  const [resetReason, setResetReason] = useState('');
-  const [resetLoading, setResetLoading] = useState(false);
-  const [resetError, setResetError] = useState<string | null>(null);
   const pageSize = 20;
 
   const loadUsers = useCallback(async () => {
@@ -106,34 +101,6 @@ function UsersContent() {
     }
   };
 
-  const confirmAccountReset = async () => {
-    const confirmation = resetConfirmation.trim();
-    if (confirmation !== 'DELETE ALL NON-ADMIN USERS') {
-      toast.error('Enter the confirmation phrase exactly');
-      return;
-    }
-    if (resetReason.trim().length < 10) {
-      toast.error('Provide a reason of at least 10 characters');
-      return;
-    }
-    setResetLoading(true);
-    setResetError(null);
-    try {
-      const result = await resetNonAdminAccounts(confirmation, resetReason.trim());
-      toast.success(`${result.deletedUserCount} non-admin account(s) removed`);
-      setResetOpen(false);
-      setResetConfirmation('');
-      setResetReason('');
-      void loadUsers();
-    } catch (resetError) {
-      const message = resetError instanceof Error ? resetError.message : 'Account reset failed. No changes were committed.';
-      setResetError(message);
-      toast.error(message);
-    } finally {
-      setResetLoading(false);
-    }
-  };
-
   return (
     <div className="p-4 sm:p-6 space-y-4 max-w-7xl">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -143,23 +110,6 @@ function UsersContent() {
         </div>
         {isSuperAdmin && <Button asChild variant="outline"><Link href="/admin/universities"><UserPlus className="mr-2 h-4 w-4" /> Invite institution administrator</Link></Button>}
       </div>
-
-      {isSuperAdmin && (
-        <Card className="border-destructive/40 bg-destructive/5">
-          <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex gap-3">
-              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-              <div>
-                <p className="font-semibold text-destructive">Production account reset</p>
-                <p className="text-sm text-muted-foreground">Permanently removes every non-admin account and its user-owned records. Platform configuration is preserved.</p>
-              </div>
-            </div>
-            <Button variant="destructive" onClick={() => setResetOpen(true)} disabled={resetLoading}>
-              <Trash2 className="mr-2 h-4 w-4" /> Delete all non-admin users
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
@@ -354,29 +304,6 @@ function UsersContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={resetOpen} onOpenChange={open => { if (!open && !resetLoading) setResetOpen(false); }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle className="text-destructive">Delete all non-admin users?</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">This permanently removes all users except <strong>info.uniecoghana@gmail.com</strong>, including test profiles, vendors, payments, orders, referrals, notifications, and related records. This cannot be undone.</p>
-            {resetError && <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">{resetError}</div>}
-            <div className="space-y-1.5">
-              <label htmlFor="reset-confirmation" className="text-xs font-semibold text-muted-foreground">Type DELETE ALL NON-ADMIN USERS</label>
-              <Input id="reset-confirmation" value={resetConfirmation} onChange={event => setResetConfirmation(event.target.value)} autoComplete="off" />
-            </div>
-            <div className="space-y-1.5">
-              <label htmlFor="reset-reason" className="text-xs font-semibold text-muted-foreground">Reason</label>
-              <Input id="reset-reason" value={resetReason} onChange={event => setResetReason(event.target.value)} placeholder="Registration testing is complete" maxLength={1000} />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setResetOpen(false)} disabled={resetLoading}>Cancel</Button>
-              <Button variant="destructive" onClick={() => void confirmAccountReset()} disabled={resetLoading || resetConfirmation.trim() !== 'DELETE ALL NON-ADMIN USERS'}>
-                {resetLoading ? 'Deleting…' : 'Permanently delete accounts'}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

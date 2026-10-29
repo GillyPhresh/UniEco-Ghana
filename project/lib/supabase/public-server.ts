@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { getSupabaseConfig } from './config';
 
 /**
  * Public, cacheable Supabase client for pages that only read publicly visible
@@ -6,9 +7,10 @@ import { createClient } from '@supabase/supabase-js';
  * prefetch those pages quickly on mobile connections.
  */
 export function createPublicServerClient() {
+  const { url, anonKey } = getSupabaseConfig();
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       auth: {
         autoRefreshToken: false,

@@ -46,7 +46,7 @@ function FallbackMedia({ name, shortName, kind, className = '' }: Pick<Universit
         <span className="rounded-full border border-white/80 bg-white/85 px-3 py-1 text-xs font-bold shadow-sm backdrop-blur-sm">
           {shortName || name} campus profile
         </span>
-        <span className="text-[11px] font-medium text-slate-600">Official campus image pending</span>
+        <span className="text-[11px] font-medium text-slate-600">Campus photo coming soon</span>
       </span>
     </span>
   );
@@ -69,6 +69,8 @@ export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, 
     ? {
         objectFit: isWideLogo ? 'cover' as const : 'contain' as const,
         objectPosition: isWideLogo ? logoObjectPosition : 'center',
+        transform: 'scale(1.12)',
+        transformOrigin: 'center',
       }
     : undefined;
 

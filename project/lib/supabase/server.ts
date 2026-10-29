@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { getSupabaseConfig } from './config';
 
 type CookieStore = Awaited<ReturnType<typeof cookies>>;
 
@@ -10,6 +11,7 @@ type CookieToSet = {
 };
 
 export async function createClient() {
+  const { url, anonKey } = getSupabaseConfig();
   let cookieStore: CookieStore | null = null;
 
   try {
@@ -19,8 +21,8 @@ export async function createClient() {
   }
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
