@@ -44,6 +44,7 @@ function Content() {
   const [form, setForm] = useState({
     title: '', body: '', broadcast_type: 'announcement',
     target_audience: 'all', channels: ['in_app'] as string[],
+    action_url: '/dashboard/notifications',
   });
   const [saving, setSaving] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ broadcast: AdminBroadcast; kind: 'approve' | 'send' | 'cancel' } | null>(null);
@@ -66,7 +67,7 @@ function Content() {
   useEffect(() => { load(); }, [load]);
 
   const openCreate = () => {
-    setForm({ title: '', body: '', broadcast_type: 'announcement', target_audience: 'all', channels: ['in_app'] });
+    setForm({ title: '', body: '', broadcast_type: 'announcement', target_audience: 'all', channels: ['in_app'], action_url: '/dashboard/notifications' });
     setShowDialog(true);
   };
 
@@ -78,13 +79,14 @@ function Content() {
   };
 
   const handleCreate = async (status: string) => {
-    if (!form.title || !form.body) { toast.error('Title and body are required'); return; }
+    if (!form.title || !form.body || !form.action_url.trim()) { toast.error('Title, body, and destination link are required'); return; }
     setSaving(true);
     const { error } = await createAdminBroadcast({
       title: form.title,
       body: form.body,
       broadcast_type: form.broadcast_type,
       target_audience: form.target_audience,
+      target_filters: { action_url: form.action_url.trim() },
       channels: form.channels,
       submitForApproval: status === 'pending_approval',
     });
@@ -167,6 +169,7 @@ function Content() {
                       <p className="mt-1 text-sm text-muted-foreground line-clamp-2">{b.body}</p>
                       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                         <span>Channels: {b.channels.map((ch) => CHANNEL_LABELS[ch as keyof typeof CHANNEL_LABELS] || ch).join(', ')}</span>
+                        {typeof b.target_filters?.action_url === 'string' && <span className="max-w-[18rem] truncate">Destination: {b.target_filters.action_url}</span>}
                         {b.sent_count > 0 && <span>Delivered: {b.sent_count}</span>}
                         {b.failed_count > 0 && <span className="text-destructive">Failed: {b.failed_count}</span>}
                         <span>{new Date(b.created_at).toLocaleDateString('en-GH')}</span>
@@ -200,6 +203,7 @@ function Content() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>Body</Label><Textarea rows={3} value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} /></div>
+            <div className="space-y-1.5"><Label>Destination link</Label><Input value={form.action_url} onChange={(e) => setForm((p) => ({ ...p, action_url: e.target.value }))} placeholder="/admin/universities or /events/your-event" /><p className="text-xs text-muted-foreground">When users click the email, push, or in-app message, they will be taken here. Use a UniEco path beginning with /.</p></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Type</Label>
                 <Select value={form.broadcast_type} onValueChange={(v) => setForm((p) => ({ ...p, broadcast_type: v }))}>

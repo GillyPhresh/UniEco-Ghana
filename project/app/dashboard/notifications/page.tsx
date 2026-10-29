@@ -199,30 +199,45 @@ function NotificationsContent() {
                     className={n.is_read ? '' : 'border-primary/30 bg-primary/5'}
                   >
                     <CardContent className="flex items-start gap-3 p-4">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${n.is_read ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-foreground">{n.title}</p>
-                          <Badge variant="secondary" className="text-xs">
-                            {NOTIFICATION_CATEGORY_LABELS[n.category] || n.category}
-                          </Badge>
-                        </div>
-                        {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
-                        <div className="mt-2 flex items-center gap-3">
-                          <p className="text-xs text-muted-foreground/70">{timeAgo(n.created_at)}</p>
-                          {actionUrl && (
-                            <Link
-                              href={actionUrl}
-                              onClick={() => !n.is_read && handleMarkRead(n.id)}
-                              className="text-xs font-medium text-primary hover:underline"
-                            >
-                              View
-                            </Link>
-                          )}
-                        </div>
-                      </div>
+                      {actionUrl ? (
+                        <Link
+                          href={actionUrl}
+                          onClick={() => !n.is_read && handleMarkRead(n.id)}
+                          className="flex min-w-0 flex-1 items-start gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                          aria-label={`Open notification: ${n.title}`}
+                        >
+                          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${n.is_read ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-foreground">{n.title}</span>
+                              <Badge variant="secondary" className="text-xs">
+                                {NOTIFICATION_CATEGORY_LABELS[n.category] || n.category}
+                              </Badge>
+                            </span>
+                            {n.body && <span className="mt-0.5 block text-sm text-muted-foreground">{n.body}</span>}
+                            <span className="mt-2 flex items-center gap-3">
+                              <span className="text-xs text-muted-foreground/70">{timeAgo(n.created_at)}</span>
+                              <span className="text-xs font-medium text-primary">Open task</span>
+                            </span>
+                          </span>
+                        </Link>
+                      ) : (
+                        <>
+                          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${n.is_read ? 'bg-muted text-muted-foreground' : 'bg-primary/10 text-primary'}`}>
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-foreground">{n.title}</p>
+                              <Badge variant="secondary" className="text-xs">{NOTIFICATION_CATEGORY_LABELS[n.category] || n.category}</Badge>
+                            </div>
+                            {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
+                            <p className="mt-2 text-xs text-muted-foreground/70">{timeAgo(n.created_at)}</p>
+                          </div>
+                        </>
+                      )}
                       <div className="flex items-center gap-1">
                         {!n.is_read && (
                           <button

@@ -73,3 +73,18 @@ test('unpaid registration reminders open direct Paystack checkout and preserve v
   assert.match(promptMigration, /payments\/registration-checkout\?role=vendor/);
   assert.match(email, /Pay securely with Paystack/);
 });
+
+test('admin broadcasts carry one actionable destination across every channel', () => {
+  const migration = read('supabase/migrations/20261029090000_0152_notification_destination_links.sql');
+  const broadcasts = read('app/admin/broadcasts/page.tsx');
+  const notifications = read('app/dashboard/notifications/page.tsx');
+
+  assert.match(migration, /target_filters ->> 'action_url'/);
+  assert.match(migration, /enqueue_trusted_communication_event/);
+  assert.match(migration, /action_url,\s*'announcements'/);
+  assert.match(migration, /jsonb_build_object\(\s*'template', 'admin_broadcast'/);
+  assert.match(broadcasts, /Destination link/);
+  assert.match(broadcasts, /target_filters: \{ action_url/);
+  assert.match(notifications, /Open task/);
+  assert.match(notifications, /aria-label=\{`Open notification:/);
+});
