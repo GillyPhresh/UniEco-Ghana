@@ -512,6 +512,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Subscriptions', href: '/admin/subscriptions', icon: 'CreditCard' },
       { label: 'Payments', href: '/admin/payments', icon: 'CreditCard' },
       { label: 'Sponsored Access', href: '/admin/registration-invites', icon: 'Ticket' },
+      { label: 'University Administrators', href: '/admin/university-administrators', icon: 'UserCheck' },
       { label: 'Invoices', href: '/admin/invoices', icon: 'Receipt' },
       { label: 'Coupons', href: '/admin/coupons', icon: 'Ticket' },
       { label: 'Advertisements', href: '/admin/advertisements', icon: 'Megaphone' },
@@ -545,6 +546,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Audit Logs', href: '/admin/audit-logs', icon: 'ScrollText' },
       { label: 'Roles & Permissions', href: '/admin/roles', icon: 'ShieldCheck' },
       { label: 'Platform Settings', href: '/admin/settings', icon: 'Settings2' },
+      { label: 'My University Admin', href: '/admin/university-admin', icon: 'Award' },
     ],
   },
 ] as const;

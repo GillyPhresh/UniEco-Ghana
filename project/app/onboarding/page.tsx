@@ -19,8 +19,10 @@ export default function OnboardingPage() {
     const params = new URLSearchParams();
     const pendingInvite = window.sessionStorage.getItem('unieco_pending_registration_invite');
     const pendingReferral = window.sessionStorage.getItem('unieco_pending_referral_code');
+    const pendingUniversityAdminToken = window.sessionStorage.getItem('unieco_pending_university_admin_token');
     if (pendingInvite) params.set('invite', pendingInvite);
     if (pendingReferral) params.set('ref', pendingReferral);
+    if (pendingUniversityAdminToken) params.set('university_admin_token', pendingUniversityAdminToken);
     const query = params.toString();
     if (user.role === 'external_vendor' || user.role === 'student_vendor' || intent === 'external_vendor') {
       router.replace(query ? `/onboarding/vendor?${query}` : '/onboarding/vendor');

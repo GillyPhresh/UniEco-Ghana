@@ -40,6 +40,7 @@ import {
   Wallet,
   WifiOff,
   Wrench,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +53,7 @@ const ICON_MAP: Record<string, typeof Shield> = {
   ScrollText: FileText, RotateCcw: Activity,
   Sparkles,
   Settings2,
+  Award,
 };
 
 export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
@@ -95,6 +97,7 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
       pathname === '/admin' || pathname === '/admin/universities' || pathname === '/admin/orders' || pathname === '/admin/delivery' || pathname === '/admin/events' || pathname === '/admin/announcements' || pathname === '/admin/search'
       || pathname === '/admin/businesses' || pathname === '/admin/verification/students' || pathname === '/admin/verification/vendors'
       || pathname === '/admin/students'
+      || pathname === '/admin/university-admin'
     ));
 
   if (!canAccessRoute) {
@@ -167,7 +170,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const navGroups = user?.role === 'university_admin'
     ? ADMIN_NAV_GROUPS
-        .map(group => ({ ...group, items: group.items.filter(item => item.href === '/admin' || item.href === '/admin/universities' || item.href === '/admin/orders' || item.href === '/admin/delivery' || item.href === '/admin/events' || item.href === '/admin/announcements' || item.href === '/admin/search' || item.href === '/admin/businesses' || item.href === '/admin/verification/students' || item.href === '/admin/verification/vendors' || item.href === '/admin/students') }))
+        .map(group => ({ ...group, items: group.items.filter(item => item.href === '/admin' || item.href === '/admin/university-admin' || item.href === '/admin/universities' || item.href === '/admin/orders' || item.href === '/admin/delivery' || item.href === '/admin/events' || item.href === '/admin/announcements' || item.href === '/admin/search' || item.href === '/admin/businesses' || item.href === '/admin/verification/students' || item.href === '/admin/verification/vendors' || item.href === '/admin/students') }))
         .filter(group => group.items.length > 0)
     : user?.role === 'moderator'
       ? ADMIN_NAV_GROUPS

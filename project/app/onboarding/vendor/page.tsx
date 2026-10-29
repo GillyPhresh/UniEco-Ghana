@@ -71,6 +71,7 @@ function VendorOnboarding() {
   const [isStudent, setIsStudent] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [universityAdminToken, setUniversityAdminToken] = useState<string | null>(null);
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'checkout' | 'mobile_money'>('checkout');
   const [mobileMoneyProvider, setMobileMoneyProvider] = useState<'mtn' | 'atl' | 'vod'>('mtn');
@@ -147,6 +148,8 @@ function VendorOnboarding() {
     const params = new URLSearchParams(window.location.search);
     const incomingReferral = params.get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
     if (incomingReferral) setReferralCode(incomingReferral);
+    const incomingUniversityAdminToken = params.get('university_admin_token') || window.sessionStorage.getItem('unieco_pending_university_admin_token');
+    if (incomingUniversityAdminToken) setUniversityAdminToken(incomingUniversityAdminToken);
     const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
     if (!token) return;
     setCashInviteLoading(true);
@@ -263,6 +266,10 @@ function VendorOnboarding() {
       if (registrationError) throw new Error(registrationError.message);
       const vendorId = (registration as { vendor_id?: string } | null)?.vendor_id;
       if (!vendorId) throw new Error('Vendor registration did not return a vendor reference.');
+      if (universityAdminToken) {
+        const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'vendor' });
+        if (adminTokenError) throw new Error(adminTokenError.message);
+      }
       const { error: locationError } = await supabase.rpc('set_my_vendor_location', {
         p_vendor_id: vendorId,
         p_latitude: pin.latitude,
@@ -284,6 +291,7 @@ function VendorOnboarding() {
         if (cashError) throw new Error(cashError.message);
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
         window.sessionStorage.removeItem('unieco_pending_referral_code');
+        window.sessionStorage.removeItem('unieco_pending_university_admin_token');
         clearDraft();
         await refreshProfile();
         router.push('/onboarding/complete?registration=cash');
@@ -312,6 +320,7 @@ function VendorOnboarding() {
       await refreshProfile();
       clearDraft();
       window.sessionStorage.removeItem('unieco_pending_referral_code');
+      window.sessionStorage.removeItem('unieco_pending_university_admin_token');
       if (paymentResult.mobileMoney) {
         router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
       } else if (paymentResult.authorizationUrl) {

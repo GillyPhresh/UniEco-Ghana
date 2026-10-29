@@ -227,6 +227,7 @@ function StudentOnboarding() {
       });
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Check your registration details.');
       const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
+      const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token') || window.sessionStorage.getItem('unieco_pending_university_admin_token');
       if (cashInviteToken) {
         const { error: cashError } = await supabase.rpc('redeem_cash_student_registration', {
           p_token: cashInviteToken,
@@ -242,8 +243,13 @@ function StudentOnboarding() {
           p_student_document_path: form.student_id_document_url || null,
         });
         if (cashError) throw new Error(cashError.message);
+        if (universityAdminToken) {
+          const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student' });
+          if (adminTokenError) throw new Error(adminTokenError.message);
+        }
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
         window.sessionStorage.removeItem('unieco_pending_referral_code');
+        window.sessionStorage.removeItem('unieco_pending_university_admin_token');
         clearDraft();
         router.push('/onboarding/complete?registration=cash');
         return;
@@ -274,11 +280,16 @@ function StudentOnboarding() {
         });
         if (referralError) throw new Error(referralError.message);
       }
+      if (universityAdminToken) {
+        const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student' });
+        if (adminTokenError) throw new Error(adminTokenError.message);
+      }
       if (form.avatar_url) {
         const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
         if (avatarError) throw new Error('Your payment setup is ready, but the profile photo could not be saved. You can add it later from your profile.');
       }
       window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
+      window.sessionStorage.removeItem('unieco_pending_university_admin_token');
       window.location.assign(payment.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
