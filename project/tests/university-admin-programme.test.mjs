@@ -15,11 +15,13 @@ test('university administrator programme is database-authoritative and scoped', 
 });
 
 test('appointment and score workflow protects payment and referral attribution', async () => {
-  const [referrals, appointments, onboarding, tokenRoute] = await Promise.all([
+  const [referrals, appointments, onboarding, tokenRoute, emailFunction, dispatcher] = await Promise.all([
     read('supabase/migrations/20261029190000_0153_university_admin_referrals_and_payroll.sql'),
     read('supabase/migrations/20261029210000_0155_university_admin_appointments_and_scores.sql'),
     read('app/onboarding/student/page.tsx'),
     read('app/signup/page.tsx'),
+    read('supabase/functions/send-email/index.ts'),
+    read('supabase/functions/dispatch-communication-queue/index.ts'),
   ]);
   assert.match(referrals, /token_digest/);
   assert.match(referrals, /qualify_university_admin_registration_internal/);
@@ -30,6 +32,10 @@ test('appointment and score workflow protects payment and referral attribution',
   assert.match(appointments, /Qualified registrations are the only events/);
   assert.match(appointments, /enqueue_trusted_communication_event/);
   assert.match(appointments, /ARRAY\['email','push'\]/);
+  assert.match(appointments, /'template', 'university_admin_appointment'/);
+  assert.match(appointments, /'body', 'Congratulations/);
+  assert.match(emailFunction, /template === 'university_admin_appointment'/);
+  assert.match(dispatcher, /metadata\.body/);
   assert.match(onboarding, /claim_university_admin_registration/);
   assert.match(tokenRoute, /unieco_pending_university_admin_token/);
   assert.match(referrals, /\/signup\?university_admin_token/);

@@ -93,7 +93,9 @@ BEGIN
         'template', 'university_admin_appointment',
         'document_reference', (SELECT document_reference FROM public.university_admin_appointment_letters WHERE id=letter_id),
         'name', profile_name,
+        'letter_body', (SELECT letter_body FROM public.university_admin_appointment_letters WHERE id=letter_id),
         'university_id', NEW.university_id,
+        'body', 'Congratulations. Your UniEco Ghana University Administrator appointment is ready. Open your private workspace to read your appointment letter, duties, and scorecard.',
         'action_url', 'https://www.uniecoghana.com/admin/university-admin'
       )
     );
