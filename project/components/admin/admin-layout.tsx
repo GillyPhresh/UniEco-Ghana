@@ -18,6 +18,7 @@ import {
   CreditCard,
   FileText,
   FolderTree,
+  Gift,
   GraduationCap,
   LayoutDashboard,
   LifeBuoy,
@@ -46,7 +47,7 @@ import { cn } from '@/lib/utils';
 
 const ICON_MAP: Record<string, typeof Shield> = {
   LayoutDashboard, BarChart3, Wallet, Activity, Search, Users, Store,
-  GraduationCap, FolderTree, ShoppingBag, CreditCard, Megaphone, Truck,
+  GraduationCap, FolderTree, Gift, ShoppingBag, CreditCard, Megaphone, Truck,
   LifeBuoy, Bell, FileText, ShieldCheck, CalendarDays, ShieldAlert,
   Receipt, Ticket, Building2, Package, Wrench,
   UserCheck: ShieldCheck, StoreCheck: Store, Flag: ShieldAlert, Star: ShieldCheck,

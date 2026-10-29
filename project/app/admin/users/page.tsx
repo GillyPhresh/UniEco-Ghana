@@ -43,6 +43,7 @@ function UsersContent() {
   const [users, setUsers] = useState<AdminUserDirectoryItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -68,7 +69,10 @@ function UsersContent() {
 
   useEffect(() => { void loadUsers(); }, [loadUsers]);
 
-  function handleSearch() { setPage(0); loadUsers(); }
+  function handleSearch() {
+    setPage(0);
+    setSearch(searchInput.trim());
+  }
 
   const requestUserAction = (action: NonNullable<typeof pendingAction>) => {
     if (!selectedUser) return;
@@ -115,7 +119,7 @@ function UsersContent() {
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search by name or email..." value={search} onChange={e => setSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+          <Input className="pl-9" placeholder="Search by name or email..." value={searchInput} inputMode="search" enterKeyHint="search" aria-label="Search users by name or email" onChange={e => setSearchInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
         </div>
         <Select value={roleFilter} onValueChange={v => { setRoleFilter(v); setPage(0); }}>
           <SelectTrigger className="w-40"><SelectValue placeholder="All roles" /></SelectTrigger>
@@ -143,7 +147,7 @@ function UsersContent() {
           {loading ? (
             <div className="space-y-2 p-4">{[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}</div>
           ) : error ? (
-            <div className="space-y-3 py-12 text-center text-sm text-muted-foreground"><p>{error}</p><Button variant="outline" size="sm" onClick={() => void loadUsers()}>Retry</Button></div>
+            <div className="space-y-3 py-12 text-center text-sm text-muted-foreground"><p role="alert">{error}</p><Button variant="outline" size="sm" onClick={() => void loadUsers()}>Retry</Button></div>
           ) : users.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted-foreground">No users found</div>
           ) : (

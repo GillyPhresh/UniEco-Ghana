@@ -512,6 +512,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Subscriptions', href: '/admin/subscriptions', icon: 'CreditCard' },
       { label: 'Payments', href: '/admin/payments', icon: 'CreditCard' },
       { label: 'Sponsored Access', href: '/admin/registration-invites', icon: 'Ticket' },
+      { label: 'Referrals & Rewards', href: '/admin/referrals', icon: 'Gift' },
       { label: 'University Administrators', href: '/admin/university-administrators', icon: 'UserCheck' },
       { label: 'Invoices', href: '/admin/invoices', icon: 'Receipt' },
       { label: 'Coupons', href: '/admin/coupons', icon: 'Ticket' },

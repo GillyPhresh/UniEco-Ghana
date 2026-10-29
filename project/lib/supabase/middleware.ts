@@ -117,6 +117,7 @@ export async function updateSession(request: NextRequest) {
       pathname === '/admin' || pathname === '/admin/universities' || pathname === '/admin/orders' || pathname === '/admin/delivery' || pathname === '/admin/events' || pathname === '/admin/announcements' || pathname === '/admin/search'
       || pathname === '/admin/businesses' || pathname === '/admin/verification/students' || pathname === '/admin/verification/vendors'
       || pathname === '/admin/students'
+      || pathname === '/admin/university-admin'
     );
 
     if (error || (!isPlatformStaff && !isAssignedUniversityAdminRoute)) {
