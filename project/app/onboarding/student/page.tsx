@@ -9,6 +9,7 @@ import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft }
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { startPaystackCheckout } from '@/lib/data/payment-client';
 import { studentOnboardingSchema } from '@/lib/validation';
+import { ACADEMIC_DEPARTMENTS, ACADEMIC_FACULTIES, ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { PushPermissionCard } from '@/components/notifications/push-permission-card';
@@ -179,11 +180,7 @@ function StudentOnboarding() {
     }
     if (step === 1) {
       if (!form.university_id) return 'Select your university';
-      if (!form.programme) return 'Enter your programme';
-      if (!form.faculty) return 'Enter your faculty';
-      if (!form.department) return 'Enter your department';
       if (!form.level) return 'Select your level';
-      if (!form.index_number || form.index_number.trim().length < 3) return 'Enter your index/student number';
     }
     return null;
   };
@@ -216,11 +213,11 @@ function StudentOnboarding() {
     try {
       const parsed = studentOnboardingSchema.safeParse({
         university_id: form.university_id,
-        programme: form.programme.trim(),
-        faculty: form.faculty.trim(),
-        department: form.department.trim(),
+        programme: form.programme.trim() || undefined,
+        faculty: form.faculty.trim() || undefined,
+        department: form.department.trim() || undefined,
         level: form.level,
-        index_number: form.index_number.trim(),
+        index_number: form.index_number.trim() || undefined,
         admission_year: form.admission_year,
         graduation_year: form.graduation_year,
         phone: normalizeGhanaPhone(form.phone),
@@ -233,10 +230,10 @@ function StudentOnboarding() {
           p_token: cashInviteToken,
           p_university_id: form.university_id,
           p_phone: form.phone,
-          p_student_id_number: form.index_number,
-          p_program: form.programme,
-          p_faculty: form.faculty,
-          p_department: form.department,
+          p_student_id_number: form.index_number.trim() || null,
+          p_program: form.programme.trim() || null,
+          p_faculty: form.faculty.trim() || null,
+          p_department: form.department.trim() || null,
           p_level: form.level,
           p_admission_year: form.admission_year,
           p_graduation_year: form.graduation_year || null,
@@ -260,10 +257,10 @@ function StudentOnboarding() {
         registration: {
           universityId: form.university_id,
           phone: normalizeGhanaPhone(form.phone) || form.phone,
-          studentIdNumber: form.index_number.trim(),
-          program: form.programme.trim(),
-          faculty: form.faculty.trim(),
-          department: form.department.trim(),
+          studentIdNumber: form.index_number.trim() || null,
+          program: form.programme.trim() || null,
+          faculty: form.faculty.trim() || null,
+          department: form.department.trim() || null,
           level: form.level,
           admissionYear: form.admission_year,
           graduationYear: form.graduation_year || null,
@@ -485,36 +482,35 @@ function StudentOnboarding() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="programme">Programme of study</Label>
-                <Input
-                  id="programme"
-                  placeholder="e.g. Computer Science"
-                  value={form.programme}
-                  maxLength={120}
-                  onChange={(e) => updateForm('programme', e.target.value)}
-                />
+                <Label htmlFor="programme">Programme of study <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <Select value={form.programme} onValueChange={(value) => updateForm('programme', value)}>
+                  <SelectTrigger id="programme" className="min-h-11">
+                    <SelectValue placeholder="Select your programme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACADEMIC_PROGRAMMES.map((programme) => <SelectItem key={programme} value={programme}>{programme}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="faculty">Faculty</Label>
-                  <Input
-                    id="faculty"
-                    placeholder="e.g. Science"
-                    value={form.faculty}
-                    maxLength={120}
-                    onChange={(e) => updateForm('faculty', e.target.value)}
-                  />
+                  <Label htmlFor="faculty">Faculty <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                  <Select value={form.faculty} onValueChange={(value) => updateForm('faculty', value)}>
+                    <SelectTrigger id="faculty" className="min-h-11"><SelectValue placeholder="Select faculty" /></SelectTrigger>
+                    <SelectContent>
+                      {ACADEMIC_FACULTIES.map((faculty) => <SelectItem key={faculty} value={faculty}>{faculty}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    placeholder="e.g. Computer Science"
-                    value={form.department}
-                    maxLength={120}
-                    onChange={(e) => updateForm('department', e.target.value)}
-                  />
+                  <Label htmlFor="department">Department <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                  <Select value={form.department} onValueChange={(value) => updateForm('department', value)}>
+                    <SelectTrigger id="department" className="min-h-11"><SelectValue placeholder="Select department" /></SelectTrigger>
+                    <SelectContent>
+                      {ACADEMIC_DEPARTMENTS.map((department) => <SelectItem key={department} value={department}>{department}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -552,16 +548,16 @@ function StudentOnboarding() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="index_number">Index / Student number</Label>
+                <Label htmlFor="index_number">Index / Student number <span className="font-normal text-muted-foreground">(optional)</span></Label>
                 <Input
                   id="index_number"
-                  placeholder="e.g. 730000000"
+                  placeholder="Add it if you have it"
                   value={form.index_number}
                   maxLength={80}
                   onChange={(e) => updateForm('index_number', e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Use your university-issued student ID number. It is visible only to authorized verification staff.
+                  You can add your university-issued number now or provide it later during verification. It is visible only to authorized verification staff.
                 </p>
               </div>
 

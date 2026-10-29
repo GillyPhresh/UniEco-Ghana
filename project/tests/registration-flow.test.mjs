@@ -57,3 +57,25 @@ test('cash registration links are a single-use audited exception and bypass Pays
   assert.match(accessGate, /payment_type = 'student_registration'/);
   assert.match(accessGate, /payment_type = 'vendor_registration'/);
 });
+
+test('student academic details are optional and selected from the mobile catalogue', async () => {
+  const [schema, onboarding, catalogue, migration, paymentClient] = await Promise.all([
+    read('lib/validation/index.ts'),
+    read('app/onboarding/student/page.tsx'),
+    read('lib/registration/academic-catalog.ts'),
+    read('supabase/migrations/20261029120000_0159_optional_student_academic_fields.sql'),
+    read('lib/data/payment-client.ts'),
+  ]);
+  assert.match(schema, /programme: z\.string\(\)\.max\(120[\s\S]*optional\(\)/);
+  assert.match(schema, /index_number: z\.string\(\)\.max\(80[\s\S]*optional\(\)/);
+  assert.match(onboarding, /ACADEMIC_PROGRAMMES/);
+  assert.match(onboarding, /ACADEMIC_FACULTIES/);
+  assert.match(onboarding, /ACADEMIC_DEPARTMENTS/);
+  assert.match(onboarding, /Index \/ Student number <span className="font-normal text-muted-foreground">\(optional\)/);
+  assert.match(catalogue, /Other \/ not listed yet/);
+  assert.match(migration, /NULLIF\(trim\(p_student_id_number\),''\)/);
+  assert.match(migration, /NULLIF\(trim\(p_program\),''\)/);
+  assert.match(migration, /NULLIF\(trim\(p_faculty\),''\)/);
+  assert.match(migration, /NULLIF\(trim\(p_department\),''\)/);
+  assert.match(paymentClient, /studentIdNumber\?: string \| null/);
+});

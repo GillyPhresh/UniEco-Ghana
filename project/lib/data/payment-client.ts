@@ -18,10 +18,10 @@ export async function startPaystackCheckout(input: {
   registration?: {
     universityId: string;
     phone: string;
-    studentIdNumber: string;
-    program: string;
-    faculty: string;
-    department: string;
+    studentIdNumber?: string | null;
+    program?: string | null;
+    faculty?: string | null;
+    department?: string | null;
     level: string;
     admissionYear: number;
     graduationYear?: number | null;

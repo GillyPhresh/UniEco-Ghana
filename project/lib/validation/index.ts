@@ -30,16 +30,13 @@ export const signUpSchema = signUpBaseSchema.refine(
 
 export const studentOnboardingSchema = z.object({
   university_id: z.string().uuid('Select your university'),
-  programme: z.string().min(2, 'Enter your programme of study'),
-  faculty: z.string().min(2, 'Enter your faculty'),
-  department: z.string().min(2, 'Enter your department'),
+  programme: z.string().max(120, 'Programme is too long').optional().or(z.literal('')),
+  faculty: z.string().max(120, 'Faculty is too long').optional().or(z.literal('')),
+  department: z.string().max(120, 'Department is too long').optional().or(z.literal('')),
   level: z.enum(['100', '200', '300', '400', '500', '600', 'graduate'], {
     error: 'Select your level',
   }),
-  index_number: z
-    .string()
-    .min(3, 'Enter your index/student number')
-    .max(30, 'Index number seems too long'),
+  index_number: z.string().max(80, 'Index number seems too long').optional().or(z.literal('')),
   admission_year: z
     .number()
     .int()
