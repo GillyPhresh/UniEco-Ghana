@@ -7,6 +7,7 @@ const read = async (path) => (await readFile(new URL(path, root), 'utf8')).repla
 
 test('payment reconciliation verifies with Paystack before applying through the protected RPC', async () => {
   const source = await read('lib/payments/paystack-reconciliation.server.ts');
+  const schema = await read('supabase/migrations/20260911230000_0030_phase_a2_financial_authority.sql');
   assert.match(source, /import 'server-only'/);
   assert.match(source, /verifyPaystackTransaction/);
   assert.match(source, /apply_verified_paystack_webhook/);
@@ -16,6 +17,8 @@ test('payment reconciliation verifies with Paystack before applying through the 
   assert.match(source, /p_amount: amountMinor \/ 100/);
   assert.match(source, /p_currency: currency/);
   assert.match(source, /manual-reconcile-/);
+  assert.match(source, /reconciliation: \{ source: 'admin_manual_verification', event_id: retryEventId \}/);
+  assert.match(schema, /UNIQUE\s*\(provider,\s*payload_hash\)/i);
 });
 
 test('legacy reconciliation binds only missing environment metadata before retrying', async () => {

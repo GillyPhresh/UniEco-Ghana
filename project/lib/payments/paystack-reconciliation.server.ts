@@ -53,7 +53,16 @@ export async function reconcilePaystackPayment(reference: string) {
     throw new Error('Paystack returned an invalid amount or currency.');
   }
 
-  const payload = { event: status === 'success' ? 'charge.success' : 'charge.update', data: verified };
+  // A manual verification is a separate, audited reconciliation event. Include
+  // its unique ID in the payload hash: payment_webhook_events also has a unique
+  // (provider, payload_hash) constraint, so hashing only the provider response
+  // can collide with the original webhook and abort this retry.
+  const retryEventId = `manual-reconcile-${String(verified.id)}-${Date.now()}`;
+  const payload = {
+    event: status === 'success' ? 'charge.success' : 'charge.update',
+    data: verified,
+    reconciliation: { source: 'admin_manual_verification', event_id: retryEventId },
+  };
   const payloadHash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
   const environment = getPaystackMode();
   const client = serviceClient();
@@ -73,9 +82,8 @@ export async function reconcilePaystackPayment(reference: string) {
   if (environmentError) throw new Error('The verified payment environment could not be checked safely.');
 
   // A previous webhook may already have recorded the provider event as
-  // reconciliation_required. Use a new audited event for this server-side
-  // verification retry so the protected RPC can process it again safely.
-  const retryEventId = `manual-reconcile-${String(verified.id)}-${Date.now()}`;
+  // reconciliation_required. The retry event has its own event ID and payload
+  // hash, while the verified Paystack data remains unchanged inside `data`.
   const { data, error } = await client.rpc('apply_verified_paystack_webhook', {
     p_provider_event_id: retryEventId,
     p_payload_hash: payloadHash,
