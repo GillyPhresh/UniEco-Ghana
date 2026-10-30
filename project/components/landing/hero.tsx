@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Building2, MapPinned, Package, Store } from 'lucide-react';
@@ -11,24 +12,49 @@ interface HeroProps {
   productCount: number;
 }
 
+const campusBackgrounds = [
+  { src: '/assets/homepage/knust-landmark.jpg', alt: 'KNUST campus landmark', position: 'center 48%' },
+  { src: '/assets/homepage/ucc-gate.jpg', alt: 'University of Cape Coast entrance', position: 'center 50%' },
+  { src: '/assets/homepage/campus-building.jpg', alt: 'University campus building', position: 'center 52%' },
+  { src: '/assets/homepage/campus-clocktower.jpg', alt: 'Campus clock tower', position: 'center 45%' },
+];
+
 export function Hero({ vendorCount, universityCount, productCount }: HeroProps) {
+  const [activeBackground, setActiveBackground] = useState(0);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      setActiveBackground((current) => (current + 1) % campusBackgrounds.length);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
     <section className="relative isolate overflow-hidden bg-[#062d27] text-white">
-      <Image
-        src="/assets/homepage/campus-panorama.webp"
-        alt=""
-        fill
-        priority
-        sizes="(max-width: 640px) 480vw, (max-width: 1024px) 280vw, 160vw"
-        aria-hidden="true"
-        className="-z-20 object-cover object-[22%_center] opacity-60 saturate-[0.82] sm:object-[40%_center]"
-      />
+      <div className="absolute inset-0 -z-20 overflow-hidden bg-[#062d27]" aria-hidden="true">
+        {campusBackgrounds.map((background, index) => (
+          <Image
+            key={background.src}
+            src={background.src}
+            alt=""
+            fill
+            priority={index === 0}
+            sizes="100vw"
+            style={{
+              objectPosition: background.position,
+              opacity: activeBackground === index ? 1 : 0,
+            }}
+            className="object-cover saturate-[0.86] transition-opacity duration-1000 motion-reduce:transition-none"
+          />
+        ))}
+      </div>
 
       <div
         className="absolute inset-0 -z-10"
         aria-hidden="true"
         style={{
-          background: 'linear-gradient(90deg, rgba(6,45,39,.92) 0%, rgba(6,45,39,.81) 42%, rgba(6,45,39,.62) 100%), linear-gradient(0deg, rgba(6,45,39,.32), rgba(6,45,39,.12))',
+          background: 'linear-gradient(90deg, rgba(6,45,39,.94) 0%, rgba(6,45,39,.84) 42%, rgba(6,45,39,.62) 100%), linear-gradient(0deg, rgba(6,45,39,.36), rgba(6,45,39,.14))',
         }}
       />
       <div className="absolute -left-36 top-16 -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden="true" />
