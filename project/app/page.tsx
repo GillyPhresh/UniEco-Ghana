@@ -17,19 +17,17 @@ import {
   getCategoryCounts,
   getVendorCountByUniversity,
   getTotalVendorCount,
-  getTotalReviewCount,
   getTotalProductCount,
 } from '@/lib/data/public-queries';
 
 export default async function Home() {
-  const [universities, featuredVendors, events, categoryCounts, totalVendors, totalUniversities, totalReviews, totalProducts] = await Promise.all([
+  const [universities, featuredVendors, events, categoryCounts, totalVendors, totalUniversities, totalProducts] = await Promise.all([
     getUniversities(6),
     getFeaturedVendors(8),
     getPublishedEvents(3),
     getCategoryCounts(),
     getTotalVendorCount(),
     getTotalUniversityCount(),
-    getTotalReviewCount(),
     getTotalProductCount(),
   ]);
 
@@ -45,14 +43,7 @@ export default async function Home() {
         <Hero
           vendorCount={totalVendors}
           universityCount={totalUniversities}
-          reviewCount={totalReviews}
-          featuredBusinesses={featuredVendors.map((vendor) => ({
-            id: vendor.id,
-            business_name: vendor.business_name,
-            business_type: vendor.business_type,
-            rating_avg: vendor.rating_avg,
-            rating_count: vendor.rating_count,
-          }))}
+          productCount={totalProducts}
         />
         <UniversitySection universities={universities} vendorCounts={vendorCounts} />
         <FeaturedBusinesses vendors={featuredVendors} />
