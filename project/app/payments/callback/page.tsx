@@ -43,7 +43,7 @@ function PaymentCallbackContent() {
         if (!response.ok) throw new Error(body.error || 'Payment could not be found.');
         if (cancelled) return;
         let currentPayment = body.payment || null;
-        if (currentPayment && !['success', 'failed', 'cancelled', 'reconciliation_required', 'refunded'].includes(currentPayment.status) && !reconciled) {
+        if (currentPayment && !['success', 'failed', 'cancelled', 'refunded'].includes(currentPayment.status) && !reconciled) {
           reconciled = true;
           try {
             const reconcileResponse = await fetch('/api/payments/reconcile', {

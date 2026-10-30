@@ -107,6 +107,7 @@ function Content() {
           <TabsTrigger value="success">Successful</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="initiated">Initiated</TabsTrigger>
+          <TabsTrigger value="reconciliation_required">Needs review</TabsTrigger>
           <TabsTrigger value="failed">Failed</TabsTrigger>
           <TabsTrigger value="refunded">Refunded</TabsTrigger>
         </TabsList>
@@ -129,7 +130,7 @@ function Content() {
               {payments.map(p => <article key={p.id} className="rounded-xl border border-border bg-background p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-all font-mono text-sm font-medium">{p.payment_reference || 'Payment reference unavailable'}</p><p className="mt-1 break-words text-sm">{p.user?.full_name || p.user?.email || 'User unavailable'}</p></div><Badge className="shrink-0">{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge></div>
                 <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-3 text-sm"><div><dt className="text-xs text-muted-foreground">Amount</dt><dd className="mt-0.5 font-semibold">GH₵{p.amount.toFixed(2)}</dd></div><div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="mt-0.5 capitalize">{p.provider}</dd></div><div><dt className="text-xs text-muted-foreground">Type</dt><dd className="mt-0.5 capitalize">{p.payment_type}</dd></div><div><dt className="text-xs text-muted-foreground">Date</dt><dd className="mt-0.5 text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</dd></div></dl>
-                {p.provider === 'paystack' && ['pending', 'initiated'].includes(p.status) && p.payment_reference && <Button variant="outline" size="sm" className="mt-4 min-h-10 w-full" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-2 h-4 w-4 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />{reconcilingReference === p.payment_reference ? 'Checking Paystack…' : 'Verify payment status'}</Button>}
+                {p.provider === 'paystack' && ['pending', 'initiated', 'reconciliation_required'].includes(p.status) && p.payment_reference && <Button variant="outline" size="sm" className="mt-4 min-h-10 w-full" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-2 h-4 w-4 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />{reconcilingReference === p.payment_reference ? 'Checking Paystack…' : 'Verify payment status'}</Button>}
               </article>)}
             </div>
             <div className="hidden lg:block">
@@ -156,7 +157,7 @@ function Content() {
                     <TableCell className="font-medium">GH₵{p.amount.toFixed(2)}</TableCell>
                     <TableCell><Badge className={PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.color || 'bg-muted text-muted-foreground'}>{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge></TableCell>
                     <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</TableCell>
-                    <TableCell>{p.provider === 'paystack' && ['pending', 'initiated'].includes(p.status) && p.payment_reference ? <Button variant="ghost" size="sm" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />Verify</Button> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
+                    <TableCell>{p.provider === 'paystack' && ['pending', 'initiated', 'reconciliation_required'].includes(p.status) && p.payment_reference ? <Button variant="ghost" size="sm" disabled={reconcilingReference === p.payment_reference} onClick={() => void reconcilePayment(p.payment_reference!)}><RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${reconcilingReference === p.payment_reference ? 'animate-spin' : ''}`} />Verify</Button> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

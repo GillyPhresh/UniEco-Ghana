@@ -55,15 +55,29 @@ export async function reconcilePaystackPayment(reference: string) {
 
   const payload = { event: status === 'success' ? 'charge.success' : 'charge.update', data: verified };
   const payloadHash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-  const { data, error } = await serviceClient().rpc('apply_verified_paystack_webhook', {
-    p_provider_event_id: String(verified.id),
+  const environment = getPaystackMode();
+  const client = serviceClient();
+  const { error: environmentError } = await client.rpc('bind_legacy_paystack_environment', {
+    p_payment_reference: reference,
+    p_provider_environment: environment,
+    p_amount: amountMinor / 100,
+    p_currency: currency,
+  });
+  if (environmentError) throw new Error('The verified payment environment could not be bound safely.');
+
+  // A previous webhook may already have recorded the provider event as
+  // reconciliation_required. Use a new audited event for this server-side
+  // verification retry so the protected RPC can process it again safely.
+  const retryEventId = `manual-reconcile-${String(verified.id)}-${Date.now()}`;
+  const { data, error } = await client.rpc('apply_verified_paystack_webhook', {
+    p_provider_event_id: retryEventId,
     p_payload_hash: payloadHash,
     p_payment_reference: reference,
     p_provider_reference: String(verified.id),
     p_status: status,
     p_amount: amountMinor / 100,
     p_currency: currency,
-    p_provider_environment: getPaystackMode(),
+    p_provider_environment: environment,
     p_signature: null,
     p_payload: payload,
   });

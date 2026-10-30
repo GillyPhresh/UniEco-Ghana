@@ -10,10 +10,21 @@ test('payment reconciliation verifies with Paystack before applying through the 
   assert.match(source, /import 'server-only'/);
   assert.match(source, /verifyPaystackTransaction/);
   assert.match(source, /apply_verified_paystack_webhook/);
+  assert.match(source, /bind_legacy_paystack_environment/);
   assert.match(source, /SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(source, /payment_reference/);
   assert.match(source, /p_amount: amountMinor \/ 100/);
   assert.match(source, /p_currency: currency/);
+  assert.match(source, /manual-reconcile-/);
+});
+
+test('legacy reconciliation binds only missing environment metadata before retrying', async () => {
+  const migration = await read('supabase/migrations/20261030130000_0162_legacy_paystack_reconciliation_retry.sql');
+  assert.match(migration, /provider_environment IS NULL/);
+  assert.match(migration, /p_amount/);
+  assert.match(migration, /p_currency/);
+  assert.match(migration, /service_role/);
+  assert.match(migration, /Never overwrite a known environment/);
 });
 
 test('user reconciliation remains scoped to the authenticated payer', async () => {
@@ -51,6 +62,16 @@ test('payment and role management surfaces provide phone-sized representations',
     assert.match(source, /lg:hidden/, `${page} is missing a mobile representation`);
     assert.match(source, /hidden[^"\n]*lg:block/, `${page} is missing a desktop representation`);
   }
+});
+
+test('admin can retry provider verification for reconciliation-required payments', async () => {
+  const adminPayments = await read('app/admin/payments/page.tsx');
+  const callback = await read('app/payments/callback/page.tsx');
+  const paymentTypes = await read('lib/types/payment.ts');
+  assert.match(adminPayments, /value="reconciliation_required">Needs review/);
+  assert.match(adminPayments, /\['pending', 'initiated', 'reconciliation_required'\]\.includes\(p\.status\)/);
+  assert.match(callback, /!\['success', 'failed', 'cancelled', 'refunded'\]\.includes\(currentPayment\.status\)/);
+  assert.match(paymentTypes, /reconciliation_required: \{ label: 'Needs review'/);
 });
 
 test('verified Paystack reconciliation keeps registration and subscription purposes separate', async () => {

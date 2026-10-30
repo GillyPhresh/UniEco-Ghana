@@ -264,6 +264,7 @@ export const PAYMENT_STATUSES = {
   pending: { label: 'Pending', color: 'bg-warning/10 text-warning' },
   initiated: { label: 'Initiated', color: 'bg-info/10 text-info' },
   success: { label: 'Successful', color: 'bg-success/10 text-success' },
+  reconciliation_required: { label: 'Needs review', color: 'bg-warning/10 text-warning' },
   failed: { label: 'Failed', color: 'bg-destructive/10 text-destructive' },
   cancelled: { label: 'Cancelled', color: 'bg-muted text-muted-foreground' },
   refunded: { label: 'Refunded', color: 'bg-accent/10 text-accent' },
