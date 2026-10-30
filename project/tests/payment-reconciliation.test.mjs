@@ -74,6 +74,14 @@ test('admin can retry provider verification for reconciliation-required payments
   assert.match(paymentTypes, /reconciliation_required: \{ label: 'Needs review'/);
 });
 
+test('Paystack verification and admin retry cannot hang forever', async () => {
+  const paystack = await read('lib/payments/paystack.server.ts');
+  const adminPayments = await read('app/admin/payments/page.tsx');
+  assert.match(paystack, /setTimeout\(\(\) => controller\.abort\(\), 15_000\)/);
+  assert.match(adminPayments, /setTimeout\(\(\) => controller\.abort\(\), 30_000\)/);
+  assert.match(adminPayments, /Verification timed out\. Please try again\./);
+});
+
 test('verified Paystack reconciliation keeps registration and subscription purposes separate', async () => {
   const migration = await read('supabase/migrations/20261030110000_0161_subscription_reconciliation_scope.sql');
   assert.match(migration, /ELSIF payment_row\.payment_type = 'subscription'/);

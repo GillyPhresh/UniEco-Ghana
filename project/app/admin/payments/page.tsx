@@ -52,11 +52,14 @@ function Content() {
 
   const reconcilePayment = async (reference: string) => {
     setReconcilingReference(reference);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
     try {
       const response = await fetch('/api/admin/payments/reconcile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
+        signal: controller.signal,
         body: JSON.stringify({ reference }),
       });
       const body = await response.json() as { payment?: { status?: string }; error?: string };
@@ -64,8 +67,11 @@ function Content() {
       toast.success(body.payment?.status === 'success' ? 'Payment confirmed and dashboard updated.' : 'Payment status refreshed.');
       await loadPayments();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to verify this payment.');
+      toast.error(error instanceof Error && error.name === 'AbortError'
+        ? 'Verification timed out. Please try again.'
+        : error instanceof Error ? error.message : 'Unable to verify this payment.');
     } finally {
+      clearTimeout(timeout);
       setReconcilingReference(null);
     }
   };

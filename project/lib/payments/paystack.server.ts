@@ -112,9 +112,21 @@ export async function chargePaystackMobileMoney(input: {
 }
 
 export async function verifyPaystackTransaction(reference: string) {
-  const response = await fetch(`${PAYSTACK_API}/transaction/verify/${encodeURIComponent(reference)}`, {
-    headers: { Authorization: `Bearer ${secret()}` }, cache: 'no-store',
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  let response: Response;
+  try {
+    response = await fetch(`${PAYSTACK_API}/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: { Authorization: `Bearer ${secret()}` }, cache: 'no-store', signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Paystack verification timed out. Please try again.');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
   const payload = await response.json() as { status?: boolean; message?: string; data?: Record<string, unknown> };
   if (!response.ok || !payload.status || !payload.data) throw new Error(payload.message || 'Paystack transaction verification failed');
   return payload.data;
