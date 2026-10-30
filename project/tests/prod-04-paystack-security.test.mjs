@@ -16,6 +16,7 @@ test('Paystack initialization is server-only, GHS-only, and guarded by explicit 
   assert.match(adapter, /currency: 'GHS'/);
   assert.match(adapter, /Math\.round\(input\.amountGhs \* 100\)/);
   assert.match(route, /create_subscription_payment_intent/);
+  assert.match(route, /p_auto_renew: body\.autoRenew === true/);
   assert.match(route, /create_marketplace_payment_intent/);
   assert.match(route, /record_paystack_checkout_initialized/);
   assert.doesNotMatch(route, /NEXT_PUBLIC_PAYSTACK_SECRET/);

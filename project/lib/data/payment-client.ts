@@ -15,6 +15,7 @@ export async function startPaystackCheckout(input: {
   vendorId?: string;
   orderId?: string;
   idempotencyKey: string;
+  autoRenew?: boolean;
   registration?: {
     universityId: string;
     phone: string;

@@ -93,7 +93,7 @@ function Content() {
     try {
       if (selectedProvider === 'paystack') {
         const { authorizationUrl, error } = await startPaystackCheckout({
-          purpose: 'subscription', vendorId: vendor.id, idempotencyKey: createIdempotencyKey(),
+          purpose: 'subscription', vendorId: vendor.id, autoRenew, idempotencyKey: createIdempotencyKey(),
         });
         if (error || !authorizationUrl) {
           const message = error || 'Could not start Paystack checkout.';

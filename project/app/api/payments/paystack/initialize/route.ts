@@ -9,6 +9,7 @@ export const dynamic = 'force-dynamic';
 type RequestBody = {
   purpose?: 'subscription' | 'marketplace' | 'student_registration' | 'vendor_registration';
   vendorId?: string; orderId?: string; idempotencyKey?: string;
+  autoRenew?: boolean;
   mobileMoney?: { phone?: string; provider?: PaystackMobileMoneyProvider };
   registration?: { universityId?: string; phone?: string; studentIdNumber?: string; program?: string; faculty?: string; department?: string; level?: string; admissionYear?: number; graduationYear?: number | null; studentDocumentPath?: string | null; referralCode?: string | null };
 };
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     let intent: unknown;
     let intentError: { code?: string; message: string } | null = null;
     if (body.purpose === 'subscription' && body.vendorId) {
-      const result = await rpcClient.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: false, p_idempotency_key: body.idempotencyKey });
+      const result = await rpcClient.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: body.autoRenew === true, p_idempotency_key: body.idempotencyKey });
       intent = result.data; intentError = result.error;
     } else if (body.purpose === 'marketplace' && body.orderId) {
       const result = await rpcClient.rpc('create_marketplace_payment_intent', { p_order_id: body.orderId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_idempotency_key: body.idempotencyKey });

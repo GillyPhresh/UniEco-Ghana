@@ -52,3 +52,13 @@ test('payment and role management surfaces provide phone-sized representations',
     assert.match(source, /hidden[^"\n]*lg:block/, `${page} is missing a desktop representation`);
   }
 });
+
+test('verified Paystack reconciliation keeps registration and subscription purposes separate', async () => {
+  const migration = await read('supabase/migrations/20261030110000_0161_subscription_reconciliation_scope.sql');
+  assert.match(migration, /ELSIF payment_row\.payment_type = 'subscription'/);
+  assert.doesNotMatch(migration, /payment_row\.payment_type IN \('subscription', 'vendor_registration'\)/);
+  assert.match(migration, /subscription_plan/);
+  assert.match(migration, /auto_renew_value/);
+  assert.match(migration, /Vendor registration is not a subscription/i);
+  assert.doesNotMatch(migration, /payment_row\.amount = 20/);
+});

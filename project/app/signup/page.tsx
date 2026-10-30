@@ -319,9 +319,9 @@ export default function SignUpPage() {
                   />
                   <span>
                     I agree to the{' '}
-                    <Link href="#" className="text-primary hover:underline">Terms of Service</Link>{' '}
+                    <Link href="/terms-of-service" className="text-primary hover:underline">Terms of Service</Link>{' '}
                     and{' '}
-                    <Link href="#" className="text-primary hover:underline">Privacy Policy</Link>
+                    <Link href="/privacy-policy" className="text-primary hover:underline">Privacy Policy</Link>
                   </span>
                 </label>
                 {errors.terms && (

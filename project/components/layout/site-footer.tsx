@@ -24,7 +24,7 @@ export function SiteFooter() {
               <SocialLink href={siteConfig.links.facebook} label="Facebook">
                 <Facebook className="h-4 w-4" />
               </SocialLink>
-              <SocialLink href="mailto:hello@unieco.gh" label="Email">
+              <SocialLink href="mailto:info.uniecoghana@gmail.com" label="Email UniEco Ghana">
                 <Mail className="h-4 w-4" />
               </SocialLink>
             </div>

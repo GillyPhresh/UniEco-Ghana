@@ -60,8 +60,8 @@ export const footerLinks = {
     { label: 'Wishlist', href: '/wishlist' },
   ],
   Legal: [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Code of Conduct', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy-policy' },
+    { label: 'Terms of Service', href: '/terms-of-service' },
+    { label: 'Code of Conduct', href: '/code-of-conduct' },
   ],
 } as const;
