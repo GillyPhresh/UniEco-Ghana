@@ -13,7 +13,7 @@ test('student registration starts the authoritative Paystack flow before activat
   ]);
   assert.match(student, /startPaystackCheckout/);
   assert.match(student, /purpose: 'student_registration'/);
-  assert.match(student, /Pay GH₵10 and continue/);
+  assert.match(student, /Pay securely and continue/);
   assert.doesNotMatch(student, /Complete free registration/);
   assert.match(payments, /begin_student_registration_payment/);
   assert.match(migration, /payment.status = 'success'/);
@@ -45,4 +45,22 @@ test('Paystack callback routes both registration types to onboarding completion'
   assert.match(callback, /onboarding\/complete\?registration=paid/);
   assert.match(callback, /Try payment again/);
   assert.match(callback, /onboarding\/student\?payment_required=1/);
+});
+
+test('registration access fails closed and completion cannot be opened without verified access', async () => {
+  const [middleware, complete] = await Promise.all([
+    read('lib/supabase/middleware.ts'),
+    read('app/onboarding/complete/page.tsx'),
+  ]);
+  assert.match(middleware, /if \(accessError \|\| !access \|\| access\.allowed !== true\)/);
+  assert.match(complete, /get_my_registration_access/);
+  assert.match(complete, /!\['paid', 'cash'\]\.includes/);
+});
+
+test('vendor payment verification follows the configured fee snapshot', async () => {
+  const migration = await read('supabase/migrations/20261030100000_0160_registration_payment_consistency.sql');
+  assert.match(migration, /vendor_registration_fee INTO fee/);
+  assert.match(migration, /expected_fee := COALESCE\(state_row\.amount, fee\)/);
+  assert.match(migration, /NEW\.amount = expected_amount/);
+  assert.doesNotMatch(migration, /NEW\.amount = 20\.00/);
 });

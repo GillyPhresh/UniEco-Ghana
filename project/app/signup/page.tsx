@@ -204,7 +204,7 @@ export default function SignUpPage() {
 
               <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950">
                 <p className="font-semibold">Registration payment comes next</p>
-                <p className="mt-1 text-xs leading-5">After your short profile details, UniEco will open a secure Paystack checkout: GH₵10 for students or GH₵20 for businesses. Access starts only after Paystack confirms payment.</p>
+                <p className="mt-1 text-xs leading-5">After your short profile details, UniEco will open a secure Paystack checkout with the current one-time registration fee for your account type. Access starts only after payment is confirmed.</p>
               </div>
 
               <Button

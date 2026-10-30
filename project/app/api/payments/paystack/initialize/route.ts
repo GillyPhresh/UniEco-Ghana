@@ -76,9 +76,11 @@ export async function POST(request: NextRequest) {
     } else return NextResponse.json({ error: 'Unsupported payment purpose.' }, { status: 400 });
     if (intentError) {
       console.error('Payment intent RPC rejected', { code: intentError.code || 'unknown', message: intentError.message });
+      const supportReview = intentError.code === '55000'
+        || (intentError.code === '22023' && /support review|already locked|already complete/i.test(intentError.message));
       const errorMessage = intentError.code === '42501'
         ? 'Your account is not ready for registration payment. Please sign in again or contact support.'
-        : intentError.code === '55000'
+        : supportReview
           ? 'This registration payment needs support review before you can continue.'
           : 'Payment setup failed before Paystack could open. Please try again or contact support.';
       return NextResponse.json({ error: errorMessage }, { status: 422 });

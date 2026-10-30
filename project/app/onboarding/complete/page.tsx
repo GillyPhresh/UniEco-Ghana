@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { safeInternalPath } from '@/lib/auth/redirects';
 import { motion } from 'framer-motion';
 import { RouteGuard } from '@/lib/auth/route-guard';
@@ -9,6 +10,7 @@ import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, GraduationCap, Store, ArrowRight } from 'lucide-react';
 import { PushPermissionCard } from '@/components/notifications/push-permission-card';
+import { supabase } from '@/lib/supabase/client';
 
 export default function OnboardingCompletePage() {
   return (
@@ -21,9 +23,40 @@ export default function OnboardingCompletePage() {
 function CompleteScreen() {
   const { user } = useAuth();
   const router = useRouter();
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const registration = new URLSearchParams(window.location.search).get('registration');
+    if (!user || !['paid', 'cash'].includes(registration || '')) {
+      router.replace('/onboarding');
+      return () => { cancelled = true; };
+    }
+
+    void supabase.rpc('get_my_registration_access').then(({ data, error }) => {
+      if (cancelled) return;
+      if (error || !data || data.allowed !== true) {
+        router.replace('/onboarding');
+        return;
+      }
+      setCheckingAccess(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [router, user]);
 
   const isStudent = user?.role === 'student' || user?.role === 'student_vendor';
   const isVendor = user?.role === 'external_vendor' || user?.role === 'student_vendor';
+
+  if (checkingAccess) {
+    return (
+      <AuthLayout title="Checking your registration" showBackLink={false}>
+        <div className="py-12 text-center text-sm text-muted-foreground">
+          Confirming your payment and account access…
+        </div>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout title="You're all set!" showBackLink={false}>

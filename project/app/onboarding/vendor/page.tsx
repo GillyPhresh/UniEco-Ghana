@@ -427,7 +427,7 @@ function VendorOnboarding() {
         ) : (
           <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
             <p className="font-semibold">Registration payment required</p>
-            <p className="mt-1">Complete the GH₵20 business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
+            <p className="mt-1">Complete the one-time business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
           </div>
         )}
 
@@ -639,7 +639,7 @@ function VendorOnboarding() {
           </div>
 
           {!cashInviteToken && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-            Registration fee: <strong>GH₵20.00</strong>. Choose Paystack checkout or send
+            Registration fee is shown securely at Paystack checkout. Choose Paystack checkout or send
             a direct Mobile Money prompt after submitting your business details. Your
             vendor access starts only after the payment is verified.
           </div>}
@@ -676,7 +676,7 @@ function VendorOnboarding() {
 
           <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="w-full">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt · GH₵20' : 'Pay GH₵20 and continue'}
+            {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt' : 'Pay securely and continue'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={handleBack} disabled={submitting} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" />Back to edit details</Button>

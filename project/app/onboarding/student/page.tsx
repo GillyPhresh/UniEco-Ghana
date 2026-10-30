@@ -200,7 +200,7 @@ function StudentOnboarding() {
     supabase.rpc('get_registration_access_invite', { p_token: token }).then(({ data, error: inviteError }) => {
       const invite = data as { valid?: boolean; audience?: string; message?: string } | null;
       if (inviteError || !invite?.valid || invite.audience !== 'student') {
-        setError(invite?.message || 'This registration link is invalid or expired. You can continue without a payment.');
+        setError(invite?.message || 'This sponsored registration link is invalid or expired. You can continue with the standard Paystack registration payment.');
         setCashInviteToken(null);
       } else {
         setCashInviteToken(token);
@@ -668,7 +668,7 @@ function StudentOnboarding() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">₵</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground">One-time registration payment</p>
-                    <p className="mt-1 text-2xl font-bold tracking-tight text-primary">GH₵10.00</p>
+                    <p className="mt-1 text-lg font-bold tracking-tight text-primary">One-time fee shown at checkout</p>
                     <p className="mt-1 text-xs leading-5 text-muted-foreground">Pay securely with Paystack using card or Mobile Money. Your student access and verification review start after the payment is confirmed.</p>
                   </div>
                 </div>
@@ -683,7 +683,7 @@ function StudentOnboarding() {
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {cashInviteToken ? 'Complete cash registration' : 'Pay GH₵10 and continue'}
+                  {cashInviteToken ? 'Complete cash registration' : 'Pay securely and continue'}
                 </Button>
               </div>
             </motion.div>

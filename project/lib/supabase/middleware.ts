@@ -151,8 +151,11 @@ export async function updateSession(request: NextRequest) {
 
   if (user && (isPaymentProtectedRoute || pathname === '/') && !paymentGateExcluded) {
     const { data: access, error: accessError } = await supabase.rpc('get_my_registration_access');
-    if (!accessError && access && access.allowed !== true) {
-      const target = access.role === 'student' ? '/onboarding/student' : '/onboarding/vendor';
+    // Fail closed when the authoritative access check cannot be completed.
+    // A transient database/RPC error must never turn into platform access for
+    // an account whose payment state is unknown.
+    if (accessError || !access || access.allowed !== true) {
+      const target = access?.role === 'student' ? '/onboarding/student' : '/onboarding/vendor';
       const paymentUrl = request.nextUrl.clone();
       paymentUrl.pathname = target;
       paymentUrl.search = '';

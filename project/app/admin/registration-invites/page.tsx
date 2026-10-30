@@ -90,7 +90,7 @@ function Content() {
             <Label>Registration type</Label>
             <Select value={audience} onValueChange={(value: 'student' | 'vendor') => setAudience(value)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent><SelectItem value="student">Student — sponsored GH₵10 fee</SelectItem><SelectItem value="vendor">Vendor — sponsored GH₵20 fee</SelectItem></SelectContent>
+              <SelectContent><SelectItem value="student">Student — sponsored registration</SelectItem><SelectItem value="vendor">Vendor — sponsored registration</SelectItem></SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
