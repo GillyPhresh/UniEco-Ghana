@@ -29,16 +29,22 @@ test('Google registration keeps the selected intent and invite through onboardin
   assert.match(signup, /signInWithGoogle\(\{ intent: accountType \|\| 'student', next \}\)/);
   assert.match(onboarding, /pendingInvite/);
   assert.match(onboarding, /params\.set\('invite', pendingInvite\)/);
+  assert.match(signup, /onboardingParams\.set\('ref', incomingReferral\)/);
+  assert.match(signup, /onboardingParams\.set\('invite', incomingInvite\)/);
+  assert.match(signup, /onboardingParams\.set\('university_admin_token', universityAdminToken\)/);
   assert.match(callback, /searchParams\.set\('payment_required', '1'\)/);
+  assert.match(callback, /function clearOAuthState\(response: NextResponse\)/);
+  assert.match(callback, /return clearOAuthState\(response\)/);
 });
 
 test('new users are gated through sign-in, secure onboarding, and their original destination', async () => {
-  const [middleware, signin, onboarding, callback, paymentCallback] = await Promise.all([
+  const [middleware, signin, onboarding, callback, paymentCallback, redirects] = await Promise.all([
     read('lib/supabase/middleware.ts'),
     read('app/signin/page.tsx'),
     read('app/onboarding/page.tsx'),
     read('app/auth/callback/route.ts'),
     read('app/payments/callback/page.tsx'),
+    read('lib/auth/redirects.ts'),
   ]);
   assert.match(middleware, /const memberRoutePrefixes = \[/);
   assert.match(middleware, /if \(isMemberRoute && !user\)/);
@@ -49,6 +55,8 @@ test('new users are gated through sign-in, secure onboarding, and their original
   assert.match(callback, /if \(!intent && destination === '\/'\) safeDestination = '\/onboarding'/);
   assert.match(paymentCallback, /unieco_registration_next/);
   assert.match(paymentCallback, /onboarding\/complete\?registration=paid/);
+  assert.match(redirects, /Preserve the original protected destination through onboarding/);
+  assert.match(redirects, /path\.includes\('\?'\) \? '&' : '\?'/);
 });
 
 test('cash registration links are a single-use audited exception and bypass Paystack only for valid tokens', async () => {

@@ -111,7 +111,16 @@ export default function SignUpPage() {
     setGoogleLoading(true);
     const next = institutionAdminInvite
       ? `/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`
-      : withNext('/onboarding', requestedNext);
+      : (() => {
+          const onboardingParams = new URLSearchParams();
+          if (incomingReferral) onboardingParams.set('ref', incomingReferral);
+          if (incomingInvite) onboardingParams.set('invite', incomingInvite);
+          if (universityAdminToken) onboardingParams.set('university_admin_token', universityAdminToken);
+          const onboardingPath = onboardingParams.toString()
+            ? `/onboarding?${onboardingParams.toString()}`
+            : '/onboarding';
+          return withNext(onboardingPath, requestedNext);
+        })();
     const { error } = await signInWithGoogle({ intent: accountType || 'student', next });
     if (error) {
       setAuthError(error);
