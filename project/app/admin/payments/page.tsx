@@ -15,6 +15,40 @@ import { PAYMENT_STATUSES } from '@/lib/types/payment';
 import { CreditCard, Download, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
+type ReconcileResponse = {
+  payment?: { status?: string };
+  verification?: { status?: string; applied?: boolean; message?: string };
+  error?: string;
+};
+
+async function readReconcileResponse(response: Response): Promise<ReconcileResponse | null> {
+  const text = await response.text();
+  if (!text.trim()) return null;
+
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed as ReconcileResponse
+      : null;
+  } catch {
+    // Reverse proxies and platform errors can return HTML even for API routes.
+    // Keep that response out of user-facing errors and never infer payment success.
+    return null;
+  }
+}
+
+function reconcileRequestError(response: Response, body: ReconcileResponse | null): string {
+  if (response.redirected || response.status === 401) {
+    return 'Your session may have expired. Sign in again, then retry payment verification.';
+  }
+  if (response.status === 403) return 'Your account does not have permission to verify payments.';
+  if ([502, 503, 504].includes(response.status)) {
+    return 'Payment verification is temporarily unavailable. Refresh the list and try again shortly.';
+  }
+  if (!body) return 'The verification service returned an unreadable response. Refresh the page and try again.';
+  return body.error || 'Unable to verify this payment. Please try again.';
+}
+
 export default function AdminPaymentsPage() {
   return (
     <AdminRouteGuard><AdminLayout><Content /></AdminLayout></AdminRouteGuard>
@@ -62,12 +96,9 @@ function Content() {
         signal: controller.signal,
         body: JSON.stringify({ reference }),
       });
-      const body = await response.json() as {
-        payment?: { status?: string };
-        verification?: { status?: string; applied?: boolean; message?: string };
-        error?: string;
-      };
-      if (!response.ok) throw new Error(body.error || 'Unable to verify this payment.');
+      const body = await readReconcileResponse(response);
+      if (!response.ok) throw new Error(reconcileRequestError(response, body));
+      if (!body) throw new Error(reconcileRequestError(response, body));
       if (body.verification?.applied === false) {
         toast.warning(body.verification.message || 'Payment needs review. UniEco has not marked it as paid.');
       } else if (body.payment?.status === 'success') {
@@ -75,7 +106,7 @@ function Content() {
       } else if (body.verification?.status === 'pending') {
         toast.info('Paystack has not completed this payment yet.');
       } else {
-        toast.success('Payment status checked.');
+        toast.info(body.verification?.message || 'Payment status checked. Review the updated status below.');
       }
       await loadPayments();
     } catch (error) {
