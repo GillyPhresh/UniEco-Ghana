@@ -11,48 +11,24 @@ interface HeroProps {
   productCount: number;
 }
 
-const landmarks = [
-  {
-    src: '/assets/homepage/knust-landmark.jpg',
-    alt: 'KNUST campus landmark framed by palm trees',
-  },
-  {
-    src: '/assets/homepage/ucc-gate.jpg',
-    alt: 'The entrance gate at the University of Cape Coast',
-  },
-  {
-    src: '/assets/homepage/campus-building.jpg',
-    alt: 'A modern university campus building',
-  },
-  {
-    src: '/assets/homepage/campus-clocktower.jpg',
-    alt: 'A campus clock tower above the surrounding buildings',
-  },
-];
-
 export function Hero({ vendorCount, universityCount, productCount }: HeroProps) {
   return (
     <section className="relative isolate overflow-hidden bg-[#062d27] text-white">
-      <div className="absolute inset-0 -z-20 grid grid-cols-2 grid-rows-2 opacity-35 lg:left-[39%]" aria-hidden="true">
-        {landmarks.map((image, index) => (
-          <figure key={image.src} className="relative min-h-0 overflow-hidden">
-            <Image
-              src={image.src}
-              alt={image.alt}
-              fill
-              priority={index < 2}
-              sizes="(max-width: 1023px) 50vw, 31vw"
-              className="object-cover brightness-[0.86] saturate-[0.82]"
-            />
-          </figure>
-        ))}
-      </div>
+      <Image
+        src="/assets/homepage/campus-panorama.webp"
+        alt=""
+        fill
+        priority
+        sizes="(max-width: 640px) 480vw, (max-width: 1024px) 280vw, 160vw"
+        aria-hidden="true"
+        className="-z-20 object-cover object-[22%_center] opacity-60 saturate-[0.82] sm:object-[40%_center]"
+      />
 
       <div
-        className="absolute inset-0 -z-10 hidden lg:block"
+        className="absolute inset-0 -z-10"
         aria-hidden="true"
         style={{
-          background: 'linear-gradient(90deg, #062d27 0%, rgba(6,45,39,.94) 38%, rgba(6,45,39,.78) 70%, rgba(6,45,39,.58) 100%)',
+          background: 'linear-gradient(90deg, rgba(6,45,39,.92) 0%, rgba(6,45,39,.81) 42%, rgba(6,45,39,.62) 100%), linear-gradient(0deg, rgba(6,45,39,.32), rgba(6,45,39,.12))',
         }}
       />
       <div className="absolute -left-36 top-16 -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden="true" />
