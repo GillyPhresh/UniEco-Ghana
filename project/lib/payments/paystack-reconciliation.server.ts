@@ -89,7 +89,13 @@ export async function reconcilePaystackPayment(reference: string) {
     p_payload: payload,
   });
 
-  if (error) throw new Error('The verified payment could not be applied safely.');
+  if (error) {
+    console.error('[paystack-reconciliation] verified result rejected by database', {
+      code: error.code,
+      message: error.message,
+    });
+    throw new Error('The verified payment could not be applied safely.');
+  }
 
   const result = data as { reconciliation_required?: boolean; ignored?: boolean; idempotent?: boolean; status?: string } | null;
   if (result?.reconciliation_required) {
