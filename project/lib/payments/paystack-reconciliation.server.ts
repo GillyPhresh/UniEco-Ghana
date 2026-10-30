@@ -63,7 +63,14 @@ export async function reconcilePaystackPayment(reference: string) {
     p_amount: amountMinor / 100,
     p_currency: currency,
   });
-  if (environmentError) throw new Error('The verified payment environment could not be bound safely.');
+  if (environmentError?.code === '22023') {
+    return {
+      status: 'reconciliation_required' as const,
+      applied: false,
+      message: 'Paystack verified this reference, but its amount, currency, or environment does not match the UniEco payment record. The payment was not marked as paid.',
+    };
+  }
+  if (environmentError) throw new Error('The verified payment environment could not be checked safely.');
 
   // A previous webhook may already have recorded the provider event as
   // reconciliation_required. Use a new audited event for this server-side
@@ -83,5 +90,23 @@ export async function reconcilePaystackPayment(reference: string) {
   });
 
   if (error) throw new Error('The verified payment could not be applied safely.');
-  return { status, applied: true, result: data };
+
+  const result = data as { reconciliation_required?: boolean; ignored?: boolean; idempotent?: boolean; status?: string } | null;
+  if (result?.reconciliation_required) {
+    return {
+      status: 'reconciliation_required' as const,
+      applied: false,
+      message: 'Paystack verified this reference, but its amount, currency, or environment does not match the UniEco payment record. The payment was not marked as paid.',
+      result,
+    };
+  }
+  if (result?.ignored) {
+    return {
+      status: 'reconciliation_required' as const,
+      applied: false,
+      message: 'Paystack verified this reference, but UniEco could not safely match it to a payment record. No payment status was changed.',
+      result,
+    };
+  }
+  return { status, applied: true, result };
 }

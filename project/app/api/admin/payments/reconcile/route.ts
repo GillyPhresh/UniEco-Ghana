@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
     if (paymentError || !payment) return NextResponse.json({ error: 'Payment not found.' }, { status: 404 });
     if (payment.provider !== 'paystack') return NextResponse.json({ error: 'This payment cannot be reconciled automatically.' }, { status: 422 });
 
-    await reconcilePaystackPayment(reference);
+    const verification = await reconcilePaystackPayment(reference);
     const { data: refreshed } = await supabase
       .from('payments')
       .select('payment_reference,status,payment_type,amount,currency,failure_reason,updated_at')
       .eq('payment_reference', reference)
       .maybeSingle();
-    return NextResponse.json({ payment: refreshed }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ payment: refreshed, verification }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     console.error('[admin/payments/reconcile] failed', error instanceof Error ? error.message : 'unknown error');
     return NextResponse.json({ error: 'Payment verification is temporarily unavailable.' }, { status: 502 });

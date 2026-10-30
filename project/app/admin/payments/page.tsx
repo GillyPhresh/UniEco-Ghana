@@ -62,9 +62,21 @@ function Content() {
         signal: controller.signal,
         body: JSON.stringify({ reference }),
       });
-      const body = await response.json() as { payment?: { status?: string }; error?: string };
+      const body = await response.json() as {
+        payment?: { status?: string };
+        verification?: { status?: string; applied?: boolean; message?: string };
+        error?: string;
+      };
       if (!response.ok) throw new Error(body.error || 'Unable to verify this payment.');
-      toast.success(body.payment?.status === 'success' ? 'Payment confirmed and dashboard updated.' : 'Payment status refreshed.');
+      if (body.verification?.applied === false) {
+        toast.warning(body.verification.message || 'Payment needs review. UniEco has not marked it as paid.');
+      } else if (body.payment?.status === 'success') {
+        toast.success('Payment confirmed and dashboard updated.');
+      } else if (body.verification?.status === 'pending') {
+        toast.info('Paystack has not completed this payment yet.');
+      } else {
+        toast.success('Payment status checked.');
+      }
       await loadPayments();
     } catch (error) {
       toast.error(error instanceof Error && error.name === 'AbortError'
