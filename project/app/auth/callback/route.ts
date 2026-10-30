@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
+import { safeInternalPath } from '@/lib/auth/redirects';
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
@@ -12,9 +13,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next');
   const cookieNext = request.cookies.get('unieco_oauth_next')?.value;
-  const destination = (next || cookieNext) && (next || cookieNext)!.startsWith('/') && !(next || cookieNext)!.startsWith('//') && !(next || cookieNext)!.includes('\\')
-    ? (next || cookieNext)!
-    : '/';
+  const destination = safeInternalPath(next || cookieNext);
   const intent = request.cookies.get('unieco_oauth_intent')?.value;
 
   if (!code) {
@@ -49,17 +48,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // A Google signup must complete the appropriate onboarding flow. Student
-  // access is free; business/vendor registration keeps its separate payment
-  // requirement.
-  const onboardingDestination = intent === 'student'
-    ? '/onboarding/student'
-    : intent === 'external_vendor'
-      ? '/onboarding/vendor?payment_required=1'
-      : destination;
-  const safeDestination = intent && destination === '/onboarding'
-    ? onboardingDestination
-    : destination;
+  // A Google signup must complete the appropriate onboarding flow before
+  // entering the platform. The onboarding screen performs the authoritative
+  // access check and starts the required Paystack registration payment.
+  let safeDestination = destination;
+  if (!intent && destination === '/') safeDestination = '/onboarding';
+  if (intent && destination.startsWith('/onboarding')) {
+    const destinationUrl = new URL(destination, publicOrigin);
+    destinationUrl.pathname = intent === 'student' ? '/onboarding/student' : '/onboarding/vendor';
+    if (intent === 'external_vendor') destinationUrl.searchParams.set('payment_required', '1');
+    safeDestination = `${destinationUrl.pathname}${destinationUrl.search}`;
+  }
   const response = NextResponse.redirect(new URL(safeDestination, publicOrigin));
   response.cookies.delete('unieco_oauth_next');
   response.cookies.delete('unieco_oauth_intent');

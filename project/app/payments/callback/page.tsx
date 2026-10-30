@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -21,6 +22,10 @@ function PaymentCallbackContent() {
   const reference = params.get('reference') || params.get('trxref');
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [registrationNext, setRegistrationNext] = useState('/');
+  useEffect(() => {
+    setRegistrationNext(safeInternalPath(window.sessionStorage.getItem('unieco_registration_next')));
+  }, []);
   useEffect(() => {
     if (!reference) { setError('No payment reference was provided.'); return; }
     let cancelled = false;
@@ -69,12 +74,12 @@ function PaymentCallbackContent() {
   const successful = payment?.status === 'success';
   const failed = ['failed','cancelled','abandoned','reconciliation_required','refunded'].includes(payment?.status || '');
   const successHref = payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration'
-    ? '/onboarding/complete?registration=paid'
+    ? withNext('/onboarding/complete?registration=paid', registrationNext)
     : '/dashboard/payment-history';
   const registrationHref = payment?.payment_type === 'student_registration'
-    ? '/onboarding/student?payment_required=1'
+    ? withNext('/onboarding/student?payment_required=1', registrationNext)
     : payment?.payment_type === 'vendor_registration'
-      ? '/onboarding/vendor?payment_required=1'
+      ? withNext('/onboarding/vendor?payment_required=1', registrationNext)
       : '/dashboard/payment-history';
   const actionHref = successful ? successHref : registrationHref;
   const actionLabel = successful && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')

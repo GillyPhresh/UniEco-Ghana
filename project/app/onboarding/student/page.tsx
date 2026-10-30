@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
@@ -311,7 +312,7 @@ function StudentOnboarding() {
         window.sessionStorage.removeItem('unieco_pending_referral_code');
         window.sessionStorage.removeItem('unieco_pending_university_admin_token');
         clearDraft();
-        router.push('/onboarding/complete?registration=cash');
+        router.push(withNext('/onboarding/complete?registration=cash', new URLSearchParams(window.location.search).get('next')));
         return;
       }
       const payment = await startPaystackCheckout({
@@ -349,6 +350,8 @@ function StudentOnboarding() {
         if (avatarError) throw new Error('Your payment setup is ready, but the profile photo could not be saved. You can add it later from your profile.');
       }
       window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
+      const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
+      if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
       window.sessionStorage.removeItem('unieco_pending_university_admin_token');
       window.location.assign(payment.authorizationUrl);
     } catch (err) {

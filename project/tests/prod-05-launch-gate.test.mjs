@@ -6,10 +6,9 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 
 test('sign-in accepts only safe same-origin relative destinations', async () => {
   const source = await read('app/signin/page.tsx');
-  assert.match(source, /requestedNext\?\.startsWith\('\/'\)/);
-  assert.match(source, /!requestedNext\.startsWith\('\/\/'\)/);
-  assert.match(source, /!requestedNext\.includes\('\\\\'\)/);
-  assert.match(source, /router\.push\(next\)/);
+  assert.match(source, /safeInternalPath\(requestedNext\)/);
+  assert.match(source, /router\.replace\(withNext\('\/onboarding', next\)\)/);
+  assert.match(source, /withNext\('\/signup', next\)/);
   assert.doesNotMatch(source, /const next = searchParams\.get\('next'\) \|\| '\/'/);
 });
 

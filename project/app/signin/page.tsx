@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,11 +27,7 @@ function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedNext = searchParams.get('next');
-  const next = requestedNext?.startsWith('/')
-    && !requestedNext.startsWith('//')
-    && !requestedNext.includes('\\')
-    ? requestedNext
-    : '/';
+  const next = safeInternalPath(requestedNext);
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -49,14 +46,14 @@ function SignInContent() {
     if (error) {
       setAuthError(error);
     } else {
-      router.push(next);
+      router.replace(withNext('/onboarding', next));
     }
   };
 
   const handleGoogle = async () => {
     setAuthError(null);
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle({ next });
+    const { error } = await signInWithGoogle({ next: withNext('/onboarding', next) });
     if (error) {
       setAuthError(error);
       setGoogleLoading(false);
@@ -155,7 +152,7 @@ function SignInContent() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href="/signup" className="font-medium text-primary hover:underline">
+          <Link href={withNext('/signup', next)} className="font-medium text-primary hover:underline">
             Create one for free
           </Link>
         </p>

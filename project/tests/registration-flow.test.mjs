@@ -29,7 +29,26 @@ test('Google registration keeps the selected intent and invite through onboardin
   assert.match(signup, /signInWithGoogle\(\{ intent: accountType \|\| 'student', next \}\)/);
   assert.match(onboarding, /pendingInvite/);
   assert.match(onboarding, /params\.set\('invite', pendingInvite\)/);
-  assert.match(callback, /payment_required=1/);
+  assert.match(callback, /searchParams\.set\('payment_required', '1'\)/);
+});
+
+test('new users are gated through sign-in, secure onboarding, and their original destination', async () => {
+  const [middleware, signin, onboarding, callback, paymentCallback] = await Promise.all([
+    read('lib/supabase/middleware.ts'),
+    read('app/signin/page.tsx'),
+    read('app/onboarding/page.tsx'),
+    read('app/auth/callback/route.ts'),
+    read('app/payments/callback/page.tsx'),
+  ]);
+  assert.match(middleware, /const memberRoutePrefixes = \[/);
+  assert.match(middleware, /if \(isMemberRoute && !user\)/);
+  assert.match(middleware, /pathname === '\/' && Boolean\(user\)/);
+  assert.match(signin, /router\.replace\(withNext\('\/onboarding', next\)\)/);
+  assert.match(onboarding, /get_my_registration_access/);
+  assert.match(onboarding, /registrationDestination\(user, requestedNext\)/);
+  assert.match(callback, /if \(!intent && destination === '\/'\) safeDestination = '\/onboarding'/);
+  assert.match(paymentCallback, /unieco_registration_next/);
+  assert.match(paymentCallback, /onboarding\/complete\?registration=paid/);
 });
 
 test('cash registration links are a single-use audited exception and bypass Paystack only for valid tokens', async () => {

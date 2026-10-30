@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
+import { safeInternalPath } from '@/lib/auth/redirects';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
@@ -11,9 +12,7 @@ export async function GET(request: Request) {
   const requestedIntent = requestUrl.searchParams.get('intent');
   const intent = requestedIntent === 'external_vendor' ? 'external_vendor' : requestedIntent === 'student' ? 'student' : null;
   const requestedNext = requestUrl.searchParams.get('next');
-  const next = requestedNext && requestedNext.startsWith('/') && !requestedNext.startsWith('//') && !requestedNext.includes('\\')
-    ? requestedNext
-    : intent ? '/onboarding' : '/';
+  const next = safeInternalPath(requestedNext, '/onboarding');
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',

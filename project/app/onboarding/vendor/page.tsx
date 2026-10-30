@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 import { supabase } from '@/lib/supabase/client';
 import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
@@ -294,7 +295,7 @@ function VendorOnboarding() {
         window.sessionStorage.removeItem('unieco_pending_university_admin_token');
         clearDraft();
         await refreshProfile();
-        router.push('/onboarding/complete?registration=cash');
+        router.push(withNext('/onboarding/complete?registration=cash', new URLSearchParams(window.location.search).get('next')));
         return;
       }
 
@@ -319,6 +320,8 @@ function VendorOnboarding() {
 
       await refreshProfile();
       clearDraft();
+      const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
+      if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
       window.sessionStorage.removeItem('unieco_pending_referral_code');
       window.sessionStorage.removeItem('unieco_pending_university_admin_token');
       if (paymentResult.mobileMoney) {

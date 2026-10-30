@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { safeInternalPath } from '@/lib/auth/redirects';
 import { motion } from 'framer-motion';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -70,7 +71,11 @@ function CompleteScreen() {
           <PushPermissionCard onboarding />
         </div>
 
-        <Button onClick={() => router.push('/')} size="lg" className="w-full">
+        <Button onClick={() => {
+          const destination = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
+          window.sessionStorage.removeItem('unieco_registration_next');
+          router.replace(destination);
+        }} size="lg" className="w-full">
           Go to dashboard
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>

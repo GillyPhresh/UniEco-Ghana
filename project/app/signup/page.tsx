@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +57,7 @@ export default function SignUpPage() {
     if (!accountType) return;
     setAuthError(null);
     const incomingReferral = new URLSearchParams(window.location.search).get('ref');
+    const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
     const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token');
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
@@ -88,9 +90,9 @@ export default function SignUpPage() {
       const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
       const adminQuery = universityAdminToken ? `university_admin_token=${encodeURIComponent(universityAdminToken)}` : '';
       const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery, adminQuery].filter(Boolean).join('&');
-      const studentPath = studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student';
+      const studentPath = withNext(studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student', requestedNext);
       const vendorQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery, adminQuery].filter(Boolean).join('&');
-      const vendorPath = vendorQuery ? `/onboarding/vendor?${vendorQuery}` : '/onboarding/vendor';
+      const vendorPath = withNext(vendorQuery ? `/onboarding/vendor?${vendorQuery}` : '/onboarding/vendor', requestedNext);
       router.push(accountType === 'student' ? studentPath : vendorPath);
     }
   };
@@ -101,6 +103,7 @@ export default function SignUpPage() {
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
     const incomingReferral = new URLSearchParams(window.location.search).get('ref');
     const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token');
+    const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
     if (universityAdminToken) window.sessionStorage.setItem('unieco_pending_university_admin_token', universityAdminToken);
@@ -108,7 +111,7 @@ export default function SignUpPage() {
     setGoogleLoading(true);
     const next = institutionAdminInvite
       ? `/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`
-      : '/onboarding';
+      : withNext('/onboarding', requestedNext);
     const { error } = await signInWithGoogle({ intent: accountType || 'student', next });
     if (error) {
       setAuthError(error);
@@ -126,7 +129,7 @@ export default function SignUpPage() {
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <p className="font-semibold text-foreground">Simple and secure</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, students complete their profile and can start using UniEco Ghana immediately.</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, complete your short profile and secure registration payment before entering UniEco Ghana.</p>
           </div>
         </div>
 
@@ -336,7 +339,7 @@ export default function SignUpPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href="/signin" className="font-medium text-primary hover:underline">
+          <Link href={withNext('/signin', new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search).get('next'))} className="font-medium text-primary hover:underline">
             Sign in
           </Link>
         </p>

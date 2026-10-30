@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseConfig } from './config';
+import { safeInternalPath } from '@/lib/auth/redirects';
 
 type CookieToSet = {
   name: string;
@@ -43,6 +44,15 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  // These are member areas. Anonymous visitors can still see the public
+  // landing page, but every app link requires an authenticated account.
+  const memberRoutePrefixes = [
+    '/business', '/campus-mate', '/cart', '/categories', '/checkout',
+    '/dashboard', '/discover', '/events', '/marketplace', '/messages', '/notifications',
+    '/orders', '/payment-history', '/profile', '/referrals', '/saved',
+    '/search', '/start-business', '/universities', '/university',
+    '/payments', '/vendor-dashboard', '/wishlist',
+  ];
   const paymentProtectedPrefixes = [
     '/marketplace', '/discover', '/events', '/categories', '/business',
     '/dashboard', '/vendor-dashboard', '/profile', '/checkout', '/orders',
@@ -58,6 +68,16 @@ export async function updateSession(request: NextRequest) {
     || pathname.startsWith('/payments/')
     || pathname.startsWith('/api/');
   const isPaymentProtectedRoute = paymentProtectedPrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isMemberRoute = memberRoutePrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
+    || (pathname === '/' && Boolean(user));
+
+  if (isMemberRoute && !user) {
+    const signInUrl = request.nextUrl.clone();
+    signInUrl.pathname = '/signin';
+    signInUrl.search = '';
+    signInUrl.searchParams.set('next', safeInternalPath(`${pathname}${request.nextUrl.search}`));
+    return NextResponse.redirect(signInUrl);
+  }
 
   if (isAdminRoute) {
     const copySessionCookies = (response: NextResponse) => {
@@ -129,7 +149,7 @@ export async function updateSession(request: NextRequest) {
     supabaseResponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
   }
 
-  if (user && isPaymentProtectedRoute && !paymentGateExcluded) {
+  if (user && (isPaymentProtectedRoute || pathname === '/') && !paymentGateExcluded) {
     const { data: access, error: accessError } = await supabase.rpc('get_my_registration_access');
     if (!accessError && access && access.allowed !== true) {
       const target = access.role === 'student' ? '/onboarding/student' : '/onboarding/vendor';
