@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, MapPinned, ShoppingCart, Package, User } from 'lucide-react';
+import { CalendarDays, Home, MapPinned, ShoppingCart, Package, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
@@ -20,7 +20,18 @@ export function MobileBottomNav() {
   const { user } = useAuth();
 
   // Don't show on admin or vendor dashboard — they have their own layouts
-  if (pathname.startsWith('/admin') || pathname.startsWith('/vendor-dashboard')) {
+  if (
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/vendor-dashboard') ||
+    pathname.startsWith('/signin') ||
+    pathname.startsWith('/signup') ||
+    pathname.startsWith('/onboarding') ||
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/verify-email') ||
+    pathname.startsWith('/payments') ||
+    pathname.startsWith('/checkout')
+  ) {
     return null;
   }
 
@@ -31,7 +42,7 @@ export function MobileBottomNav() {
         { href: '/', label: 'Home', icon: Home },
         { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
         { href: '/campus-mate', label: 'Mate', icon: MapPinned },
-        { href: '/events', label: 'Events', icon: Package },
+        { href: '/events', label: 'Events', icon: CalendarDays },
         { href: '/signin', label: 'Sign in', icon: User },
       ];
 
