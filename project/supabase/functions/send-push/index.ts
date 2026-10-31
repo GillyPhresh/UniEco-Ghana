@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
   if (!outboundProvidersEnabled()) return providersDisabledResponse();
 
   try {
-    const { recipientId, title, body, actionUrl, eventType } = await req.json();
+    const { recipientId, title, body, actionUrl, eventType, eventId } = await req.json();
 
     if (!recipientId || !title || !body) {
       return new Response(JSON.stringify({ error: "Missing required fields: recipientId, title, body" }), {
@@ -87,11 +87,20 @@ Deno.serve(async (req: Request) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data: subs } = await supabase
+    const { data: subs, error: subscriptionError } = await supabase
       .from("push_subscriptions")
       .select("*")
       .eq("user_id", recipientId)
       .eq("is_active", true);
+
+    if (subscriptionError) {
+      console.error("Push subscription lookup failed:", subscriptionError.message);
+      return new Response(JSON.stringify({
+        success: false,
+        error: "Could not load this user's push subscriptions.",
+        provider: "web_push",
+      }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     if (!subs || subs.length === 0) {
       return new Response(JSON.stringify({
@@ -115,7 +124,7 @@ Deno.serve(async (req: Request) => {
           url: normalizePushActionUrl(actionUrl),
           icon: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           badge: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
-          tag: eventType || "notification",
+          tag: eventId || eventType || "notification",
         });
 
         await webpush.sendNotification({

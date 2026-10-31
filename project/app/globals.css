@@ -123,11 +123,15 @@
     font-optical-sizing: auto;
     font-synthesis: none;
     min-width: 320px;
+    width: 100%;
+    max-width: 100%;
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
   html {
+    min-width: 320px;
+    width: 100%;
     max-width: 100%;
     overflow-x: hidden;
   }
@@ -152,10 +156,9 @@
     outline-offset: 2px;
   }
 
-  /* Keep the document viewport stable on phones. Individual desktop-sized
-     children must not be allowed to widen the page and make the browser
-     render a zoomed-out canvas. */
+  /* Keep the layout root aligned to the device viewport. */
   .mobile-viewport-safe {
+    width: 100%;
     max-width: 100%;
   }
 }
@@ -216,29 +219,6 @@
     }
   }
 
-  .mobile-viewport-safe .container,
-  .mobile-viewport-safe main,
-  .mobile-viewport-safe section,
-  .mobile-viewport-safe article,
-  .mobile-viewport-safe aside,
-  .mobile-viewport-safe header,
-  .mobile-viewport-safe footer,
-  .mobile-viewport-safe nav,
-  .mobile-viewport-safe form,
-  .mobile-viewport-safe div,
-  .mobile-viewport-safe table {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  .mobile-viewport-safe .container {
-    width: 100%;
-  }
-
-  .mobile-viewport-safe :is(h1, h2, h3, h4, h5, h6, p, dt, dd, span, a, li, td, th) {
-    overflow-wrap: anywhere;
-  }
-
   .mobile-viewport-safe pre,
   .mobile-viewport-safe code {
     max-width: 100%;
@@ -250,6 +230,10 @@
   .mobile-viewport-safe canvas,
   .mobile-viewport-safe iframe {
     max-width: 100%;
+  }
+
+  .mobile-viewport-safe [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 1rem);
   }
 }
 

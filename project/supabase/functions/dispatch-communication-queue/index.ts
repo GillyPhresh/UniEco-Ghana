@@ -92,7 +92,7 @@ async function dispatchToProvider(item: QueueEvent): Promise<{
   const payload = item.channel === 'email'
     ? { to: item.recipient_email, subject: item.subject || item.event_type, body, eventType: item.event_type, eventId: item.event_id, recipientId: item.recipient_id, metadata: item.metadata }
     : item.channel === 'push'
-      ? { recipientId: item.recipient_id, title: item.subject || item.event_type, body, actionUrl: item.metadata.action_url, eventType: item.event_type }
+      ? { recipientId: item.recipient_id, title: item.subject || item.event_type, body, actionUrl: item.metadata.action_url, eventType: item.event_type, eventId: item.event_id }
       : item.channel === 'whatsapp'
         ? { to: item.recipient_phone, templateKey: item.event_type, variables: item.metadata, recipientId: item.recipient_id }
         : { to: item.recipient_phone, message: body, recipientId: item.recipient_id };

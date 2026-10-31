@@ -56,9 +56,25 @@ test('the document locks layout width to the device without disabling accessibil
   assert.match(layout, /initialScale: 1/);
   assert.match(layout, /mobile-viewport-safe/);
   assert.match(styles, /\.mobile-viewport-safe/);
-  assert.match(styles, /overflow-wrap: anywhere/);
+  assert.match(styles, /body\s*\{[\s\S]*?width: 100%;[\s\S]*?max-width: 100%;/);
+  assert.doesNotMatch(styles, /\.mobile-viewport-safe\s+div\s*,/);
+  assert.doesNotMatch(styles, /overflow-wrap: anywhere/);
   assert.match(tabs, /max-w-full/);
   assert.match(tabs, /overflow-x-auto/);
   assert.doesNotMatch(layout, /maximumScale/);
   assert.doesNotMatch(layout, /userScalable:\s*false/);
+});
+
+test('the site uses the new readable Inter font throughout the app', () => {
+  const layout = read('app/layout.tsx');
+  const tailwind = read('tailwind.config.ts');
+  assert.match(layout, /import \{ Inter \} from 'next\/font\/google'/);
+  assert.match(layout, /const inter = Inter\(/);
+  assert.match(tailwind, /'Inter'/);
+  assert.doesNotMatch(layout + tailwind, /Montserrat/i);
+});
+
+test('homepage metric labels stay on one line at narrow phone widths', () => {
+  const hero = read('components/landing/hero.tsx');
+  assert.match(hero, /whitespace-nowrap text-\[9px\].*min-\[380px\]:text-\[10px\]/);
 });

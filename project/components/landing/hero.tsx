@@ -202,7 +202,7 @@ export function Hero({ vendorCount, universityCount, productCount }: HeroProps) 
 function Stat({ icon: Icon, value, label }: { icon: typeof Store; value: number; label: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5 pr-2 first:pl-0 sm:pr-4">
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/75 sm:text-xs">
+      <span className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[9px] font-semibold uppercase tracking-[0.06em] text-white/75 min-[380px]:text-[10px] min-[380px]:tracking-[0.08em] sm:text-xs sm:tracking-[0.1em]">
         <Icon className="h-3.5 w-3.5 shrink-0 text-[#f4c343]" /> {label}
       </span>
       <span className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">{value.toLocaleString()}</span>

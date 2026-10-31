@@ -30,13 +30,34 @@ export async function startPaystackCheckout(input: {
     referralCode?: string | null;
   };
 }): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null }> {
-  const response = await fetch('/api/payments/paystack/initialize', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input),
-  });
-  const payload = await response.json() as { authorizationUrl?: string; reference?: string; error?: string };
-  return response.ok && payload.authorizationUrl && payload.reference
-    ? { authorizationUrl: payload.authorizationUrl, reference: payload.reference, error: null }
-    : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started.' };
+  try {
+    const response = await fetch('/api/payments/paystack/initialize', {
+      method: 'POST',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(input),
+    });
+    const responseText = await response.text();
+    let payload: { authorizationUrl?: string; reference?: string; error?: string } = {};
+    try {
+      payload = JSON.parse(responseText) as typeof payload;
+    } catch {
+      // Reverse proxies sometimes return an HTML error document for API routes.
+      // Keep that implementation detail away from users and show a useful retry.
+    }
+    return response.ok && payload.authorizationUrl && payload.reference
+      ? { authorizationUrl: payload.authorizationUrl, reference: payload.reference, error: null }
+      : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started. Please try again.' };
+  } catch (error) {
+    return {
+      authorizationUrl: null,
+      reference: null,
+      error: error instanceof DOMException && error.name === 'TimeoutError'
+        ? 'Payment checkout is taking too long. Please try again.'
+        : 'Could not connect to payment checkout. Check your connection and try again.',
+    };
+  }
 }
 
 // ============================================================

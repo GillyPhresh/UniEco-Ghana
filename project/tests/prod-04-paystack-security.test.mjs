@@ -44,6 +44,15 @@ test('callback is UX-only and financial tables retain browser write protection',
   assert.match(migration, /payments_user_idempotency_key_unique/);
 });
 
+test('anonymous Paystack returns expose only callback fields and never cache payment status', async () => {
+  const route = await read('app/api/payments/status/route.ts');
+  assert.match(route, /found\.provider !== 'paystack'/);
+  assert.match(route, /if \(!user\)\s*\{[\s\S]*payment:\s*\{[\s\S]*status:[\s\S]*amount:[\s\S]*currency:/);
+  assert.doesNotMatch(route, /payment:\s*\{[\s\S]*user_id:/);
+  assert.match(route, /private, no-store, max-age=0/);
+  assert.match(route, /Vary: 'Authorization, Cookie'/);
+});
+
 test('protected legacy Bolt project is absent from payment implementation', async () => {
   const sources = await Promise.all(['lib/payments/paystack.server.ts','app/api/payments/paystack/initialize/route.ts','app/api/payments/status/route.ts','supabase/functions/payment-webhook/index.ts','supabase/migrations/20260928010000_0048_paystack_authoritative_reconciliation.sql'].map(read));
   for (const source of sources) assert.doesNotMatch(source, /elxlrojlnusvybnfwxum/);

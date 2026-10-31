@@ -58,6 +58,15 @@ test('notification clicks keep trusted www and no-www destinations inside the ap
   assert.match(serviceWorker, /if \(!trustedHosts\.has\(parsed\.hostname\)\) return fallback/);
 });
 
+test('push delivery distinguishes subscription lookup failure from no subscriptions and deduplicates notification tags', async () => {
+  const push = await read('supabase/functions/send-push/index.ts');
+  const queue = await read('supabase/functions/dispatch-communication-queue/index.ts');
+  assert.match(push, /subscriptionError/);
+  assert.match(push, /Could not load this user's push subscriptions/);
+  assert.match(push, /tag: eventId \|\| eventType/);
+  assert.match(queue, /eventId: item\.event_id/);
+});
+
 test('super admins receive a deduplicated governance digest with a management destination', async () => {
   const migration = await read('supabase/migrations/20261028160000_0146_admin_governance_digest.sql');
 

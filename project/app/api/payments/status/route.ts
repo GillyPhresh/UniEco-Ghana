@@ -5,9 +5,11 @@ import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation
 
 export const dynamic = 'force-dynamic';
 
+const privateNoStore = { 'Cache-Control': 'private, no-store, max-age=0', Vary: 'Authorization, Cookie' };
+
 export async function GET(request: NextRequest) {
   const reference = request.nextUrl.searchParams.get('reference');
-  if (!reference || !/^[A-Za-z0-9._=-]{8,120}$/.test(reference)) return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400 });
+  if (!reference || !/^[A-Za-z0-9._=-]{8,120}$/.test(reference)) return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400, headers: privateNoStore });
   const supabase = await createClient();
   let { data: { user } } = await supabase.auth.getUser();
   // Paystack returns to the browser from a different origin. In some browser
@@ -33,14 +35,14 @@ export async function GET(request: NextRequest) {
   // payment reference is the callback capability in that case. We still read
   // through the service client, and a pending Paystack payment is reconciled
   // only through the server-side verification path before its status is shown.
-  if (!user && !admin) return NextResponse.json({ error: 'Payment status is temporarily unavailable.' }, { status: 503 });
+  if (!user && !admin) return NextResponse.json({ error: 'Payment status is temporarily unavailable.' }, { status: 503, headers: privateNoStore });
   const query = (user ? supabase : admin!)
     .from('payments')
-    .select('payment_reference,status,payment_type,amount,currency,failure_reason,updated_at,provider,user_id')
+    .select('payment_reference,status,payment_type,amount,currency,failure_reason,provider')
     .eq('payment_reference', reference);
   const { data: found, error: lookupError } = await (user ? query.eq('user_id', user.id) : query).maybeSingle();
-  if (lookupError) return NextResponse.json({ error: 'Payment status is temporarily unavailable.' }, { status: 503 });
-  if (!found) return NextResponse.json({ error: 'Payment not found.' }, { status: 404 });
+  if (lookupError) return NextResponse.json({ error: 'Payment status is temporarily unavailable.' }, { status: 503, headers: privateNoStore });
+  if (!found || (!user && found.provider !== 'paystack')) return NextResponse.json({ error: 'Payment not found.' }, { status: 404, headers: privateNoStore });
 
   if (!user && found.provider === 'paystack' && ['initiated', 'pending'].includes(found.status)) {
     try {
@@ -57,6 +59,17 @@ export async function GET(request: NextRequest) {
     .select('payment_reference,status,payment_type,amount,currency,failure_reason,updated_at')
     .eq('payment_reference', reference);
   const { data } = await (user ? refreshedQuery.eq('user_id', user.id) : refreshedQuery).maybeSingle();
-  if (!data) return NextResponse.json({ error: 'Payment not found.' }, { status: 404 });
-  return NextResponse.json({ payment: data }, { headers: { 'Cache-Control': 'no-store' } });
+  if (!data) return NextResponse.json({ error: 'Payment not found.' }, { status: 404, headers: privateNoStore });
+  if (!user) {
+    return NextResponse.json({
+      payment: {
+        status: data.status,
+        payment_type: data.payment_type,
+        amount: data.amount,
+        currency: data.currency,
+        failure_reason: data.failure_reason,
+      },
+    }, { headers: privateNoStore });
+  }
+  return NextResponse.json({ payment: data }, { headers: privateNoStore });
 }

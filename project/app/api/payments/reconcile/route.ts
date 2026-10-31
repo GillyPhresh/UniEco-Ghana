@@ -8,6 +8,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json() as { reference?: string };
     const reference = String(body.reference || '');
+    if (!/^[A-Za-z0-9._=-]{8,120}$/.test(reference)) return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400, headers: { 'Cache-Control': 'private, no-store, max-age=0' } });
     const supabase = await createClient();
     let { data: { user } } = await supabase.auth.getUser();
     if (!user) {
