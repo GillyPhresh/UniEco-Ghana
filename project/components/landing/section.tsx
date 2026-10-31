@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { useRef } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -31,13 +31,14 @@ interface RevealProps {
 export function Reveal({ children, className, delay = 0, y = 24 }: RevealProps) {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
+  const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      initial={reduceMotion ? false : { opacity: 0, y }}
+      animate={reduceMotion || inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.42, delay: reduceMotion ? 0 : Math.min(delay, 0.24), ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
       {children}

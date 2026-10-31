@@ -120,6 +120,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1;
+    font-optical-sizing: auto;
+    font-synthesis: none;
     min-width: 320px;
     overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
@@ -139,6 +141,15 @@
   }
   ::selection {
     @apply bg-primary/20 text-foreground;
+  }
+
+  :where(a, button, input, select, textarea, [role='button']) {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :where(a, button, input, select, textarea, [role='button']):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   /* Keep the document viewport stable on phones. Individual desktop-sized
@@ -276,4 +287,31 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+.landing-hero-overlay {
+  background:
+    linear-gradient(90deg, rgba(6, 45, 39, 0.86) 0%, rgba(6, 45, 39, 0.72) 42%, rgba(6, 45, 39, 0.46) 100%),
+    linear-gradient(0deg, rgba(6, 45, 39, 0.2), rgba(6, 45, 39, 0.08));
+}
+
+@media (max-width: 639px) {
+  .landing-hero-overlay {
+    background: linear-gradient(180deg, rgba(6, 45, 39, 0.66) 0%, rgba(6, 45, 39, 0.58) 48%, rgba(6, 45, 39, 0.68) 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Montserrat } from 'next/font/google';
 import './globals.css';
 import { AppProviders } from '@/components/providers/app-providers';
 import { ServiceWorkerRegister } from '@/components/pwa/service-worker-register';
@@ -12,15 +12,9 @@ import { siteConfig } from '@/lib/constants/site';
 
 const googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
 
-const inter = Inter({
+const montserrat = Montserrat({
   subsets: ['latin'],
   variable: '--font-sans',
-  display: 'swap',
-});
-
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  variable: '--font-display',
   display: 'swap',
 });
 
@@ -140,7 +134,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${jakarta.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
+        className={`${montserrat.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>

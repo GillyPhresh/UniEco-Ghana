@@ -128,27 +128,21 @@ export function Hero({ vendorCount, universityCount, productCount }: HeroProps) 
         })}
       </div>
 
-      <div
-        className="absolute inset-0 -z-10"
-        aria-hidden="true"
-        style={{
-          background: 'linear-gradient(90deg, rgba(6,45,39,.86) 0%, rgba(6,45,39,.72) 42%, rgba(6,45,39,.46) 100%), linear-gradient(0deg, rgba(6,45,39,.2), rgba(6,45,39,.08))',
-        }}
-      />
+      <div className="landing-hero-overlay absolute inset-0 -z-10" aria-hidden="true" />
       <div className="absolute -left-36 top-16 -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden="true" />
 
-      <div className="container relative max-w-7xl py-12 sm:py-16 lg:flex lg:min-h-[690px] lg:items-center lg:py-20">
+      <div className="container relative max-w-7xl py-10 sm:py-16 lg:flex lg:min-h-[690px] lg:items-center lg:py-20">
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#062d27]/55 px-3.5 py-2 text-xs font-semibold text-white/90 shadow-sm backdrop-blur-md sm:text-sm">
             <span className="h-2 w-2 rounded-full bg-[#f4bd35] shadow-[0_0_12px_rgba(244,189,53,.7)]" />
             Your campus. Your marketplace. Your community.
           </div>
 
-          <h1 className="mt-6 max-w-[13ch] font-display text-[2.75rem] font-bold leading-[1.02] tracking-[-0.045em] sm:text-6xl lg:text-[4.6rem]">
+          <h1 className="mt-5 max-w-[13ch] font-display text-[clamp(2.45rem,10.5vw,3.5rem)] font-bold leading-[1.04] tracking-[-0.05em] sm:mt-6 sm:text-6xl lg:text-[4.6rem]">
             Campus life,
             <span className="mt-1 block text-[#f4c343]">all in one place.</span>
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/80 sm:text-lg sm:leading-8">
+          <p className="mt-4 max-w-xl text-pretty text-base leading-7 text-white/85 sm:mt-5 sm:text-lg sm:leading-8">
             Find campus businesses, useful services, events and places across universities in Ghana.
           </p>
 
@@ -181,7 +175,7 @@ export function Hero({ vendorCount, universityCount, productCount }: HeroProps) 
               <Link
                 key={item.label}
                 href={item.href}
-                className="inline-flex min-h-9 items-center rounded-full border border-white/20 bg-black/10 px-3.5 transition-colors hover:border-white/50 hover:bg-white/10 hover:text-white"
+                className="inline-flex min-h-11 items-center rounded-full border border-white/20 bg-black/10 px-3.5 transition-colors hover:border-white/50 hover:bg-white/10 hover:text-white"
               >
                 {item.label}
               </Link>
@@ -208,7 +202,7 @@ export function Hero({ vendorCount, universityCount, productCount }: HeroProps) 
 function Stat({ icon: Icon, value, label }: { icon: typeof Store; value: number; label: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5 pr-2 first:pl-0 sm:pr-4">
-      <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/65 sm:text-xs">
+      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-white/75 sm:text-xs">
         <Icon className="h-3.5 w-3.5 shrink-0 text-[#f4c343]" /> {label}
       </span>
       <span className="font-display text-2xl font-bold tracking-tight text-white sm:text-3xl">{value.toLocaleString()}</span>

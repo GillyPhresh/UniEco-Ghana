@@ -119,7 +119,7 @@ export function SiteHeader() {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : user ? (
             <>
-              <Link href="/search" className="flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
+              <Link href="/search" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-primary md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
               <div className="hidden items-center gap-1 sm:flex">
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
                 <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unreadNotifs} />
@@ -170,7 +170,7 @@ export function SiteHeader() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-10 w-10 lg:hidden" aria-label="Open navigation menu"><Menu className="h-5 w-5" /></Button>
+              <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl lg:hidden" aria-label="Open navigation menu"><Menu className="h-5 w-5" /></Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-sm p-0">
               <div className="flex h-full flex-col">

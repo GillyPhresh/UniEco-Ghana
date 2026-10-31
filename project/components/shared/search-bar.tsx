@@ -134,7 +134,8 @@ export function SearchBar({ className, size = 'lg', autoFocus }: SearchBarProps)
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-20 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+              className="absolute right-[4.75rem] top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
