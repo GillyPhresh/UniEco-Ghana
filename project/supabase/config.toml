@@ -415,3 +415,8 @@ enabled = true
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":180,\"commaStyle\":\"trailing\"}"
 [functions.get-student-verification-document-url]
 verify_jwt = true
+
+# Paystack cannot send a Supabase user JWT. The webhook validates the raw
+# request body with Paystack's HMAC-SHA512 signature before it can write.
+[functions.payment-webhook]
+verify_jwt = false

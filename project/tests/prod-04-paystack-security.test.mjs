@@ -35,6 +35,16 @@ test('Paystack webhook uses raw-body HMAC plus provider transaction verification
   assert.match(migration, /ON CONFLICT\(provider,provider_event_id\) DO NOTHING/);
 });
 
+test('Paystack webhook is publicly reachable at the gateway but requires its own signature and retries transient failures', async () => {
+  const [webhook, config] = await Promise.all([read('supabase/functions/payment-webhook/index.ts'), read('supabase/config.toml')]);
+  assert.match(config, /\[functions\.payment-webhook\]\s*verify_jwt\s*=\s*false/);
+  assert.match(webhook, /Invalid Paystack signature", 401/);
+  assert.match(webhook, /Paystack verification is temporarily unavailable", 503/);
+  assert.match(webhook, /Webhook processing is temporarily unavailable", 503/);
+  assert.match(webhook, /setTimeout\(\(\) => controller\.abort\(\), 12_000\)/);
+  assert.match(webhook, /apply_verified_paystack_webhook/);
+});
+
 test('callback is UX-only and financial tables retain browser write protection', async () => {
   const [callback, payments, migration] = await Promise.all([read('app/payments/callback/page.tsx'), read('lib/data/payment-client.ts'), read('supabase/migrations/20260911230000_0030_phase_a2_financial_authority.sql')]);
   assert.match(callback, /\/api\/payments\/status/);

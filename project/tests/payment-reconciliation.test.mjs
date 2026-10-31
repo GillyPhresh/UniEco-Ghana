@@ -122,6 +122,20 @@ test('Paystack webhook binds environment to the verified server secret', async (
   assert.match(source, /p_provider_environment: event\.providerEnvironment/);
 });
 
+test('verified vendor registration payments activate through the same authoritative payment transition', async () => {
+  const [webhook, paymentRpc, vendorPayments] = await Promise.all([
+    read('supabase/functions/payment-webhook/index.ts'),
+    read('supabase/migrations/20261030110000_0161_subscription_reconciliation_scope.sql'),
+    read('supabase/migrations/20261030100000_0160_registration_payment_consistency.sql'),
+  ]);
+  assert.match(webhook, /apply_verified_paystack_webhook/);
+  assert.match(paymentRpc, /UPDATE public\.payments[\s\S]*?SET status = p_status/);
+  assert.match(vendorPayments, /CREATE TRIGGER apply_vendor_registration_payment_result[\s\S]*?AFTER UPDATE OF status ON public\.payments/);
+  assert.match(vendorPayments, /NEW\.payment_type <> 'vendor_registration'/);
+  assert.match(vendorPayments, /SET payment_requirement = 'paid', state = 'paid'/);
+  assert.match(vendorPayments, /NEW\.amount = expected_amount[\s\S]*?NEW\.currency = 'GHS'/);
+});
+
 test('payment and role management surfaces provide phone-sized representations', async () => {
   const pages = [
     'app/admin/payments/page.tsx',
