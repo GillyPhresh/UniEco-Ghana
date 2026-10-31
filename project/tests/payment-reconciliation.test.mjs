@@ -16,9 +16,36 @@ test('payment reconciliation verifies with Paystack before applying through the 
   assert.match(source, /payment_reference/);
   assert.match(source, /p_amount: amountMinor \/ 100/);
   assert.match(source, /p_currency: currency/);
+  assert.match(source, /provider_environment/);
+  assert.match(source, /verifyPaystackTransaction\(reference, environment\)/);
+  assert.match(source, /not a mutable global PAYSTACK_MODE/);
   assert.match(source, /manual-reconcile-/);
   assert.match(source, /reconciliation: \{ source: 'admin_manual_verification', event_id: retryEventId \}/);
   assert.match(schema, /UNIQUE\s*\(provider,\s*payload_hash\)/i);
+});
+
+test('verification selects a secret that matches the stored payment environment and parses provider responses safely', async () => {
+  const paystack = await read('lib/payments/paystack.server.ts');
+  const verifier = paystack.slice(paystack.indexOf('export async function verifyPaystackTransaction'));
+  assert.match(paystack, /verificationSecret\(expectedMode: PaystackMode\)/);
+  assert.match(paystack, /key\.startsWith\(prefix\)/);
+  assert.match(paystack, /expectedMode === 'live'.*UNIECO_ENV !== 'production'/s);
+  assert.match(verifier, /response\.text\(\)/);
+  assert.match(verifier, /invalid_response/);
+  assert.doesNotMatch(verifier, /await response\.json\(\)/);
+});
+
+test('registration retries verify a quarantined attempt before allowing another charge', async () => {
+  const route = await read('app/api/payments/paystack/initialize/route.ts');
+  const checkout = await read('app/onboarding/student/page.tsx');
+  assert.match(route, /\.eq\('user_id', user\.id\)/);
+  assert.match(route, /\.in\('status', \['success', 'reconciliation_required'\]\)/);
+  assert.match(route, /reconcilePaystackPayment\(quarantined\.payment_reference\)/);
+  assert.match(route, /We will not start a second charge while this one is unresolved/);
+  assert.match(route, /alreadyPaid: true/);
+  assert.match(route, /recovery\.applied && \['failed', 'cancelled'\]/);
+  assert.match(checkout, /payment\.alreadyPaid/);
+  assert.match(checkout, /payments\/callback\?reference=/);
 });
 
 test('legacy reconciliation binds only missing environment metadata before retrying', async () => {

@@ -4,17 +4,34 @@ export type PaystackMode = 'test' | 'live';
 export type PaystackChannel = 'card' | 'mobile_money' | 'bank_transfer';
 export type PaystackMobileMoneyProvider = 'mtn' | 'atl' | 'vod';
 
+export type PaystackVerificationErrorCode = 'configuration' | 'timeout' | 'network' | 'provider_response' | 'invalid_response';
+
+export class PaystackVerificationError extends Error {
+  constructor(readonly code: PaystackVerificationErrorCode, message: string) {
+    super(message);
+    this.name = 'PaystackVerificationError';
+  }
+}
+
 const PAYSTACK_API = 'https://api.paystack.co';
 
 export function getPaystackMode(): PaystackMode {
   return process.env.PAYSTACK_MODE === 'live' ? 'live' : 'test';
 }
 
+/** Infer the key's provider environment for legacy payments without a stored mode. */
+export function getPaystackCredentialMode(): PaystackMode {
+  const key = process.env.PAYSTACK_SECRET_KEY || '';
+  if (key.startsWith('sk_live_')) return 'live';
+  if (key.startsWith('sk_test_')) return 'test';
+  return getPaystackMode();
+}
+
 export function paystackIsEnabled(): boolean {
   const mode = getPaystackMode();
   if (process.env.PAYSTACK_ENABLED !== 'true') return false;
   const key = process.env.PAYSTACK_SECRET_KEY || '';
-  if (mode === 'test') return key.startsWith('sk_test_');
+  if (mode === 'test') return process.env.UNIECO_ENV !== 'production' && key.startsWith('sk_test_');
   // Live charges are forbidden outside production, even if a staging shell
   // accidentally inherits live provider configuration.
   return process.env.UNIECO_ENV === 'production'
@@ -111,23 +128,49 @@ export async function chargePaystackMobileMoney(input: {
   };
 }
 
-export async function verifyPaystackTransaction(reference: string) {
+function verificationSecret(expectedMode: PaystackMode): string {
+  const key = process.env.PAYSTACK_SECRET_KEY || '';
+  const prefix = expectedMode === 'live' ? 'sk_live_' : 'sk_test_';
+  if (!key.startsWith(prefix)) {
+    throw new PaystackVerificationError('configuration', `A Paystack ${expectedMode} secret key is not configured for verification.`);
+  }
+  // Live credentials may only be used by the production app. Verification is
+  // intentionally independent of checkout enablement so an existing charge
+  // can still be reconciled after new checkout has been paused.
+  if (expectedMode === 'live' && process.env.UNIECO_ENV !== 'production') {
+    throw new PaystackVerificationError('configuration', 'Live Paystack verification is only allowed in production.');
+  }
+  if (expectedMode === 'test' && process.env.UNIECO_ENV === 'production') {
+    throw new PaystackVerificationError('configuration', 'Test Paystack verification cannot grant production payment access.');
+  }
+  return key;
+}
+
+export async function verifyPaystackTransaction(reference: string, expectedMode: PaystackMode = getPaystackCredentialMode()) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15_000);
   let response: Response;
   try {
     response = await fetch(`${PAYSTACK_API}/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${secret()}` }, cache: 'no-store', signal: controller.signal,
+      headers: { Authorization: `Bearer ${verificationSecret(expectedMode)}` }, cache: 'no-store', signal: controller.signal,
     });
   } catch (error) {
-    if (error instanceof Error && error.name === 'AbortError') {
-      throw new Error('Paystack verification timed out. Please try again.');
-    }
-    throw error;
+    if (error instanceof PaystackVerificationError) throw error;
+    if (error instanceof Error && error.name === 'AbortError') throw new PaystackVerificationError('timeout', 'Paystack verification timed out.');
+    throw new PaystackVerificationError('network', 'Paystack could not be reached for verification.');
   } finally {
     clearTimeout(timeout);
   }
-  const payload = await response.json() as { status?: boolean; message?: string; data?: Record<string, unknown> };
-  if (!response.ok || !payload.status || !payload.data) throw new Error(payload.message || 'Paystack transaction verification failed');
+
+  const responseText = await response.text();
+  let payload: { status?: boolean; message?: string; data?: Record<string, unknown> };
+  try {
+    payload = JSON.parse(responseText) as typeof payload;
+  } catch {
+    throw new PaystackVerificationError('invalid_response', 'Paystack returned a response that could not be verified.');
+  }
+  if (!response.ok || !payload.status || !payload.data) {
+    throw new PaystackVerificationError('provider_response', 'Paystack could not verify this transaction reference.');
+  }
   return payload.data;
 }

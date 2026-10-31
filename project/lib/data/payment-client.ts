@@ -29,7 +29,7 @@ export async function startPaystackCheckout(input: {
     studentDocumentPath?: string | null;
     referralCode?: string | null;
   };
-}): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null }> {
+}): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null; alreadyPaid?: boolean }> {
   try {
     const response = await fetch('/api/payments/paystack/initialize', {
       method: 'POST',
@@ -39,15 +39,15 @@ export async function startPaystackCheckout(input: {
       body: JSON.stringify(input),
     });
     const responseText = await response.text();
-    let payload: { authorizationUrl?: string; reference?: string; error?: string } = {};
+    let payload: { authorizationUrl?: string; reference?: string; error?: string; alreadyPaid?: boolean } = {};
     try {
       payload = JSON.parse(responseText) as typeof payload;
     } catch {
       // Reverse proxies sometimes return an HTML error document for API routes.
       // Keep that implementation detail away from users and show a useful retry.
     }
-    return response.ok && payload.authorizationUrl && payload.reference
-      ? { authorizationUrl: payload.authorizationUrl, reference: payload.reference, error: null }
+    return response.ok && payload.reference && (payload.authorizationUrl || payload.alreadyPaid)
+      ? { authorizationUrl: payload.authorizationUrl || null, reference: payload.reference, error: null, alreadyPaid: payload.alreadyPaid === true }
       : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started. Please try again.' };
   } catch (error) {
     return {

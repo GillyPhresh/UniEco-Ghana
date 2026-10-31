@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient, createClient as createTokenClient } from '@supabase/supabase-js';
 import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels, type PaystackMobileMoneyProvider } from '@/lib/payments/paystack.server';
+import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
 import { siteConfig } from '@/lib/constants/site';
 
 export const dynamic = 'force-dynamic';
@@ -79,12 +80,102 @@ export async function POST(request: NextRequest) {
       console.error('Payment intent RPC rejected', { code: intentError.code || 'unknown', message: intentError.message });
       const supportReview = intentError.code === '55000'
         || (intentError.code === '22023' && /support review|already locked|already complete/i.test(intentError.message));
+
+      // A previous Paystack success can be quarantined after legacy test/live
+      // metadata drift. Verify that exact user's quarantined registration
+      // payment before asking the database to create another intent. Never
+      // create a second charge while the provider still reports pending.
+      if (supportReview && body.purpose === 'student_registration' && body.registration) {
+        const recoveryAdmin = createAdminClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        );
+        const { data: quarantined, error: lookupError } = await recoveryAdmin
+          .from('payments')
+          .select('payment_reference,status')
+          .eq('user_id', user.id)
+          .eq('payment_type', 'student_registration')
+          .in('status', ['success', 'reconciliation_required'])
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (lookupError) {
+          console.error('[registration-payment-recovery] lookup failed', { code: lookupError.code || 'unknown' });
+          return NextResponse.json({ error: 'We could not check your earlier payment yet. No new payment was started. Please retry shortly.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+        }
+
+        if (quarantined?.payment_reference) {
+          if (quarantined.status === 'success') {
+            return NextResponse.json({ reference: quarantined.payment_reference, status: 'success', alreadyPaid: true }, { headers: { 'Cache-Control': 'no-store' } });
+          }
+
+          let recovery: Awaited<ReturnType<typeof reconcilePaystackPayment>>;
+          try {
+            recovery = await reconcilePaystackPayment(quarantined.payment_reference);
+          } catch (error) {
+            const code = error instanceof Error && 'code' in error ? String(error.code) : 'verification_unavailable';
+            console.error('[registration-payment-recovery] verification failed', { code });
+            return NextResponse.json({
+              error: 'We could not confirm your earlier payment with Paystack. No new payment was started. If you see a debit, do not pay again; retry this check shortly.',
+            }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+          }
+
+          if (recovery.status === 'success') {
+            const { data: refreshed, error: refreshError } = await recoveryAdmin
+              .from('payments')
+              .select('payment_reference,status')
+              .eq('user_id', user.id)
+              .eq('payment_reference', quarantined.payment_reference)
+              .maybeSingle();
+            if (!refreshError && refreshed?.status === 'success') {
+              return NextResponse.json({ reference: refreshed.payment_reference, status: 'success', alreadyPaid: true }, { headers: { 'Cache-Control': 'no-store' } });
+            }
+            return NextResponse.json({ error: 'Paystack confirmed the charge, but UniEco is still applying the verified result. No new payment was started; please retry shortly.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+          }
+
+          if (recovery.status === 'pending') {
+            return NextResponse.json({ error: 'Paystack still shows your earlier payment as pending. Finish or approve it if Paystack is waiting for an action, then retry. We will not start a second charge while this one is unresolved.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+          }
+
+          if (recovery.status === 'reconciliation_required') {
+            return NextResponse.json({ error: recovery.message || 'Paystack and UniEco payment details still need a support review. No new payment was started.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+          }
+
+          if (recovery.applied && ['failed', 'cancelled'].includes(recovery.status)) {
+            const registration = body.registration;
+            const retry = await rpcClient.rpc('begin_student_registration_payment', {
+              p_university_id: registration.universityId,
+              p_phone: registration.phone,
+              p_student_id_number: registration.studentIdNumber,
+              p_program: registration.program,
+              p_faculty: registration.faculty,
+              p_department: registration.department,
+              p_level: registration.level,
+              p_admission_year: registration.admissionYear,
+              p_graduation_year: registration.graduationYear ?? null,
+              p_student_document_path: registration.studentDocumentPath ?? null,
+              p_referral_code: registration.referralCode ?? null,
+              p_idempotency_key: body.idempotencyKey,
+            });
+            intent = retry.data;
+            intentError = retry.error;
+          }
+        }
+      }
+
+      if (!intentError) {
+        // A verified failed/cancelled attempt has been safely replaced with a
+        // fresh intent. Continue through the normal Paystack initialization.
+      } else {
       const errorMessage = intentError.code === '42501'
         ? 'Your account is not ready for registration payment. Please sign in again or contact support.'
         : supportReview
           ? 'This registration payment needs support review before you can continue.'
           : 'Payment setup failed before Paystack could open. Please try again or contact support.';
       return NextResponse.json({ error: errorMessage }, { status: 422 });
+      }
     }
     if (!intent || typeof intent !== 'object') return NextResponse.json({ error: 'Payment could not be initialized. Please try again.' }, { status: 422 });
     const payment = intent as { payment_reference?: string; amount?: number; currency?: string; status?: string; payment_type?: string };

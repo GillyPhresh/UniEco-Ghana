@@ -43,7 +43,7 @@ function reconcileRequestError(response: Response, body: ReconcileResponse | nul
   }
   if (response.status === 403) return 'Your account does not have permission to verify payments.';
   if ([502, 503, 504].includes(response.status)) {
-    return 'Payment verification is temporarily unavailable. Refresh the list and try again shortly.';
+    return body?.error || 'Payment verification is temporarily unavailable. Refresh the list and try again shortly.';
   }
   if (!body) return 'The verification service returned an unreadable response. Refresh the page and try again.';
   return body.error || 'Unable to verify this payment. Please try again.';

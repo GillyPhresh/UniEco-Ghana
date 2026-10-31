@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
+import { PaystackReconciliationApplyError, reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
+import { PaystackVerificationError } from '@/lib/payments/paystack.server';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const diagnosticId = crypto.randomUUID();
   try {
     const body = await request.json() as { reference?: string };
     const reference = String(body.reference || '');
@@ -32,7 +34,21 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     return NextResponse.json({ payment: refreshed, verification }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
-    console.error('[admin/payments/reconcile] failed', error instanceof Error ? error.message : 'unknown error');
-    return NextResponse.json({ error: 'Payment verification is temporarily unavailable.' }, { status: 502 });
+    const code = error instanceof PaystackVerificationError
+      ? error.code
+      : error instanceof PaystackReconciliationApplyError
+        ? 'verified_but_not_applied'
+        : 'internal';
+    console.error('[admin/payments/reconcile] failed', { diagnosticId, code });
+    const message = code === 'configuration'
+      ? 'Paystack verification is not configured for this payment environment. No payment status was changed; check the production Paystack secret configuration.'
+      : code === 'timeout' || code === 'network'
+        ? 'Paystack could not be reached just now. No payment status was changed; retry verification shortly.'
+        : code === 'provider_response' || code === 'invalid_response'
+          ? 'Paystack did not return a verifiable transaction result. No payment status was changed; confirm the reference in Paystack and retry.'
+          : code === 'verified_but_not_applied'
+            ? `Paystack verification completed, but UniEco could not safely apply the result. No payment status was changed. Share diagnostic ID ${diagnosticId} with support.`
+          : 'Payment verification could not be completed. No payment status was changed; retry shortly.';
+    return NextResponse.json({ error: message, diagnosticId }, { status: code === 'configuration' ? 503 : 502, headers: { 'Cache-Control': 'no-store' } });
   }
 }

@@ -332,8 +332,16 @@ function StudentOnboarding() {
           referralCode: referralCode || null,
         },
       });
-      if (payment.error || !payment.authorizationUrl || !payment.reference) {
+      if (payment.error || !payment.reference || (!payment.authorizationUrl && !payment.alreadyPaid)) {
         throw new Error(payment.error || 'Registration payment could not be started. Please try again.');
+      }
+      if (payment.alreadyPaid) {
+        window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
+        const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
+        if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
+        window.sessionStorage.removeItem('unieco_pending_university_admin_token');
+        window.location.assign(`/payments/callback?reference=${encodeURIComponent(payment.reference)}`);
+        return;
       }
       if (referralCode) {
         const { error: referralError } = await supabase.rpc('attach_my_referral_code', {
@@ -353,6 +361,7 @@ function StudentOnboarding() {
       const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
       if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
       window.sessionStorage.removeItem('unieco_pending_university_admin_token');
+      if (!payment.authorizationUrl) throw new Error('Paystack checkout did not return a payment link. Please retry.');
       window.location.assign(payment.authorizationUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');

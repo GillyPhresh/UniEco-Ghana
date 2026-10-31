@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createHash } from 'node:crypto';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
-import { getPaystackMode, verifyPaystackTransaction } from '@/lib/payments/paystack.server';
+import { getPaystackCredentialMode, type PaystackMode, verifyPaystackTransaction } from '@/lib/payments/paystack.server';
 
 const PAYMENT_REFERENCE_PATTERN = /^[A-Za-z0-9._=-]{8,120}$/;
 
@@ -13,6 +13,13 @@ type PaystackVerification = Record<string, unknown> & {
   amount?: number | string;
   currency?: string;
 };
+
+export class PaystackReconciliationApplyError extends Error {
+  constructor(readonly code: string) {
+    super('Verified Paystack result could not be safely applied to the UniEco payment record.');
+    this.name = 'PaystackReconciliationApplyError';
+  }
+}
 
 function statusFromPaystack(value: unknown): 'success' | 'failed' | 'cancelled' | null {
   const status = String(value || '').toLowerCase();
@@ -36,8 +43,22 @@ function serviceClient() {
  */
 export async function reconcilePaystackPayment(reference: string) {
   if (!PAYMENT_REFERENCE_PATTERN.test(reference)) throw new Error('Invalid payment reference.');
+  const client = serviceClient();
+  const { data: payment, error: paymentLookupError } = await client
+    .from('payments')
+    .select('payment_reference,provider,payment_type,provider_environment')
+    .eq('payment_reference', reference)
+    .maybeSingle();
+  if (paymentLookupError) throw new Error('Payment record could not be loaded for verification.');
+  if (!payment || payment.provider !== 'paystack') throw new Error('No matching Paystack payment was found.');
 
-  const verified = await verifyPaystackTransaction(reference) as PaystackVerification;
+  // Verify against the environment recorded on this exact internal payment,
+  // not a mutable global PAYSTACK_MODE. This prevents test/live mode drift
+  // from querying the wrong Paystack account and blocking valid payments.
+  const environment: PaystackMode = payment.provider_environment === 'live' || payment.provider_environment === 'test'
+    ? payment.provider_environment
+    : getPaystackCredentialMode();
+  const verified = await verifyPaystackTransaction(reference, environment) as PaystackVerification;
   if (String(verified.reference || '') !== reference || verified.id === undefined || verified.id === null) {
     throw new Error('Paystack returned an unexpected payment reference.');
   }
@@ -64,8 +85,6 @@ export async function reconcilePaystackPayment(reference: string) {
     reconciliation: { source: 'admin_manual_verification', event_id: retryEventId },
   };
   const payloadHash = createHash('sha256').update(JSON.stringify(payload)).digest('hex');
-  const environment = getPaystackMode();
-  const client = serviceClient();
   const { error: environmentError } = await client.rpc('bind_legacy_paystack_environment', {
     p_payment_reference: reference,
     p_provider_environment: environment,
@@ -79,7 +98,10 @@ export async function reconcilePaystackPayment(reference: string) {
       message: 'Paystack verified this reference, but its amount, currency, or environment does not match the UniEco payment record. The payment was not marked as paid.',
     };
   }
-  if (environmentError) throw new Error('The verified payment environment could not be checked safely.');
+  if (environmentError) {
+    console.error('[paystack-reconciliation] environment binding rejected', { code: environmentError.code || 'unknown' });
+    throw new PaystackReconciliationApplyError(environmentError.code || 'environment_binding');
+  }
 
   // A previous webhook may already have recorded the provider event as
   // reconciliation_required. The retry event has its own event ID and payload
@@ -98,11 +120,8 @@ export async function reconcilePaystackPayment(reference: string) {
   });
 
   if (error) {
-    console.error('[paystack-reconciliation] verified result rejected by database', {
-      code: error.code,
-      message: error.message,
-    });
-    throw new Error('The verified payment could not be applied safely.');
+    console.error('[paystack-reconciliation] verified result rejected by database', { code: error.code || 'unknown' });
+    throw new PaystackReconciliationApplyError(error.code || 'database_apply');
   }
 
   const result = data as { reconciliation_required?: boolean; ignored?: boolean; idempotent?: boolean; status?: string } | null;
