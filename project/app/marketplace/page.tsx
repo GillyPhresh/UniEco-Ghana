@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -24,21 +25,54 @@ import {
 
 type ProductWithVendor = Product & { vendor?: { business_name: string; business_slug: string; logo_url?: string | null } };
 type ServiceWithVendor = Service & { vendor?: { business_name: string; business_slug: string; logo_url?: string | null } };
+type MarketplaceLandingData = {
+  trending: ProductWithVendor[];
+  services: ServiceWithVendor[];
+  deals: ProductWithVendor[];
+  recent: ProductWithVendor[];
+};
 
 export default function MarketplacePage() {
-  const [loading, setLoading] = useState(true);
-  const [trending, setTrending] = useState<ProductWithVendor[]>([]);
-  const [services, setServices] = useState<ServiceWithVendor[]>([]);
-  const [deals, setDeals] = useState<ProductWithVendor[]>([]);
-  const [recent, setRecent] = useState<ProductWithVendor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<ProductWithVendor[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState('newest');
+  const searchRequestId = useRef(0);
+
+  const {
+    data: marketplaceData,
+    isPending: loading,
+    isError: loadError,
+    refetch: reloadMarketplace,
+  } = useQuery<MarketplaceLandingData>({
+    queryKey: ['marketplace', 'landing'],
+    queryFn: async () => {
+      const [trendingProducts, featuredServices, promotions, recentProducts] = await Promise.all([
+        getTrendingProducts(8),
+        getFeaturedServices(6),
+        getDealsAndPromotions(4),
+        getRecentlyAddedProducts(4),
+      ]);
+      return {
+        trending: trendingProducts as ProductWithVendor[],
+        services: featuredServices as ServiceWithVendor[],
+        deals: promotions as ProductWithVendor[],
+        recent: recentProducts as ProductWithVendor[],
+      };
+    },
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+
+  const trending: ProductWithVendor[] = marketplaceData?.trending ?? [];
+  const services: ServiceWithVendor[] = marketplaceData?.services ?? [];
+  const deals: ProductWithVendor[] = marketplaceData?.deals ?? [];
+  const recent: ProductWithVendor[] = marketplaceData?.recent ?? [];
 
   const doSearch = useCallback(async () => {
+    const requestId = ++searchRequestId.current;
     setSearching(true);
     try {
       const { products, total, error } = await searchProducts({
@@ -47,56 +81,43 @@ export default function MarketplacePage() {
         sort: sortBy,
         limit: 12,
       });
-      if (!error && normalizeSearchTerm(searchQuery)) {
+      if (requestId === searchRequestId.current && !error && normalizeSearchTerm(searchQuery)) {
         trackAnalyticsEvent({ event_type: 'search', result_count: Math.min(total, 1000) });
       }
-      setSearchError(error);
-      setSearchResults(products as ProductWithVendor[]);
+      if (requestId === searchRequestId.current) {
+        setSearchError(error);
+        setSearchResults(products as ProductWithVendor[]);
+      }
     } catch {
-      setSearchError(true);
-      setSearchResults([]);
+      if (requestId === searchRequestId.current) {
+        setSearchError(true);
+        setSearchResults([]);
+      }
     } finally {
-      setSearching(false);
+      if (requestId === searchRequestId.current) setSearching(false);
     }
   }, [searchQuery, activeCategory, sortBy]);
 
   useEffect(() => {
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const timer = setTimeout(() => { void doSearch(); }, 300);
+    if (searchQuery.trim() || activeCategory) {
+      const timer = setTimeout(() => { void doSearch(); }, 180);
       return () => clearTimeout(timer);
     } else {
+      searchRequestId.current += 1;
+      setSearching(false);
       setSearchResults([]);
       setSearchError(false);
     }
   }, [searchQuery, activeCategory, sortBy, doSearch]);
-
-  async function loadData() {
-    setLoading(true);
-    const [t, s, d, r] = await Promise.all([
-      getTrendingProducts(8),
-      getFeaturedServices(6),
-      getDealsAndPromotions(4),
-      getRecentlyAddedProducts(4),
-    ]);
-    setTrending(t as ProductWithVendor[]);
-    setServices(s as ServiceWithVendor[]);
-    setDeals(d as ProductWithVendor[]);
-    setRecent(r as ProductWithVendor[]);
-    setLoading(false);
-  }
 
   const showSearch = searchQuery.trim().length > 0 || activeCategory;
 
   return (
     <>
       <SiteHeader />
-      <main className="container max-w-7xl py-6 sm:py-8 px-4 sm:px-6">
+      <main className="container max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
         {/* Hero */}
-        <div className="mb-8 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-6 sm:p-8">
+        <div className="mb-6 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:mb-8 sm:p-8">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-6 w-6 text-primary" />
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
@@ -121,20 +142,22 @@ export default function MarketplacePage() {
 
         {/* Category chips */}
         <div className="mb-8 space-y-3">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-              !activeCategory ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
-            }`}
-          >
-            All
-          </button>
-          {ALL_CATEGORIES.map(cat => (
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <button
+              onClick={() => setActiveCategory(null)}
+              aria-pressed={!activeCategory}
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors active:scale-[0.98] ${
+                !activeCategory ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
+              }`}
+            >
+              All
+            </button>
+            {ALL_CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              aria-pressed={activeCategory === cat}
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors active:scale-[0.98] ${
                 activeCategory === cat ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
               }`}
             >
@@ -142,8 +165,8 @@ export default function MarketplacePage() {
             </button>
           ))}
           </div>
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground">Choose a category, then search or browse the matching items.</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">Choose a category, then browse matching items.</p>
             <label className="flex shrink-0 items-center gap-2 text-xs font-semibold text-muted-foreground">Sort
               <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 rounded-lg border border-input bg-card px-2 text-xs font-medium text-foreground outline-none focus:border-primary">
                 <option value="newest">Newest</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="rating">Recommended</option>
@@ -185,6 +208,14 @@ export default function MarketplacePage() {
               </Card>
             )}
           </div>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+              <ShoppingBag className="h-10 w-10 text-muted-foreground/50" />
+              <div><p className="font-semibold text-foreground">Marketplace could not load</p><p className="mt-1 text-sm text-muted-foreground">Check your connection and try again.</p></div>
+              <Button type="button" variant="outline" onClick={() => void reloadMarketplace()}>Try again</Button>
+            </CardContent>
+          </Card>
         ) : loading ? (
           <div className="space-y-8">
             <div>
@@ -252,7 +283,7 @@ export default function MarketplacePage() {
             {/* Empty state */}
             {trending.length === 0 && services.length === 0 && deals.length === 0 && recent.length === 0 && (
               <Card>
-                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                <CardContent className="flex flex-col items-center justify-center py-10 text-center sm:py-16">
                   <ShoppingBag className="h-12 w-12 text-muted-foreground/40" />
                   <p className="mt-4 text-lg font-semibold text-foreground">No products available yet</p>
                   <p className="mt-1 text-sm text-muted-foreground">

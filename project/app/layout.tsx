@@ -58,9 +58,9 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   icons: {
-    icon: [{ url: '/unieco-favicon.png', type: 'image/png', sizes: '1280x1280' }],
-    shortcut: '/unieco-favicon.png',
-    apple: '/unieco-favicon.png',
+    icon: [{ url: '/unieco-main-logo.png', type: 'image/png', sizes: '1280x1280' }],
+    shortcut: '/unieco-main-logo.png',
+    apple: '/unieco-main-logo.png',
   },
   robots: {
     index: true,
@@ -100,7 +100,7 @@ const jsonLd = {
       url: siteConfig.url,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteConfig.url}/unieco-favicon.png`,
+        url: `${siteConfig.url}/unieco-main-logo.png`,
       },
       slogan: siteConfig.tagline,
       areaServed: {
