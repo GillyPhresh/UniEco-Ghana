@@ -40,3 +40,6 @@ next-env.d.ts
 # local Supabase CLI state
 /supabase/.branches/
 /supabase/.temp/
+
+# Private Managing Director signature is stored in Supabase function secrets.
+/public/official-letterhead/assets/unieco-managing-director-signature.png

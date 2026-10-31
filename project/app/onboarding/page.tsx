@@ -25,10 +25,8 @@ export default function OnboardingPage() {
     const params = new URLSearchParams();
     const pendingInvite = window.sessionStorage.getItem('unieco_pending_registration_invite');
     const pendingReferral = window.sessionStorage.getItem('unieco_pending_referral_code');
-    const pendingUniversityAdminToken = window.sessionStorage.getItem('unieco_pending_university_admin_token');
     if (pendingInvite) params.set('invite', pendingInvite);
     if (pendingReferral) params.set('ref', pendingReferral);
-    if (pendingUniversityAdminToken) params.set('university_admin_token', pendingUniversityAdminToken);
     const query = params.toString();
 
     void supabase.rpc('get_my_registration_access').then(({ data, error }) => {

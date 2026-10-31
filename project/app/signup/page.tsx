@@ -41,7 +41,15 @@ export default function SignUpPage() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const intent = new URLSearchParams(window.location.search).get('intent');
+    const query = new URLSearchParams(window.location.search);
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const tokenFromFragment = fragment.get('university_admin_token');
+    if (tokenFromFragment) {
+      window.sessionStorage.setItem('unieco_pending_university_admin_token', tokenFromFragment);
+      // Keep the referral token out of browser history, preserving Next's history state.
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
+    }
+    const intent = query.get('intent');
     if (intent === 'student' || intent === 'external_vendor') setAccountType(intent);
   }, []);
 
@@ -59,7 +67,8 @@ export default function SignUpPage() {
     const incomingReferral = new URLSearchParams(window.location.search).get('ref');
     const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
-    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token');
+    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token')
+      || window.sessionStorage.getItem('unieco_pending_university_admin_token');
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
     // This is only a registration hint. The database revalidates and locks it at intent creation.
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
@@ -88,10 +97,11 @@ export default function SignUpPage() {
         return;
       }
       const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
-      const adminQuery = universityAdminToken ? `university_admin_token=${encodeURIComponent(universityAdminToken)}` : '';
-      const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery, adminQuery].filter(Boolean).join('&');
+      // The university-admin bearer token stays in sessionStorage; do not put it
+      // into a URL that may be retained in browser history or referrer logs.
+      const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
       const studentPath = withNext(studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student', requestedNext);
-      const vendorQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery, adminQuery].filter(Boolean).join('&');
+      const vendorQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
       const vendorPath = withNext(vendorQuery ? `/onboarding/vendor?${vendorQuery}` : '/onboarding/vendor', requestedNext);
       router.push(accountType === 'student' ? studentPath : vendorPath);
     }
@@ -102,7 +112,8 @@ export default function SignUpPage() {
     const incomingInvite = new URLSearchParams(window.location.search).get('invite');
     const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
     const incomingReferral = new URLSearchParams(window.location.search).get('ref');
-    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token');
+    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token')
+      || window.sessionStorage.getItem('unieco_pending_university_admin_token');
     const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
@@ -115,7 +126,6 @@ export default function SignUpPage() {
           const onboardingParams = new URLSearchParams();
           if (incomingReferral) onboardingParams.set('ref', incomingReferral);
           if (incomingInvite) onboardingParams.set('invite', incomingInvite);
-          if (universityAdminToken) onboardingParams.set('university_admin_token', universityAdminToken);
           const onboardingPath = onboardingParams.toString()
             ? `/onboarding?${onboardingParams.toString()}`
             : '/onboarding';

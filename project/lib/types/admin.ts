@@ -514,6 +514,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Sponsored Access', href: '/admin/registration-invites', icon: 'Ticket' },
       { label: 'Referrals & Rewards', href: '/admin/referrals', icon: 'Gift' },
       { label: 'University Administrators', href: '/admin/university-administrators', icon: 'UserCheck' },
+      { label: 'University Admin Payroll', href: '/admin/university-admin-payroll', icon: 'Wallet' },
       { label: 'Invoices', href: '/admin/invoices', icon: 'Receipt' },
       { label: 'Coupons', href: '/admin/coupons', icon: 'Ticket' },
       { label: 'Advertisements', href: '/admin/advertisements', icon: 'Megaphone' },

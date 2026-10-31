@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
 import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
+import { createUniversityAdminAppointmentAttachments, type EmailAttachment } from "./university-admin-documents.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,6 +60,15 @@ Deno.serve(async (req: Request) => {
       eventType,
       metadata: metadata as Record<string, unknown>,
     });
+    const emailTemplate = typeof (metadata as Record<string, unknown>).template === "string"
+      ? (metadata as Record<string, unknown>).template
+      : eventType;
+    let attachments: EmailAttachment[] = [];
+    if (emailTemplate === "university_admin_appointment") {
+      // Do not send an incomplete appointment if either official document
+      // cannot be generated; returning an error keeps the queue retryable.
+      attachments = await createUniversityAdminAppointmentAttachments(metadata as Record<string, unknown>);
+    }
 
     // Determine which provider is configured
     const resendKey = Deno.env.get("RESEND_API_KEY");
@@ -86,6 +96,7 @@ Deno.serve(async (req: Request) => {
           subject,
           html: rendered.html,
           text: rendered.text,
+          ...(attachments.length ? { attachments: attachments.map(({ filename, content }) => ({ filename, content })) } : {}),
         }),
       });
 
@@ -122,6 +133,7 @@ Deno.serve(async (req: Request) => {
           to: [{ email: to }],
           subject,
           htmlContent: rendered.html,
+          ...(attachments.length ? { attachment: attachments.map(({ filename, content }) => ({ name: filename, content })) } : {}),
         }),
       });
 
@@ -157,6 +169,7 @@ Deno.serve(async (req: Request) => {
           from: { email: fromEmail },
           subject,
           content: [{ type: "text/html", value: rendered.html }, { type: "text/plain", value: rendered.text }],
+          ...(attachments.length ? { attachments: attachments.map(({ filename, content, contentType }) => ({ content, filename, type: contentType, disposition: "attachment" })) } : {}),
         }),
       });
 
@@ -314,6 +327,13 @@ function renderEmail(input: {
     copy = `<p>Hi ${name},</p><p>You have been appointed to manage <strong>${institutionName}</strong> on UniEco Ghana.</p><div style="border:1px solid #bbf7d0;background:#f0fdf4;border-radius:14px;padding:18px;margin:20px 0"><div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#15803d;font-weight:700">Your access will include</div><p style="margin:8px 0 0;color:#166534;font-size:14px">Posting and managing institution-focused content, announcements, events, and other approved campus updates within this institution only.</p></div><p>This secure invitation expires on <strong>${expiresAt}</strong>. You must create or sign in to a UniEco Ghana account using this invited email address before access is granted.</p>`;
     button = `<a href="${escapeHtml(inviteUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Accept institution invitation</a>`;
     plainText = `Institution administrator invitation\n\nHi ${String(meta.name || 'there')},\n\nYou have been appointed to manage ${String(meta.institution_name || 'your institution')} on UniEco Ghana.\n\nYour access is limited to posting and managing approved institution content for that institution.\n\nAccept the invitation: ${inviteUrl}\n\nThis invitation expires on ${String(meta.expires_at || 'the stated expiry time')}. Use the invited email address when creating or signing in to your UniEco Ghana account.`;
+  } else if (template === 'university_admin_application_received') {
+    const universityName = escapeHtml(meta.university_name || 'your university');
+    const applicationReference = escapeHtml(meta.application_reference || 'available in the management system');
+    heading = 'University Administrator application received';
+    copy = `<p>Hi ${name},</p><p>A new University Administrator application has been submitted for <strong>${universityName}</strong>.</p><p>Application reference: <strong>${applicationReference}</strong></p><p>Open the application in the management system to review the candidate and record your decision.</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">Review application</a>`;
+    plainText = `University Administrator application received\n\nA new application was submitted for ${String(meta.university_name || 'a university')}.\nApplication reference: ${String(meta.application_reference || 'available in the management system')}\n\nReview it in the management system: ${actionUrl}`;
   } else if (template === 'managing_director_appointment') {
     const appointmentTitle = escapeHtml(meta.appointment_title || 'your appointment');
     const customMessage = typeof meta.message === 'string' && meta.message.trim() ? `<p style="color:#334155;line-height:1.7;white-space:pre-wrap">${escapeHtml(meta.message)}</p>` : '';

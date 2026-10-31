@@ -50,6 +50,7 @@ export const footerLinks = {
     { label: 'For Students', href: '/#student-benefits' },
     { label: 'For Vendors', href: '/#vendor-benefits' },
     { label: 'For Universities', href: '/#university-benefits' },
+    { label: 'University Administrator opportunity', href: '/university-admin/apply' },
   ],
   Account: [
     { label: 'Sign in', href: '/signin' },

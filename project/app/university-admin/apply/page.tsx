@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 type Opening = {
   opening_id: string;
   university_id: string;
+  university_name?: string;
   title: string;
   description: string;
   closes_at: string | null;
@@ -41,6 +42,8 @@ function ApplyContent() {
   const params = useSearchParams();
   const { user } = useAuth();
   const universityId = params.get('university_id') || '';
+  const [openings, setOpenings] = useState<Opening[]>([]);
+  const [selectedUniversityId, setSelectedUniversityId] = useState(universityId);
   const [opening, setOpening] = useState<Opening | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,17 +52,44 @@ function ApplyContent() {
   const [form, setForm] = useState({ phone: '', studentId: '', programme: '', level: '', availability: '', experience: '', coverNote: '', terms: false });
 
   useEffect(() => {
-    if (!universityId) { setError('This application link is missing the university.'); setLoading(false); return; }
-    void Promise.all([
-      supabase.rpc('get_university_admin_application_form', { p_university_id: universityId }),
-      supabase.rpc('get_my_university_admin_applications'),
-    ]).then(([openingResult, applicationsResult]) => {
-      if (openingResult.error) setError(openingResult.error.message);
-      else setOpening(openingResult.data as Opening);
+    let active = true;
+    async function loadPage() {
+      setLoading(true);
+      setError(null);
+      const [openingsResult, applicationsResult] = await Promise.all([
+        supabase.rpc('list_open_university_admin_openings'),
+        supabase.rpc('get_my_university_admin_applications'),
+      ]);
+      if (!active) return;
+      if (openingsResult.error) setError(openingsResult.error.message);
+      else setOpenings((openingsResult.data || []) as Opening[]);
       if (!applicationsResult.error) setApplications((applicationsResult.data || []) as Application[]);
+      setSelectedUniversityId(universityId);
+      if (universityId) {
+        const { data, error: openingError } = await supabase.rpc('get_university_admin_application_form', { p_university_id: universityId });
+        if (!active) return;
+        if (openingError) setError(openingError.message);
+        else setOpening(data as Opening);
+      } else {
+        setOpening(null);
+      }
       setLoading(false);
-    });
-  }, [universityId]);
+    }
+    void loadPage();
+    return () => { active = false; };
+  }, [universityId, user?.id]);
+
+  async function chooseUniversity(id: string) {
+    setSelectedUniversityId(id);
+    setOpening(null);
+    setError(null);
+    if (!id) return;
+    setLoading(true);
+    const { data, error: openingError } = await supabase.rpc('get_university_admin_application_form', { p_university_id: id });
+    if (openingError) setError(openingError.message);
+    else setOpening(data as Opening);
+    setLoading(false);
+  }
 
   function update(key: keyof typeof form, value: string | boolean) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -100,7 +130,11 @@ function ApplyContent() {
           <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-3xl">University Administrator application</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">Apply to help students and vendors join UniEco Ghana in your university community. Your application is reviewed by the Super Admin; access is never granted automatically.</p>
         </div>
-        {loading ? <Card><CardContent className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></CardContent></Card> : error && !opening ? <Card className="border-destructive/30"><CardContent className="flex gap-3 p-5 text-sm text-destructive"><AlertCircle className="h-5 w-5 shrink-0" />{error}</CardContent></Card> : opening && <>
+        {loading && <Card><CardContent className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></CardContent></Card>}
+        {!loading && openings.length > 0 && <Card><CardHeader><CardTitle className="text-base">Choose your university</CardTitle><p className="text-sm text-muted-foreground">Applications are open at the campuses below. Only apply to your own university.</p></CardHeader><CardContent><select aria-label="Choose your university" className="min-h-12 w-full rounded-lg border bg-white px-3 text-sm" value={selectedUniversityId} onChange={(event) => void chooseUniversity(event.target.value)}><option value="">Select a campus</option>{openings.map((item) => <option key={item.opening_id} value={item.university_id}>{item.university_name || item.title}</option>)}</select></CardContent></Card>}
+        {error && <Card className="border-destructive/30"><CardContent className="flex gap-3 p-5 text-sm text-destructive"><AlertCircle className="h-5 w-5 shrink-0" />{error}</CardContent></Card>}
+        {!loading && openings.length === 0 && !error && <Card><CardContent className="p-8 text-center"><GraduationCap className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 font-semibold">Applications are not open right now</p><p className="mt-1 text-sm text-muted-foreground">Please check back later or contact UniEco Ghana through the official support channels.</p></CardContent></Card>}
+        {opening && <>
           <Card className="border-primary/20 bg-primary/5"><CardContent className="flex items-start gap-3 p-4"><GraduationCap className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><p className="font-semibold">{opening.title}</p><p className="mt-1 text-sm text-muted-foreground">{opening.description}</p>{opening.closes_at && <p className="mt-2 text-xs text-muted-foreground">Applications close {new Date(opening.closes_at).toLocaleString('en-GH')}</p>}</div></CardContent></Card>
           {applications.length > 0 && <Card><CardHeader><CardTitle className="text-base">Your applications</CardTitle></CardHeader><CardContent className="space-y-3">{applications.map((application) => <div key={application.application_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm"><div><p className="font-semibold">{application.application_reference}</p><p className="text-xs text-muted-foreground">{new Date(application.submitted_at).toLocaleDateString('en-GH')}</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold capitalize text-primary">{application.status.replace('_', ' ')}</span></div>)}</CardContent></Card>}
           <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><FileText className="h-5 w-5 text-primary" />Tell us about yourself</CardTitle><p className="text-sm text-muted-foreground">Use truthful information. We use it only for reviewing this opportunity.</p></CardHeader><CardContent className="space-y-4">
