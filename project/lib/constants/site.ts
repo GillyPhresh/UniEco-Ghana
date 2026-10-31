@@ -63,5 +63,6 @@ export const footerLinks = {
     { label: 'Privacy Policy', href: '/privacy-policy' },
     { label: 'Terms of Service', href: '/terms-of-service' },
     { label: 'Code of Conduct', href: '/code-of-conduct' },
+    { label: 'Campus image credits', href: '/campus-image-credits' },
   ],
 } as const;

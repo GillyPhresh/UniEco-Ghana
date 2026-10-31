@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Building2, MapPinned, Package, Store } from 'lucide-react';
 import { SearchBar } from '@/components/shared/search-bar';
+
+/* eslint-disable @next/next/no-img-element -- These local hero photos need responsive srcSet selection; the app globally disables Next's image optimizer. */
 
 interface HeroProps {
   vendorCount: number;
@@ -13,48 +14,125 @@ interface HeroProps {
 }
 
 const campusBackgrounds = [
-  { src: '/assets/homepage/knust-landmark.jpg', alt: 'KNUST campus landmark', position: 'center 48%' },
-  { src: '/assets/homepage/ucc-gate.jpg', alt: 'University of Cape Coast entrance', position: 'center 50%' },
-  { src: '/assets/homepage/campus-building.jpg', alt: 'University campus building', position: 'center 52%' },
-  { src: '/assets/homepage/campus-clocktower.jpg', alt: 'Campus clock tower', position: 'center 45%' },
+  {
+    src: '/assets/homepage/knust-campus',
+    width: 4160,
+    height: 3120,
+    widths: [1200, 1800, 2560, 3200, 3840, 4160],
+    sizes: '(max-width: 639px) 300vw, 100vw',
+    position: 'center 48%',
+  },
+  {
+    src: '/assets/homepage/ucc-gate',
+    width: 4000,
+    height: 2941,
+    widths: [1200, 1800, 2560, 3200, 3840, 4000],
+    sizes: '(max-width: 639px) 300vw, 100vw',
+    position: 'center 50%',
+  },
+  {
+    src: '/assets/homepage/academic-city-campus',
+    width: 4000,
+    height: 2250,
+    widths: [1200, 1800, 2560, 3200, 3840, 4000],
+    sizes: '(max-width: 639px) 200vw, 100vw',
+    position: 'center 52%',
+  },
+  {
+    src: '/assets/homepage/university-of-ghana-tower',
+    width: 3024,
+    height: 4032,
+    widths: [750, 1200, 1800, 2400, 3024],
+    sizes: '(max-width: 639px) 165vw, 100vw',
+    position: 'center 45%',
+  },
 ];
+
+function getSourceSet(background: (typeof campusBackgrounds)[number]) {
+  return background.widths
+    .map((width) => `${background.src}-${width}.webp ${width}w`)
+    .join(', ');
+}
 
 export function Hero({ vendorCount, universityCount, productCount }: HeroProps) {
   const [activeBackground, setActiveBackground] = useState(0);
+  const [outgoingBackground, setOutgoingBackground] = useState<number | null>(null);
+  const [nextImageReady, setNextImageReady] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const timer = window.setInterval(() => {
-      setActiveBackground((current) => (current + 1) % campusBackgrounds.length);
+
+    let cancelled = false;
+    const next = campusBackgrounds[(activeBackground + 1) % campusBackgrounds.length];
+    const image = new window.Image();
+    image.sizes = next.sizes;
+    image.srcset = getSourceSet(next);
+    image.setAttribute('fetchpriority', 'low');
+    image.src = `${next.src}-${next.width}.webp`;
+    image.onload = () => {
+      if (!cancelled) setNextImageReady(true);
+    };
+
+    return () => {
+      cancelled = true;
+      image.onload = null;
+    };
+  }, [activeBackground]);
+
+  useEffect(() => {
+    if (!nextImageReady || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const timer = window.setTimeout(() => {
+      const next = (activeBackground + 1) % campusBackgrounds.length;
+      setOutgoingBackground(activeBackground);
+      setActiveBackground(next);
+      setNextImageReady(false);
     }, 7000);
-    return () => window.clearInterval(timer);
-  }, []);
+
+    return () => window.clearTimeout(timer);
+  }, [activeBackground, nextImageReady]);
+
+  useEffect(() => {
+    if (outgoingBackground === null) return;
+    const timer = window.setTimeout(() => setOutgoingBackground(null), 1100);
+    return () => window.clearTimeout(timer);
+  }, [outgoingBackground]);
 
   return (
     <section className="relative isolate overflow-hidden bg-[#062d27] text-white">
       <div className="absolute inset-0 -z-20 overflow-hidden bg-[#062d27]" aria-hidden="true">
-        {campusBackgrounds.map((background, index) => (
-          <Image
-            key={background.src}
-            src={background.src}
-            alt=""
-            fill
-            priority={index === 0}
-            sizes="100vw"
-            style={{
-              objectPosition: background.position,
-              opacity: activeBackground === index ? 1 : 0,
-            }}
-            className="object-cover saturate-[0.86] transition-opacity duration-1000 motion-reduce:transition-none"
-          />
-        ))}
+        {[activeBackground, ...(outgoingBackground === null ? [] : [outgoingBackground])].map((index) => {
+          const background = campusBackgrounds[index];
+          const isActive = activeBackground === index;
+
+          return (
+            <img
+              key={background.src}
+              src={`${background.src}-${background.width}.webp`}
+              srcSet={getSourceSet(background)}
+              sizes={background.sizes}
+              width={background.width}
+              height={background.height}
+              alt=""
+              loading="eager"
+              fetchPriority={isActive ? 'high' : 'low'}
+              decoding="async"
+              draggable={false}
+              style={{
+                objectPosition: background.position,
+                opacity: isActive ? 1 : 0,
+              }}
+              className="absolute inset-0 h-full w-full object-cover saturate-[0.9] transition-opacity duration-1000 motion-reduce:transition-none"
+            />
+          );
+        })}
       </div>
 
       <div
         className="absolute inset-0 -z-10"
         aria-hidden="true"
         style={{
-          background: 'linear-gradient(90deg, rgba(6,45,39,.94) 0%, rgba(6,45,39,.84) 42%, rgba(6,45,39,.62) 100%), linear-gradient(0deg, rgba(6,45,39,.36), rgba(6,45,39,.14))',
+          background: 'linear-gradient(90deg, rgba(6,45,39,.86) 0%, rgba(6,45,39,.72) 42%, rgba(6,45,39,.46) 100%), linear-gradient(0deg, rgba(6,45,39,.2), rgba(6,45,39,.08))',
         }}
       />
       <div className="absolute -left-36 top-16 -z-10 h-72 w-72 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden="true" />
