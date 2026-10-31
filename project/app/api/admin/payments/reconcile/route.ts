@@ -44,11 +44,14 @@ export async function POST(request: NextRequest) {
       ? 'Paystack verification is not configured for this payment environment. No payment status was changed; check the production Paystack secret configuration.'
       : code === 'timeout' || code === 'network'
         ? 'Paystack could not be reached just now. No payment status was changed; retry verification shortly.'
+        : code === 'not_found'
+          ? 'Paystack Live has no transaction with this reference. This payment has not been marked paid. The account holder must restart registration checkout in production.'
         : code === 'provider_response' || code === 'invalid_response'
           ? 'Paystack did not return a verifiable transaction result. No payment status was changed; confirm the reference in Paystack and retry.'
           : code === 'verified_but_not_applied'
             ? `Paystack verification completed, but UniEco could not safely apply the result. No payment status was changed. Share diagnostic ID ${diagnosticId} with support.`
           : 'Payment verification could not be completed. No payment status was changed; retry shortly.';
-    return NextResponse.json({ error: message, diagnosticId }, { status: code === 'configuration' ? 503 : 502, headers: { 'Cache-Control': 'no-store' } });
+    const status = code === 'configuration' ? 503 : code === 'not_found' ? 422 : 502;
+    return NextResponse.json({ error: message, diagnosticId }, { status, headers: { 'Cache-Control': 'no-store' } });
   }
 }

@@ -52,27 +52,29 @@ export async function reconcilePaystackPayment(reference: string) {
   if (paymentLookupError) throw new Error('Payment record could not be loaded for verification.');
   if (!payment || payment.provider !== 'paystack') throw new Error('No matching Paystack payment was found.');
 
-  // Verify against the environment recorded on this exact internal payment,
-  // not a mutable global PAYSTACK_MODE. This prevents test/live mode drift
-  // from querying the wrong Paystack account and blocking valid payments.
-  const environment: PaystackMode = payment.provider_environment === 'live' || payment.provider_environment === 'test'
-    ? payment.provider_environment
-    : getPaystackCredentialMode();
+  // Outside production, verify against the environment recorded on this exact
+  // payment, not a mutable global PAYSTACK_MODE. Production always verifies
+  // against Paystack Live: a stored test marker cannot grant production access.
+  // If Live confirms the exact reference, amount and currency, the protected
+  // environment-binding RPC may repair the legacy marker. Test-only references
+  // are not found in Live and remain unpaid.
+  const environment: PaystackMode = process.env.UNIECO_ENV === 'production'
+    ? 'live'
+    : payment.provider_environment === 'live' || payment.provider_environment === 'test'
+      ? payment.provider_environment
+      : getPaystackCredentialMode();
   const verified = await verifyPaystackTransaction(reference, environment) as PaystackVerification;
   if (String(verified.reference || '') !== reference || verified.id === undefined || verified.id === null) {
     throw new Error('Paystack returned an unexpected payment reference.');
   }
 
-  const status = statusFromPaystack(verified.status);
-  if (!status) {
-    return { status: 'pending' as const, applied: false, providerStatus: String(verified.status || 'pending') };
-  }
-
   const amountMinor = Number(verified.amount);
   const currency = String(verified.currency || 'GHS').toUpperCase();
-  if (!Number.isFinite(amountMinor) || amountMinor < 0 || currency !== 'GHS') {
+  if (!Number.isFinite(amountMinor) || amountMinor <= 0 || currency !== 'GHS') {
     throw new Error('Paystack returned an invalid amount or currency.');
   }
+
+  const status = statusFromPaystack(verified.status);
 
   // A manual verification is a separate, audited reconciliation event. Include
   // its unique ID in the payload hash: payment_webhook_events also has a unique
@@ -101,6 +103,10 @@ export async function reconcilePaystackPayment(reference: string) {
   if (environmentError) {
     console.error('[paystack-reconciliation] environment binding rejected', { code: environmentError.code || 'unknown' });
     throw new PaystackReconciliationApplyError(environmentError.code || 'environment_binding');
+  }
+
+  if (!status) {
+    return { status: 'pending' as const, applied: false, providerStatus: String(verified.status || 'pending') };
   }
 
   // A previous webhook may already have recorded the provider event as

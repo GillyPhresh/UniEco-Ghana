@@ -4,7 +4,7 @@ export type PaystackMode = 'test' | 'live';
 export type PaystackChannel = 'card' | 'mobile_money' | 'bank_transfer';
 export type PaystackMobileMoneyProvider = 'mtn' | 'atl' | 'vod';
 
-export type PaystackVerificationErrorCode = 'configuration' | 'timeout' | 'network' | 'provider_response' | 'invalid_response';
+export type PaystackVerificationErrorCode = 'configuration' | 'timeout' | 'network' | 'provider_response' | 'not_found' | 'invalid_response';
 
 export class PaystackVerificationError extends Error {
   constructor(readonly code: PaystackVerificationErrorCode, message: string) {
@@ -170,6 +170,9 @@ export async function verifyPaystackTransaction(reference: string, expectedMode:
     throw new PaystackVerificationError('invalid_response', 'Paystack returned a response that could not be verified.');
   }
   if (!response.ok || !payload.status || !payload.data) {
+    if (expectedMode === 'live' && /not found|does not exist/i.test(String(payload.message || ''))) {
+      throw new PaystackVerificationError('not_found', 'No live Paystack transaction matches this reference.');
+    }
     throw new PaystackVerificationError('provider_response', 'Paystack could not verify this transaction reference.');
   }
   return payload.data;

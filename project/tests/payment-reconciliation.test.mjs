@@ -35,6 +35,49 @@ test('verification selects a secret that matches the stored payment environment 
   assert.doesNotMatch(verifier, /await response\.json\(\)/);
 });
 
+test('production reconciliation always checks Paystack Live for legacy test-marked rows', async () => {
+  const source = await read('lib/payments/paystack-reconciliation.server.ts');
+  const verifier = await read('lib/payments/paystack.server.ts');
+  assert.match(source, /process\.env\.UNIECO_ENV === 'production'[\s\S]*?\? 'live'/);
+  assert.match(source, /verified Paystack result/i);
+  assert.match(verifier, /'not_found'/);
+  assert.match(verifier, /expectedMode === 'live'.*not found/i);
+});
+
+test('verified live recovery only repairs unresolved environment metadata and never marks payments paid itself', async () => {
+  const migration = await read('supabase/migrations/20261031120000_0165_verified_live_environment_recovery.sql');
+  const reconciliation = await read('lib/payments/paystack-reconciliation.server.ts');
+  assert.match(migration, /auth\.role\(\) IS DISTINCT FROM 'service_role'/);
+  assert.match(migration, /OLD\.provider_environment IS NOT DISTINCT FROM 'test'[\s\S]*NEW\.provider_environment IS NOT DISTINCT FROM 'live'/);
+  assert.match(migration, /status IN \('initiated', 'pending', 'reconciliation_required'\)/);
+  assert.match(migration, /payment_row\.amount IS DISTINCT FROM p_amount/);
+  assert.match(migration, /payment_row\.currency IS DISTINCT FROM upper\(p_currency\)/);
+  assert.match(migration, /never changes payment status/i);
+  assert.doesNotMatch(migration, /SET status\s*=/i);
+  assert.match(reconciliation, /amountMinor \/ 100/);
+  assert.ok(reconciliation.indexOf('currency !== \'GHS\'') < reconciliation.indexOf("client.rpc('bind_legacy_paystack_environment'"));
+  assert.ok(reconciliation.indexOf("client.rpc('bind_legacy_paystack_environment'") < reconciliation.indexOf("if (!status)"));
+});
+
+test('missing live transaction gets a clear non-mutating admin response', async () => {
+  const route = await read('app/api/admin/payments/reconcile/route.ts');
+  const verifier = await read('lib/payments/paystack.server.ts');
+  assert.match(verifier, /expectedMode === 'live' && \/not found\|does not exist\//i);
+  assert.match(route, /code === 'not_found'[\s\S]*restart registration checkout in production/);
+  assert.match(route, /code === 'not_found' \? 422/);
+});
+
+test('a retried live checkout aligns pending registration metadata without granting access', async () => {
+  const migration = await read('supabase/migrations/20261031130000_0166_live_checkout_attempt_environment.sql');
+  assert.match(migration, /auth\.role\(\) IS DISTINCT FROM 'service_role'/);
+  assert.match(migration, /payment_row\.status NOT IN \('initiated', 'pending'\)/);
+  assert.match(migration, /attempt_row\.provider_environment = 'test'[\s\S]*p_provider_environment = 'live'/);
+  assert.match(migration, /app\.verified_paystack_attempt_environment/);
+  assert.match(migration, /status = 'pending'/);
+  assert.doesNotMatch(migration, /SET status\s*=\s*'success'/i);
+  assert.match(migration, /never marks payment successful/i);
+});
+
 test('registration retries verify a quarantined attempt before allowing another charge', async () => {
   const route = await read('app/api/payments/paystack/initialize/route.ts');
   const checkout = await read('app/onboarding/student/page.tsx');
