@@ -1,0 +1,34 @@
+[
+  {
+    "id": "university-of-ghana",
+    "label": "University of Ghana",
+    "university_name": "University of Ghana",
+    "website_url": "https://www.ug.edu.gh/news",
+    "feed_url": "https://www.ug.edu.gh/news-list.xml",
+    "source_domain": "ug.edu.gh"
+  },
+  {
+    "id": "knust",
+    "label": "KNUST",
+    "university_name": "Kwame Nkrumah University of Science and Technology",
+    "website_url": "https://www.knust.edu.gh/news",
+    "feed_url": "https://www.knust.edu.gh/rss.xml",
+    "source_domain": "knust.edu.gh"
+  },
+  {
+    "id": "accra-technical-university",
+    "label": "Accra Technical University",
+    "university_name": "Accra Technical University",
+    "website_url": "https://atu.edu.gh/category/news/",
+    "feed_url": "https://atu.edu.gh/category/news/feed/",
+    "source_domain": "atu.edu.gh"
+  },
+  {
+    "id": "academic-city",
+    "label": "Academic City University",
+    "university_name": "Academic City University",
+    "website_url": "https://acity.edu.gh/",
+    "feed_url": "https://acity.edu.gh/feed/",
+    "source_domain": "acity.edu.gh"
+  }
+]

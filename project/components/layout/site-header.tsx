@@ -15,6 +15,7 @@ import {
   MapPinned,
   Menu,
   MessageSquare,
+  Newspaper,
   Package,
   Search,
   ShieldCheck,
@@ -49,6 +50,7 @@ const networkLinks = [
   { href: '/campus-mate', label: 'Campus Mate', icon: MapPinned },
   { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
   { href: '/events', label: 'Events', icon: CalendarDays },
+  { href: '/updates', label: 'Updates', icon: Newspaper },
   { href: '/universities', label: 'Universities', icon: University },
 ] as const;
 
@@ -105,9 +107,9 @@ export function SiteHeader() {
           />
         </form>
 
-        <nav className="hidden flex-1 items-stretch justify-center gap-0.5 lg:flex" aria-label="Primary">
+        <nav className="hidden flex-1 items-stretch justify-center gap-0.5 xl:flex" aria-label="Primary">
           {networkLinks.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} className="group flex min-w-[4.5rem] flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary">
+            <Link key={href} href={href} className="group flex min-w-[4rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary">
               <Icon className="h-[18px] w-[18px] transition-transform group-hover:-translate-y-0.5" />
               <span>{label}</span>
             </Link>

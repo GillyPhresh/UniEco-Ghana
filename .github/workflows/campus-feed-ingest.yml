@@ -1,0 +1,34 @@
+name: UniEco campus feed ingest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unieco-campus-feed-ingest
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    if: github.ref == 'refs/heads/deploy-main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out production branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch trusted feeds and queue items for review
+        working-directory: project
+        env:
+          UNIECO_FEED_INGEST_TOKEN: ${{ secrets.UNIECO_FEED_INGEST_TOKEN }}
+        run: python feed_worker/ingest.py
