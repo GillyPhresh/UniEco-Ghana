@@ -91,6 +91,18 @@ test('registration retries verify a quarantined attempt before allowing another 
   assert.match(checkout, /payments\/callback\?reference=/);
 });
 
+test('resumed student registrations preserve their referral and only retry after Paystack confirms a terminal result', async () => {
+  const route = await read('app/api/payments/paystack/initialize/route.ts');
+  const onboarding = await read('app/onboarding/student/page.tsx');
+  assert.match(route, /select\('referral_code'\)[\s\S]*?studentRegistration = \{ \.\.\.studentRegistration, referralCode: savedRegistration\.referral_code \}/);
+  assert.match(route, /if \(body\.purpose === 'student_registration'[\s\S]*?payment\.status === 'pending'/);
+  assert.match(route, /reconcilePaystackPayment\(payment\.payment_reference\)/);
+  assert.match(route, /only a provider-confirmed terminal[\s\S]*?failed', 'cancelled'/i);
+  assert.match(route, /No new charge was started/);
+  assert.match(onboarding, /from\('student_profiles'\)[\s\S]*?student_id_number, program_of_study/);
+  assert.match(onboarding, /Your unfinished registration has been restored/);
+});
+
 test('legacy reconciliation binds only missing environment metadata before retrying', async () => {
   const migration = await read('supabase/migrations/20261030130000_0162_legacy_paystack_reconciliation_retry.sql');
   assert.match(migration, /provider_environment IS NULL/);
@@ -177,4 +189,71 @@ test('verified Paystack reconciliation keeps registration and subscription purpo
   assert.match(migration, /auto_renew_value/);
   assert.match(migration, /Vendor registration is not a subscription/i);
   assert.doesNotMatch(migration, /payment_row\.amount = 20/);
+});
+
+test('vendor registration resumes one unpaid application and reuses unresolved payment references', async () => {
+  const [migration, route, onboarding] = await Promise.all([
+    read('supabase/migrations/20261101130000_0171_safe_vendor_registration_payment_retries.sql'),
+    read('app/api/payments/paystack/initialize/route.ts'),
+    read('app/onboarding/vendor/page.tsx'),
+  ]);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.create_vendor_registration_application/);
+  assert.match(migration, /WHERE owner_id = uid[\s\S]*?FOR UPDATE/);
+  assert.match(migration, /'resumed', true/);
+  assert.match(migration, /An application of a different vendor type already exists/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.begin_vendor_registration_payment/);
+  assert.match(migration, /status = 'success' AND amount = expected_fee AND currency = 'GHS'/);
+  assert.match(migration, /payment_row\.vendor_id IS DISTINCT FROM p_vendor_id/);
+  assert.match(migration, /status IN \('initiated', 'pending', 'reconciliation_required'\)[\s\S]*?FOR UPDATE/);
+  assert.match(migration, /effective_key := encode\(gen_random_bytes\(16\), 'hex'\)/);
+  assert.match(route, /vendor-registration-payment-resume/);
+  assert.match(route, /reconcilePaystackPayment\(previousVendorPayment\.payment_reference\)/);
+  assert.match(route, /safeToReuseUninitializedReference/);
+  assert.match(route, /we will not start a second charge/i);
+  assert.match(onboarding, /A proxy can return an HTML error page/);
+  assert.match(onboarding, /AbortSignal\.timeout\(30_000\)/);
+  assert.match(onboarding, /paymentResult\.alreadyPaid === true && paymentResult\.status === 'success'/);
+  assert.match(onboarding, /unieco_registration_payment_reference/);
+  assert.match(onboarding, /payments\/callback\?reference=/);
+});
+
+test('Paystack checkout uses bounded, safe provider responses and does not trust a mismatched checkout URL', async () => {
+  const paystack = await read('lib/payments/paystack.server.ts');
+  const route = await read('app/api/payments/paystack/initialize/route.ts');
+  assert.match(paystack, /PAYSTACK_CHECKOUT_TIMEOUT_MS = 20_000/);
+  assert.match(paystack, /response\.text\(\)/);
+  assert.match(paystack, /Paystack returned an unreadable checkout response/);
+  assert.match(paystack, /authorizationUrl\.startsWith\('https:\/\/checkout\.paystack\.com\/'\)/);
+  assert.match(paystack, /reference !== input\.reference/);
+  assert.match(paystack, /PaystackCheckoutError\('timeout'/);
+  assert.match(route, /error\.code === 'timeout' \? 504 : 502/);
+});
+
+test('student payment retry RPC can resolve pgcrypto from Supabase extensions schema', async () => {
+  const migration = await read('supabase/migrations/20261101140000_0172_student_registration_retry_search_path.sql');
+  const normalized = migration.replace(/\s+/g, ' ');
+  assert.match(normalized, /ALTER FUNCTION public\.begin_student_registration_payment\( uuid, text, text, text, text, text, text, integer, integer, text, text, text \) SET search_path = pg_catalog, extensions, public;/);
+});
+
+test('registration checkout retries preserve drafts and explain stale payment-service responses safely', async () => {
+  const [client, route, layout, student] = await Promise.all([
+    read('lib/data/payment-client.ts'),
+    read('app/api/payments/paystack/initialize/route.ts'),
+    read('components/auth/auth-layout.tsx'),
+    read('app/onboarding/student/page.tsx'),
+  ]);
+  assert.match(client, /new AbortController\(\)/);
+  assert.match(client, /response\.status === 401/);
+  assert.match(client, /payment service is temporarily unavailable/i);
+  assert.match(client, /Your saved registration details are safe/i);
+  assert.match(client, /do not start another payment/i);
+  assert.match(route, /gen_random_bytes\|begin_student_registration_payment/);
+  assert.match(route, /registration payment service is being updated/i);
+  assert.match(layout, /wide\?: boolean/);
+  assert.match(layout, /max-w-3xl/);
+  assert.match(layout, /onBackClick\?: \(\) => void/);
+  assert.match(student, /wide/);
+  assert.match(student, /backLabel="Sign out"/);
+  assert.match(student, /await signOut\(\)/);
+  assert.match(student, /role="alert" aria-live="polite"/);
 });

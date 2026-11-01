@@ -30,33 +30,69 @@ export async function startPaystackCheckout(input: {
     referralCode?: string | null;
   };
 }): Promise<{ authorizationUrl: string | null; reference: string | null; error: string | null; alreadyPaid?: boolean }> {
+  const controller = new AbortController();
+  let timedOut = false;
+  const timeout = window.setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, 30_000);
+
   try {
     const response = await fetch('/api/payments/paystack/initialize', {
       method: 'POST',
       cache: 'no-store',
-      signal: AbortSignal.timeout(30_000),
+      signal: controller.signal,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(input),
     });
     const responseText = await response.text();
     let payload: { authorizationUrl?: string; reference?: string; error?: string; alreadyPaid?: boolean } = {};
+    let validJson = false;
     try {
-      payload = JSON.parse(responseText) as typeof payload;
+      const parsed: unknown = JSON.parse(responseText);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        payload = parsed as typeof payload;
+        validJson = true;
+      }
     } catch {
       // Reverse proxies sometimes return an HTML error document for API routes.
       // Keep that implementation detail away from users and show a useful retry.
     }
-    return response.ok && payload.reference && (payload.authorizationUrl || payload.alreadyPaid)
-      ? { authorizationUrl: payload.authorizationUrl || null, reference: payload.reference, error: null, alreadyPaid: payload.alreadyPaid === true }
-      : { authorizationUrl: null, reference: null, error: payload.error || 'Payment checkout could not be started. Please try again.' };
+    if (response.ok && payload.reference && (payload.authorizationUrl || payload.alreadyPaid)) {
+      return { authorizationUrl: payload.authorizationUrl || null, reference: payload.reference, error: null, alreadyPaid: payload.alreadyPaid === true };
+    }
+
+    if (payload.error && typeof payload.error === 'string') {
+      return { authorizationUrl: null, reference: null, error: payload.error };
+    }
+
+    if (response.status === 401) {
+      return { authorizationUrl: null, reference: null, error: 'Your sign-in session has expired. Sign in with the same account to continue; your saved registration details will remain available.' };
+    }
+
+    if (!validJson || response.status >= 500 || response.status === 404) {
+      return {
+        authorizationUrl: null,
+        reference: null,
+        error: 'The payment service is temporarily unavailable. Your saved registration details are safe. Please try again shortly; if Paystack already opened or you were charged, do not start another payment—contact support so we can check the reference.',
+      };
+    }
+
+    return {
+      authorizationUrl: null,
+      reference: null,
+      error: 'We could not prepare a Paystack checkout. Your saved registration details are safe; please retry from this page.',
+    };
   } catch (error) {
     return {
       authorizationUrl: null,
       reference: null,
-      error: error instanceof DOMException && error.name === 'TimeoutError'
-        ? 'Payment checkout is taking too long. Please try again.'
-        : 'Could not connect to payment checkout. Check your connection and try again.',
+      error: timedOut
+        ? 'Payment checkout is taking too long to respond. Your saved registration details are safe; please wait a moment and retry. If Paystack opened or you were charged, do not pay again—contact support first.'
+        : 'Could not connect to payment checkout. Your saved registration details are safe; check your connection and retry from this page.',
     };
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 

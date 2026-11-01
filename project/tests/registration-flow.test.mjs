@@ -19,10 +19,11 @@ test('email signup is configured for immediate sessions and does not route throu
   assert.doesNotMatch(verify, /We sent a verification link/);
 });
 
-test('Google registration keeps the selected intent and invite through onboarding', async () => {
-  const [signup, onboarding, callback] = await Promise.all([
+test('Google registration keeps selected intent and invite through onboarding without putting admin tokens in URLs', async () => {
+  const [signup, onboarding, studentOnboarding, callback] = await Promise.all([
     read('app/signup/page.tsx'),
     read('app/onboarding/page.tsx'),
+    read('app/onboarding/student/page.tsx'),
     read('app/auth/callback/route.ts'),
   ]);
   assert.match(signup, /unieco_pending_registration_invite/);
@@ -31,7 +32,9 @@ test('Google registration keeps the selected intent and invite through onboardin
   assert.match(onboarding, /params\.set\('invite', pendingInvite\)/);
   assert.match(signup, /onboardingParams\.set\('ref', incomingReferral\)/);
   assert.match(signup, /onboardingParams\.set\('invite', incomingInvite\)/);
-  assert.match(signup, /onboardingParams\.set\('university_admin_token', universityAdminToken\)/);
+  assert.match(signup, /sessionStorage\.setItem\('unieco_pending_university_admin_token', universityAdminToken\)/);
+  assert.match(studentOnboarding, /getItem\('unieco_pending_university_admin_token'\)/);
+  assert.doesNotMatch(signup, /onboardingParams\.set\('university_admin_token'/);
   assert.match(callback, /searchParams\.set\('payment_required', '1'\)/);
   assert.match(callback, /function clearOAuthState\(response: NextResponse\)/);
   assert.match(callback, /return clearOAuthState\(response\)/);

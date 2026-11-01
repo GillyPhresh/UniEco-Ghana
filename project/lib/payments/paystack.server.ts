@@ -13,7 +13,48 @@ export class PaystackVerificationError extends Error {
   }
 }
 
+export class PaystackCheckoutError extends Error {
+  constructor(readonly code: 'timeout' | 'network' | 'invalid_response' | 'provider_response', message: string) {
+    super(message);
+    this.name = 'PaystackCheckoutError';
+  }
+}
+
 const PAYSTACK_API = 'https://api.paystack.co';
+const PAYSTACK_CHECKOUT_TIMEOUT_MS = 20_000;
+
+async function postPaystack(path: string, body: Record<string, unknown>) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PAYSTACK_CHECKOUT_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${PAYSTACK_API}${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+      signal: controller.signal,
+    });
+    const raw = await response.text();
+    let payload: { status?: boolean; message?: string; data?: Record<string, unknown> };
+    try {
+      payload = JSON.parse(raw) as typeof payload;
+    } catch {
+      throw new PaystackCheckoutError('invalid_response', 'Paystack returned an unreadable checkout response.');
+    }
+    if (!response.ok || payload.status !== true || !payload.data) {
+      throw new PaystackCheckoutError('provider_response', payload.message || 'Paystack could not start this checkout.');
+    }
+    return payload.data;
+  } catch (error) {
+    if (error instanceof PaystackCheckoutError) throw error;
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new PaystackCheckoutError('timeout', 'Paystack checkout request timed out.');
+    }
+    throw new PaystackCheckoutError('network', 'Paystack checkout could not be reached.');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export function getPaystackMode(): PaystackMode {
   return process.env.PAYSTACK_MODE === 'live' ? 'live' : 'test';
@@ -64,25 +105,21 @@ export async function initializePaystackTransaction(input: {
   channels: PaystackChannel[];
   metadata: Record<string, string>;
 }) {
-  const response = await fetch(`${PAYSTACK_API}/transaction/initialize`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: input.email,
-      amount: String(Math.round(input.amountGhs * 100)),
-      currency: 'GHS',
-      reference: input.reference,
-      callback_url: input.callbackUrl,
-      channels: input.channels,
-      metadata: input.metadata,
-    }),
-    cache: 'no-store',
+  const data = await postPaystack('/transaction/initialize', {
+    email: input.email,
+    amount: String(Math.round(input.amountGhs * 100)),
+    currency: 'GHS',
+    reference: input.reference,
+    callback_url: input.callbackUrl,
+    channels: input.channels,
+    metadata: input.metadata,
   });
-  const payload = await response.json() as { status?: boolean; message?: string; data?: { authorization_url?: string; reference?: string } };
-  if (!response.ok || !payload.status || !payload.data?.authorization_url || payload.data.reference !== input.reference) {
-    throw new Error(payload.message || 'Paystack could not initialize this payment');
+  const authorizationUrl = data.authorization_url;
+  const reference = data.reference;
+  if (typeof authorizationUrl !== 'string' || !authorizationUrl.startsWith('https://checkout.paystack.com/') || reference !== input.reference) {
+    throw new PaystackCheckoutError('invalid_response', 'Paystack returned an invalid checkout link or reference.');
   }
-  return { authorizationUrl: payload.data.authorization_url, reference: payload.data.reference };
+  return { authorizationUrl, reference };
 }
 
 /**
@@ -99,32 +136,23 @@ export async function chargePaystackMobileMoney(input: {
   provider: PaystackMobileMoneyProvider;
   metadata: Record<string, string>;
 }) {
-  const response = await fetch(`${PAYSTACK_API}/charge`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secret()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email: input.email,
-      amount: String(Math.round(input.amountGhs * 100)),
-      currency: 'GHS',
-      reference: input.reference,
-      mobile_money: { phone: input.phone, provider: input.provider },
-      metadata: input.metadata,
-    }),
-    cache: 'no-store',
+  const data = await postPaystack('/charge', {
+    email: input.email,
+    amount: String(Math.round(input.amountGhs * 100)),
+    currency: 'GHS',
+    reference: input.reference,
+    mobile_money: { phone: input.phone, provider: input.provider },
+    metadata: input.metadata,
   });
-  const payload = await response.json() as {
-    status?: boolean;
-    message?: string;
-    data?: { reference?: string; status?: string; display_text?: string; id?: string | number };
-  };
-  if (!response.ok || !payload.status || !payload.data?.reference || payload.data.reference !== input.reference) {
-    throw new Error(payload.message || 'Paystack could not start the Mobile Money prompt');
+  const reference = data.reference;
+  if (typeof reference !== 'string' || reference !== input.reference) {
+    throw new PaystackCheckoutError('invalid_response', 'Paystack returned an unexpected Mobile Money reference.');
   }
   return {
-    reference: payload.data.reference,
-    status: payload.data.status || 'pending',
-    displayText: payload.data.display_text || 'Approve the Mobile Money prompt on your phone to complete payment.',
-    providerReference: payload.data.id ? String(payload.data.id) : null,
+    reference,
+    status: typeof data.status === 'string' ? data.status : 'pending',
+    displayText: typeof data.display_text === 'string' ? data.display_text : 'Approve the Mobile Money prompt on your phone to complete payment.',
+    providerReference: typeof data.id === 'string' || typeof data.id === 'number' ? String(data.id) : null,
   };
 }
 

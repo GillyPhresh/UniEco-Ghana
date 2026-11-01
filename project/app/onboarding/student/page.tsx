@@ -151,7 +151,7 @@ export default function StudentOnboardingPage() {
 function StudentOnboarding() {
   // Legacy complete_student_registration is retained server-side for older
   // clients; this screen always starts the verified Paystack flow instead.
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -178,13 +178,51 @@ function StudentOnboarding() {
 
   useEffect(() => {
     if (!user?.id) return;
+    let active = true;
     const draft = readRegistrationDraft<FormData>(`${DRAFT_PREFIX}:${user.id}`);
     if (draft) {
       setForm(draft.data);
       setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
       setDraftRestored(true);
+      setDraftReady(true);
+      return () => { active = false; };
     }
-    setDraftReady(true);
+
+    // Browser storage is only a convenience. If a user returns on another
+    // browser/session, rebuild the unfinished form from their saved profile.
+    void Promise.all([
+      supabase.from('profiles').select('phone, avatar_url, university_id').eq('id', user.id).maybeSingle(),
+      supabase.from('student_profiles').select('university_id, student_id_number, program_of_study, faculty, department, level, admission_year, graduation_year, student_id_document_url').eq('user_id', user.id).maybeSingle(),
+    ]).then(([profileResult, studentResult]) => {
+      if (!active) return;
+      const profile = profileResult.data;
+      const student = studentResult.data;
+      const hasSavedDetails = Boolean(profile?.phone || student?.university_id || student?.level);
+      if (hasSavedDetails) {
+        setForm((current) => ({
+          ...current,
+          phone: profile?.phone || current.phone,
+          avatar_url: profile?.avatar_url || current.avatar_url,
+          university_id: student?.university_id || profile?.university_id || current.university_id,
+          index_number: student?.student_id_number || current.index_number,
+          programme: student?.program_of_study || current.programme,
+          faculty: student?.faculty || current.faculty,
+          department: student?.department || current.department,
+          level: student?.level || current.level,
+          admission_year: student?.admission_year || current.admission_year,
+          graduation_year: student?.graduation_year || current.graduation_year,
+          student_id_document_url: student?.student_id_document_url || current.student_id_document_url,
+        }));
+        if (student?.university_id || profile?.university_id) setStep(STEPS.length - 1);
+        setDraftRestored(true);
+      }
+    }).catch(() => {
+      // Registration remains usable when profile prefill is temporarily down.
+    }).finally(() => {
+      if (active) setDraftReady(true);
+    });
+
+    return () => { active = false; };
   }, [user?.id]);
 
   useEffect(() => {
@@ -262,6 +300,11 @@ function StudentOnboarding() {
   const clearDraft = () => {
     if (user?.id) clearRegistrationDraft(`${DRAFT_PREFIX}:${user.id}`);
     setDraftRestored(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/signin');
   };
 
   const handleBack = () => {
@@ -392,8 +435,10 @@ function StudentOnboarding() {
     <AuthLayout
       title="Complete your student profile"
       subtitle="About 2 minutes · your progress is saved on this device"
+      wide
       backHref="/signin"
       backLabel="Sign out"
+      onBackClick={handleSignOut}
     >
       <div className="space-y-6">
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -452,7 +497,7 @@ function StudentOnboarding() {
         </div>
 
         {error && (
-          <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div role="alert" aria-live="polite" className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
