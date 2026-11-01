@@ -94,7 +94,8 @@ test('registration retries verify a quarantined attempt before allowing another 
 test('resumed student registrations preserve their referral and only retry after Paystack confirms a terminal result', async () => {
   const route = await read('app/api/payments/paystack/initialize/route.ts');
   const onboarding = await read('app/onboarding/student/page.tsx');
-  assert.match(route, /select\('referral_code'\)[\s\S]*?studentRegistration = \{ \.\.\.studentRegistration, referralCode: savedRegistration\.referral_code \}/);
+  assert.match(route, /rpc\('get_my_student_registration_referral_code'\)[\s\S]*?studentRegistration = \{ \.\.\.studentRegistration, referralCode: savedReferralCode \}/);
+  assert.doesNotMatch(route, /from\('student_registration_payments'\)/);
   assert.match(route, /if \(body\.purpose === 'student_registration'[\s\S]*?payment\.status === 'pending'/);
   assert.match(route, /reconcilePaystackPayment\(payment\.payment_reference\)/);
   assert.match(route, /only a provider-confirmed terminal[\s\S]*?failed', 'cancelled'/i);
@@ -233,6 +234,21 @@ test('student payment retry RPC can resolve pgcrypto from Supabase extensions sc
   const migration = await read('supabase/migrations/20261101140000_0172_student_registration_retry_search_path.sql');
   const normalized = migration.replace(/\s+/g, ' ');
   assert.match(normalized, /ALTER FUNCTION public\.begin_student_registration_payment\( uuid, text, text, text, text, text, text, integer, integer, text, text, text \) SET search_path = pg_catalog, extensions, public;/);
+});
+
+test('student checkout restores its referral via a per-user RPC without direct table access', async () => {
+  const [route, migration] = await Promise.all([
+    read('app/api/payments/paystack/initialize/route.ts'),
+    read('supabase/migrations/20261101150000_0173_secure_registration_retry_referral_lookup.sql'),
+  ]);
+  const resumeBlock = route.slice(route.indexOf("if (body.purpose === 'student_registration' && studentRegistration"), route.indexOf("if (body.purpose === 'vendor_registration'"));
+  assert.match(resumeBlock, /rpcClient\s*\.rpc\('get_my_student_registration_referral_code'\)/);
+  assert.doesNotMatch(resumeBlock, /from\('student_registration_payments'\)/);
+  assert.match(migration, /SECURITY DEFINER/);
+  assert.match(migration, /registration\.user_id = auth\.uid\(\)/);
+  assert.match(migration, /RETURNS text/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.get_my_student_registration_referral_code\(\)[\s\S]*FROM PUBLIC, anon, authenticated, service_role/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.get_my_student_registration_referral_code\(\)[\s\S]*TO authenticated/);
 });
 
 test('registration checkout retries preserve drafts and explain stale payment-service responses safely', async () => {

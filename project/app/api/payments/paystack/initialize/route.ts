@@ -54,17 +54,14 @@ export async function POST(request: NextRequest) {
       // A referral is part of the original registration record. On a resume,
       // the browser may no longer have the invite URL/session value; omitting
       // it must not make a valid saved registration look like a changed one.
-      const { data: savedRegistration, error: savedRegistrationError } = await admin
-        .from('student_registration_payments')
-        .select('referral_code')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data: savedReferralCode, error: savedRegistrationError } = await rpcClient
+        .rpc('get_my_student_registration_referral_code');
       if (savedRegistrationError) {
         console.error('[registration-payment-resume] saved registration lookup failed', { code: savedRegistrationError.code || 'unknown' });
         return NextResponse.json({ error: 'We could not load your saved registration yet. Your details are safe; please retry shortly.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
       }
-      if (savedRegistration?.referral_code) {
-        studentRegistration = { ...studentRegistration, referralCode: savedRegistration.referral_code };
+      if (typeof savedReferralCode === 'string' && savedReferralCode) {
+        studentRegistration = { ...studentRegistration, referralCode: savedReferralCode };
       }
     }
 
