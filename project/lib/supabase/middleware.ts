@@ -106,6 +106,8 @@ export async function updateSession(request: NextRequest) {
         ? 'can_moderate_content'
       : pathname === '/admin/events' || pathname.startsWith('/admin/events/')
         ? 'can_moderate_content'
+      : pathname === '/admin/community-posts' || pathname.startsWith('/admin/community-posts/')
+        ? 'can_moderate_content'
       : pathname === '/admin/support' || pathname.startsWith('/admin/support/')
         ? 'can_manage_support'
       : pathname === '/admin/communication' || pathname.startsWith('/admin/communication/')

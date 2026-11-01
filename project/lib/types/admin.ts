@@ -533,6 +533,7 @@ export const ADMIN_NAV_GROUPS = [
     label: 'Operations',
     items: [
       { label: 'Moderation', href: '/admin/moderation', icon: 'Flag' },
+      { label: 'Campus Posts', href: '/admin/community-posts', icon: 'Flag' },
       { label: 'Trust & Safety Cases', href: '/admin/trust-safety', icon: 'ShieldAlert' },
       { label: 'Support Tickets', href: '/admin/support', icon: 'LifeBuoy' },
       { label: 'Communication Hub', href: '/admin/communication', icon: 'Bell' },

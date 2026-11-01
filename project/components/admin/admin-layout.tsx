@@ -85,6 +85,7 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
 
   const isScopedUniversityAdmin = user.role === 'university_admin';
   const moderatorPath = pathname === '/admin/moderation'
+    || pathname === '/admin/community-posts'
     || pathname === '/admin/events'
     || pathname === '/admin/trust-safety'
     || pathname === '/admin/verification'
@@ -179,6 +180,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         .map(group => ({ ...group, items: group.items.filter(item =>
           (item.href === '/admin' && moderatorPermissions.size > 0)
           || ((item.href === '/admin/moderation' || item.href === '/admin/trust-safety') && moderatorPermissions.has('can_review_reports'))
+          || (item.href === '/admin/community-posts' && moderatorPermissions.has('can_moderate_content'))
           || (item.href.startsWith('/admin/verification') && moderatorPermissions.has('can_review_verifications'))
           || (item.href === '/admin/support' && moderatorPermissions.has('can_manage_support'))
           || (item.href === '/admin/advertisements' && moderatorPermissions.has('can_moderate_content'))
