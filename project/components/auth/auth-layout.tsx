@@ -12,6 +12,8 @@ export function AuthLayout({
   backHref = '/',
   backLabel = 'Back to home',
   showBackLink = true,
+  onBackClick,
+  wide = false,
 }: {
   children: React.ReactNode;
   title?: string;
@@ -19,11 +21,13 @@ export function AuthLayout({
   backHref?: string;
   backLabel?: string;
   showBackLink?: boolean;
+  onBackClick?: () => void;
+  wide?: boolean;
 }) {
   return (
     <div className="workspace-page flex min-h-screen flex-col lg:flex-row">
       {/* Brand panel — hidden on mobile, visible on large screens */}
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden border-r border-border bg-[#0e3b32] p-12 text-white lg:flex">
+      <div className={`relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0e3b32] p-8 text-white lg:flex ${wide ? 'lg:flex-[0.85] lg:p-10' : 'flex-1 lg:p-12'}`}>
         <div className="absolute inset-x-0 top-0 h-1 ghana-stripe" />
 
         <div className="relative">
@@ -50,28 +54,36 @@ export function AuthLayout({
       </div>
 
       {/* Form panel */}
-      <div className="flex flex-1 flex-col">
+      <div className={`flex flex-1 flex-col ${wide ? 'lg:flex-[1.15]' : ''}`}>
         <div className="flex items-center justify-between border-b border-border bg-card p-4 sm:p-6">
           <div className="lg:hidden">
             <Logo />
           </div>
           <div className="ml-auto flex items-center gap-2">
             {showBackLink && (
-              <Button asChild variant="ghost" size="sm">
-                <Link href={backHref}>
+              onBackClick ? (
+                <Button variant="ghost" size="sm" onClick={onBackClick}>
                   <ArrowLeft className="mr-1.5 h-4 w-4" />
                   <span className="hidden sm:inline">{backLabel}</span>
-                  <span className="sm:hidden">Back</span>
-                </Link>
-              </Button>
+                  <span className="sm:hidden">{backLabel === 'Sign out' ? 'Sign out' : 'Back'}</span>
+                </Button>
+              ) : (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={backHref}>
+                    <ArrowLeft className="mr-1.5 h-4 w-4" />
+                    <span className="hidden sm:inline">{backLabel}</span>
+                    <span className="sm:hidden">Back</span>
+                  </Link>
+                </Button>
+              )
             )}
           </div>
         </div>
 
         <div className="flex flex-1 items-center justify-center px-4 pb-12 sm:px-6">
-          <div className="workspace-card w-full max-w-md p-6 sm:p-8">
+          <div className={`workspace-card w-full p-5 sm:p-8 ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
             {title && (
-              <div className="mb-8 text-center">
+              <div className={`mb-8 ${wide ? 'text-center lg:text-left' : 'text-center'}`}>
                 <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {title}
                 </h1>
