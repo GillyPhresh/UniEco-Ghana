@@ -104,6 +104,21 @@ test('resumed student registrations preserve their referral and only retry after
   assert.match(onboarding, /Your unfinished registration has been restored/);
 });
 
+test('student retries reconcile timed-out initiated checkouts before safely reusing a reference', async () => {
+  const route = await read('app/api/payments/paystack/initialize/route.ts');
+  const initiatedRecovery = route.slice(
+    route.indexOf("if (body.purpose === 'student_registration' && studentRegistration)"),
+    route.indexOf("if (body.purpose === 'vendor_registration' && body.vendorId)"),
+  );
+  assert.match(initiatedRecovery, /payment_type', 'student_registration'/);
+  assert.match(initiatedRecovery, /previousStudentPayment\?\.status === 'initiated'/);
+  assert.match(initiatedRecovery, /reconcilePaystackPayment\(previousStudentPayment\.payment_reference\)/);
+  assert.match(initiatedRecovery, /code === 'not_found' && !previousStudentPayment\.provider_checkout_initialized_at/);
+  assert.match(initiatedRecovery, /safeToReuseUninitializedReference/);
+  assert.match(initiatedRecovery, /\['failed', 'cancelled'\]/);
+  assert.match(initiatedRecovery, /will not create a second charge/i);
+});
+
 test('legacy reconciliation binds only missing environment metadata before retrying', async () => {
   const migration = await read('supabase/migrations/20261030130000_0162_legacy_paystack_reconciliation_retry.sql');
   assert.match(migration, /provider_environment IS NULL/);

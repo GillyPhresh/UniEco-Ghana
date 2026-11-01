@@ -65,6 +65,61 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (body.purpose === 'student_registration' && studentRegistration) {
+      // A previous request can reach Paystack and then time out before UniEco
+      // records the checkout timestamp. Reconcile older initiated references
+      // before the registration RPC reuses one; only a verified not-found on
+      // an intent with no recorded checkout is safe to reuse as-is.
+      const { data: previousStudentPayment, error: previousStudentPaymentError } = await admin
+        .from('payments')
+        .select('payment_reference,status,provider_checkout_initialized_at')
+        .eq('user_id', user.id)
+        .eq('payment_type', 'student_registration')
+        .eq('provider', 'paystack')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (previousStudentPaymentError) {
+        console.error('[student-registration-payment-resume] lookup failed', { code: previousStudentPaymentError.code || 'unknown' });
+        return NextResponse.json({ error: 'We could not safely check your earlier payment. No new payment was started; please retry shortly.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+      }
+
+      if (previousStudentPayment?.status === 'initiated') {
+        let recovery: Awaited<ReturnType<typeof reconcilePaystackPayment>> | null = null;
+        let safeToReuseUninitializedReference = false;
+        try {
+          recovery = await reconcilePaystackPayment(previousStudentPayment.payment_reference);
+        } catch (error) {
+          const code = error instanceof Error && 'code' in error ? String(error.code) : 'verification_unavailable';
+          if (code === 'not_found' && !previousStudentPayment.provider_checkout_initialized_at) {
+            safeToReuseUninitializedReference = true;
+          } else {
+            console.error('[student-registration-payment-resume] verification failed', { code });
+            return NextResponse.json({
+              error: code === 'not_found'
+                ? 'Paystack could not find the earlier checkout, so we did not start another charge. Please contact support to check this payment safely.'
+                : 'We could not verify your earlier payment with Paystack. No new payment was started; please retry shortly.',
+            }, { status: code === 'not_found' ? 409 : 503, headers: { 'Cache-Control': 'no-store' } });
+          }
+        }
+
+        if (!safeToReuseUninitializedReference && recovery) {
+          if (recovery.status === 'success') {
+            return NextResponse.json({ reference: previousStudentPayment.payment_reference, status: 'success', alreadyPaid: true }, { headers: { 'Cache-Control': 'no-store' } });
+          }
+          if (recovery.status === 'pending') {
+            return NextResponse.json({ error: 'Your earlier Paystack payment is still processing. Please wait for its result before trying again; we will not create a second charge.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+          }
+          if (recovery.status === 'reconciliation_required' || !recovery.applied || !['failed', 'cancelled'].includes(recovery.status)) {
+            return NextResponse.json({ error: recovery.message || 'Your earlier payment needs a support check. No new charge was started.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+          }
+          // A verified failed/cancelled result is now recorded. The RPC below
+          // will create the next distinct reference while preserving the form.
+        }
+      }
+    }
+
     if (body.purpose === 'vendor_registration' && body.vendorId) {
       // Vendor onboarding may already have created the vendor row before a
       // previous checkout request timed out. Reconcile that exact reference
