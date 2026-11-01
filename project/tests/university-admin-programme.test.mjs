@@ -41,6 +41,38 @@ test('appointment and score workflow protects payment and referral attribution',
   assert.match(referrals, /\/signup\?university_admin_token/);
 });
 
+test('forward migration replaces UUID min aggregates without rewriting applied migrations', async () => {
+  const migration = await read('supabase/migrations/20261101120000_0170_fix_university_admin_uuid_selection.sql');
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_my_university_admin_dashboard/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_my_university_admin_score/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_my_university_admin_earnings/);
+  assert.match(migration, /array_agg\(university_id ORDER BY university_id\)/);
+  assert.doesNotMatch(migration, /min\s*\(\s*university_id\s*\)/i);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.get_my_university_admin_score\(uuid\) FROM PUBLIC, anon, service_role/);
+});
+
+test('marketplace category search filters through the business category and offers retry', async () => {
+  const [client, page] = await Promise.all([
+    read('lib/data/marketplace-client.ts'),
+    read('app/marketplace/page.tsx'),
+  ]);
+  assert.match(client, /business:businesses!inner\([\s\S]*category,[\s\S]*vendor:vendors!inner\(/);
+  assert.match(client, /query\.eq\('business\.category', params\.category\)/);
+  assert.doesNotMatch(client, /query\.eq\('business\.business_type', params\.category\)/);
+  assert.match(page, /Marketplace search is temporarily unavailable[\s\S]*Try again/);
+});
+
+test('super-admin opening changes require an explicit status selection', async () => {
+  const page = await read('app/admin/university-administrators/page.tsx');
+  assert.match(page, /useState\(''\);[\s\S]*openingStatus/);
+  assert.match(page, /placeholder="Choose status"/);
+  assert.match(page, /disabled=\{[^}]*!openingStatus/);
+  assert.match(page, /value="draft">Draft/);
+  assert.match(page, /openingClosesOn/);
+  assert.match(page, /closes at 11:59 pm Ghana time/i);
+  assert.match(page, /p_closes_at: closesAt\?\.toISOString\(\) \?\? null/);
+});
+
 test('mobile administrator screens keep touch targets and safe disclosure', async () => {
   const [apply, review, workspace] = await Promise.all([
     read('app/university-admin/apply/page.tsx'),
@@ -51,8 +83,8 @@ test('mobile administrator screens keep touch targets and safe disclosure', asyn
   assert.match(apply, /never request passwords or payment PINs/i);
   assert.match(review, /items-end/);
   assert.match(review, /Approve & appoint/);
-  assert.match(workspace, /private workspace/);
-  assert.match(workspace, /Only completed, verified registrations count/);
+  assert.match(workspace, /Your link is private to your signed-in administrator account/);
+  assert.match(workspace, /required payment and verification conditions are complete/);
 });
 
 test('university administrators cannot open the super-admin application review queue', async () => {

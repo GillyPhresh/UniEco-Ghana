@@ -27,7 +27,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
   }
 
-  const { data: roleName } = await supabase.rpc('current_app_role');
+  const { data: roleName, error: roleError } = await supabase.rpc('current_app_role');
+  if (roleError || !['student', 'student_vendor', 'external_vendor'].includes(String(roleName))) {
+    return NextResponse.json({ error: 'Referrals are available to registered students and vendors.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
+  }
   const isVendor = roleName === 'student_vendor' || roleName === 'external_vendor';
   const ensureFunction = isVendor ? 'ensure_my_vendor_referral_link' : 'ensure_my_student_referral_link';
   const summaryFunction = isVendor ? 'get_my_vendor_referral_summary' : 'get_my_referral_summary';
@@ -41,8 +44,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Referral summary is not available for this account.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   }
 
-  const configured = process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/$/, '');
-  const publicBase = configured || 'https://www.uniecoghana.com';
+  // Keep shared links on the canonical public host. Do not let a deployment
+  // variable redirect referral traffic to an unrelated origin.
+  const publicBase = 'https://www.uniecoghana.com';
   const referralCode = typeof ensured?.code === 'string'
     ? ensured.code
     : typeof (summary as ReferralSummary | null)?.code === 'string'

@@ -63,7 +63,7 @@ export default function VendorOnboardingPage() {
 }
 
 function VendorOnboarding() {
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, signOut } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -216,6 +216,11 @@ function VendorOnboarding() {
     setDraftRestored(false);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    router.replace('/signin');
+  };
+
   const handleSubmit = async () => {
     if (!user) return;
     setError(null);
@@ -303,7 +308,9 @@ function VendorOnboarding() {
       paymentAttemptKeyRef.current = idempotencyKey;
       const paymentResponse = await fetch('/api/payments/paystack/initialize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(30_000),
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify({
           purpose: 'vendor_registration',
           vendorId,
@@ -313,9 +320,17 @@ function VendorOnboarding() {
           } : {}),
         }),
       });
-      const paymentResult = await paymentResponse.json() as { authorizationUrl?: string; reference?: string; mobileMoney?: { displayText?: string }; error?: string };
-      if (!paymentResponse.ok || (!paymentResult.authorizationUrl && !paymentResult.mobileMoney?.displayText) || !paymentResult.reference) {
-        throw new Error(paymentResult.error || 'Vendor registration payment could not be initialized.');
+      const paymentResponseText = await paymentResponse.text();
+      let paymentResult: { authorizationUrl?: string; reference?: string; status?: string; alreadyPaid?: boolean; mobileMoney?: { displayText?: string }; error?: string } = {};
+      try {
+        paymentResult = JSON.parse(paymentResponseText) as typeof paymentResult;
+      } catch {
+        // A proxy can return an HTML error page; keep that internal detail out
+        // of the registration UI and let the user safely retry the saved form.
+      }
+      const alreadyPaid = paymentResult.alreadyPaid === true && paymentResult.status === 'success';
+      if (!paymentResponse.ok || (!alreadyPaid && !paymentResult.authorizationUrl && !paymentResult.mobileMoney?.displayText) || !paymentResult.reference) {
+        throw new Error(paymentResult.error || 'Payment checkout could not be started. Your business details are saved; please retry shortly.');
       }
 
       await refreshProfile();
@@ -324,6 +339,11 @@ function VendorOnboarding() {
       if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
       window.sessionStorage.removeItem('unieco_pending_referral_code');
       window.sessionStorage.removeItem('unieco_pending_university_admin_token');
+      if (alreadyPaid) {
+        window.sessionStorage.setItem('unieco_registration_payment_reference', paymentResult.reference);
+        window.location.assign(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}`);
+        return;
+      }
       if (paymentResult.mobileMoney) {
         router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
       } else if (paymentResult.authorizationUrl) {
@@ -371,6 +391,7 @@ function VendorOnboarding() {
       }
       backHref="/signin"
       backLabel="Sign out"
+      onBackClick={handleSignOut}
     >
       <div className="space-y-6">
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">

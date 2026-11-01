@@ -50,17 +50,21 @@ test('browser payment and checkout clients cannot confirm payments or issue fina
 });
 
 test('referral UI uses trusted summary RPCs and never writes financial tables directly', async () => {
-  const [payments, studentReferrals, studentApi, adminReferrals, adminApi, migration] = await Promise.all([
+  const [payments, studentReferrals, studentApi, adminReferrals, adminApi, migration, adminMigration] = await Promise.all([
     read('lib/data/payment-client.ts'),
     read('app/dashboard/referrals/page.tsx'),
     read('app/api/student-referrals/me/route.ts'),
     read('app/admin/referrals/page.tsx'),
     read('app/api/admin/student-referrals/route.ts'),
     read('supabase/migrations/20261017180000_0107_student_referral_replacement.sql'),
+    read('supabase/migrations/20261031160000_0169_role_aware_referral_management.sql'),
   ]);
   assert.match(studentApi, /rpc\('get_my_referral_summary'/);
   assert.match(studentApi, /\/signup\?ref=/);
-  assert.match(adminApi, /rpc\('get_admin_student_referral_overview'/);
+  assert.match(adminApi, /rpc\('get_admin_referral_overview'/);
+  assert.match(adminApi, /p_limit:\s*50/);
+  assert.match(adminMigration, /FUNCTION public\.get_admin_referral_overview\(\s*p_search text DEFAULT NULL,\s*p_limit integer DEFAULT 50,\s*p_offset integer DEFAULT 0/s);
+  assert.match(adminMigration, /IF auth\.uid\(\) IS NULL OR NOT public\.is_super_admin\(\)/);
   assert.match(studentReferrals, /\/api\/student-referrals\/me/);
   assert.match(adminReferrals, /\/api\/admin\/student-referrals/);
   for (const source of [payments, studentReferrals, studentApi, adminReferrals, adminApi]) {

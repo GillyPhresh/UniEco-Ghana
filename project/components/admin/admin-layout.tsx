@@ -15,6 +15,7 @@ import {
   Bell,
   Building2,
   CalendarDays,
+  ChevronRight,
   CreditCard,
   FileText,
   FolderTree,
@@ -189,6 +190,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     : ADMIN_NAV_GROUPS;
 
   const activeItem = navGroups.flatMap(group => group.items).find(item => pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href)));
+  const activeGroup = navGroups.find(group => group.items.some(item => item.href === activeItem?.href));
   const availablePaths = new Set<string>(navGroups.flatMap(group => group.items.map(item => item.href)));
   const reviewHref = ['/admin/verification/students', '/admin/trust-safety', '/admin/students', '/admin/orders']
     .find(href => availablePaths.has(href)) || '/admin';
@@ -253,9 +255,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#eef1f5]">
+    <div className="flex min-h-screen bg-[#eef1f5] lg:h-screen lg:overflow-hidden">
       {/* Desktop sidebar */}
-      <aside className="hidden w-[17rem] shrink-0 border-r border-slate-800 bg-[#0b1220] lg:block">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-[#0b1220] xl:w-[17rem] lg:block">
         {sidebar}
       </aside>
 
@@ -324,8 +326,29 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </Sheet>
 
       {/* Desktop content area */}
-      <div className="workspace-page hidden min-h-screen min-w-0 flex-1 flex-col overflow-hidden lg:flex">
-        <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+      <div className="workspace-page hidden h-screen min-w-0 flex-1 flex-col overflow-hidden lg:flex">
+        <header className="sticky top-0 z-20 flex min-h-[4.25rem] items-center justify-between gap-6 border-b border-slate-200/80 bg-white/95 px-6 shadow-[0_1px_8px_rgba(15,23,42,0.035)] backdrop-blur-xl xl:px-8">
+          <div className="min-w-0">
+            <div className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <span>Management console</span><ChevronRight className="h-3 w-3" />
+              <span className="truncate">{activeGroup?.label || 'Overview'}</span>
+            </div>
+            <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{activeItem?.label || 'Management console'}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-4">
+            <span className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium', isOnline ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800')}>
+              <span className={cn('h-1.5 w-1.5 rounded-full', isOnline ? 'bg-emerald-500' : 'bg-amber-500')} />
+              {isOnline ? 'Online' : 'Offline'}
+            </span>
+            <div className="hidden max-w-56 items-center gap-2.5 border-l border-slate-200 pl-4 2xl:flex">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-xs font-bold uppercase text-emerald-700 ring-1 ring-emerald-100">{user?.email?.slice(0, 1) || 'U'}</div>
+              <div className="min-w-0"><p className="truncate text-xs font-semibold text-slate-800">{user?.email || 'UniEco administrator'}</p><p className="text-[10px] capitalize text-slate-400">{user?.role?.replaceAll('_', ' ') || 'admin'}</p></div>
+            </div>
+          </div>
+        </header>
+        <div className="ghana-stripe h-[3px] w-full shrink-0" aria-hidden="true" />
+        {!isOnline && <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900" role="status"><WifiOff className="h-4 w-4 shrink-0" /><span>You are offline. Changes will not be submitted until your connection returns.</span></div>}
+        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
         </main>
       </div>

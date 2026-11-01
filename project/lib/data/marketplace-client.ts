@@ -325,8 +325,9 @@ export async function searchProducts(params: {
     .from('products')
     .select(`
       *,
-      business:businesses(
-        vendor:vendors(id, business_name, business_slug, logo_url)
+      business:businesses!inner(
+        category,
+        vendor:vendors!inner(id, business_name, business_slug, logo_url)
       )
     `, { count: 'exact' })
     .eq('is_active', true)
@@ -339,7 +340,9 @@ export async function searchProducts(params: {
   }
 
   if (params.category) {
-    query = query.eq('business.business_type', params.category);
+    // Marketplace categories are stored on businesses; vendor.business_type
+    // describes the vendor account and is not the product-browsing category.
+    query = query.eq('business.category', params.category);
   }
 
   switch (params.sort) {

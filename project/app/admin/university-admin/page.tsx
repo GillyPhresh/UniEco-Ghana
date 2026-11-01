@@ -27,36 +27,52 @@ function Content() {
   const [referralLink, setReferralLink] = useState<ReferralLink | null>(null);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [scoreError, setScoreError] = useState<string | null>(null);
+  const [noAppointment, setNoAppointment] = useState(false);
   const [acknowledging, setAcknowledging] = useState(false);
   const [rotating, setRotating] = useState(false);
 
   async function load() {
     setLoading(true);
-    const [scoreResult, letterResult] = await Promise.all([
-      supabase.rpc('get_my_university_admin_score', { p_university_id: null }),
-      supabase.rpc('get_my_university_admin_appointment'),
-    ]);
-    if (scoreResult.error) {
-      toast.error(scoreResult.error.message);
-      setScore(null);
-    } else {
-      const nextScore = scoreResult.data as Score;
-      setScore(nextScore);
-      if (nextScore?.university_id) {
-        const [leaders, link, pay] = await Promise.all([
-          supabase.rpc('get_university_admin_leaderboard', { p_university_id: nextScore.university_id }),
-          supabase.rpc('get_my_university_admin_referral_link', { p_university_id: nextScore.university_id, p_rotate: false }),
-          supabase.rpc('get_my_university_admin_earnings', { p_university_id: nextScore.university_id }),
-        ]);
-        if (!leaders.error) setLeaderboard((leaders.data || []) as Leader[]);
-        if (link.error) { setLinkError(link.error.message); setReferralLink(null); }
-        else { setLinkError(null); setReferralLink(link.data as ReferralLink); }
-        if (pay.error) toast.error(pay.error.message); else setEarnings(pay.data as Earnings);
+    setScoreError(null);
+    setNoAppointment(false);
+    try {
+      const [scoreResult, letterResult] = await Promise.all([
+        supabase.rpc('get_my_university_admin_score', { p_university_id: null }),
+        supabase.rpc('get_my_university_admin_appointment'),
+      ]);
+      if (scoreResult.error) {
+        setScore(null);
+        if (scoreResult.error.code === '42501' && /administrator assignment required/i.test(scoreResult.error.message)) {
+          setNoAppointment(true);
+        } else {
+          setScoreError(scoreResult.error.message);
+        }
+      } else {
+        const nextScore = scoreResult.data as Score;
+        setScore(nextScore);
+        if (nextScore?.university_id) {
+          const [leaders, link, pay] = await Promise.all([
+            supabase.rpc('get_university_admin_leaderboard', { p_university_id: nextScore.university_id }),
+            supabase.rpc('get_my_university_admin_referral_link', { p_university_id: nextScore.university_id, p_rotate: false }),
+            supabase.rpc('get_my_university_admin_earnings', { p_university_id: nextScore.university_id }),
+          ]);
+          if (!leaders.error) setLeaderboard((leaders.data || []) as Leader[]);
+          if (link.error) { setLinkError(link.error.message); setReferralLink(null); }
+          else { setLinkError(null); setReferralLink(link.data as ReferralLink); }
+          if (pay.error) toast.error(pay.error.message); else setEarnings(pay.data as Earnings);
+        }
       }
+      if (letterResult.error) toast.error(letterResult.error.message);
+      else setLetter(letterResult.data as Letter);
+    } catch {
+      setScore(null);
+      setNoAppointment(false);
+      setScoreError('scorecard request failed');
+      toast.error('Could not load your university administrator information. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    if (letterResult.error) toast.error(letterResult.error.message);
-    else setLetter(letterResult.data as Letter);
-    setLoading(false);
   }
   useEffect(() => { void load(); }, []);
 
@@ -90,7 +106,7 @@ function Content() {
       <Button variant="outline" className="min-h-11 shrink-0" onClick={() => void load()} disabled={loading} aria-label="Refresh dashboard"><RefreshCw className={`h-4 w-4 sm:mr-2 ${loading ? 'animate-spin' : ''}`} /><span className="hidden sm:inline">Refresh</span></Button>
     </div>
 
-    {loading ? <Card><CardContent className="flex min-h-36 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></CardContent></Card> : !score ? <Card><CardContent className="p-8 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground/50" /><p className="mt-3 font-semibold">No active administrator appointment found</p><p className="mt-1 text-sm text-muted-foreground">Your approved appointment and scorecard will appear here.</p></CardContent></Card> : <>
+    {loading ? <Card><CardContent className="flex min-h-36 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-primary" /></CardContent></Card> : scoreError ? <Card><CardContent className="flex flex-col items-center p-8 text-center" role="alert"><ShieldCheck className="h-10 w-10 text-amber-600" /><p className="mt-3 font-semibold">Your scorecard could not be loaded</p><p className="mt-1 max-w-xl text-sm text-muted-foreground">This does not mean your appointment or referral records are missing. Please retry; if the problem continues, contact UniEco support with the time of the error.</p><Button variant="outline" className="mt-4 min-h-11" onClick={() => void load()}><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></CardContent></Card> : noAppointment || !score ? <Card><CardContent className="p-8 text-center"><ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground/50" /><p className="mt-3 font-semibold">No active administrator appointment found</p><p className="mt-1 text-sm text-muted-foreground">Your approved appointment and scorecard will appear here.</p></CardContent></Card> : <>
       <Card className="overflow-hidden border-primary/20 bg-primary/[0.04]">
         <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Users className="h-5 w-5 text-primary" />Your official registration link</CardTitle><p className="text-sm leading-5 text-muted-foreground">Share this link with students and vendors at your assigned campus. The referral code is captured during sign-up and checked against completed registrations.</p></CardHeader>
         <CardContent className="space-y-3">

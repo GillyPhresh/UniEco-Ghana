@@ -193,7 +193,16 @@ export default function MarketplacePage() {
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <ProductCardSkeleton key={i} />)}
               </div>
             ) : searchError ? (
-              <Card><CardContent className="py-10 text-center text-sm text-destructive" role="alert">Unable to load marketplace search results. Please try again.</CardContent></Card>
+              <Card><CardContent className="flex flex-col items-center gap-3 py-10 text-center" role="alert">
+                <ShoppingBag className="h-9 w-9 text-muted-foreground/50" />
+                <div>
+                  <p className="text-sm font-semibold text-foreground">Marketplace search is temporarily unavailable</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Your filters are saved. Please try the search again.</p>
+                </div>
+                <Button type="button" variant="outline" className="min-h-11" onClick={() => void doSearch()} disabled={searching}>
+                  {searching ? 'Searching…' : 'Try again'}
+                </Button>
+              </CardContent></Card>
             ) : searchResults.length > 0 ? (
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {searchResults.map(p => <div key={p.id} onClick={() => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'product', subject_id: p.id })}><ProductCard product={p} /></div>)}

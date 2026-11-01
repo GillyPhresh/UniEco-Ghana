@@ -44,7 +44,10 @@ function SignInContent() {
     setAuthError(null);
     const { error } = await signIn(data.email, data.password);
     if (error) {
-      setAuthError(error);
+      const normalizedError = error.toLowerCase();
+      setAuthError(normalizedError.includes('invalid login credentials') || normalizedError.includes('invalid_credentials')
+        ? 'We could not sign you in with that email and password. If you originally joined with Google, choose “Continue with Google”; otherwise check your password or use “Forgot password?”. Your saved registration will be available after you sign in.'
+        : error);
     } else {
       router.replace(withNext('/onboarding', next));
     }
