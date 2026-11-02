@@ -8,17 +8,18 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
 import {
-  ArrowUpRight, Building2, CircleAlert, Flag, ImagePlus, Loader2,
-  MapPin, Pause, Play, Plus, RefreshCw, Send, ShieldCheck, Volume2, VolumeX,
+  ArrowUpRight, Bookmark, Building2, CircleAlert, Flag, ImagePlus, Loader2,
+  MapPin, Plus, RefreshCw, Send, ShieldCheck,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { CommunityPostActions, emptyCommunitySocialState, type CommunitySocialState } from '@/components/feed/community-post-actions';
 
 type Scope = 'all' | 'university';
-type CommunityPost = {
+export type CommunityPost = {
   id: string;
   author_id: string;
   author_name: string;
@@ -40,7 +41,7 @@ const ACCEPTED_MEDIA = new Map([
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
 
-function publicMediaUrl(path: string) {
+export function publicMediaUrl(path: string) {
   return supabase.storage.from('campus-community').getPublicUrl(path).data.publicUrl;
 }
 
@@ -58,6 +59,7 @@ export function CampusCommunityFeed() {
   const { user } = useAuth();
   const [scope, setScope] = useState<Scope>('all');
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [socialByPost, setSocialByPost] = useState<Record<string, CommunitySocialState>>({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -73,14 +75,12 @@ export function CampusCommunityFeed() {
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [reporting, setReporting] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
-  const [playing, setPlaying] = useState(true);
   const viewportRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<{ created_at: string; id: string } | null>(null);
   const requestRef = useRef(0);
   const hasMoreRef = useRef(false);
   const loadingMoreRef = useRef(false);
-  const videoRefs = useRef(new Map<string, HTMLVideoElement>());
+  const pendingPostFocusRef = useRef<string | null>(null);
 
   const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor'].includes(user.role));
   const hasUniversity = Boolean(user?.profile?.university_id);
@@ -99,6 +99,14 @@ export function CampusCommunityFeed() {
     else { setLoading(true); setLoadError(false); setLoadMoreError(false); cursorRef.current = null; }
     try {
       const cursor = append ? cursorRef.current : null;
+      let requestedPostId: string | null = null;
+      if (!append && typeof window !== 'undefined') {
+        const candidate = new URLSearchParams(window.location.search).get('post');
+        if (candidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)) {
+          requestedPostId = candidate;
+          pendingPostFocusRef.current = candidate;
+        }
+      }
       const { data, error } = await supabase.rpc('get_campus_community_feed', {
         p_scope: scope,
         p_before_created_at: cursor?.created_at ?? null,
@@ -107,11 +115,27 @@ export function CampusCommunityFeed() {
       });
       if (error) throw error;
       if (requestId !== requestRef.current) return;
-      const page = ((data || []) as Omit<CommunityPost, 'media_url'>[]).map((post) => ({
+      let rows = (data || []) as Omit<CommunityPost, 'media_url'>[];
+      if (!append && requestedPostId && !rows.some((post) => post.id === requestedPostId)) {
+        const { data: target } = await supabase.rpc('get_campus_community_post', { p_post_id: requestedPostId });
+        const targetPost = (target || [])[0] as Omit<CommunityPost, 'media_url'> | undefined;
+        if (targetPost) rows = [targetPost, ...rows];
+      }
+      const page = rows.map((post) => ({
         ...post,
         media_url: publicMediaUrl(post.media_path),
       }));
       setPosts((current) => append ? [...current, ...page] : page);
+      if (!append) setSocialByPost({});
+      if (page.length) {
+        const { data: socialRows } = await supabase.rpc('get_campus_community_post_social_state', { p_post_ids: page.slice(0, 12).map((post) => post.id) });
+        if (requestId === requestRef.current && socialRows) {
+          setSocialByPost((current) => ({ ...current, ...Object.fromEntries((socialRows as (CommunitySocialState & { post_id: string })[]).map((item) => [item.post_id, {
+            like_count: Number(item.like_count) || 0, comment_count: Number(item.comment_count) || 0,
+            liked_by_me: Boolean(item.liked_by_me), bookmarked_by_me: Boolean(item.bookmarked_by_me), following_author: Boolean(item.following_author),
+          }])) }));
+        }
+      }
       cursorRef.current = page.length ? { created_at: page[page.length - 1].created_at, id: page[page.length - 1].id } : (append ? cursorRef.current : null);
       hasMoreRef.current = page.length === PAGE_SIZE;
       setHasMore(page.length === PAGE_SIZE);
@@ -146,20 +170,20 @@ export function CampusCommunityFeed() {
         .filter((entry) => entry.isIntersecting)
         .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
       if (mostVisible) setActivePostId((mostVisible.target as HTMLElement).dataset.postId || null);
-    }, { root, threshold: [0.35, 0.6, 0.8] });
+    }, { root, threshold: [0.15, 0.3, 0.5] });
     root.querySelectorAll<HTMLElement>('[data-post-id]').forEach((node) => observer.observe(node));
     return () => observer.disconnect();
   }, [posts]);
 
   useEffect(() => {
-    videoRefs.current.forEach((video, postId) => {
-      if (postId === activePostId) {
-        video.muted = !soundOn;
-        if (playing) void video.play().catch(() => setPlaying(false));
-        else video.pause();
-      } else video.pause();
+    const postId = pendingPostFocusRef.current;
+    if (!postId || !posts.some((post) => post.id === postId)) return;
+    const frame = requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>(`[data-post-id="${postId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      pendingPostFocusRef.current = null;
     });
-  }, [activePostId, playing, soundOn]);
+    return () => cancelAnimationFrame(frame);
+  }, [posts]);
 
   const handleScroll = () => {
     const viewport = viewportRef.current;
@@ -250,22 +274,26 @@ export function CampusCommunityFeed() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f7f8fa]">
+    <div className="flex h-full min-h-0 flex-col bg-[#f0f2f5]">
       <div className="z-20 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 backdrop-blur sm:px-6">
         <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Campus feed scope">
           <button type="button" role="tab" aria-selected={scope === 'all'} onClick={() => setScope('all')} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors ${scope === 'all' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>Across Ghana</button>
           <button type="button" role="tab" aria-selected={scope === 'university'} disabled={!hasUniversity} onClick={() => setScope('university')} title={!hasUniversity ? 'Add your university to your profile first' : undefined} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${scope === 'university' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>My university</button>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
+          <Button type="button" variant="ghost" onClick={() => void loadPage(false)} disabled={loading} aria-label="Refresh campus feed" className="min-h-10 rounded-full px-3 text-muted-foreground">
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="sr-only">Refresh feed</span>
+          </Button>
           <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
+          {user && <Link href="/community/saved" aria-label="Saved campus posts" className="flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
           <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-10 touch-manipulation rounded-full bg-[#079b68] px-3.5 text-sm hover:bg-[#07855b] sm:px-4">
             <Plus className="mr-1 h-4 w-4" /><span className="hidden sm:inline">Create post</span><span className="sm:hidden">Post</span>
           </Button>
         </div>
       </div>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(22rem,30rem)_minmax(0,1fr)]">
-        <aside className="hidden flex-col justify-between border-r border-border/60 p-6 lg:flex">
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,42rem)] xl:grid-cols-[minmax(15rem,1fr)_minmax(0,42rem)_minmax(15rem,1fr)]">
+        <aside className="hidden flex-col justify-between border-r border-border/60 p-6 xl:flex">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800"><span className="h-2 w-2 rounded-full bg-emerald-500" />Campus community</span>
             <h1 className="mt-5 max-w-xs text-3xl font-bold leading-tight tracking-tight text-slate-900">What’s happening on campus?</h1>
@@ -275,16 +303,27 @@ export function CampusCommunityFeed() {
           <p className="max-w-xs text-xs leading-5 text-muted-foreground"><ShieldCheck className="mr-1 inline h-4 w-4 text-emerald-700" />Community posts are public. Share campus moments respectfully and avoid posting private details.</p>
         </aside>
 
-        <section className="relative min-h-0 bg-black lg:border-x lg:border-border/70" aria-label={scope === 'all' ? 'Posts from campuses across Ghana' : 'Posts from your university'}>
-          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 snap-y snap-mandatory overflow-y-auto overscroll-contain scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" aria-live="polite">
-            {loading ? <div className="flex h-full items-center justify-center bg-slate-950 text-sm text-white/75"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading campus moments…</div>
-              : loadError ? <div className="flex h-full flex-col items-center justify-center bg-slate-950 px-6 text-center text-white"><CircleAlert className="h-9 w-9 text-amber-300" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-white/65">Your account is safe. Check your connection and try again.</p><Button variant="secondary" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
-                : posts.length === 0 ? <div className="flex h-full flex-col items-center justify-center bg-slate-950 px-6 text-center text-white"><div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-emerald-400/10 text-emerald-300"><ImagePlus className="h-8 w-8" /></div><h2 className="mt-5 text-xl font-bold">The campus feed starts with you</h2><p className="mt-2 max-w-sm text-sm leading-6 text-white/65">There are no community posts yet. Be the first to share a real campus moment—no demo posts, just your community.</p>{canPost ? <Button onClick={() => setPostOpen(true)} className="mt-5 min-h-11 rounded-full bg-emerald-600 px-5 hover:bg-emerald-500"><Plus className="mr-2 h-4 w-4" />Create the first post</Button> : <Button asChild className="mt-5 min-h-11 rounded-full bg-emerald-600 px-5 hover:bg-emerald-500"><Link href="/signup">Join UniEco Ghana</Link></Button>}<Link href="/universities" className="mt-4 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-white">Browse the university directory<ArrowUpRight className="h-4 w-4" /></Link></div>
-                  : <>{posts.map((post) => <PostCard key={post.id} post={post} active={activePostId === post.id} videoRefs={videoRefs} soundOn={soundOn} playing={playing} onToggleSound={() => setSoundOn((value) => !value)} onTogglePlay={() => setPlaying((value) => !value)} onReport={() => handleReportClick(post)} />)}
-                    {loadingMore && <div className="flex min-h-24 items-center justify-center bg-slate-950 text-sm text-white/65"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Finding more campus moments…</div>}
-                    {loadMoreError && <div className="flex min-h-28 snap-start flex-col items-center justify-center bg-slate-950 px-6 text-center text-sm text-white/75" role="status"><p>Couldn’t load the next posts. Your feed is still here.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-300 hover:text-white">Try loading again</button></div>}
-                    {!hasMore && posts.length > 0 && <div className="flex min-h-28 snap-start flex-col items-center justify-center bg-slate-950 px-6 text-center text-sm text-white/65"><p>You’re all caught up.</p><button type="button" onClick={() => void loadPage(false)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-300 hover:text-white">Refresh the feed</button></div>}
-                  </>}
+        <section className="relative min-h-0 bg-[#f0f2f5] lg:border-x lg:border-border/70" aria-label={scope === 'all' ? 'Posts from campuses across Ghana' : 'Posts from your university'}>
+          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain scroll-smooth px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 lg:px-6" aria-live="polite">
+            <div className="mx-auto w-full max-w-2xl space-y-4">
+              <div className="rounded-2xl border bg-white p-3 shadow-sm sm:p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</div>
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-[#f0f2f5] px-4 text-left text-sm text-slate-600 transition hover:bg-slate-200">Share a campus moment…</button>
+                </div>
+                <div className="mt-3 border-t pt-3">
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"><ImagePlus className="h-5 w-5" />Photo or video</button>
+                </div>
+              </div>
+              {loading ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
+                : loadError ? <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-white px-6 text-center"><CircleAlert className="h-9 w-9 text-amber-600" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Your account is safe. Check your connection and try again.</p><Button variant="outline" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
+                  : posts.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border bg-white px-6 py-10 text-center shadow-sm"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><ImagePlus className="h-7 w-7" /></div><h2 className="mt-4 text-xl font-bold text-slate-900">Your campus community starts here</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">There aren’t any posts in this feed yet. Share a genuine photo or video from campus—no sample posts or made-up activity.</p>{canPost ? <Button onClick={() => setPostOpen(true)} className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Share the first moment</Button> : <Button asChild className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Link href="/signup">Join UniEco Ghana</Link></Button>}<Link href="/universities" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline">Browse universities<ArrowUpRight className="h-4 w-4" /></Link></div>
+                    : <>{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} />)}
+                      {loadingMore && <div className="flex min-h-20 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more posts…</div>}
+                      {loadMoreError && <div className="rounded-2xl border bg-white p-5 text-center text-sm text-muted-foreground" role="status"><p>Couldn’t load the next posts. The posts already here are safe.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Try again</button></div>}
+                      {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground"><p>You’re all caught up.</p><button type="button" onClick={() => void loadPage(false)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Refresh the feed</button></div>}
+                    </>}
+            </div>
           </div>
         </section>
 
@@ -301,6 +340,7 @@ export function CampusCommunityFeed() {
           <form onSubmit={submitPost} className="space-y-4">
             <label className="block text-sm font-semibold" htmlFor="community-media">Photo or video <span className="font-normal text-muted-foreground">(up to 25 MB)</span></label>
             <input id="community-media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
+            <p className="-mt-2 text-xs leading-5 text-muted-foreground">For the best playback on phones and computers, use an MP4 video encoded with H.264. Some phone video formats or codecs may not play in every browser.</p>
             {previewUrl && mediaFile && (mediaFile.type.startsWith('video/') ? <video src={previewUrl} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black object-contain" /> : <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />)}
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
@@ -328,38 +368,101 @@ export function CampusCommunityFeed() {
   );
 }
 
-function PostCard({ post, active, videoRefs, soundOn, playing, onToggleSound, onTogglePlay, onReport }: {
+export function CommunityPostCard({ post, active = false, socialState = emptyCommunitySocialState, onSocialChange, onReport }: {
   post: CommunityPost;
-  active: boolean;
-  videoRefs: React.MutableRefObject<Map<string, HTMLVideoElement>>;
-  soundOn: boolean;
-  playing: boolean;
-  onToggleSound: () => void;
-  onTogglePlay: () => void;
-  onReport: () => void;
+  active?: boolean;
+  socialState?: CommunitySocialState;
+  onSocialChange?: (state: CommunitySocialState) => void;
+  onReport?: () => void;
 }) {
   const avatar = getPublicAvatarUrl(post.author_avatar_url);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (active) {
+      video.muted = true;
+      void video.play().catch(() => {
+        // Autoplay can be blocked by device policy even when the file is healthy.
+        if (!video.error) setVideoState('ready');
+      });
+    } else {
+      video.pause();
+    }
+  }, [active]);
+
+  const retryVideo = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    setVideoState('loading');
+    video.load();
+    if (active) void video.play().catch(() => {
+      if (!video.error) setVideoState('ready');
+    });
+  };
+
   return (
-    <article data-post-id={post.id} className="relative h-full min-h-full snap-start snap-always overflow-hidden bg-slate-950 text-white">
-      {post.media_type === 'video' ? <video ref={(element) => { if (element) videoRefs.current.set(post.id, element); else videoRefs.current.delete(post.id); }} src={post.media_url} playsInline muted={!soundOn} loop preload={active ? 'metadata' : 'none'} onClick={onTogglePlay} onPlay={() => {}} className="absolute inset-0 h-full w-full cursor-pointer object-cover" aria-label={`Video shared by ${post.author_name}`} />
-        : <div className="absolute inset-0 flex items-center justify-center bg-slate-950"><img src={post.media_url} alt="" aria-hidden="true" loading={active ? 'eager' : 'lazy'} className="absolute inset-0 h-full w-full scale-110 object-cover opacity-45 blur-2xl" /><img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={active ? 'eager' : 'lazy'} className="relative z-[1] max-h-full max-w-full object-contain" /></div>}
-      <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-b from-black/35 via-transparent to-black/85" />
-      <div className="absolute right-3 top-3 z-[3] flex flex-col gap-2 sm:right-4 sm:top-4">
-        {post.media_type === 'video' && <>
-          <button type="button" onClick={onTogglePlay} aria-label={playing && active ? 'Pause video' : 'Play video'} className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/65">{playing && active ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}</button>
-          <button type="button" onClick={onToggleSound} aria-label={soundOn ? 'Mute video' : 'Turn video sound on'} className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/65">{soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}</button>
-        </>}
-        <button type="button" onClick={onReport} aria-label="Report post" className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/65"><Flag className="h-5 w-5" /></button>
-      </div>
-      <div className="absolute inset-x-0 bottom-0 z-[3] px-4 pb-5 pt-16 sm:px-6 sm:pb-7">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/80 bg-emerald-700 text-sm font-bold text-white shadow">{avatar ? <img src={avatar} alt="" loading="lazy" className="h-full w-full object-cover" /> : initials(post.author_name)}</div>
-          <div className="min-w-0"><p className="truncate text-sm font-bold drop-shadow">{post.author_name}</p><p className="mt-0.5 flex items-center gap-1 truncate text-xs text-white/80"><span>{friendlyRole(post.author_role)}</span>{post.university_name && <><span aria-hidden="true">·</span><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{post.university_name}</span></>}</p></div>
-          {post.university_slug && <Link href={`/university/${post.university_slug}`} aria-label={`View ${post.university_name}`} className="ml-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/35 bg-black/25 text-white backdrop-blur hover:bg-black/50"><ArrowUpRight className="h-4 w-4" /></Link>}
+    <article data-post-id={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+      <header className="flex items-center gap-3 px-4 py-3 sm:px-5">
+        <Link href={`/community/member/${post.author_id}`} aria-label={`View ${post.author_name}'s profile`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
+          {avatar ? <img src={avatar} alt="" loading="lazy" className="h-full w-full object-cover" /> : initials(post.author_name)}
+        </Link>
+        <div className="min-w-0 flex-1">
+          <Link href={`/community/member/${post.author_id}`} className="block truncate text-sm font-bold text-slate-900 hover:underline">{post.author_name}</Link>
+          <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-xs text-slate-500">
+            <span>{friendlyRole(post.author_role)}</span>
+            {post.university_name && <><span aria-hidden="true">·</span><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{post.university_name}</span></>}
+            <span aria-hidden="true">·</span>
+            <time dateTime={post.created_at}>{new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}</time>
+          </p>
         </div>
-        {post.caption && <p className="mt-3 max-w-2xl whitespace-pre-wrap break-words text-sm leading-6 text-white drop-shadow sm:text-base">{post.caption}</p>}
-        <p className="mt-2 text-[11px] text-white/65">{new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}</p>
-      </div>
+        {post.university_slug && <Link href={`/university/${post.university_slug}`} aria-label={`View ${post.university_name}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-emerald-800"><ArrowUpRight className="h-5 w-5" /></Link>}
+        {onReport && <button type="button" onClick={onReport} aria-label="Report post" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-rose-700"><Flag className="h-5 w-5" /></button>}
+      </header>
+
+      {post.caption && <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-slate-800 sm:px-5">{post.caption}</p>}
+
+      {post.media_type === 'video' ? (
+        <div className="relative flex min-h-48 items-center justify-center bg-slate-950">
+          <video
+            ref={videoRef}
+            src={post.media_url}
+            playsInline
+            muted
+            loop
+            controls
+            preload={active ? 'metadata' : 'none'}
+            onLoadedData={() => setVideoState('ready')}
+            onPlaying={() => setVideoState('ready')}
+            onWaiting={() => setVideoState('loading')}
+            onError={() => setVideoState('error')}
+            aria-label={`Video shared by ${post.author_name}`}
+            className="block max-h-[min(68dvh,44rem)] w-full object-contain"
+          />
+          {videoState === 'loading' && <div className="pointer-events-none absolute inset-x-0 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
+          {videoState === 'error' && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">
+            <CircleAlert className="h-8 w-8 text-amber-300" />
+            <p className="mt-3 font-semibold">This video didn’t play</p>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">The file may use a format or codec this browser can’t decode. MP4 with H.264 is the most widely supported option.</p>
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
+              <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>
+            </div>
+          </div>}
+        </div>
+      ) : imageFailed ? (
+        <div className="flex min-h-52 items-center justify-center bg-slate-100 px-5 text-center text-sm text-slate-600"><CircleAlert className="mr-2 h-5 w-5 text-slate-400" />This photo is unavailable right now.</div>
+      ) : (
+        <div className="flex max-h-[68dvh] items-center justify-center bg-slate-950">
+          <img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={active ? 'eager' : 'lazy'} onError={() => setImageFailed(true)} className="max-h-[68dvh] w-full object-contain" />
+        </div>
+      )}
+
+      {post.university_name && <div className="flex items-center gap-1.5 border-t px-4 py-2.5 text-xs font-medium text-slate-500 sm:px-5"><MapPin className="h-3.5 w-3.5 text-emerald-700" /><span className="truncate">Shared with the {post.university_name} community</span></div>}
+      <CommunityPostActions postId={post.id} authorId={post.author_id} initialState={socialState} onStateChange={onSocialChange} />
     </article>
   );
 }
