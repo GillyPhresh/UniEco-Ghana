@@ -19,6 +19,7 @@ test('homepage is a real community feed and keeps the university directory separ
 
 test('community media is bounded and writes go through authenticated owner-checked RPCs', async () => {
   const migration = await read('supabase/migrations/20261101180000_0175_campus_community_posts.sql');
+  const attachmentMigration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(migration, /file_size_limit\s*=\s*EXCLUDED\.file_size_limit/);
   assert.match(migration, /26214400/);
@@ -28,15 +29,42 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post\(text, text, text\) TO authenticated/);
   assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post\(text, text, text\) TO anon/);
-  assert.match(feed, /MAX_MEDIA_BYTES = 25 \* 1024 \* 1024/);
+  assert.match(feed, /MAX_ATTACHMENT_BYTES = 50 \* 1024 \* 1024/);
+  assert.match(feed, /MAX_PREVIEW_MEDIA_BYTES = 25 \* 1024 \* 1024/);
+  assert.match(feed, /campus-community-files/);
   assert.match(feed, /upsert: false/);
-  assert.match(feed, /create_campus_community_post/);
+  assert.match(feed, /create_campus_community_post_with_attachment/);
+  assert.match(attachmentMigration, /VALUES \('campus-community-files', 'campus-community-files', false, 52428800, NULL\)/);
+  assert.match(attachmentMigration, /allowed_mime_types = NULL/);
+  assert.match(attachmentMigration, /campus_community_files_owner_upload/);
+  assert.match(attachmentMigration, /campus_community_files_authorized_read/);
+  assert.match(attachmentMigration, /public\.can_upload_campus_community_media\(\)/);
+  assert.match(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[\s\S]+TO authenticated/);
+  assert.doesNotMatch(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[^;]+TO anon/);
+});
+
+test('unsupported file types remain private and are fetched only on explicit download', async () => {
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  const admin = await read('app/admin/community-posts/page.tsx');
+  const migration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
+  assert.match(feed, /type="file"/);
+  assert.match(feed, /Secure download · type is never opened inline/);
+  assert.match(feed, /get_campus_community_post_file_info/);
+  assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
+  assert.doesNotMatch(feed.slice(feed.indexOf('export function CommunityPostCard'), feed.indexOf('const downloadAttachment')), /useEffect\(/);
+  assert.match(admin, /media_type: 'image' \| 'video' \| 'file' \| 'text'/);
+  assert.match(admin, /get_campus_community_post_file_info/);
+  assert.match(admin, /campus-community-files/);
+  assert.match(migration, /p_path IS NOT NULL AND auth\.uid\(\) IS NOT NULL/);
+  assert.match(migration, /community_users_can_interact\(auth\.uid\(\), post\.author_id\)/);
+  assert.match(migration, /post\.status = 'published'/);
+  assert.match(migration, /uploaded_attachment\.bucket_id = 'campus-community-files'/);
 });
 
 test('campus feed uses readable social cards and exposes video recovery controls', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(feed, /Share a campus moment/);
-  assert.match(feed, /rounded-2xl border border-slate-200 bg-white/);
+  assert.match(feed, /overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border/);
   assert.match(feed, /controls/);
   assert.match(feed, /onError=\{\(\) => setVideoState\('error'\)\}/);
   assert.match(feed, /This video didn’t play/);
@@ -73,8 +101,25 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.match(actions, /set_campus_community_post_like/);
   assert.match(actions, /set_campus_community_post_bookmark/);
   assert.match(actions, /set_campus_community_follow/);
+  assert.match(actions, /navigator\.share\(shareData\)/);
+  assert.match(actions, /navigator\.clipboard\.writeText\(shareData\.url\)/);
+  assert.match(actions, /searchParams\.set\('post', postId\)/);
+  assert.match(actions, /aria-label="Share post"/);
+  assert.match(actions, /role="group" aria-label="Post actions"/);
+  assert.match(actions, /Share2/);
+  assert.match(actions, /aria-pressed=\{state\.liked_by_me\}/);
+  assert.match(actions, /aria-pressed=\{state\.bookmarked_by_me\}/);
   assert.match(actions, /\['student', 'student_vendor', 'external_vendor'\]/);
   assert.doesNotMatch(actions, /\.from\(['"]campus_community_(post_likes|post_bookmarks|follows|comments)['"]\)/);
+});
+
+test('attachment download is a quiet, labelled, mobile-size-safe action', async () => {
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  const card = feed.slice(feed.indexOf('export function CommunityPostCard'));
+  assert.match(card, /aria-label=\{fileLoading \? 'Preparing attachment download' : 'Download campus attachment'\}/);
+  assert.match(card, /min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full/);
+  assert.match(card, /variant="ghost"/);
+  assert.doesNotMatch(card, /Download campus attachment[^\n]*bg-emerald-700/);
 });
 
 test('publishing and media uploads require verified eligible accounts at the database boundary', async () => {

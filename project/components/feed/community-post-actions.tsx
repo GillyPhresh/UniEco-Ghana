@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bookmark, Heart, Loader2, MessageCircle, UserRoundPlus, UserRoundCheck } from 'lucide-react';
+import { Bookmark, Heart, Loader2, MessageCircle, Share2, UserRoundPlus, UserRoundCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -139,20 +139,53 @@ export function CommunityPostActions({
     }
   };
 
+  const sharePost = async () => {
+    const url = new URL('/', window.location.origin);
+    url.searchParams.set('post', postId);
+    const shareData = { title: 'Campus community · UniEco Ghana', url: url.toString() };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      await navigator.clipboard.writeText(shareData.url);
+      toast.success('Post link copied. Share it with your campus community.');
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        toast.success('Post link copied. Share it with your campus community.');
+      } catch {
+        toast.error('Could not share this post. Please copy the page link and try again.');
+      }
+    }
+  };
+
   const topLevel = comments.filter((comment) => !comment.parent_comment_id);
 
   return (
     <>
-      <div className="grid grid-cols-3 border-t border-slate-100 px-2 py-1 sm:px-3" aria-label="Post actions">
-        <Button type="button" variant="ghost" onClick={() => void toggle('like')} disabled={busy === 'like'} aria-pressed={state.liked_by_me} className={`min-h-11 touch-manipulation rounded-lg text-sm ${state.liked_by_me ? 'text-rose-600' : 'text-slate-600'}`}>
-          {busy === 'like' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Heart className={`mr-2 h-4 w-4 ${state.liked_by_me ? 'fill-current' : ''}`} />}
-          <span>Like{state.like_count ? ` · ${state.like_count}` : ''}</span>
-        </Button>
-        <Button type="button" variant="ghost" onClick={openComments} className="min-h-11 touch-manipulation rounded-lg text-sm text-slate-600">
-          <MessageCircle className="mr-2 h-4 w-4" /><span>Comment{state.comment_count ? ` · ${state.comment_count}` : ''}</span>
-        </Button>
-        <Button type="button" variant="ghost" onClick={() => void toggle('bookmark')} disabled={busy === 'bookmark'} aria-pressed={state.bookmarked_by_me} className={`min-h-11 touch-manipulation rounded-lg text-sm ${state.bookmarked_by_me ? 'text-emerald-700' : 'text-slate-600'}`}>
-          {busy === 'bookmark' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bookmark className={`mr-2 h-4 w-4 ${state.bookmarked_by_me ? 'fill-current' : ''}`} />}<span>Save</span>
+      {(state.like_count > 0 || state.comment_count > 0) && <p className="px-4 pb-2 text-xs font-medium text-slate-500" aria-live="polite">
+        {state.like_count > 0 && <span>{state.like_count} {state.like_count === 1 ? 'like' : 'likes'}</span>}
+        {state.like_count > 0 && state.comment_count > 0 && <span aria-hidden="true"> · </span>}
+        {state.comment_count > 0 && <span>{state.comment_count} {state.comment_count === 1 ? 'comment' : 'comments'}</span>}
+      </p>}
+      <div className="flex items-center gap-1 border-t border-slate-100 px-2 py-1.5 sm:px-3" role="group" aria-label="Post actions">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
+          <Button type="button" variant="ghost" onClick={() => void toggle('like')} disabled={busy === 'like'} aria-label={`${state.liked_by_me ? 'Unlike' : 'Like'} post${state.like_count ? `, ${state.like_count} likes` : ''}`} aria-pressed={state.liked_by_me} className={`min-h-11 min-w-0 flex-1 touch-manipulation gap-1 rounded-lg px-1 text-xs font-semibold sm:gap-2 sm:text-sm ${state.liked_by_me ? 'text-rose-600 hover:bg-rose-50 hover:text-rose-700' : 'text-slate-600 hover:bg-slate-100'}`}>
+            {busy === 'like' ? <Loader2 className="h-5 w-5 shrink-0 animate-spin" /> : <Heart className={`h-5 w-5 shrink-0 ${state.liked_by_me ? 'fill-current' : ''}`} />}
+            <span>Like</span>
+          </Button>
+          <Button type="button" variant="ghost" onClick={openComments} aria-label={`Comment on post${state.comment_count ? `, ${state.comment_count} comments` : ''}`} className="min-h-11 min-w-0 flex-1 touch-manipulation gap-1 rounded-lg px-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 sm:gap-2 sm:text-sm">
+            <MessageCircle className="h-5 w-5 shrink-0" /><span>Comment</span>
+          </Button>
+          <Button type="button" variant="ghost" onClick={() => void sharePost()} aria-label="Share post" className="min-h-11 min-w-0 flex-1 touch-manipulation gap-1 rounded-lg px-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 sm:gap-2 sm:text-sm">
+            <Share2 className="h-5 w-5 shrink-0" /><span>Share</span>
+          </Button>
+        </div>
+        <Button type="button" variant="ghost" onClick={() => void toggle('bookmark')} disabled={busy === 'bookmark'} aria-label={state.bookmarked_by_me ? 'Remove post from saved' : 'Save post'} aria-pressed={state.bookmarked_by_me} title={state.bookmarked_by_me ? 'Remove from saved' : 'Save post'} className={`h-11 w-11 shrink-0 touch-manipulation rounded-full p-0 ${state.bookmarked_by_me ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800' : 'text-slate-600 hover:bg-slate-100'}`}>
+          {busy === 'bookmark' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Bookmark className={`h-5 w-5 ${state.bookmarked_by_me ? 'fill-current' : ''}`} />}
         </Button>
       </div>
       {user?.id !== authorId && <div className="border-t border-slate-100 px-4 py-2 sm:px-5">

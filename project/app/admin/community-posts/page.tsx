@@ -9,15 +9,15 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { CircleAlert, Flag, Loader2, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { ArrowDownToLine, CircleAlert, FileText, Flag, Loader2, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
 
 type ReportStatus = 'open' | 'resolved' | 'dismissed' | 'all';
 type CommunityReport = {
   report_id: string;
   post_id: string;
   post_caption: string;
-  media_path: string;
-  media_type: 'image' | 'video';
+  media_path: string | null;
+  media_type: 'image' | 'video' | 'file' | 'text';
   author_name: string;
   reporter_name: string;
   reason: string;
@@ -137,12 +137,33 @@ function CommunityPostsQueue() {
 }
 
 function ReportCard({ report, onKeep, onRemove }: { report: CommunityReport; onKeep: () => void; onRemove: () => void }) {
-  const mediaUrl = supabase.storage.from('campus-community').getPublicUrl(report.media_path).data.publicUrl;
+  const [downloading, setDownloading] = useState(false);
+  const downloadAttachment = async () => {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const { data, error } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: report.post_id });
+      const file = (data || [])[0] as { file_path: string; file_name: string } | undefined;
+      if (error || !file?.file_path) throw error || new Error('Attachment unavailable');
+      const safeName = file.file_name.split(/[\\/]/).pop()?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 180) || 'campus-attachment';
+      const { data: signed, error: signError } = await supabase.storage.from('campus-community-files').createSignedUrl(file.file_path, 60, { download: safeName });
+      if (signError || !signed?.signedUrl) throw signError || new Error('Download unavailable');
+      window.location.assign(signed.signedUrl);
+    } catch {
+      toast.error('Could not open this private attachment. Refresh the report and try again.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+  const mediaUrl = report.media_path ? supabase.storage.from('campus-community').getPublicUrl(report.media_path).data.publicUrl : null;
+  const isPreview = Boolean(mediaUrl && (report.media_type === 'image' || report.media_type === 'video'));
   return (
     <Card className="overflow-hidden">
       <div className="grid sm:grid-cols-[minmax(0,12rem)_minmax(0,1fr)]">
         <div className="flex max-h-80 min-h-52 items-center justify-center bg-slate-950 sm:max-h-none">
-          {report.media_type === 'video' ? <video src={mediaUrl} controls playsInline preload="metadata" className="max-h-80 w-full object-contain sm:h-full" /> : <img src={mediaUrl} alt={`Reported campus post by ${report.author_name}`} loading="lazy" className="max-h-80 w-full object-contain sm:h-full" />}
+          {isPreview && report.media_type === 'video' ? <video src={mediaUrl!} controls playsInline preload="metadata" className="max-h-80 w-full object-contain sm:h-full" />
+            : isPreview && report.media_type === 'image' ? <img src={mediaUrl!} alt={`Reported campus post by ${report.author_name}`} loading="lazy" className="max-h-80 w-full object-contain sm:h-full" />
+              : <div className="flex flex-col items-center gap-3 px-4 py-8 text-center text-white"><FileText className="h-10 w-10 text-emerald-300" /><p className="text-sm font-semibold">{report.media_type === 'file' ? 'Private file attachment' : 'Text post'}</p>{report.media_type === 'file' && <Button type="button" variant="secondary" onClick={() => void downloadAttachment()} disabled={downloading} className="min-h-11 touch-manipulation rounded-full">{downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowDownToLine className="mr-2 h-4 w-4" />}Download for review</Button>}</div>}
         </div>
         <CardContent className="flex min-w-0 flex-col gap-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="capitalize">{report.status}</Badge><Badge variant="secondary" className="capitalize">{report.reason.replaceAll('_', ' ')}</Badge><span className="ml-auto text-xs text-muted-foreground">{new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(report.created_at))}</span></div>

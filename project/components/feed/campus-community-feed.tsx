@@ -8,8 +8,9 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
 import {
-  ArrowUpRight, Bookmark, Building2, CircleAlert, Flag, ImagePlus, Loader2,
-  MapPin, Plus, RefreshCw, Send, ShieldCheck,
+  ArrowDownToLine, ArrowUpRight, Bookmark, Building2, CircleAlert, FileText,
+  Flag, ImagePlus, Loader2, MapPin, Paperclip, Plus, RefreshCw, Send,
+  ShieldCheck,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -28,21 +29,32 @@ export type CommunityPost = {
   university_name: string | null;
   university_slug: string | null;
   caption: string;
-  media_path: string;
-  media_type: 'image' | 'video';
+  media_path: string | null;
+  media_type: 'image' | 'video' | 'file' | 'text';
   created_at: string;
-  media_url: string;
+  media_url: string | null;
 };
 
 const PAGE_SIZE = 8;
-const MAX_MEDIA_BYTES = 25 * 1024 * 1024;
-const ACCEPTED_MEDIA = new Map([
+const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
+const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
 
-export function publicMediaUrl(path: string) {
+export function publicMediaUrl(path: string | null) {
+  if (!path) return null;
   return supabase.storage.from('campus-community').getPublicUrl(path).data.publicUrl;
+}
+
+function safeFileName(name: string) {
+  return name.split(/[\\/]/).pop()?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 180) || 'campus-attachment';
+}
+
+function readableSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function friendlyRole(role: string) {
@@ -121,10 +133,7 @@ export function CampusCommunityFeed() {
         const targetPost = (target || [])[0] as Omit<CommunityPost, 'media_url'> | undefined;
         if (targetPost) rows = [targetPost, ...rows];
       }
-      const page = rows.map((post) => ({
-        ...post,
-        media_url: publicMediaUrl(post.media_path),
-      }));
+      const page = rows.map((post) => ({ ...post, media_url: publicMediaUrl(post.media_path) }));
       setPosts((current) => append ? [...current, ...page] : page);
       if (!append) setSocialByPost({});
       if (page.length) {
@@ -200,41 +209,52 @@ export function CampusCommunityFeed() {
     event.preventDefault();
     if (!user || !canPost) { toast.error('Sign in with a student or vendor account to post.'); return; }
     const trimmedCaption = caption.trim();
-    if (!mediaFile || !ACCEPTED_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_MEDIA_BYTES) {
-      toast.error('Choose a JPG, PNG, WebP, MP4 or WebM file up to 25 MB.');
+    if (!mediaFile && !trimmedCaption) {
+      toast.error('Add a caption or attach a file before publishing.');
       return;
     }
+    if (mediaFile && mediaFile.size > MAX_ATTACHMENT_BYTES) { toast.error('Attachments can be up to 50 MB.'); return; }
+    const safePreviewExtension = mediaFile ? PREVIEW_MEDIA.get(mediaFile.type) : undefined;
+    const previewable = Boolean(mediaFile && safePreviewExtension && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES);
     if (trimmedCaption.length > 500) { toast.error('Keep the caption under 500 characters.'); return; }
-    const mediaType = mediaFile.type.startsWith('video/') ? 'video' : 'image';
-    const extension = ACCEPTED_MEDIA.get(mediaFile.type)!;
-    const path = `${user.id}/${crypto.randomUUID()}.${extension}`;
+    const mediaType = previewable ? (mediaFile!.type.startsWith('video/') ? 'video' : 'image') : mediaFile ? 'file' : 'text';
+    const publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
+    const attachmentPath = mediaFile && !previewable ? `${user.id}/${crypto.randomUUID()}` : null;
+    const attachmentName = mediaFile && !previewable ? safeFileName(mediaFile.name) : null;
     setUploading(true);
-    let uploaded = false;
+    let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
+    const uploadPath = publicPath || attachmentPath;
+    const uploadBucket = publicPath ? 'campus-community' : attachmentPath ? 'campus-community-files' : null;
     try {
-      const { error: uploadError } = await supabase.storage.from('campus-community').upload(path, mediaFile, {
-        contentType: mediaFile.type,
-        cacheControl: '31536000',
-        upsert: false,
-      });
-      if (uploadError) throw uploadError;
-      uploaded = true;
-      const { error: postError } = await supabase.rpc('create_campus_community_post', {
+      if (mediaFile && uploadPath && uploadBucket) {
+        const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, mediaFile, {
+          contentType: mediaFile.type || 'application/octet-stream',
+          cacheControl: publicPath ? '31536000' : '0',
+          upsert: false,
+        });
+        if (uploadError) throw uploadError;
+        uploadedBucket = uploadBucket;
+      }
+      const { error: postError } = await supabase.rpc('create_campus_community_post_with_attachment', {
         p_caption: trimmedCaption,
-        p_media_path: path,
-        p_media_type: mediaType,
+        p_media_path: publicPath,
+        p_media_type: previewable ? mediaType : null,
+        p_attachment_path: attachmentPath,
+        p_attachment_name: attachmentName,
+        p_attachment_size: mediaFile && attachmentPath ? mediaFile.size : null,
       });
       if (postError) throw postError;
-      uploaded = false;
+      uploadedBucket = null;
       toast.success('Your post is live on the campus feed.');
       setPostOpen(false);
       setCaption('');
       setMediaFile(null);
       await loadPage(false);
     } catch (error) {
-      if (uploaded) await supabase.storage.from('campus-community').remove([path]).catch(() => undefined);
+      if (uploadedBucket && uploadPath) await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
       const message = error instanceof Error ? error.message : '';
       if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
-      else if (!uploaded && message.toLowerCase().includes('storage')) toast.error('Your media could not be uploaded. Check your connection and try again.');
+      else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
       else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
     } finally {
       setUploading(false);
@@ -275,7 +295,7 @@ export function CampusCommunityFeed() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#f0f2f5]">
-      <div className="z-20 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 backdrop-blur sm:px-6">
+      <div className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-2.5 backdrop-blur sm:px-6">
         <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Campus feed scope">
           <button type="button" role="tab" aria-selected={scope === 'all'} onClick={() => setScope('all')} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors ${scope === 'all' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>Across Ghana</button>
           <button type="button" role="tab" aria-selected={scope === 'university'} disabled={!hasUniversity} onClick={() => setScope('university')} title={!hasUniversity ? 'Add your university to your profile first' : undefined} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${scope === 'university' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>My university</button>
@@ -304,9 +324,9 @@ export function CampusCommunityFeed() {
         </aside>
 
         <section className="relative min-h-0 bg-[#f0f2f5] lg:border-x lg:border-border/70" aria-label={scope === 'all' ? 'Posts from campuses across Ghana' : 'Posts from your university'}>
-          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain scroll-smooth px-3 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 lg:px-6" aria-live="polite">
-            <div className="mx-auto w-full max-w-2xl space-y-4">
-              <div className="rounded-2xl border bg-white p-3 shadow-sm sm:p-4">
+          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain scroll-smooth px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
+            <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
+              <div className="border-y bg-white p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</div>
                   <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-[#f0f2f5] px-4 text-left text-sm text-slate-600 transition hover:bg-slate-200">Share a campus moment…</button>
@@ -335,17 +355,17 @@ export function CampusCommunityFeed() {
       </div>
 
       <Dialog open={postOpen} onOpenChange={closePostDialog}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className="max-h-[min(90dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-xl sm:p-6">
           <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Post a photo or short video for the UniEco Ghana community. Your post is public and linked to your account and campus.</DialogDescription></DialogHeader>
           <form onSubmit={submitPost} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="community-media">Photo or video <span className="font-normal text-muted-foreground">(up to 25 MB)</span></label>
-            <input id="community-media" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
-            <p className="-mt-2 text-xs leading-5 text-muted-foreground">For the best playback on phones and computers, use an MP4 video encoded with H.264. Some phone video formats or codecs may not play in every browser.</p>
-            {previewUrl && mediaFile && (mediaFile.type.startsWith('video/') ? <video src={previewUrl} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black object-contain" /> : <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />)}
+            <label className="block text-sm font-semibold" htmlFor="community-media">Add a file <span className="font-normal text-muted-foreground">(any format, up to 50 MB; images and videos up to 25 MB)</span></label>
+            <input id="community-media" type="file" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
+            {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}{!PREVIEW_MEDIA.has(mediaFile.type) && ' · shared as a download'}</p>}
+            {previewUrl && mediaFile && PREVIEW_MEDIA.has(mediaFile.type) && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && (mediaFile.type.startsWith('video/') ? <video src={previewUrl} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black object-contain" /> : <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />)}
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
-            <DialogFooter><Button type="submit" disabled={uploading || !mediaFile} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Publishing…</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Publishing…</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -379,6 +399,33 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [imageFailed, setImageFailed] = useState(false);
+  const [fileInfo, setFileInfo] = useState<{ path: string; name: string; size: number } | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
+  const [fileError, setFileError] = useState(false);
+
+  const downloadAttachment = async () => {
+    if (fileLoading) return;
+    setFileLoading(true);
+    setFileError(false);
+    try {
+      let attachment = fileInfo;
+      if (!attachment) {
+        const { data, error } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: post.id });
+        const result = (data || [])[0] as { file_path: string; file_name: string; file_size: number } | undefined;
+        if (error || !result?.file_path) throw error || new Error('Attachment unavailable');
+        attachment = { path: result.file_path, name: safeFileName(result.file_name), size: Number(result.file_size) || 0 };
+        setFileInfo(attachment);
+      }
+      const { data, error } = await supabase.storage.from('campus-community-files').createSignedUrl(attachment.path, 60, { download: attachment.name });
+      if (error || !data?.signedUrl) throw error || new Error('Attachment link unavailable');
+      window.location.assign(data.signedUrl);
+    } catch {
+      setFileError(true);
+      toast.error('This attachment is not available right now. Please try again.');
+    } finally {
+      setFileLoading(false);
+    }
+  };
 
   useEffect(() => {
     const video = videoRef.current;
@@ -405,7 +452,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   };
 
   return (
-    <article data-post-id={post.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+    <article data-post-id={post.id} className="overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border">
       <header className="flex items-center gap-3 px-4 py-3 sm:px-5">
         <Link href={`/community/member/${post.author_id}`} aria-label={`View ${post.author_name}'s profile`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
           {avatar ? <img src={avatar} alt="" loading="lazy" className="h-full w-full object-cover" /> : initials(post.author_name)}
@@ -425,11 +472,21 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
 
       {post.caption && <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-slate-800 sm:px-5">{post.caption}</p>}
 
-      {post.media_type === 'video' ? (
+      {post.media_type === 'text' ? (
+        <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
+      ) : post.media_type === 'file' ? (
+        <div className="border-t bg-slate-50 p-4 sm:p-5">
+          <div className="flex items-center gap-3 rounded-2xl border bg-white p-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
+            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'Tap to retry, or ask the author to share it again.' : 'Secure download · type is never opened inline'}</p></div>
+            <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
+          </div>
+        </div>
+      ) : post.media_type === 'video' ? (
         <div className="relative flex min-h-48 items-center justify-center bg-slate-950">
           <video
             ref={videoRef}
-            src={post.media_url}
+            src={post.media_url || undefined}
             playsInline
             muted
             loop
@@ -449,7 +506,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">The file may use a format or codec this browser can’t decode. MP4 with H.264 is the most widely supported option.</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
-              <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>
+              {post.media_url && <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>}
             </div>
           </div>}
         </div>
@@ -457,7 +514,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
         <div className="flex min-h-52 items-center justify-center bg-slate-100 px-5 text-center text-sm text-slate-600"><CircleAlert className="mr-2 h-5 w-5 text-slate-400" />This photo is unavailable right now.</div>
       ) : (
         <div className="flex max-h-[68dvh] items-center justify-center bg-slate-950">
-          <img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={active ? 'eager' : 'lazy'} onError={() => setImageFailed(true)} className="max-h-[68dvh] w-full object-contain" />
+          {post.media_url && <img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={active ? 'eager' : 'lazy'} onError={() => setImageFailed(true)} className="max-h-[68dvh] w-full object-contain" />}
         </div>
       )}
 
