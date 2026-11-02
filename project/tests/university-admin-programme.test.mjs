@@ -87,6 +87,19 @@ test('mobile administrator screens keep touch targets and safe disclosure', asyn
   assert.match(workspace, /required payment and verification conditions are complete/);
 });
 
+test('university admin application prevents availability constraint errors and hides database details', async () => {
+  const [apply, migration] = await Promise.all([
+    read('app/university-admin/apply/page.tsx'),
+    read('supabase/migrations/20261029200000_0154_university_admin_applications.sql'),
+  ]);
+  assert.match(migration, /availability text NOT NULL CHECK \(length\(trim\(availability\)\) BETWEEN 2 AND 120\)/);
+  assert.match(apply, /availabilityLength > 120/);
+  assert.match(apply, /maxLength=\{120\}/);
+  assert.match(apply, /10–120 characters/);
+  assert.match(apply, /Your answers are still here; please try again/);
+  assert.doesNotMatch(apply, /setError\(submitError\.message\)/);
+});
+
 test('university administrators cannot open the super-admin application review queue', async () => {
   const layout = await read('components/admin/admin-layout.tsx');
   assert.match(layout, /pathname === '\/admin\/university-admin'/);

@@ -97,7 +97,12 @@ function ApplyContent() {
 
   async function submit() {
     if (!opening || !user) return;
-    if (form.phone.trim().length < 7 || form.studentId.trim().length < 2 || form.programme.trim().length < 2 || form.level.trim().length < 1 || form.availability.trim().length < 10 || form.experience.trim().length < 20 || form.coverNote.trim().length < 30 || !form.terms) {
+    const availabilityLength = form.availability.trim().length;
+    if (form.phone.trim().length < 7 || form.studentId.trim().length < 2 || form.programme.trim().length < 2 || form.level.trim().length < 1 || availabilityLength < 10 || availabilityLength > 120 || form.experience.trim().length < 20 || form.coverNote.trim().length < 30 || !form.terms) {
+      if (availabilityLength > 120) {
+        setError('Availability details must be 120 characters or fewer. Shorten this answer and try again.');
+        return;
+      }
       setError('Complete every required field and accept the programme terms before submitting.');
       return;
     }
@@ -115,7 +120,16 @@ function ApplyContent() {
       p_terms_accepted: form.terms,
     });
     setSubmitting(false);
-    if (submitError) { setError(submitError.message); return; }
+    if (submitError) {
+      if (submitError.code === '23514' && submitError.message.includes('university_admin_applications_availability_check')) {
+        setError('Availability details must be 120 characters or fewer. Your answers are still here; shorten this answer and try again.');
+      } else if (submitError.code === '23505') {
+        setError('An application for this campus is already on your account. Check the applications listed above.');
+      } else {
+        setError('We couldn’t submit your application just now. Your answers are still here; please try again.');
+      }
+      return;
+    }
     setApplications((current) => [{ ...(data as Application), submitted_at: new Date().toISOString() }, ...current]);
     toast.success('Application submitted for review.');
     setForm({ phone: '', studentId: '', programme: '', level: '', availability: '', experience: '', coverNote: '', terms: false });
@@ -145,7 +159,7 @@ function ApplyContent() {
               <div className="space-y-1.5"><Label htmlFor="ua-programme">Programme *</Label><Input id="ua-programme" value={form.programme} onChange={(event) => update('programme', event.target.value)} placeholder="Your course of study" /></div>
               <div className="space-y-1.5"><Label htmlFor="ua-level">Level / year *</Label><Input id="ua-level" value={form.level} onChange={(event) => update('level', event.target.value)} placeholder="e.g. Level 300" /></div>
             </div>
-            <div className="space-y-1.5"><Label htmlFor="ua-availability">Availability *</Label><Textarea id="ua-availability" rows={3} value={form.availability} onChange={(event) => update('availability', event.target.value)} placeholder="Tell us when and where you can support students and vendors." /></div>
+            <div className="space-y-1.5"><Label htmlFor="ua-availability">Availability *</Label><Textarea id="ua-availability" rows={3} maxLength={120} aria-describedby="ua-availability-help" value={form.availability} onChange={(event) => update('availability', event.target.value)} placeholder="e.g. Weekdays after 3 pm and Saturday mornings on campus." /><p id="ua-availability-help" className="text-xs text-muted-foreground">Briefly note when you can help (10–120 characters). {form.availability.length}/120</p></div>
             <div className="space-y-1.5"><Label htmlFor="ua-experience">Relevant experience *</Label><Textarea id="ua-experience" rows={4} value={form.experience} onChange={(event) => update('experience', event.target.value)} placeholder="Describe outreach, leadership, customer service, campus or digital experience." /></div>
             <div className="space-y-1.5"><Label htmlFor="ua-cover">Why should we select you? *</Label><Textarea id="ua-cover" rows={5} value={form.coverNote} onChange={(event) => update('coverNote', event.target.value)} placeholder="Write a short, clear motivation." /></div>
             <label className="flex items-start gap-3 rounded-xl border p-3 text-sm"><input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={form.terms} onChange={(event) => update('terms', event.target.checked)} /><span>I agree to protect user privacy, never request passwords or payment PINs, never charge unofficial fees, and follow UniEco Ghana’s administrator duties and code of conduct.</span></label>
