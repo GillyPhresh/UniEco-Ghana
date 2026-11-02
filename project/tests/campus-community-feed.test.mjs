@@ -51,7 +51,9 @@ test('unsupported file types remain private and are fetched only on explicit dow
   assert.match(feed, /Secure download · type is never opened inline/);
   assert.match(feed, /get_campus_community_post_file_info/);
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
-  assert.doesNotMatch(feed.slice(feed.indexOf('export function CommunityPostCard'), feed.indexOf('const downloadAttachment')), /useEffect\(/);
+  const cardBeforeExplicitDownload = feed.slice(feed.indexOf('export function CommunityPostCard'), feed.indexOf('const downloadAttachment'));
+  assert.doesNotMatch(cardBeforeExplicitDownload, /get_campus_community_post_file_info|createSignedUrl/);
+  assert.match(feed, /onClick=\{\(\) => void downloadAttachment\(\)\}/);
   assert.match(admin, /media_type: 'image' \| 'video' \| 'file' \| 'text'/);
   assert.match(admin, /get_campus_community_post_file_info/);
   assert.match(admin, /campus-community-files/);
@@ -66,12 +68,26 @@ test('campus feed uses readable social cards and exposes video recovery controls
   assert.match(feed, /Share a campus moment/);
   assert.match(feed, /overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border/);
   assert.match(feed, /controls/);
-  assert.match(feed, /onError=\{\(\) => setVideoState\('error'\)\}/);
-  assert.match(feed, /This video didn’t play/);
+  assert.match(feed, /event\.currentTarget\.error\?\.code/);
+  assert.match(feed, /The video stream was interrupted by the connection/);
+  assert.match(feed, /This phone cannot decode this video’s format/);
+  assert.match(feed, /We couldn’t play this video/);
   assert.match(feed, /Try again/);
   assert.match(feed, /Open original/);
-  assert.match(feed, /MP4 with H\.264/);
+  assert.match(feed, /MP4 using H\.264 video and AAC audio/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
+});
+
+test('slow connections can use cached feed content and media remains lazy', async () => {
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  const auth = await read('lib/auth/auth-context.tsx');
+  assert.match(feed, /sessionStorage\.getItem\(cacheKey\)/);
+  assert.match(feed, /FEED_CACHE_TTL_MS/);
+  assert.match(feed, /Showing recent posts saved on this device/);
+  assert.match(feed, /preload=\{active && !reducedData \? 'metadata' : 'none'\}/);
+  assert.match(feed, /connection\?\.saveData/);
+  assert.match(feed, /Social counts are secondary: don't hold the actual feed hostage/);
+  assert.match(auth, /Promise\.all\(\[/);
 });
 
 test('campus-only scope derives the school on the server and reports have an audited review route', async () => {

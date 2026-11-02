@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowDownToLine, ArrowUpRight, Bookmark, Building2, CircleAlert, FileText,
   Flag, ImagePlus, Loader2, MapPin, Paperclip, Plus, RefreshCw, Send,
@@ -36,6 +37,7 @@ export type CommunityPost = {
 };
 
 const PAGE_SIZE = 8;
+const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
 const PREVIEW_MEDIA = new Map([
@@ -43,9 +45,48 @@ const PREVIEW_MEDIA = new Map([
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
 
+type NetworkInformationLike = {
+  saveData?: boolean;
+  effectiveType?: string;
+  addEventListener?: (type: 'change', listener: () => void) => void;
+  removeEventListener?: (type: 'change', listener: () => void) => void;
+};
+
 export function publicMediaUrl(path: string | null) {
   if (!path) return null;
   return supabase.storage.from('campus-community').getPublicUrl(path).data.publicUrl;
+}
+
+function readCachedFeed(cacheKey: string): CommunityPost[] | null {
+  try {
+    const raw = window.sessionStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const cached = JSON.parse(raw) as { savedAt?: number; posts?: Omit<CommunityPost, 'media_url'>[] };
+    if (!cached.savedAt || Date.now() - cached.savedAt > FEED_CACHE_TTL_MS || !Array.isArray(cached.posts)) {
+      window.sessionStorage.removeItem(cacheKey);
+      return null;
+    }
+    const posts = cached.posts.slice(0, PAGE_SIZE);
+    if (posts.some((post) => !post || !/^[0-9a-f-]{36}$/i.test(post.id) || !/^[0-9a-f-]{36}$/i.test(post.author_id)
+      || typeof post.author_name !== 'string' || typeof post.author_role !== 'string'
+      || typeof post.caption !== 'string' || post.caption.length > 500
+      || (post.media_path !== null && typeof post.media_path !== 'string')
+      || (post.author_avatar_url !== null && typeof post.author_avatar_url !== 'string')
+      || !['image', 'video', 'file', 'text'].includes(post.media_type)
+      || typeof post.created_at !== 'string' || !Number.isFinite(Date.parse(post.created_at)))) return null;
+    return posts.map((post) => ({ ...post, media_url: publicMediaUrl(post.media_path) }));
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedFeed(cacheKey: string, posts: CommunityPost[]) {
+  try {
+    const publicPosts = posts.slice(0, PAGE_SIZE).map(({ media_url: _mediaUrl, ...post }) => post);
+    window.sessionStorage.setItem(cacheKey, JSON.stringify({ savedAt: Date.now(), posts: publicPosts }));
+  } catch {
+    // Storage can be disabled or full; never let an optional cache block the live feed.
+  }
 }
 
 function safeFileName(name: string) {
@@ -67,6 +108,17 @@ function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'U';
 }
 
+function formatFeedTimestamp(value: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const isToday = date.getFullYear() === today.getFullYear()
+    && date.getMonth() === today.getMonth()
+    && date.getDate() === today.getDate();
+  return new Intl.DateTimeFormat('en-GH', isToday
+    ? { hour: 'numeric', minute: '2-digit' }
+    : { day: 'numeric', month: 'short' }).format(date);
+}
+
 export function CampusCommunityFeed() {
   const { user } = useAuth();
   const [scope, setScope] = useState<Scope>('all');
@@ -76,6 +128,7 @@ export function CampusCommunityFeed() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [showingCachedPosts, setShowingCachedPosts] = useState(false);
   const [loadMoreError, setLoadMoreError] = useState(false);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [postOpen, setPostOpen] = useState(false);
@@ -96,6 +149,7 @@ export function CampusCommunityFeed() {
 
   const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor'].includes(user.role));
   const hasUniversity = Boolean(user?.profile?.university_id);
+  const feedCacheKey = `unieco:community-feed:v1:${user?.id ?? 'guest'}:${scope}:${user?.profile?.university_id ?? 'none'}`;
 
   useEffect(() => {
     if (!mediaFile) { setPreviewUrl(null); return; }
@@ -130,20 +184,28 @@ export function CampusCommunityFeed() {
       let rows = (data || []) as Omit<CommunityPost, 'media_url'>[];
       if (!append && requestedPostId && !rows.some((post) => post.id === requestedPostId)) {
         const { data: target } = await supabase.rpc('get_campus_community_post', { p_post_id: requestedPostId });
+        if (requestId !== requestRef.current) return;
         const targetPost = (target || [])[0] as Omit<CommunityPost, 'media_url'> | undefined;
         if (targetPost) rows = [targetPost, ...rows];
       }
       const page = rows.map((post) => ({ ...post, media_url: publicMediaUrl(post.media_path) }));
       setPosts((current) => append ? [...current, ...page] : page);
-      if (!append) setSocialByPost({});
+      if (!append) {
+        setSocialByPost({});
+        setShowingCachedPosts(false);
+        writeCachedFeed(feedCacheKey, page);
+      }
       if (page.length) {
-        const { data: socialRows } = await supabase.rpc('get_campus_community_post_social_state', { p_post_ids: page.slice(0, 12).map((post) => post.id) });
-        if (requestId === requestRef.current && socialRows) {
-          setSocialByPost((current) => ({ ...current, ...Object.fromEntries((socialRows as (CommunitySocialState & { post_id: string })[]).map((item) => [item.post_id, {
-            like_count: Number(item.like_count) || 0, comment_count: Number(item.comment_count) || 0,
-            liked_by_me: Boolean(item.liked_by_me), bookmarked_by_me: Boolean(item.bookmarked_by_me), following_author: Boolean(item.following_author),
-          }])) }));
-        }
+        // Social counts are secondary: don't hold the actual feed hostage to this request on slow networks.
+        void Promise.resolve(supabase.rpc('get_campus_community_post_social_state', { p_post_ids: page.slice(0, 12).map((post) => post.id) }))
+          .then(({ data: socialRows, error: socialError }) => {
+            if (socialError || requestId !== requestRef.current || !socialRows) return;
+            setSocialByPost((current) => ({ ...current, ...Object.fromEntries((socialRows as (CommunitySocialState & { post_id: string })[]).map((item) => [item.post_id, {
+              like_count: Number(item.like_count) || 0, comment_count: Number(item.comment_count) || 0,
+              liked_by_me: Boolean(item.liked_by_me), bookmarked_by_me: Boolean(item.bookmarked_by_me), following_author: Boolean(item.following_author),
+            }])) }));
+          })
+          .catch(() => undefined);
       }
       cursorRef.current = page.length ? { created_at: page[page.length - 1].created_at, id: page[page.length - 1].id } : (append ? cursorRef.current : null);
       hasMoreRef.current = page.length === PAGE_SIZE;
@@ -152,7 +214,11 @@ export function CampusCommunityFeed() {
     } catch {
       if (requestId !== requestRef.current) return;
       if (append) setLoadMoreError(true);
-      else { setLoadError(true); setPosts([]); }
+      else {
+        setLoadError(true);
+        const cached = readCachedFeed(feedCacheKey);
+        cursorRef.current = cached?.length ? { created_at: cached[cached.length - 1].created_at, id: cached[cached.length - 1].id } : null;
+      }
     } finally {
       if (requestId === requestRef.current) {
         setLoading(false);
@@ -160,16 +226,22 @@ export function CampusCommunityFeed() {
         setLoadingMore(false);
       }
     }
-  }, [scope]);
+  }, [feedCacheKey, scope]);
 
   useEffect(() => {
-    setPosts([]);
-    setHasMore(false);
-    hasMoreRef.current = false;
+    const cached = readCachedFeed(feedCacheKey);
+    setPosts(cached || []);
+    setShowingCachedPosts(Boolean(cached?.length));
+    const hasCachedPage = Boolean(cached?.length === PAGE_SIZE);
+    setHasMore(hasCachedPage);
+    hasMoreRef.current = hasCachedPage;
+    cursorRef.current = cached?.length ? { created_at: cached[cached.length - 1].created_at, id: cached[cached.length - 1].id } : null;
+    setLoading(!cached?.length);
+    setLoadError(false);
     if (viewportRef.current) viewportRef.current.scrollTop = 0;
     void loadPage(false);
     return () => { requestRef.current += 1; };
-  }, [loadPage, user?.id]);
+  }, [feedCacheKey, loadPage]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -295,18 +367,20 @@ export function CampusCommunityFeed() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#f0f2f5]">
-      <div className="sticky top-0 z-20 flex min-h-14 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-2.5 backdrop-blur sm:px-6">
-        <div className="flex min-w-0 items-center gap-2" role="tablist" aria-label="Campus feed scope">
-          <button type="button" role="tab" aria-selected={scope === 'all'} onClick={() => setScope('all')} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors ${scope === 'all' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>Across Ghana</button>
-          <button type="button" role="tab" aria-selected={scope === 'university'} disabled={!hasUniversity} onClick={() => setScope('university')} title={!hasUniversity ? 'Add your university to your profile first' : undefined} className={`min-h-10 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${scope === 'university' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>My university</button>
+      <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-2 border-b border-border/70 bg-background/95 px-3 py-2 backdrop-blur sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:py-0">
+        <div className="flex min-w-0 items-center gap-1 rounded-full bg-slate-100 p-1 sm:bg-transparent sm:p-0" role="tablist" aria-label="Campus feed scope">
+          <button type="button" role="tab" aria-selected={scope === 'all'} onClick={() => setScope('all')} className={`min-h-10 min-w-0 flex-1 touch-manipulation rounded-full px-3 text-sm font-semibold transition-colors sm:flex-none sm:px-4 ${scope === 'all' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>Across Ghana</button>
+          <button type="button" role="tab" aria-selected={scope === 'university'} disabled={!hasUniversity} onClick={() => setScope('university')} title={!hasUniversity ? 'Add your university to your profile first' : undefined} className={`min-h-10 min-w-0 flex-1 touch-manipulation rounded-full px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 ${scope === 'university' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>My university</button>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <Button type="button" variant="ghost" onClick={() => void loadPage(false)} disabled={loading} aria-label="Refresh campus feed" className="min-h-10 rounded-full px-3 text-muted-foreground">
+        <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:justify-end sm:gap-1.5">
+          <div className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
+          <Button type="button" variant="ghost" onClick={() => void loadPage(false)} disabled={loading} aria-label="Refresh campus feed" className="min-h-10 min-w-10 touch-manipulation rounded-full px-3 text-muted-foreground">
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="sr-only">Refresh feed</span>
           </Button>
           <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
-          {user && <Link href="/community/saved" aria-label="Saved campus posts" className="flex min-h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
-          <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-10 touch-manipulation rounded-full bg-[#079b68] px-3.5 text-sm hover:bg-[#07855b] sm:px-4">
+          {user && <Link href="/community/saved" aria-label="Saved campus posts" className="inline-flex min-h-10 min-w-10 touch-manipulation items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
+          </div>
+          <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-10 touch-manipulation rounded-full bg-[#079b68] px-4 text-sm hover:bg-[#07855b]">
             <Plus className="mr-1 h-4 w-4" /><span className="hidden sm:inline">Create post</span><span className="sm:hidden">Post</span>
           </Button>
         </div>
@@ -324,21 +398,24 @@ export function CampusCommunityFeed() {
         </aside>
 
         <section className="relative min-h-0 bg-[#f0f2f5] lg:border-x lg:border-border/70" aria-label={scope === 'all' ? 'Posts from campuses across Ghana' : 'Posts from your university'}>
-          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain scroll-smooth px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
+          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
             <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
               <div className="border-y bg-white p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</div>
+                  <Avatar className="h-10 w-10 border border-emerald-100">
+                    {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
+                    <AvatarFallback className="bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</AvatarFallback>
+                  </Avatar>
                   <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-[#f0f2f5] px-4 text-left text-sm text-slate-600 transition hover:bg-slate-200">Share a campus moment…</button>
                 </div>
-                <div className="mt-3 border-t pt-3">
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50"><ImagePlus className="h-5 w-5" />Photo or video</button>
+                <div className="mt-3 flex items-center border-t pt-2">
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><ImagePlus className="h-5 w-5 text-emerald-700" />Photo or video</button>
                 </div>
               </div>
-              {loading ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
-                : loadError ? <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-white px-6 text-center"><CircleAlert className="h-9 w-9 text-amber-600" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Your account is safe. Check your connection and try again.</p><Button variant="outline" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
+              {loading && posts.length === 0 ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
+                : loadError && posts.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-white px-6 text-center"><CircleAlert className="h-9 w-9 text-amber-600" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Your account is safe. Check your connection and try again.</p><Button variant="outline" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
                   : posts.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border bg-white px-6 py-10 text-center shadow-sm"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><ImagePlus className="h-7 w-7" /></div><h2 className="mt-4 text-xl font-bold text-slate-900">Your campus community starts here</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">There aren’t any posts in this feed yet. Share a genuine photo or video from campus—no sample posts or made-up activity.</p>{canPost ? <Button onClick={() => setPostOpen(true)} className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Share the first moment</Button> : <Button asChild className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Link href="/signup">Join UniEco Ghana</Link></Button>}<Link href="/universities" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline">Browse universities<ArrowUpRight className="h-4 w-4" /></Link></div>
-                    : <>{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} />)}
+                    : <>{(showingCachedPosts || loadError) && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status"><span>{loadError ? 'Connection unavailable. Showing recent posts saved on this device.' : 'Showing recent posts while we refresh the feed.'}</span>{loadError && <button type="button" onClick={() => void loadPage(false)} className="min-h-9 shrink-0 px-2 font-semibold underline underline-offset-2">Retry</button>}</div>}{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} />)}
                       {loadingMore && <div className="flex min-h-20 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more posts…</div>}
                       {loadMoreError && <div className="rounded-2xl border bg-white p-5 text-center text-sm text-muted-foreground" role="status"><p>Couldn’t load the next posts. The posts already here are safe.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Try again</button></div>}
                       {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground"><p>You’re all caught up.</p><button type="button" onClick={() => void loadPage(false)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Refresh the feed</button></div>}
@@ -398,10 +475,20 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const avatar = getPublicAvatarUrl(post.author_avatar_url);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [videoFailure, setVideoFailure] = useState<'network' | 'decode' | 'unsupported' | 'unknown' | null>(null);
+  const [reducedData, setReducedData] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [fileInfo, setFileInfo] = useState<{ path: string; name: string; size: number } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState(false);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
+    const update = () => setReducedData(Boolean(connection?.saveData || ['slow-2g', '2g', '3g'].includes(connection?.effectiveType || '')));
+    update();
+    connection?.addEventListener?.('change', update);
+    return () => connection?.removeEventListener?.('change', update);
+  }, []);
 
   const downloadAttachment = async () => {
     if (fileLoading) return;
@@ -430,7 +517,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (active) {
+    if (active && !reducedData) {
       video.muted = true;
       void video.play().catch(() => {
         // Autoplay can be blocked by device policy even when the file is healthy.
@@ -439,14 +526,15 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } else {
       video.pause();
     }
-  }, [active]);
+  }, [active, reducedData]);
 
   const retryVideo = () => {
     const video = videoRef.current;
     if (!video) return;
     setVideoState('loading');
+    setVideoFailure(null);
     video.load();
-    if (active) void video.play().catch(() => {
+    if (active && !reducedData) void video.play().catch(() => {
       if (!video.error) setVideoState('ready');
     });
   };
@@ -463,7 +551,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             <span>{friendlyRole(post.author_role)}</span>
             {post.university_name && <><span aria-hidden="true">·</span><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{post.university_name}</span></>}
             <span aria-hidden="true">·</span>
-            <time dateTime={post.created_at}>{new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}</time>
+            <time dateTime={post.created_at} title={new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}>{formatFeedTimestamp(post.created_at)}</time>
           </p>
         </div>
         {post.university_slug && <Link href={`/university/${post.university_slug}`} aria-label={`View ${post.university_name}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-emerald-800"><ArrowUpRight className="h-5 w-5" /></Link>}
@@ -491,19 +579,29 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             muted
             loop
             controls
-            preload={active ? 'metadata' : 'none'}
+            preload={active && !reducedData ? 'metadata' : 'none'}
+            onLoadedMetadata={() => setVideoState('loading')}
             onLoadedData={() => setVideoState('ready')}
             onPlaying={() => setVideoState('ready')}
             onWaiting={() => setVideoState('loading')}
-            onError={() => setVideoState('error')}
+            onError={(event) => {
+              const code = event.currentTarget.error?.code;
+              setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
+              setVideoState('error');
+            }}
             aria-label={`Video shared by ${post.author_name}`}
             className="block max-h-[min(68dvh,44rem)] w-full object-contain"
           />
-          {videoState === 'loading' && <div className="pointer-events-none absolute inset-x-0 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
+          {active && reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto w-fit rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status">Data saver is on · tap play to load this video</div>}
+          {active && !reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
           {videoState === 'error' && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">
             <CircleAlert className="h-8 w-8 text-amber-300" />
-            <p className="mt-3 font-semibold">This video didn’t play</p>
-            <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">The file may use a format or codec this browser can’t decode. MP4 with H.264 is the most widely supported option.</p>
+            <p className="mt-3 font-semibold">We couldn’t play this video</p>
+            <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">{videoFailure === 'network'
+              ? 'The video stream was interrupted by the connection. Try again when the signal is steadier; the rest of the feed remains available.'
+              : videoFailure === 'decode' || videoFailure === 'unsupported'
+                ? 'This phone cannot decode this video’s format. The person who posted it will need to re-export and upload an MP4 using H.264 video and AAC audio. UniEco cannot convert a video that is already uploaded.'
+                : 'The video could not be opened. Try again, or open the original file. If it still fails on this phone, ask the person who posted it to upload an MP4 using H.264 video and AAC audio.'}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
               {post.media_url && <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>}

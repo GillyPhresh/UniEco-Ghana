@@ -51,26 +51,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadProfileData = useCallback(async (uid: string) => {
-    const { data: prof } = await supabase
-      .from('profiles')
-      .select('*, university:universities(id, name, short_name, slug)')
-      .eq('id', uid)
-      .maybeSingle();
-    setProfile(prof as Profile | null);
-
-    const { data: sp } = await supabase
-      .from('student_profiles')
-      .select('*')
-      .eq('user_id', uid)
-      .maybeSingle();
-    setStudentProfile(sp as StudentProfile | null);
-
-    const { data: vp } = await supabase
-      .from('vendor_profiles')
-      .select('*')
-      .eq('profile_id', uid)
-      .maybeSingle();
-    setVendorProfile(vp as VendorProfile | null);
+    const [profileResult, studentResult, vendorResult] = await Promise.all([
+      supabase.from('profiles')
+        .select('*, university:universities(id, name, short_name, slug)')
+        .eq('id', uid)
+        .maybeSingle(),
+      supabase.from('student_profiles')
+        .select('*')
+        .eq('user_id', uid)
+        .maybeSingle(),
+      supabase.from('vendor_profiles')
+        .select('*')
+        .eq('profile_id', uid)
+        .maybeSingle(),
+    ]);
+    setProfile(profileResult.data as Profile | null);
+    setStudentProfile(studentResult.data as StudentProfile | null);
+    setVendorProfile(vendorResult.data as VendorProfile | null);
   }, []);
 
   useEffect(() => {
