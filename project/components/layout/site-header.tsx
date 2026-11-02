@@ -8,6 +8,7 @@ import {
   Briefcase,
   CalendarDays,
   Compass,
+  GraduationCap,
   Heart,
   Home,
   LayoutDashboard,
@@ -183,7 +184,19 @@ export function SiteHeader() {
                     <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} aria-label="Search UniEco Ghana" placeholder="Search UniEco Ghana" className="h-11 w-full rounded-lg border border-border bg-muted/50 pl-9 pr-3 text-sm outline-none focus:border-primary/40 focus:ring-2 focus:ring-primary/10" />
                   </form>
                 </div>
-                <nav className="flex flex-col gap-1 p-4" aria-label="Mobile primary">
+                <div className="border-b border-border px-4 py-3">
+                  <SheetClose asChild>
+                    <Link href="/university-admin/apply" className="flex min-h-16 items-center justify-between gap-3 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-foreground transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                      <span className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><GraduationCap className="h-5 w-5" /></span>
+                        <span className="min-w-0"><span className="block text-sm font-semibold">University Administrator Programme</span><span className="mt-0.5 block text-xs text-muted-foreground">Apply for a role on your campus</span></span>
+                      </span>
+                      <span className="shrink-0 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground">Apply</span>
+                    </Link>
+                  </SheetClose>
+                </div>
+                <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4" aria-label="Mobile primary">
+                  <div className="flex flex-col gap-1">
                   <AnimatePresence>
                     {networkLinks.map(({ href, label, icon: Icon }, index) => (
                       <motion.div key={href} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.04 }}>
@@ -191,6 +204,7 @@ export function SiteHeader() {
                       </motion.div>
                     ))}
                   </AnimatePresence>
+                  </div>
                 </nav>
                 {user && (
                   <nav className="flex flex-col gap-1 border-t border-border px-4 py-4" aria-label="Account">

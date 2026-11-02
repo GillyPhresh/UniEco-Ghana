@@ -100,6 +100,26 @@ test('university admin application prevents availability constraint errors and h
   assert.doesNotMatch(apply, /setError\(submitError\.message\)/);
 });
 
+test('university admin applications accept ordinary Ghana phone numbers and survive notification outages', async () => {
+  const migration = await read('supabase/migrations/20261102130000_0178_fix_university_admin_application_submission.sql');
+  const apply = await read('app/university-admin/apply/page.tsx');
+  assert.match(migration, /DROP CONSTRAINT IF EXISTS university_admin_applications_phone_check/);
+  assert.match(migration, /phone ~ '\^\[\+\]\?\[0-9 \(\)-\]\{7,20\}\$'/);
+  assert.match(migration, /regexp_replace\(phone, '\[\^0-9\]', '', 'g'\)\) BETWEEN 7 AND 15/);
+  assert.match(migration, /\) NOT VALID;/);
+  assert.match(migration, /EXCEPTION WHEN OTHERS THEN[\s\S]*RAISE WARNING 'University administrator application notification was not queued/);
+  assert.match(apply, /submitError\.code === '23514'/);
+  assert.match(apply, /application\.university_id === opening\.university_id[\s\S]*'under_review'[\s\S]*already on file/);
+  assert.doesNotMatch(apply, /setError\(openingError\.message\)/);
+});
+
+test('mobile navigation exposes a prominent university administrator application entry', async () => {
+  const header = await read('components/layout/site-header.tsx');
+  assert.match(header, /aria-label="Mobile primary"/);
+  assert.match(header, /href="\/university-admin\/apply"[\s\S]*University Administrator Programme[\s\S]*Apply for a role on your campus[\s\S]*>Apply</);
+  assert.match(header, /min-h-16[\s\S]*GraduationCap/);
+});
+
 test('university administrators cannot open the super-admin application review queue', async () => {
   const layout = await read('components/admin/admin-layout.tsx');
   assert.match(layout, /pathname === '\/admin\/university-admin'/);

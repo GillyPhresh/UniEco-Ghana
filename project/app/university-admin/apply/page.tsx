@@ -61,14 +61,14 @@ function ApplyContent() {
         supabase.rpc('get_my_university_admin_applications'),
       ]);
       if (!active) return;
-      if (openingsResult.error) setError(openingsResult.error.message);
+      if (openingsResult.error) setError('We could not load the open campus opportunities just now. Please refresh and try again.');
       else setOpenings((openingsResult.data || []) as Opening[]);
       if (!applicationsResult.error) setApplications((applicationsResult.data || []) as Application[]);
       setSelectedUniversityId(universityId);
       if (universityId) {
         const { data, error: openingError } = await supabase.rpc('get_university_admin_application_form', { p_university_id: universityId });
         if (!active) return;
-        if (openingError) setError(openingError.message);
+        if (openingError) setError('We could not load this campus application form. Please go back, choose an open campus, and try again.');
         else setOpening(data as Opening);
       } else {
         setOpening(null);
@@ -86,7 +86,7 @@ function ApplyContent() {
     if (!id) return;
     setLoading(true);
     const { data, error: openingError } = await supabase.rpc('get_university_admin_application_form', { p_university_id: id });
-    if (openingError) setError(openingError.message);
+    if (openingError) setError('We could not load this campus application form. Please choose an open campus and try again.');
     else setOpening(data as Opening);
     setLoading(false);
   }
@@ -124,7 +124,22 @@ function ApplyContent() {
       if (submitError.code === '23514' && submitError.message.includes('university_admin_applications_availability_check')) {
         setError('Availability details must be 120 characters or fewer. Your answers are still here; shorten this answer and try again.');
       } else if (submitError.code === '23505') {
-        setError('An application for this campus is already on your account. Check the applications listed above.');
+        // A network timeout can hide a successful insert from the browser. Reload
+        // the user's own applications before asking them to submit again.
+        const { data: savedApplications } = await supabase.rpc('get_my_university_admin_applications');
+        const existing = ((savedApplications || []) as Application[]).find((item) => item.university_id === opening.university_id);
+        if (existing) {
+          setApplications((current) => [existing, ...current.filter((item) => item.application_id !== existing.application_id)]);
+          setError('Your application has already been received. Its current status is shown below.');
+        } else {
+          setError('An application for this campus is already on your account. Check the applications listed above.');
+        }
+      } else if (submitError.code === '42501') {
+        setError('This application is only available to an active student account applying to its own university. Check your account and campus, then try again.');
+      } else if (submitError.code === '22023') {
+        setError('Please check the required fields and confirm the programme terms before submitting again.');
+      } else if (submitError.code === '23514') {
+        setError('One of the details does not meet the form requirements. Check your phone number, availability, experience, and motivation, then try again. Your answers are still here.');
       } else {
         setError('We couldn’t submit your application just now. Your answers are still here; please try again.');
       }
@@ -151,20 +166,20 @@ function ApplyContent() {
         {opening && <>
           <Card className="border-primary/20 bg-primary/5"><CardContent className="flex items-start gap-3 p-4"><GraduationCap className="mt-0.5 h-5 w-5 shrink-0 text-primary" /><div><p className="font-semibold">{opening.title}</p><p className="mt-1 text-sm text-muted-foreground">{opening.description}</p>{opening.closes_at && <p className="mt-2 text-xs text-muted-foreground">Applications close {new Date(opening.closes_at).toLocaleString('en-GH')}</p>}</div></CardContent></Card>
           {applications.length > 0 && <Card><CardHeader><CardTitle className="text-base">Your applications</CardTitle></CardHeader><CardContent className="space-y-3">{applications.map((application) => <div key={application.application_id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 text-sm"><div><p className="font-semibold">{application.application_reference}</p><p className="text-xs text-muted-foreground">{new Date(application.submitted_at).toLocaleDateString('en-GH')}</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold capitalize text-primary">{application.status.replace('_', ' ')}</span></div>)}</CardContent></Card>}
-          <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><FileText className="h-5 w-5 text-primary" />Tell us about yourself</CardTitle><p className="text-sm text-muted-foreground">Use truthful information. We use it only for reviewing this opportunity.</p></CardHeader><CardContent className="space-y-4">
+          {applications.some((application) => application.university_id === opening.university_id && ['pending', 'under_review', 'approved'].includes(application.status)) ? <Card><CardContent className="p-5 text-sm"><p className="font-semibold">Your application for this campus is already on file.</p><p className="mt-1 text-muted-foreground">Its reference and review status are shown above. You don’t need to submit it again.</p></CardContent></Card> : <Card><CardHeader><CardTitle className="flex items-center gap-2 text-lg"><FileText className="h-5 w-5 text-primary" />Tell us about yourself</CardTitle><p className="text-sm text-muted-foreground">Use truthful information. We use it only for reviewing this opportunity.</p></CardHeader><CardContent className="space-y-4">
             {error && <div className="flex gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"><AlertCircle className="h-4 w-4 shrink-0" />{error}</div>}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label htmlFor="ua-phone">Phone number *</Label><Input id="ua-phone" inputMode="tel" value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="024..." /></div>
-              <div className="space-y-1.5"><Label htmlFor="ua-student-id">Student ID / index number *</Label><Input id="ua-student-id" value={form.studentId} onChange={(event) => update('studentId', event.target.value)} /></div>
-              <div className="space-y-1.5"><Label htmlFor="ua-programme">Programme *</Label><Input id="ua-programme" value={form.programme} onChange={(event) => update('programme', event.target.value)} placeholder="Your course of study" /></div>
-              <div className="space-y-1.5"><Label htmlFor="ua-level">Level / year *</Label><Input id="ua-level" value={form.level} onChange={(event) => update('level', event.target.value)} placeholder="e.g. Level 300" /></div>
+              <div className="space-y-1.5"><Label htmlFor="ua-phone">Phone number *</Label><Input id="ua-phone" inputMode="tel" autoComplete="tel" maxLength={20} value={form.phone} onChange={(event) => update('phone', event.target.value)} placeholder="024..." /></div>
+              <div className="space-y-1.5"><Label htmlFor="ua-student-id">Student ID / index number *</Label><Input id="ua-student-id" maxLength={80} value={form.studentId} onChange={(event) => update('studentId', event.target.value)} /></div>
+              <div className="space-y-1.5"><Label htmlFor="ua-programme">Programme *</Label><Input id="ua-programme" maxLength={160} value={form.programme} onChange={(event) => update('programme', event.target.value)} placeholder="Your course of study" /></div>
+              <div className="space-y-1.5"><Label htmlFor="ua-level">Level / year *</Label><Input id="ua-level" maxLength={40} value={form.level} onChange={(event) => update('level', event.target.value)} placeholder="e.g. Level 300" /></div>
             </div>
             <div className="space-y-1.5"><Label htmlFor="ua-availability">Availability *</Label><Textarea id="ua-availability" rows={3} maxLength={120} aria-describedby="ua-availability-help" value={form.availability} onChange={(event) => update('availability', event.target.value)} placeholder="e.g. Weekdays after 3 pm and Saturday mornings on campus." /><p id="ua-availability-help" className="text-xs text-muted-foreground">Briefly note when you can help (10–120 characters). {form.availability.length}/120</p></div>
-            <div className="space-y-1.5"><Label htmlFor="ua-experience">Relevant experience *</Label><Textarea id="ua-experience" rows={4} value={form.experience} onChange={(event) => update('experience', event.target.value)} placeholder="Describe outreach, leadership, customer service, campus or digital experience." /></div>
-            <div className="space-y-1.5"><Label htmlFor="ua-cover">Why should we select you? *</Label><Textarea id="ua-cover" rows={5} value={form.coverNote} onChange={(event) => update('coverNote', event.target.value)} placeholder="Write a short, clear motivation." /></div>
+            <div className="space-y-1.5"><Label htmlFor="ua-experience">Relevant experience *</Label><Textarea id="ua-experience" rows={4} maxLength={3000} value={form.experience} onChange={(event) => update('experience', event.target.value)} placeholder="Describe outreach, leadership, customer service, campus or digital experience." /><p className="text-xs text-muted-foreground">{form.experience.length}/3000</p></div>
+            <div className="space-y-1.5"><Label htmlFor="ua-cover">Why should we select you? *</Label><Textarea id="ua-cover" rows={5} maxLength={3000} value={form.coverNote} onChange={(event) => update('coverNote', event.target.value)} placeholder="Write a short, clear motivation." /><p className="text-xs text-muted-foreground">{form.coverNote.length}/3000</p></div>
             <label className="flex items-start gap-3 rounded-xl border p-3 text-sm"><input type="checkbox" className="mt-1 h-4 w-4 accent-primary" checked={form.terms} onChange={(event) => update('terms', event.target.checked)} /><span>I agree to protect user privacy, never request passwords or payment PINs, never charge unofficial fees, and follow UniEco Ghana’s administrator duties and code of conduct.</span></label>
             <Button className="min-h-11 w-full sm:w-auto" onClick={() => void submit()} disabled={submitting}>{submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}{submitting ? 'Submitting…' : 'Submit application'}</Button>
-          </CardContent></Card>
+          </CardContent></Card>}
         </>}
         <p className="text-center text-xs text-muted-foreground">Already appointed? <Link href="/admin/university-admin" className="font-semibold text-primary hover:underline">Open your administrator workspace</Link></p>
       </div>
