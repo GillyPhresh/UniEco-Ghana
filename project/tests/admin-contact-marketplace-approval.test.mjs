@@ -40,6 +40,16 @@ test('marketplace landing queries surface real query failures instead of empty r
   assert.doesNotMatch(cartItems, /const \{ data, error \}/);
 });
 
+test('product card keeps navigation and add-to-cart actions as separate mobile-safe controls', () => {
+  const card = read('components/marketplace/product-card.tsx');
+  assert.match(card, /<Card[\s\S]*?<Link href=\{`\/marketplace\/product\/\$\{product\.id\}`\}/);
+  assert.match(card, /min-h-11 min-w-11 touch-manipulation/);
+  assert.match(card, /disabled=\{adding \|\| product\.stock === 0\}/);
+  assert.match(card, /finally \{\s*setAdding\(false\)/);
+  const productLink = card.slice(card.indexOf('<Link href={`\/marketplace\/product/'), card.indexOf('</Link>', card.indexOf('<Link href={`\/marketplace\/product/')));
+  assert.doesNotMatch(productLink, /<Button/);
+});
+
 test('appointment approval UI reports queued delivery, not completed delivery', () => {
   const page = read('app/admin/university-administrators/page.tsx');
   assert.match(page, /appointment email and official letters have been queued for delivery/i);

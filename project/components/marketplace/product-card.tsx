@@ -9,6 +9,7 @@ import { ShoppingCart, Heart, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { addToCart } from '@/lib/data/marketplace-client';
 import { toast } from 'sonner';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product & {
@@ -18,6 +19,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth();
+  const [adding, setAdding] = useState(false);
   const image = product.image_url || (product.images && product.images[0]) || null;
   const displayPrice = product.discount_price ?? product.price;
   const hasDiscount = product.discount_price !== null && product.discount_price < product.price;
@@ -26,13 +28,22 @@ export function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
     if (!user) { toast.error('Please sign in to add items to your cart'); return; }
-    const { error } = await addToCart(product.id);
-    if (error) { toast.error(error); } else { toast.success('Added to cart'); }
+    if (adding || product.stock <= 0) return;
+    setAdding(true);
+    try {
+      const { error } = await addToCart(product.id);
+      if (error) toast.error(error);
+      else toast.success('Added to cart');
+    } catch {
+      toast.error('Could not add this item. Check your connection and try again.');
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
-    <Link href={`/marketplace/product/${product.id}`}>
-      <Card className="group h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
+    <Card className="group h-full overflow-hidden transition-colors duration-200 hover:border-primary/30 hover:shadow-md">
+      <Link href={`/marketplace/product/${product.id}`} className="block rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary" aria-label={`View ${product.name}`}>
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
             <img src={image} alt={product.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
@@ -52,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </Badge>
           )}
         </div>
-        <div className="p-4">
+        <div className="px-4 pt-4">
           <p className="truncate text-sm font-semibold text-foreground">{product.name}</p>
           {product.vendor && (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">{product.vendor.business_name}</p>
@@ -63,23 +74,26 @@ export function ProductCard({ product }: ProductCardProps) {
               <span className="text-xs text-muted-foreground line-through">GH₵{product.price}</span>
             )}
           </div>
-          <div className="mt-2 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-            </span>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 text-primary"
-              onClick={handleAddToCart}
-              disabled={product.stock === 0}
-            >
-              <ShoppingCart className="h-3.5 w-3.5" />
-            </Button>
-          </div>
         </div>
-      </Card>
-    </Link>
+      </Link>
+      <div className="flex min-h-[60px] items-center justify-between gap-2 px-4 pb-3 pt-1">
+        <span className="text-xs text-muted-foreground" aria-live="polite">
+          {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+        </span>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="min-h-11 min-w-11 touch-manipulation rounded-full px-3 text-primary hover:bg-primary/10"
+          onClick={handleAddToCart}
+          disabled={adding || product.stock === 0}
+          aria-label={adding ? `Adding ${product.name} to cart` : `Add ${product.name} to cart`}
+        >
+          <ShoppingCart className="h-4 w-4" aria-hidden="true" />
+          <span className="ml-2 text-xs font-semibold">{adding ? 'Adding…' : 'Add'}</span>
+        </Button>
+      </div>
+    </Card>
   );
 }
 
