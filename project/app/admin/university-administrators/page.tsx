@@ -55,7 +55,7 @@ function Content() {
     const { error } = await supabase.rpc('review_university_admin_application', { p_application_id: selected.application_id, p_decision: decision, p_reviewer_note: reviewerNote.trim() || null, p_job_title: jobTitle.trim() || 'University Administrator' });
     setWorking(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(decision === 'approve' ? 'Application approved and appointment issued.' : decision === 'reject' ? 'Application rejected.' : 'Application moved to review.');
+    toast.success(decision === 'approve' ? 'Application approved. Appointment email and official letters have been queued for delivery.' : decision === 'reject' ? 'Application rejected.' : 'Application moved to review.');
     setSelected(null); setReviewerNote(''); await load();
   }
 

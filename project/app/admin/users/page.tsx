@@ -42,6 +42,7 @@ function UsersContent() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<AdminUserDirectoryItem[]>([]);
   const [total, setTotal] = useState(0);
+  const [contactDetailsAvailable, setContactDetailsAvailable] = useState(true);
   const [page, setPage] = useState(0);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -61,8 +62,10 @@ function UsersContent() {
       const result = await getAdminUsers({ search: search || undefined, role: roleFilter !== 'all' ? Number(roleFilter) : undefined, status: statusFilter, limit: pageSize, offset: page * pageSize });
       setUsers(result.users);
       setTotal(result.total);
+      setContactDetailsAvailable(result.contactDetailsAvailable);
     } catch (loadError) {
       setUsers([]); setTotal(0);
+      setContactDetailsAvailable(false);
       setError(loadError instanceof Error ? loadError.message : 'Unable to load user directory. Please try again.');
     } finally { setLoading(false); }
   }, [page, roleFilter, search, statusFilter]);
@@ -115,6 +118,10 @@ function UsersContent() {
         {isSuperAdmin && <Button asChild variant="outline"><Link href="/admin/universities"><UserPlus className="mr-2 h-4 w-4" /> Invite institution administrator</Link></Button>}
       </div>
 
+      {isSuperAdmin && !contactDetailsAvailable && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status">
+        Phone contacts are not available yet. Apply the user-contact database migration to enable this super-admin-only view.
+      </div>}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
@@ -161,6 +168,7 @@ function UsersContent() {
                       <div className="min-w-0">
                         <h2 className="break-words font-semibold text-foreground">{u.full_name || 'Name unavailable'}</h2>
                         <a className="mt-1 block break-all text-sm text-muted-foreground underline-offset-2 hover:underline" href={`mailto:${u.email}`}>{u.email}</a>
+                        {isSuperAdmin && u.phone && <a className="mt-1 inline-flex min-h-11 items-center text-sm font-medium text-emerald-800 underline-offset-2 hover:underline" href={`tel:${encodeURIComponent(u.phone)}`}>Call {u.phone}</a>}
                       </div>
                       <Badge variant="outline" className="shrink-0 capitalize">{roleName.replaceAll('_', ' ')}</Badge>
                     </div>
@@ -182,11 +190,12 @@ function UsersContent() {
               })}
             </div>
             <div className="hidden w-full overflow-x-auto lg:block">
-            <Table className="min-w-[48rem]">
+            <Table className="min-w-[58rem]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  {isSuperAdmin && <TableHead>Phone</TableHead>}
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>University</TableHead>
@@ -199,6 +208,7 @@ function UsersContent() {
                   <TableRow key={u.id}>
                     <TableCell className="font-medium">{u.full_name || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                    {isSuperAdmin && <TableCell className="text-sm text-muted-foreground">{u.phone ? <a className="underline-offset-2 hover:underline" href={`tel:${encodeURIComponent(u.phone)}`}>{u.phone}</a> : '—'}</TableCell>}
                     <TableCell><Badge variant="outline">{(u.role as { name?: string })?.name || 'student'}</Badge></TableCell>
                     <TableCell>
                       <Badge className={accountStatusClass(u.status)}>
@@ -238,6 +248,7 @@ function UsersContent() {
               <div>
                 <p className="text-sm font-semibold text-foreground">{selectedUser.full_name || 'No name'}</p>
                 <p className="text-xs text-muted-foreground">{selectedUser.email}</p>
+                {isSuperAdmin && <p className="mt-1 text-sm">{selectedUser.phone ? <a className="inline-flex min-h-11 items-center font-medium text-emerald-800 underline-offset-2 hover:underline" href={`tel:${encodeURIComponent(selectedUser.phone)}`}>Call {selectedUser.phone}</a> : <span className="text-muted-foreground">No phone number on file</span>}</p>}
                 <div className="mt-2 flex gap-2">
                   <Badge variant="outline">{(selectedUser.role as { name?: string })?.name || 'student'}</Badge>
                   <Badge className={accountStatusClass(selectedUser.status)}>{formatAccountStatus(selectedUser.status)}</Badge>

@@ -215,7 +215,7 @@ export function calculateCartSummary(
 // ============================================================
 
 export async function getTrendingProducts(limit = 8): Promise<(Product & { vendor?: { business_name: string; business_slug: string; logo_url: string | null } })[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select(`
       *,
@@ -229,9 +229,9 @@ export async function getTrendingProducts(limit = 8): Promise<(Product & { vendo
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (!data) return [];
+  if (error) throw new Error('Unable to load trending products. Please try again.');
 
-  return data.map((p: Record<string, unknown>) => {
+  return (data ?? []).map((p: Record<string, unknown>) => {
     const business = p.business as Record<string, unknown> | null;
     const vendorArr = business?.vendor as Record<string, unknown>[] | null;
     const vendor = vendorArr?.[0];
@@ -240,7 +240,7 @@ export async function getTrendingProducts(limit = 8): Promise<(Product & { vendo
 }
 
 export async function getFeaturedServices(limit = 6): Promise<(Service & { vendor?: { business_name: string; business_slug: string; logo_url: string | null } })[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('services')
     .select(`
       *,
@@ -253,9 +253,9 @@ export async function getFeaturedServices(limit = 6): Promise<(Service & { vendo
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (!data) return [];
+  if (error) throw new Error('Unable to load featured services. Please try again.');
 
-  return data.map((s: Record<string, unknown>) => {
+  return (data ?? []).map((s: Record<string, unknown>) => {
     const business = s.business as Record<string, unknown> | null;
     const vendorArr = business?.vendor as Record<string, unknown>[] | null;
     const vendor = vendorArr?.[0];
@@ -264,7 +264,7 @@ export async function getFeaturedServices(limit = 6): Promise<(Service & { vendo
 }
 
 export async function getDealsAndPromotions(limit = 8): Promise<(Product & { vendor?: { business_name: string; business_slug: string } })[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select(`
       *,
@@ -279,9 +279,9 @@ export async function getDealsAndPromotions(limit = 8): Promise<(Product & { ven
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (!data) return [];
+  if (error) throw new Error('Unable to load current deals. Please try again.');
 
-  return data.map((p: Record<string, unknown>) => {
+  return (data ?? []).map((p: Record<string, unknown>) => {
     const business = p.business as Record<string, unknown> | null;
     const vendorArr = business?.vendor as Record<string, unknown>[] | null;
     const vendor = vendorArr?.[0];
@@ -290,7 +290,7 @@ export async function getDealsAndPromotions(limit = 8): Promise<(Product & { ven
 }
 
 export async function getRecentlyAddedProducts(limit = 8): Promise<(Product & { vendor?: { business_name: string; business_slug: string } })[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
     .select(`
       *,
@@ -304,9 +304,9 @@ export async function getRecentlyAddedProducts(limit = 8): Promise<(Product & { 
     .order('created_at', { ascending: false })
     .limit(limit);
 
-  if (!data) return [];
+  if (error) throw new Error('Unable to load recently added products. Please try again.');
 
-  return data.map((p: Record<string, unknown>) => {
+  return (data ?? []).map((p: Record<string, unknown>) => {
     const business = p.business as Record<string, unknown> | null;
     const vendorArr = business?.vendor as Record<string, unknown>[] | null;
     const vendor = vendorArr?.[0];

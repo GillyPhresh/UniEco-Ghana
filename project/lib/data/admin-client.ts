@@ -64,7 +64,7 @@ export async function getAdminUsers(params: {
   status?: string;
   limit?: number;
   offset?: number;
-}): Promise<{ users: AdminUserDirectoryItem[]; total: number }> {
+}): Promise<{ users: AdminUserDirectoryItem[]; total: number; contactDetailsAvailable: boolean }> {
   const { data, error } = await supabase.rpc('get_admin_user_directory', {
     p_search: params.search?.trim().length && params.search.trim().length >= 3 ? params.search.trim() : null,
     p_role_id: params.role || null,
@@ -77,13 +77,31 @@ export async function getAdminUsers(params: {
     id: string; full_name: string | null; email: string; role_id: number; role_name: string;
     status: string; is_active: boolean; university_name: string | null; created_at: string; total_count: number;
   }>;
+  let contactDetailsAvailable = true;
+  const userIds = rows.map((row) => row.id);
+  const contactsById = new Map<string, string | null>();
+  if (userIds.length) {
+    const { data: contactRows, error: contactError } = await supabase.rpc('get_admin_user_contact_details', { p_user_ids: userIds });
+    if (contactError) {
+      // Keep the directory usable during a staged rollout; phone data remains
+      // unavailable until the narrowly-scoped contact RPC migration is live.
+      if (contactError.code === 'PGRST202' || contactError.code === '42883') contactDetailsAvailable = false;
+      else throw new Error('Unable to load authorized contact details');
+    } else {
+      for (const contact of (contactRows || []) as Array<{ user_id: string; phone: string | null }>) {
+        contactsById.set(contact.user_id, contact.phone);
+      }
+    }
+  }
   return {
     users: rows.map((row) => ({
       id: row.id, full_name: row.full_name, email: row.email, role_id: Number(row.role_id),
       status: row.status, is_active: row.is_active, created_at: row.created_at,
+      phone: contactsById.get(row.id) ?? null,
       role: { name: row.role_name }, university: row.university_name ? { name: row.university_name } : null,
     })),
     total: rows[0]?.total_count || 0,
+    contactDetailsAvailable,
   };
 }
 

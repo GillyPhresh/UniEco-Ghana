@@ -87,6 +87,7 @@ export interface AdminUserDirectoryItem {
   id: string;
   full_name: string | null;
   email: string;
+  phone?: string | null;
   role_id: number;
   status: string;
   is_active: boolean;
