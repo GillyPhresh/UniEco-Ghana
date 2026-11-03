@@ -13,7 +13,7 @@ test('referral dashboard supports direct growth sharing', () => {
   assert.match(page, /Your referral code/);
   assert.match(page, /wa\.me/);
   assert.match(page, /Your UniEco impact is growing/);
-  assert.match(page, /There is no limit to the number of genuine students/);
+  assert.match(page, /Available rewards are tracked separately from payouts already made/);
 });
 
 test('referral delivery repairs paid accounts and retries email safely', () => {

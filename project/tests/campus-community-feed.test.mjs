@@ -118,7 +118,7 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.match(actions, /set_campus_community_post_bookmark/);
   assert.match(actions, /set_campus_community_follow/);
   assert.match(actions, /navigator\.share\(shareData\)/);
-  assert.match(actions, /navigator\.clipboard\.writeText\(shareData\.url\)/);
+  assert.match(actions, /copyTextToClipboard\(shareData\.url\)/);
   assert.match(actions, /searchParams\.set\('post', postId\)/);
   assert.match(actions, /aria-label="Share post"/);
   assert.match(actions, /role="group" aria-label="Post actions"/);
@@ -127,6 +127,44 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.match(actions, /aria-pressed=\{state\.bookmarked_by_me\}/);
   assert.match(actions, /\['student', 'student_vendor', 'external_vendor'\]/);
   assert.doesNotMatch(actions, /\.from\(['"]campus_community_(post_likes|post_bookmarks|follows|comments)['"]\)/);
+});
+
+test('post deletion is owner-only, audited, and removes only that post’s stored objects', async () => {
+  const migration = await read('supabase/migrations/20261103100000_0179_owner_safe_community_post_delete.sql');
+  const actions = await read('components/feed/community-post-actions.tsx');
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  assert.match(migration, /SECURITY DEFINER/);
+  assert.match(migration, /post\.author_id = v_actor_id/);
+  assert.match(migration, /FOR UPDATE/);
+  assert.match(migration, /SET status = 'removed', removed_at/);
+  assert.match(migration, /bucket_id = 'campus-community'/);
+  assert.match(migration, /bucket_id = 'campus-community-files'/);
+  assert.match(migration, /community_post_deleted_by_owner/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.delete_my_campus_community_post\(uuid\) FROM PUBLIC, anon, authenticated/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.delete_my_campus_community_post\(uuid\) TO authenticated/);
+  assert.match(actions, /user\?\.id === authorId/);
+  assert.match(actions, /delete_my_campus_community_post/);
+  assert.match(actions, /permanently deletes its attached media or files/);
+  assert.match(feed, /onDelete=\{\(\) =>/);
+  assert.match(feed, /writeCachedFeed\(feedCacheKey, remaining\)/);
+});
+
+test('mobile header keeps message and notification controls visible with fixed touch targets', async () => {
+  const header = await read('components/layout/site-header.tsx');
+  assert.match(header, /href="\/dashboard\/messages" label="Messages"/);
+  assert.match(header, /href="\/dashboard\/notifications" label="Notifications"/);
+  assert.match(header, /min-h-11 min-w-11 shrink-0 touch-manipulation/);
+});
+
+test('referral dashboards distinguish available rewards from paid-out rewards', async () => {
+  const student = await read('app/dashboard/referrals/page.tsx');
+  const vendor = await read('app/vendor-dashboard/referrals/page.tsx');
+  assert.match(student, /label="Available rewards" value=\{money\(summary\.available_amount\)\}/);
+  assert.match(student, /label="Paid out" value=\{money\(summary\.paid_amount\)\}/);
+  assert.match(vendor, /label="Available rewards" value=\{money\(summary\.available_amount\)\}/);
+  assert.match(vendor, /label="Paid out" value=\{money\(summary\.paid_amount\)\}/);
+  assert.doesNotMatch(student, /Rewards settled/);
+  assert.doesNotMatch(vendor, /Rewards settled/);
 });
 
 test('attachment download is a quiet, labelled, mobile-size-safe action', async () => {

@@ -8,6 +8,7 @@ import {
   Briefcase,
   CalendarDays,
   Compass,
+  Gift,
   GraduationCap,
   Heart,
   Home,
@@ -41,7 +42,7 @@ import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/layout/logo';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
-import { ROLE_LABELS, isVendor } from '@/lib/auth/permissions';
+import { ROLE_LABELS, isStudent, isVendor } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
 import { getUnreadNotificationCount } from '@/lib/data/student-client';
 
@@ -94,7 +95,7 @@ export function SiteHeader() {
 
   return (
     <header className={`sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-xl transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:gap-3 sm:px-6">
         <Logo />
 
         <form onSubmit={submitSearch} className="relative hidden min-w-0 flex-1 md:flex md:max-w-[20rem] lg:max-w-[24rem]">
@@ -117,13 +118,13 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-1.5">
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : user ? (
             <>
-              <Link href="/search" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-primary md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
-              <div className="hidden items-center gap-1 sm:flex">
+              <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-primary md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
+              <div className="flex items-center gap-0 sm:gap-1">
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
                 <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unreadNotifs} />
               </div>
@@ -135,7 +136,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-muted" aria-label="Open account menu">
-                    <Avatar className="h-9 w-9 border border-primary/20">
+                    <Avatar className="h-8 w-8 border border-primary/20 sm:h-9 sm:w-9">
                       <AvatarImage src={getPublicAvatarUrl(user.profile?.avatar_url)} alt={user.profile?.full_name || ''} />
                       <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
                     </Avatar>
@@ -159,6 +160,8 @@ export function SiteHeader() {
                   <DropdownMenuItem onClick={() => router.push('/orders')}><Package className="mr-2 h-4 w-4" />My orders</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/wishlist')}><Heart className="mr-2 h-4 w-4" />Saved items</DropdownMenuItem>
                   {isVendor(user.role) && <DropdownMenuItem onClick={() => router.push('/vendor-dashboard')}><Briefcase className="mr-2 h-4 w-4" />Vendor dashboard</DropdownMenuItem>}
+                  {isVendor(user.role) && <DropdownMenuItem onClick={() => router.push('/vendor-dashboard/referrals')}><Gift className="mr-2 h-4 w-4" />Referrals &amp; rewards</DropdownMenuItem>}
+                  {!isVendor(user.role) && isStudent(user.role) && <DropdownMenuItem onClick={() => router.push('/dashboard/referrals')}><Gift className="mr-2 h-4 w-4" />Referrals &amp; rewards</DropdownMenuItem>}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -213,6 +216,8 @@ export function SiteHeader() {
                     <SheetClose asChild><Link href="/campus-mate" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><MapPinned className="h-5 w-5" />Campus Mate</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/messages" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><MessageSquare className="h-5 w-5 text-primary" />Messages</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/notifications" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Bell className="h-5 w-5 text-primary" />Notifications</Link></SheetClose>
+                    {isVendor(user.role) && <SheetClose asChild><Link href="/vendor-dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
+                    {!isVendor(user.role) && isStudent(user.role) && <SheetClose asChild><Link href="/dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
                     <SheetClose asChild><Link href="/start-business" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Store className="h-5 w-5 text-primary" />Start a business</Link></SheetClose>
                   </nav>
                 )}
@@ -231,7 +236,7 @@ export function SiteHeader() {
 
 function HeaderIconLink({ href, label, icon: Icon, count = 0 }: { href: string; label: string; icon: typeof Bell; count?: number }) {
   return (
-    <Link href={href} className="relative flex h-10 w-10 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary" aria-label={label}>
+    <Link href={href} className="relative flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary" aria-label={label}>
       <Icon className="h-[18px] w-[18px]" />
       {count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{count > 99 ? '99+' : count}</span>}
     </Link>

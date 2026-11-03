@@ -415,7 +415,7 @@ export function CampusCommunityFeed() {
               {loading && posts.length === 0 ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
                 : loadError && posts.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-white px-6 text-center"><CircleAlert className="h-9 w-9 text-amber-600" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Your account is safe. Check your connection and try again.</p><Button variant="outline" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
                   : posts.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border bg-white px-6 py-10 text-center shadow-sm"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><ImagePlus className="h-7 w-7" /></div><h2 className="mt-4 text-xl font-bold text-slate-900">Your campus community starts here</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">There aren’t any posts in this feed yet. Share a genuine photo or video from campus—no sample posts or made-up activity.</p>{canPost ? <Button onClick={() => setPostOpen(true)} className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Share the first moment</Button> : <Button asChild className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Link href="/signup">Join UniEco Ghana</Link></Button>}<Link href="/universities" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline">Browse universities<ArrowUpRight className="h-4 w-4" /></Link></div>
-                    : <>{(showingCachedPosts || loadError) && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status"><span>{loadError ? 'Connection unavailable. Showing recent posts saved on this device.' : 'Showing recent posts while we refresh the feed.'}</span>{loadError && <button type="button" onClick={() => void loadPage(false)} className="min-h-9 shrink-0 px-2 font-semibold underline underline-offset-2">Retry</button>}</div>}{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} />)}
+                    : <>{(showingCachedPosts || loadError) && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status"><span>{loadError ? 'Connection unavailable. Showing recent posts saved on this device.' : 'Showing recent posts while we refresh the feed.'}</span>{loadError && <button type="button" onClick={() => void loadPage(false)} className="min-h-9 shrink-0 px-2 font-semibold underline underline-offset-2">Retry</button>}</div>}{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} onDelete={() => { const remaining = posts.filter((item) => item.id !== post.id); setPosts(remaining); setSocialByPost((current) => { const next = { ...current }; delete next[post.id]; return next; }); writeCachedFeed(feedCacheKey, remaining); if (activePostId === post.id) { setActivePostId(null); setPostOpen(false); } }} />)}
                       {loadingMore && <div className="flex min-h-20 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more posts…</div>}
                       {loadMoreError && <div className="rounded-2xl border bg-white p-5 text-center text-sm text-muted-foreground" role="status"><p>Couldn’t load the next posts. The posts already here are safe.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Try again</button></div>}
                       {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground"><p>You’re all caught up.</p><button type="button" onClick={() => void loadPage(false)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Refresh the feed</button></div>}
@@ -465,12 +465,13 @@ export function CampusCommunityFeed() {
   );
 }
 
-export function CommunityPostCard({ post, active = false, socialState = emptyCommunitySocialState, onSocialChange, onReport }: {
+export function CommunityPostCard({ post, active = false, socialState = emptyCommunitySocialState, onSocialChange, onReport, onDelete }: {
   post: CommunityPost;
   active?: boolean;
   socialState?: CommunitySocialState;
   onSocialChange?: (state: CommunitySocialState) => void;
   onReport?: () => void;
+  onDelete?: () => void;
 }) {
   const avatar = getPublicAvatarUrl(post.author_avatar_url);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -617,7 +618,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
       )}
 
       {post.university_name && <div className="flex items-center gap-1.5 border-t px-4 py-2.5 text-xs font-medium text-slate-500 sm:px-5"><MapPin className="h-3.5 w-3.5 text-emerald-700" /><span className="truncate">Shared with the {post.university_name} community</span></div>}
-      <CommunityPostActions postId={post.id} authorId={post.author_id} initialState={socialState} onStateChange={onSocialChange} />
+      <CommunityPostActions postId={post.id} authorId={post.author_id} initialState={socialState} onStateChange={onSocialChange} onDelete={onDelete} />
     </article>
   );
 }

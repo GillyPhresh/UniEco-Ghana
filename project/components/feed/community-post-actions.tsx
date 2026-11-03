@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bookmark, Heart, Loader2, MessageCircle, Share2, UserRoundPlus, UserRoundCheck } from 'lucide-react';
+import { Bookmark, Heart, Loader2, MessageCircle, Share2, UserRoundPlus, UserRoundCheck, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/auth-context';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 export type CommunitySocialState = {
   like_count: number;
@@ -46,12 +47,13 @@ function requireMember(user: ReturnType<typeof useAuth>['user']) {
 }
 
 export function CommunityPostActions({
-  postId, authorId, initialState, onStateChange,
+  postId, authorId, initialState, onStateChange, onDelete,
 }: {
   postId: string;
   authorId: string;
   initialState?: CommunitySocialState;
   onStateChange?: (state: CommunitySocialState) => void;
+  onDelete?: () => void;
 }) {
   const { user } = useAuth();
   const [state, setState] = useState(initialState ?? emptyCommunitySocialState);
@@ -62,6 +64,8 @@ export function CommunityPostActions({
   const [commentBody, setCommentBody] = useState('');
   const [replyTo, setReplyTo] = useState<CommunityComment | null>(null);
   const [sendingComment, setSendingComment] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { setState(initialState ?? emptyCommunitySocialState); }, [initialState]);
 
@@ -149,16 +153,36 @@ export function CommunityPostActions({
         await navigator.share(shareData);
         return;
       }
-      await navigator.clipboard.writeText(shareData.url);
+      await copyTextToClipboard(shareData.url);
       toast.success('Post link copied. Share it with your campus community.');
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
       try {
-        await navigator.clipboard.writeText(shareData.url);
+        await copyTextToClipboard(shareData.url);
         toast.success('Post link copied. Share it with your campus community.');
       } catch {
         toast.error('Could not share this post. Please copy the page link and try again.');
       }
+    }
+  };
+
+  const deletePost = async () => {
+    if (!user || user.id !== authorId || deleting) return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc('delete_my_campus_community_post', { p_post_id: postId });
+      if (error) throw error;
+      if (data !== true) {
+        toast.error('This post is no longer available to delete. Refresh the feed and try again.');
+        return;
+      }
+      setDeleteOpen(false);
+      toast.success('Your post was deleted.');
+      onDelete?.();
+    } catch {
+      toast.error('Your post could not be deleted. Check your connection and try again.');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -187,6 +211,7 @@ export function CommunityPostActions({
         <Button type="button" variant="ghost" onClick={() => void toggle('bookmark')} disabled={busy === 'bookmark'} aria-label={state.bookmarked_by_me ? 'Remove post from saved' : 'Save post'} aria-pressed={state.bookmarked_by_me} title={state.bookmarked_by_me ? 'Remove from saved' : 'Save post'} className={`h-11 w-11 shrink-0 touch-manipulation rounded-full p-0 ${state.bookmarked_by_me ? 'text-emerald-700 hover:bg-emerald-50 hover:text-emerald-800' : 'text-slate-600 hover:bg-slate-100'}`}>
           {busy === 'bookmark' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Bookmark className={`h-5 w-5 ${state.bookmarked_by_me ? 'fill-current' : ''}`} />}
         </Button>
+        {user?.id === authorId && <Button type="button" variant="ghost" onClick={() => setDeleteOpen(true)} aria-label="Delete your post" title="Delete post" className="h-11 w-11 shrink-0 touch-manipulation rounded-full p-0 text-slate-500 hover:bg-rose-50 hover:text-rose-700"><Trash2 className="h-5 w-5" /></Button>}
       </div>
       {user?.id !== authorId && <div className="border-t border-slate-100 px-4 py-2 sm:px-5">
         <button type="button" onClick={() => void toggle('follow')} disabled={busy === 'follow'} aria-pressed={state.following_author} className="inline-flex min-h-10 touch-manipulation items-center gap-2 rounded-full px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-60">
@@ -217,6 +242,21 @@ export function CommunityPostActions({
             <Textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value.slice(0, 1000))} maxLength={1000} rows={2} placeholder={replyTo ? 'Write a reply…' : 'Write a comment…'} aria-label={replyTo ? 'Write a reply' : 'Write a comment'} />
             <DialogFooter><Button type="submit" disabled={sendingComment || !commentBody.trim()} className="min-h-11 w-full rounded-xl bg-emerald-700 hover:bg-emerald-800 sm:w-auto">{sendingComment ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending…</> : 'Send comment'}</Button></DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteOpen} onOpenChange={(open) => { if (!deleting) setDeleteOpen(open); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete this post?</DialogTitle>
+            <DialogDescription>This removes the post from the campus feed and permanently deletes its attached media or files. This cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting} className="min-h-11">Keep post</Button>
+            <Button type="button" variant="destructive" onClick={() => void deletePost()} disabled={deleting} className="min-h-11">
+              {deleting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Deleting…</> : 'Delete post'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

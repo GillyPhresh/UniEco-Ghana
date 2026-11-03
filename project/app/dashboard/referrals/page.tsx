@@ -5,6 +5,7 @@ import { RouteGuard } from '@/lib/auth/route-guard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Gift, Copy, Share2, MessageCircle, Loader2, TrendingUp } from 'lucide-react';
+import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 
 type ReferralHistory = { created_at: string; referred_name: string; registration_status: string; reward_amount: number | null; reward_status: string | null };
 type Summary = { code: string | null; successful_referrals: number; pending_amount: number; available_amount: number; paid_amount: number; total_earned: number; minimum_payout: number; history: ReferralHistory[] };
@@ -31,7 +32,7 @@ export default function StudentReferralsPage() {
   const copyLink = async () => {
     if (!link) return;
     try {
-      await navigator.clipboard.writeText(link);
+      await copyTextToClipboard(link);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch { setError('Could not copy. Press and hold the link to copy it.'); }
@@ -39,7 +40,7 @@ export default function StudentReferralsPage() {
   const copyCode = async () => {
     if (!code) return;
     try {
-      await navigator.clipboard.writeText(code);
+      await copyTextToClipboard(code);
       setCodeCopied(true);
       window.setTimeout(() => setCodeCopied(false), 1800);
     } catch { setError('Could not copy the code. Press and hold it to copy.'); }
@@ -49,7 +50,10 @@ export default function StudentReferralsPage() {
     try {
       if (navigator.share) await navigator.share({ title: 'Join UniEco Ghana', text: 'Join UniEco Ghana with my referral link.', url: link });
       else await copyLink();
-    } catch { /* Mobile share sheets may be dismissed by the user. */ }
+    } catch (reason) {
+      if (reason instanceof DOMException && reason.name === 'AbortError') return;
+      await copyLink();
+    }
   };
   const shareOnWhatsApp = () => {
     if (!link) return;
@@ -70,12 +74,13 @@ export default function StudentReferralsPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Metric label="Successful referrals" value={String(summary.successful_referrals)} />
         <Metric label="Rewards in progress" value={money(summary.pending_amount)} />
-        <Metric label="Rewards settled" value={money(summary.available_amount)} />
+        <Metric label="Available rewards" value={money(summary.available_amount)} />
+        <Metric label="Paid out" value={money(summary.paid_amount)} />
         <Metric label="Total earned" value={money(summary.total_earned)} />
       </div>
       <Card><CardHeader><CardTitle>Referral history</CardTitle></CardHeader><CardContent>{summary.history.length ? <div className="overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Date</th><th className="p-2">Student</th><th className="p-2">Registration</th><th className="p-2">Reward</th><th className="p-2">Status</th></tr></thead><tbody>{summary.history.map((item, index) => <tr key={`${item.created_at}-${index}`} className="border-b last:border-0"><td className="p-2">{new Date(item.created_at).toLocaleDateString()}</td><td className="p-2">{item.referred_name}</td><td className="p-2">{item.registration_status === 'paid' ? 'Successful' : 'In progress'}</td><td className="p-2">{item.reward_amount == null ? '-' : money(item.reward_amount)}</td><td className="p-2 capitalize">{item.reward_status?.replaceAll('_',' ') || 'Awaiting confirmation'}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">Your first share can be the start of something bigger. Invite a student today and watch your UniEco impact grow.</p>}</CardContent></Card>
-      <Card><CardHeader><CardTitle>Keep sharing, keep growing</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Every eligible referral helps another student discover UniEco Ghana and adds {CURRENCY}2 to your reward balance. Rewards are recorded securely and become settled after seven days. Mobile Money withdrawals will open once the verified payout workflow is ready.</p></CardContent></Card>
-      <Card><CardHeader><CardTitle>How your rewards grow</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground"><ul className="list-disc space-y-1 pl-5"><li>Share your link with classmates, friends, and students across Ghana.</li><li>Earn {CURRENCY}2 for each eligible student who completes the {CURRENCY}10 registration and student verification.</li><li>Each reward settles seven days after both requirements are confirmed.</li><li>There is no limit to the number of genuine students you can invite.</li><li>Self-referrals, duplicates, and fraudulent registrations do not qualify.</li></ul></CardContent></Card>
+      <Card><CardHeader><CardTitle>Keep sharing, keep growing</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Every eligible referral helps another student discover UniEco Ghana and can earn {CURRENCY}2. Rewards move from in progress to available after the review period. Available rewards are not automatic transfers; payouts are handled through the platform’s reviewed payout process.</p></CardContent></Card>
+      <Card><CardHeader><CardTitle>How your rewards grow</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground"><ul className="list-disc space-y-1 pl-5"><li>Share your link with classmates, friends, and students across Ghana.</li><li>Eligible student referrals are recorded after registration payment and student verification are confirmed.</li><li>Rewards remain in progress during the review period, then appear as available when eligible.</li><li>Available rewards are tracked separately from payouts already made.</li><li>Self-referrals, duplicates, and fraudulent registrations do not qualify.</li></ul></CardContent></Card>
     </>}
   </div></main></RouteGuard>;
 }
