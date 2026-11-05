@@ -1,0 +1,31 @@
+name: UniEco weekly referral payouts
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily reconciliation, with new payout reservation on Monday UTC only.
+    - cron: '23 12 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: unieco-referral-payouts
+  cancel-in-progress: false
+
+jobs:
+  process:
+    if: github.ref == 'refs/heads/deploy-main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call guarded payout and reconciliation worker
+        env:
+          PAYOUT_WORKER_TOKEN: ${{ secrets.UNIECO_REFERRAL_PAYOUT_WORKER_TOKEN }}
+        run: |
+          test -n "$PAYOUT_WORKER_TOKEN"
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -X POST 'https://www.uniecoghana.com/api/internal/referral-payouts' \
+            -H "Authorization: Bearer $PAYOUT_WORKER_TOKEN" \
+            -H 'Content-Type: application/json'
