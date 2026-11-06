@@ -210,9 +210,8 @@ export function SiteHeader() {
                     ))}
                   </AnimatePresence>
                   </div>
-                </nav>
                 {user && (
-                  <nav className="flex flex-col gap-1 border-t border-border px-4 py-4" aria-label="Account">
+                  <div className="mt-3 flex flex-col gap-1 border-t border-border pt-3" aria-label="Account shortcuts">
                     <SheetClose asChild><Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><LayoutDashboard className="h-5 w-5 text-primary" />My dashboard</Link></SheetClose>
                     {user.role === 'super_admin' && <SheetClose asChild><Link href="/admin" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><ShieldCheck className="h-5 w-5" />Management system</Link></SheetClose>}
                     {user.role === 'university_admin' && <SheetClose asChild><Link href="/university-admin" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><Award className="h-5 w-5" />Campus impact</Link></SheetClose>}
@@ -222,8 +221,9 @@ export function SiteHeader() {
                     {isVendor(user.role) && <SheetClose asChild><Link href="/vendor-dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
                     {!isVendor(user.role) && isStudent(user.role) && <SheetClose asChild><Link href="/dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
                     <SheetClose asChild><Link href="/start-business" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Store className="h-5 w-5 text-primary" />Start a business</Link></SheetClose>
-                  </nav>
+                  </div>
                 )}
+                </nav>
                 <div className="mt-auto flex flex-col gap-2 border-t border-border p-5">
                   {user ? <><SheetClose asChild><Button asChild variant="outline"><Link href="/profile">Profile &amp; settings</Link></Button></SheetClose><SheetClose asChild><Button variant="destructive" onClick={handleSignOut}><LogOut className="mr-2 h-4 w-4" />Sign out</Button></SheetClose></> : <><SheetClose asChild><Button asChild variant="outline"><Link href="/signin">Sign in</Link></Button></SheetClose><SheetClose asChild><Button asChild><Link href="/signup">Join UniEco</Link></Button></SheetClose></>}
                 </div>

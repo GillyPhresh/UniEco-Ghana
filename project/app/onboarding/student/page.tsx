@@ -10,14 +10,12 @@ import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft }
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { startPaystackCheckout } from '@/lib/data/payment-client';
 import { studentOnboardingSchema } from '@/lib/validation';
-import { ACADEMIC_DEPARTMENTS, ACADEMIC_FACULTIES, ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
+import { ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
-import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -36,7 +34,6 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  Upload,
   Search,
 } from 'lucide-react';
 
@@ -75,16 +72,16 @@ function RegistrationAutocomplete({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="min-h-11 w-full justify-between text-left font-normal"
+            className="min-h-12 w-full justify-between text-left font-normal touch-manipulation"
           >
             <span className={selected ? 'truncate' : 'truncate text-muted-foreground'}>{selected?.label || placeholder}</span>
             <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-[280px] p-0">
+        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0">
           <Command>
             <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
-            <CommandList>
+            <CommandList className="max-h-[min(18rem,calc(100dvh-12rem))]">
               <CommandEmpty>No matching option found.</CommandEmpty>
               <CommandGroup>
                 {options.map((option) => (
@@ -106,27 +103,23 @@ function RegistrationAutocomplete({
     </div>
   );
 }
-
 const STEPS = [
-  { id: 'contact', label: 'Contact', hint: 'Phone and photo', icon: User },
-  { id: 'study', label: 'Study', hint: 'Campus and programme', icon: GraduationCap },
-  { id: 'finish', label: 'Finish', hint: 'ID and review', icon: ShieldCheck },
+  { id: 'contact', label: 'Contact', hint: 'Phone number', icon: User },
+  { id: 'study', label: 'Campus', hint: 'School and study', icon: GraduationCap },
+  { id: 'finish', label: 'Review & pay', hint: 'Confirm details', icon: ShieldCheck },
 ] as const;
 
 const DRAFT_PREFIX = 'unieco_student_registration_draft';
 
 interface FormData {
   phone: string;
-  avatar_url: string;
   university_id: string;
   programme: string;
   faculty: string;
   department: string;
   level: string;
-  index_number: string;
   admission_year: number;
   graduation_year?: number;
-  student_id_document_url: string;
 }
 
 export default function StudentOnboardingPage() {
@@ -164,16 +157,13 @@ function StudentOnboarding() {
   const [draftReady, setDraftReady] = useState(false);
   const [form, setForm] = useState<FormData>({
     phone: '',
-    avatar_url: '',
     university_id: '',
     programme: '',
     faculty: '',
     department: '',
     level: '',
-    index_number: '',
     admission_year: new Date().getFullYear(),
     graduation_year: undefined,
-    student_id_document_url: '',
   });
 
   useEffect(() => {
@@ -181,7 +171,18 @@ function StudentOnboarding() {
     let active = true;
     const draft = readRegistrationDraft<FormData>(`${DRAFT_PREFIX}:${user.id}`);
     if (draft) {
-      setForm(draft.data);
+      // Whitelist current fields so older browser drafts cannot retain ID
+      // numbers or student-document paths after those fields leave signup.
+      setForm({
+        phone: draft.data.phone || '',
+        university_id: draft.data.university_id || '',
+        programme: draft.data.programme || '',
+        faculty: draft.data.faculty || '',
+        department: draft.data.department || '',
+        level: draft.data.level || '',
+        admission_year: draft.data.admission_year || new Date().getFullYear(),
+        graduation_year: draft.data.graduation_year,
+      });
       setStep(Math.min(Math.max(draft.step, 0), STEPS.length - 1));
       setDraftRestored(true);
       setDraftReady(true);
@@ -191,8 +192,8 @@ function StudentOnboarding() {
     // Browser storage is only a convenience. If a user returns on another
     // browser/session, rebuild the unfinished form from their saved profile.
     void Promise.all([
-      supabase.from('profiles').select('phone, avatar_url, university_id').eq('id', user.id).maybeSingle(),
-      supabase.from('student_profiles').select('university_id, student_id_number, program_of_study, faculty, department, level, admission_year, graduation_year, student_id_document_url').eq('user_id', user.id).maybeSingle(),
+      supabase.from('profiles').select('phone, university_id').eq('id', user.id).maybeSingle(),
+      supabase.from('student_profiles').select('university_id, program_of_study, faculty, department, level, admission_year, graduation_year').eq('user_id', user.id).maybeSingle(),
     ]).then(([profileResult, studentResult]) => {
       if (!active) return;
       const profile = profileResult.data;
@@ -202,16 +203,13 @@ function StudentOnboarding() {
         setForm((current) => ({
           ...current,
           phone: profile?.phone || current.phone,
-          avatar_url: profile?.avatar_url || current.avatar_url,
           university_id: student?.university_id || profile?.university_id || current.university_id,
-          index_number: student?.student_id_number || current.index_number,
           programme: student?.program_of_study || current.programme,
           faculty: student?.faculty || current.faculty,
           department: student?.department || current.department,
           level: student?.level || current.level,
           admission_year: student?.admission_year || current.admission_year,
           graduation_year: student?.graduation_year || current.graduation_year,
-          student_id_document_url: student?.student_id_document_url || current.student_id_document_url,
         }));
         if (student?.university_id || profile?.university_id) setStep(STEPS.length - 1);
         setDraftRestored(true);
@@ -324,7 +322,6 @@ function StudentOnboarding() {
         faculty: form.faculty.trim() || undefined,
         department: form.department.trim() || undefined,
         level: form.level,
-        index_number: form.index_number.trim() || undefined,
         admission_year: form.admission_year,
         graduation_year: form.graduation_year,
         phone: normalizeGhanaPhone(form.phone),
@@ -337,14 +334,14 @@ function StudentOnboarding() {
           p_token: cashInviteToken,
           p_university_id: form.university_id,
           p_phone: form.phone,
-          p_student_id_number: form.index_number.trim() || null,
+          p_student_id_number: null,
           p_program: form.programme.trim() || null,
           p_faculty: form.faculty.trim() || null,
           p_department: form.department.trim() || null,
           p_level: form.level,
           p_admission_year: form.admission_year,
           p_graduation_year: form.graduation_year || null,
-          p_student_document_path: form.student_id_document_url || null,
+          p_student_document_path: null,
         });
         if (cashError) throw new Error(cashError.message);
         if (universityAdminToken) {
@@ -364,14 +361,14 @@ function StudentOnboarding() {
         registration: {
           universityId: form.university_id,
           phone: normalizeGhanaPhone(form.phone) || form.phone,
-          studentIdNumber: form.index_number.trim() || null,
+          studentIdNumber: null,
           program: form.programme.trim() || null,
           faculty: form.faculty.trim() || null,
           department: form.department.trim() || null,
           level: form.level,
           admissionYear: form.admission_year,
           graduationYear: form.graduation_year || null,
-          studentDocumentPath: form.student_id_document_url || null,
+          studentDocumentPath: null,
           referralCode: referralCode || null,
         },
       });
@@ -396,10 +393,6 @@ function StudentOnboarding() {
         const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student' });
         if (adminTokenError) throw new Error(adminTokenError.message);
       }
-      if (form.avatar_url) {
-        const { error: avatarError } = await supabase.from('profiles').update({ avatar_url: form.avatar_url }).eq('id', user.id);
-        if (avatarError) throw new Error('Your payment setup is ready, but the profile photo could not be saved. You can add it later from your profile.');
-      }
       window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
       const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
       if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
@@ -413,28 +406,10 @@ function StudentOnboarding() {
     }
   };
 
-  const handleFileUpload = async (file: File, key: keyof FormData) => {
-    if (!user) return;
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/${key}-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from('student-documents')
-      .upload(path, file);
-
-    if (uploadError) {
-      setError('Could not upload the file. Try again.');
-      return;
-    }
-
-    // This bucket is private. Persist its object path, never a public URL;
-    // a future authorized download flow must mint a short-lived signed URL.
-    updateForm(key, path);
-  };
-
   return (
     <AuthLayout
       title="Complete your student profile"
-      subtitle="About 2 minutes · your progress is saved on this device"
+      subtitle="Quick setup · your progress is saved on this device"
       wide
       backHref="/signin"
       backLabel="Sign out"
@@ -448,6 +423,9 @@ function StudentOnboarding() {
               <p className="text-sm font-semibold text-foreground">Your registration is protected</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
                 Your details are saved securely while Paystack confirms the one-time registration payment. Student verification is reviewed separately after payment.
+              </p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                You do not need a student ID card or index number to register. Any required verification can be completed later.
               </p>
             </div>
           </div>
@@ -536,22 +514,6 @@ function StudentOnboarding() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="avatar">Profile photo (optional)</Label>
-                <FileUploadButton
-                  bucket="avatars"
-                  onUpload={(url) => updateForm('avatar_url', url)}
-                  userId={user?.id}
-                  accept="image/*"
-                  label="Upload a profile photo"
-                />
-                {form.avatar_url && (
-                  <div className="flex items-center gap-2 text-xs text-success">
-                    <Check className="h-3.5 w-3.5" /> Photo uploaded
-                  </div>
-                )}
-              </div>
-
               <Button onClick={handleNext} className="w-full">
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -573,8 +535,8 @@ function StudentOnboarding() {
                   label="University"
                   value={form.university_id}
                   options={universityOptions}
-                  placeholder="Start typing your university"
-                  searchPlaceholder="Type university name or abbreviation"
+                  placeholder="Search and choose your school"
+                  searchPlaceholder="Type a school name or abbreviation"
                   onChange={(value) => updateForm('university_id', value)}
                 />
                 <p className="text-xs text-muted-foreground">
@@ -592,29 +554,6 @@ function StudentOnboarding() {
                 optional
                 onChange={(value) => updateForm('programme', value)}
               />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <RegistrationAutocomplete
-                  id="faculty"
-                  label="Faculty"
-                  value={form.faculty}
-                  options={ACADEMIC_FACULTIES.map((faculty) => ({ value: faculty, label: faculty }))}
-                  placeholder="Start typing faculty"
-                  searchPlaceholder="Type faculty name"
-                  optional
-                  onChange={(value) => updateForm('faculty', value)}
-                />
-                <RegistrationAutocomplete
-                  id="department"
-                  label="Department"
-                  value={form.department}
-                  options={ACADEMIC_DEPARTMENTS.map((department) => ({ value: department, label: department }))}
-                  placeholder="Start typing department"
-                  searchPlaceholder="Type department name"
-                  optional
-                  onChange={(value) => updateForm('department', value)}
-                />
-              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -649,20 +588,6 @@ function StudentOnboarding() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="index_number">Index / Student number <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <Input
-                  id="index_number"
-                  placeholder="Add it if you have it"
-                  value={form.index_number}
-                  maxLength={80}
-                  onChange={(e) => updateForm('index_number', e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  You can add your university-issued number now or provide it later during verification. It is visible only to authorized verification staff.
-                </p>
-              </div>
-
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} className="flex-1">
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -695,28 +620,6 @@ function StudentOnboarding() {
                 <button type="button" onClick={() => setStep(1)} className="mt-3 text-xs font-semibold text-primary underline underline-offset-2">Edit study details</button>
               </div>
 
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-sm text-muted-foreground">
-                  Upload a clear photo of your student ID card if available. It speeds up verification, but you can continue without it.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Student ID card photo <span className="font-normal text-muted-foreground">(optional)</span></Label>
-                <FileUploadButton
-                  bucket="student-documents"
-                  onUpload={(url) => updateForm('student_id_document_url', url)}
-                  userId={user?.id}
-                  accept="image/*"
-                  label="Upload student ID"
-                />
-                {form.student_id_document_url && (
-                  <div className="flex items-center gap-2 text-xs text-success">
-                    <Check className="h-3.5 w-3.5" /> Student ID uploaded
-                  </div>
-                )}
-              </div>
-
               {!cashInviteToken && <div className="rounded-xl border border-primary/25 bg-primary/5 p-4 shadow-sm">
                 <div className="flex items-start gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">₵</span>
@@ -727,7 +630,7 @@ function StudentOnboarding() {
                   </div>
                 </div>
               </div>}
-              {!cashInviteToken && <PushPermissionCard onboarding />}
+              <p className="text-xs text-muted-foreground">You can add profile details and enable notifications any time after joining.</p>
               <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be attached automatically. Eligible successful registrations may earn the referrer GH₵2 after the settlement period.</p>
 
               <div className="flex gap-3">
@@ -748,74 +651,3 @@ function StudentOnboarding() {
   );
 }
 
-function FileUploadButton({
-  bucket,
-  onUpload,
-  userId,
-  accept,
-  label,
-}: {
-  bucket: string;
-  onUpload: (url: string) => void;
-  userId?: string;
-  accept: string;
-  label: string;
-}) {
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId) return;
-    setUploadError(null);
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError('Choose a file smaller than 5 MB.');
-      e.target.value = '';
-      return;
-    }
-    if (bucket === 'student-documents' && !file.type.startsWith('image/')) {
-      setUploadError('Student ID must be an image file.');
-      e.target.value = '';
-      return;
-    }
-    setUploading(true);
-    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-    const path = `${userId}/${bucket}-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from(bucket).upload(path, file);
-    if (error) {
-      setUploadError('Could not upload the file. Try again.');
-      setUploading(false);
-      return;
-    }
-    // Profile avatars are public; verification documents remain private paths.
-    const reference = bucket === 'avatars'
-      ? supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
-      : path;
-    onUpload(reference);
-    setUploading(false);
-  };
-
-  return (
-    <label
-      className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary ${
-        uploading ? 'opacity-50' : ''
-      }`}
-    >
-      {uploading ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Upload className="h-4 w-4" />
-      )}
-      {uploading ? 'Uploading...' : label}
-      {uploadError && <span className="basis-full text-center text-xs text-destructive">{uploadError}</span>}
-      <input
-        type="file"
-        accept={accept}
-        capture={bucket === 'student-documents' ? 'environment' : undefined}
-        onChange={handleUpload}
-        className="hidden"
-        disabled={uploading}
-      />
-    </label>
-  );
-}

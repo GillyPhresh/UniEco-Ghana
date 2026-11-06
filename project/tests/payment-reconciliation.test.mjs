@@ -100,7 +100,7 @@ test('resumed student registrations preserve their referral and only retry after
   assert.match(route, /reconcilePaystackPayment\(payment\.payment_reference\)/);
   assert.match(route, /only a provider-confirmed terminal[\s\S]*?failed', 'cancelled'/i);
   assert.match(route, /No new charge was started/);
-  assert.match(onboarding, /from\('student_profiles'\)[\s\S]*?student_id_number, program_of_study/);
+  assert.match(onboarding, /from\('student_profiles'\)[\s\S]*?program_of_study/);
   assert.match(onboarding, /Your unfinished registration has been restored/);
 });
 
