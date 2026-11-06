@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/layout/site-header';
 import { CampusCommunityFeed } from '@/components/feed/campus-community-feed';
 
-export const dynamic = 'force-dynamic';
-
 export const metadata: Metadata = {
   title: 'Campus Community',
   description: 'See real campus moments shared by students and vendors across Ghana.',

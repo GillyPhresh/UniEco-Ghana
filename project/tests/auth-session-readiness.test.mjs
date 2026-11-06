@@ -34,3 +34,10 @@ test('public anonymous page requests do not wait on a remote auth lookup', async
   assert.match(middleware, /const user = hasSessionCookie\s*\? \(await supabase\.auth\.getUser\(\)\)\.data\.user\s*: null/);
   assert.match(middleware, /if \(isMemberRoute && !user\)/);
 });
+
+test('homepage shell can be statically served while feed and account data load client-side', async () => {
+  const homepage = await read('app/page.tsx');
+  assert.doesNotMatch(homepage, /force-dynamic/);
+  assert.match(homepage, /<CampusCommunityFeed\s*\/>/);
+  assert.match(homepage, /<SiteHeader\s*\/>/);
+});
