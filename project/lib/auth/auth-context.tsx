@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import type { AuthUser, Profile, StudentProfile, VendorProfile, UserRole } from '@/lib/types';
@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const authRevision = useRef(0);
 
   const loadProfileData = useCallback(async (uid: string) => {
     const [profileResult, studentResult, vendorResult] = await Promise.all([
@@ -72,40 +73,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
-
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      if (!active) return;
-      setSession(s);
-      if (s?.user) {
-        loadProfileData(s.user.id).finally(() => {
-          if (active) setLoading(false);
-        });
-      } else {
-        setLoading(false);
-      }
-    }).catch(() => {
-      if (!active) return;
-      setSession(null);
+    const clearProfile = () => {
       setProfile(null);
       setStudentProfile(null);
       setVendorProfile(null);
+    };
+
+    const initialRevision = authRevision.current;
+    void supabase.auth.getSession().then(({ data: { session: s } }) => {
+      // Ignore a stale bootstrap result if a sign-in/sign-out event arrived first.
+      if (!active || authRevision.current !== initialRevision) return;
+      setSession(s);
+      if (s?.user) {
+        setLoading(true);
+        void loadProfileData(s.user.id).catch(clearProfile).finally(() => {
+          if (active && authRevision.current === initialRevision) setLoading(false);
+        });
+      } else {
+        clearProfile();
+        setLoading(false);
+      }
+    }).catch(() => {
+      if (!active || authRevision.current !== initialRevision) return;
+      setSession(null);
+      clearProfile();
       setLoading(false);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+      const revision = ++authRevision.current;
       setSession(s);
       if (s?.user) {
-        (async () => {
-          try {
-            await loadProfileData(s.user.id);
-          } finally {
-            if (active) setLoading(false);
-          }
-        })();
+        // Do not expose a previous account's profile or let route guards run
+        // until the new account's role and campus data have loaded.
+        clearProfile();
+        setLoading(true);
+        // Start data requests after Supabase finishes its auth event callback;
+        // issuing auth-backed requests inside that callback can stall refreshes.
+        window.setTimeout(() => {
+          if (!active || authRevision.current !== revision) return;
+          void loadProfileData(s.user.id).catch(clearProfile).finally(() => {
+            if (active && authRevision.current === revision) setLoading(false);
+          });
+        }, 0);
       } else {
-        setProfile(null);
-        setStudentProfile(null);
-        setVendorProfile(null);
+        clearProfile();
         setLoading(false);
       }
     });
@@ -128,8 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     : null;
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) setLoading(false);
+      return { error: error?.message ?? null };
+    } catch {
+      setLoading(false);
+      return { error: 'We could not reach the sign-in service. Check your connection and try again.' };
+    }
   }, []);
 
   const signUp = useCallback(
@@ -138,17 +157,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string,
       meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
     ) => {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: meta.full_name,
-            registration_intent: meta.registration_intent ?? 'student',
+      setLoading(true);
+      try {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: meta.full_name,
+              registration_intent: meta.registration_intent ?? 'student',
+            },
           },
-        },
-      });
-      return { error: error?.message ?? null, session: data.session };
+        });
+        if (error || !data.session) setLoading(false);
+        return { error: error?.message ?? null, session: data.session };
+      } catch {
+        setLoading(false);
+        return { error: 'We could not reach the registration service. Check your connection and try again.', session: null };
+      }
     },
     []
   );

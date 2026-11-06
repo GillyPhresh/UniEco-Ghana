@@ -6,11 +6,15 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath } from '@/lib/auth/redirects';
 import { registrationDestination } from '@/lib/auth/registration-routing';
 import { supabase } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
 
 export default function OnboardingPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [checkingAccess, setCheckingAccess] = useState(false);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     if (loading || checkingAccess) return;
@@ -21,6 +25,7 @@ export default function OnboardingPage() {
 
     let active = true;
     setCheckingAccess(true);
+    setCheckFailed(false);
     const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
     const params = new URLSearchParams();
     const pendingInvite = window.sessionStorage.getItem('unieco_pending_registration_invite');
@@ -29,23 +34,31 @@ export default function OnboardingPage() {
     if (pendingReferral) params.set('ref', pendingReferral);
     const query = params.toString();
 
-    void supabase.rpc('get_my_registration_access').then(({ data, error }) => {
+    let timeout: ReturnType<typeof setTimeout>;
+    const timedOut = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error('Registration check timed out')), 12_000);
+    });
+    void Promise.race([supabase.rpc('get_my_registration_access'), timedOut]).then(({ data, error }) => {
       if (!active) return;
-      // A failed access check never sends an account into the platform. The
-      // registration screen remains the safe recovery path and can retry the
-      // authoritative payment flow.
-      if (!error && (data as { allowed?: boolean } | null)?.allowed === true) {
+      if (error) throw error;
+      if ((data as { allowed?: boolean } | null)?.allowed === true) {
         router.replace(requestedNext === '/' ? '/' : requestedNext);
       } else {
         const destination = registrationDestination(user, requestedNext);
         const separator = destination.includes('?') ? '&' : '?';
         router.replace(query ? `${destination}${separator}${query}` : destination);
       }
-      setCheckingAccess(false);
+    }).catch(() => {
+      if (active) setCheckFailed(true);
+    }).finally(() => {
+      clearTimeout(timeout!);
+      if (active) setCheckingAccess(false);
     });
 
-    return () => { active = false; };
-  }, [loading, router, user]);
+    return () => { active = false; clearTimeout(timeout!); };
+  }, [loading, router, user, retryCount]);
 
-  return checkingAccess ? <main className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground">Preparing your secure registration…</main> : null;
+  if (checkingAccess) return <main className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Preparing your secure registration…</main>;
+  if (checkFailed) return <main className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-4 px-5 text-center"><p className="text-sm text-muted-foreground">We couldn’t confirm your registration because the connection took too long. Your account and payment are unchanged.</p><Button type="button" onClick={() => setRetryCount((count) => count + 1)}>Try again</Button></main>;
+  return null;
 }

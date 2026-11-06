@@ -38,9 +38,16 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Most public visits have no Supabase session at all. Avoid a network auth
+  // round-trip for those requests; protected routes still redirect below.
+  // Supabase SSR stores the session in `sb-<project>-auth-token` (possibly
+  // split into numbered cookie chunks).
+  const hasSessionCookie = request.cookies.getAll().some(({ name }) =>
+    /^sb-[a-z0-9-]+-auth-token(?:\.\d+)?$/i.test(name),
+  );
+  const user = hasSessionCookie
+    ? (await supabase.auth.getUser()).data.user
+    : null;
 
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');

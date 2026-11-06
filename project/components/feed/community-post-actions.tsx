@@ -170,17 +170,32 @@ export function CommunityPostActions({
     if (!user || user.id !== authorId || deleting) return;
     setDeleting(true);
     try {
-      const { data, error } = await supabase.rpc('delete_my_campus_community_post', { p_post_id: postId });
+      const { data, error } = await supabase.rpc('delete_my_campus_community_post_v2', { p_post_id: postId });
       if (error) throw error;
-      if (data !== true) {
+      const result = data as { deleted?: boolean; media_path?: string | null; attachment_path?: string | null } | null;
+      if (result?.deleted !== true) {
         toast.error('This post is no longer available to delete. Refresh the feed and try again.');
         return;
       }
       setDeleteOpen(false);
-      toast.success('Your post was deleted.');
       onDelete?.();
-    } catch {
-      toast.error('Your post could not be deleted. Check your connection and try again.');
+      const cleanup = await Promise.all([
+        result.media_path ? supabase.storage.from('campus-community').remove([result.media_path]) : Promise.resolve({ error: null }),
+        result.attachment_path ? supabase.storage.from('campus-community-files').remove([result.attachment_path]) : Promise.resolve({ error: null }),
+      ]);
+      const cleanupFailed = cleanup.some(({ error: cleanupError }) => Boolean(cleanupError));
+      if (cleanupFailed) {
+        toast.warning('Your post was removed. Its media could not be fully cleared right now; please contact support if it remains visible.');
+      } else {
+        toast.success('Your post and its media were deleted.');
+      }
+    } catch (error) {
+      const code = (error as { code?: string } | null)?.code;
+      if (code === 'PGRST202' || (error instanceof Error && error.message.toLowerCase().includes('delete_my_campus_community_post_v2'))) {
+        toast.error('Post deletion needs a database update that has not reached production yet. Please try again after the update is applied.');
+      } else {
+        toast.error('Your post could not be deleted. Check your connection and try again.');
+      }
     } finally {
       setDeleting(false);
     }

@@ -129,21 +129,25 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.doesNotMatch(actions, /\.from\(['"]campus_community_(post_likes|post_bookmarks|follows|comments)['"]\)/);
 });
 
-test('post deletion is owner-only, audited, and removes only that post’s stored objects', async () => {
-  const migration = await read('supabase/migrations/20261103100000_0179_owner_safe_community_post_delete.sql');
+test('post deletion is owner-only, audited, and cleans up assets through Storage API', async () => {
+  const storageApiMigration = await read('supabase/migrations/20261106150000_0184_owner_safe_community_post_delete_storage_api.sql');
   const actions = await read('components/feed/community-post-actions.tsx');
   const feed = await read('components/feed/campus-community-feed.tsx');
-  assert.match(migration, /SECURITY DEFINER/);
-  assert.match(migration, /post\.author_id = v_actor_id/);
-  assert.match(migration, /FOR UPDATE/);
-  assert.match(migration, /SET status = 'removed', removed_at/);
-  assert.match(migration, /bucket_id = 'campus-community'/);
-  assert.match(migration, /bucket_id = 'campus-community-files'/);
-  assert.match(migration, /community_post_deleted_by_owner/);
-  assert.match(migration, /REVOKE ALL ON FUNCTION public\.delete_my_campus_community_post\(uuid\) FROM PUBLIC, anon, authenticated/);
-  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.delete_my_campus_community_post\(uuid\) TO authenticated/);
+  assert.match(storageApiMigration, /SECURITY DEFINER/);
+  assert.match(storageApiMigration, /post\.author_id = v_actor_id/);
+  assert.match(storageApiMigration, /FOR UPDATE/);
+  assert.match(storageApiMigration, /SET status = 'removed', removed_at/);
+  assert.match(storageApiMigration, /community_post_deleted_by_owner/);
+  assert.match(storageApiMigration, /REVOKE ALL ON FUNCTION public\.delete_my_campus_community_post_v2\(uuid\) FROM PUBLIC, anon, authenticated/);
+  assert.match(storageApiMigration, /GRANT EXECUTE ON FUNCTION public\.delete_my_campus_community_post_v2\(uuid\) TO authenticated/);
   assert.match(actions, /user\?\.id === authorId/);
-  assert.match(actions, /delete_my_campus_community_post/);
+  assert.match(storageApiMigration, /delete_my_campus_community_post_v2/);
+  assert.match(storageApiMigration, /post\.author_id = v_actor_id/);
+  assert.match(storageApiMigration, /FOR UPDATE/);
+  assert.doesNotMatch(storageApiMigration, /DELETE FROM storage\.objects/);
+  assert.match(actions, /delete_my_campus_community_post_v2/);
+  assert.match(actions, /storage\.from\('campus-community'\)\.remove/);
+  assert.match(actions, /storage\.from\('campus-community-files'\)\.remove/);
   assert.match(actions, /permanently deletes its attached media or files/);
   assert.match(feed, /onDelete=\{\(\) =>/);
   assert.match(feed, /writeCachedFeed\(feedCacheKey, remaining\)/);

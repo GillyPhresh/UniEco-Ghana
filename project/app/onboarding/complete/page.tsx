@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, GraduationCap, Store, ArrowRight } from 'lucide-react';
 import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { supabase } from '@/lib/supabase/client';
+import { Loader2 } from 'lucide-react';
 
 export default function OnboardingCompletePage() {
   return (
@@ -24,6 +25,8 @@ function CompleteScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -33,26 +36,37 @@ function CompleteScreen() {
       return () => { cancelled = true; };
     }
 
-    void supabase.rpc('get_my_registration_access').then(({ data, error }) => {
+    setCheckingAccess(true);
+    setCheckFailed(false);
+    let timeout: ReturnType<typeof setTimeout>;
+    const timedOut = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => reject(new Error('Registration check timed out')), 12_000);
+    });
+    void Promise.race([supabase.rpc('get_my_registration_access'), timedOut]).then(({ data, error }) => {
       if (cancelled) return;
       if (error || !data || data.allowed !== true) {
         router.replace('/onboarding');
         return;
       }
       setCheckingAccess(false);
-    });
+    }).catch(() => {
+      if (!cancelled) {
+        setCheckFailed(true);
+        setCheckingAccess(false);
+      }
+    }).finally(() => clearTimeout(timeout!));
 
-    return () => { cancelled = true; };
-  }, [router, user]);
+    return () => { cancelled = true; clearTimeout(timeout!); };
+  }, [router, user, retryCount]);
 
   const isStudent = user?.role === 'student' || user?.role === 'student_vendor';
   const isVendor = user?.role === 'external_vendor' || user?.role === 'student_vendor';
 
   if (checkingAccess) {
     return (
-      <AuthLayout title="Checking your registration" showBackLink={false}>
+      <AuthLayout title={checkFailed ? 'Connection interrupted' : 'Checking your registration'} showBackLink={false}>
         <div className="py-12 text-center text-sm text-muted-foreground">
-          Confirming your payment and account access…
+          {checkFailed ? <><p>Your payment and account are unchanged. We couldn’t verify access just now.</p><Button className="mt-5 w-full" onClick={() => setRetryCount((count) => count + 1)}>Try again</Button></> : <><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />Confirming your payment and account access…</>}
         </div>
       </AuthLayout>
     );
@@ -105,7 +119,10 @@ function CompleteScreen() {
         </div>
 
         <Button onClick={() => {
-          const destination = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
+          const defaultDashboard = user?.role === 'external_vendor' ? '/vendor-dashboard'
+            : user?.role === 'university_admin' ? '/university-admin'
+              : user?.role === 'super_admin' ? '/admin' : '/dashboard';
+          const destination = safeInternalPath(new URLSearchParams(window.location.search).get('next'), defaultDashboard);
           window.sessionStorage.removeItem('unieco_registration_next');
           router.replace(destination);
         }} size="lg" className="w-full">
