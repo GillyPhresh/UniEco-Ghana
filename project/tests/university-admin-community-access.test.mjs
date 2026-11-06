@@ -18,6 +18,9 @@ test('assigned university admins can participate in campus community as regular 
   assert.match(migration, /restriction\.ends_at IS NULL OR restriction\.ends_at > now\(\)/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.can_upload_campus_community_media\(\) TO authenticated, service_role/);
   assert.match(migration, /verification_status = 'verified'/);
+  assert.match(migration, /vendor_profile\.verification_status IN \('active', 'verified'\)/);
+  assert.match(migration, /vendor\.is_verified AND vendor\.is_active/);
+  assert.doesNotMatch(migration, /vendor\.verification_status/);
   assert.match(feed, /'student', 'student_vendor', 'external_vendor', 'university_admin'/);
   assert.match(actions, /'student', 'student_vendor', 'external_vendor', 'university_admin'/);
   assert.doesNotMatch(migration, /is_super_admin\(\)\s+OR\s+role\.name = 'university_admin'/);

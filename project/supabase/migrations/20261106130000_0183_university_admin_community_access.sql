@@ -36,15 +36,21 @@ AS $$
             WHERE student.user_id = profile.id AND student.is_verified_student
               AND student.verification_status = 'verified'
           ) OR EXISTS (
-            SELECT 1 FROM public.vendors AS vendor
-            WHERE vendor.owner_id = profile.id AND vendor.is_active
-              AND vendor.verification_status IN ('active', 'verified')
+            SELECT 1
+            FROM public.vendor_profiles AS vendor_profile
+            JOIN public.vendors AS vendor ON vendor.owner_id = vendor_profile.profile_id
+            WHERE vendor_profile.profile_id = profile.id
+              AND vendor_profile.verification_status IN ('active', 'verified')
+              AND vendor.is_verified AND vendor.is_active
           )
         ))
         OR (role.name = 'external_vendor' AND EXISTS (
-          SELECT 1 FROM public.vendors AS vendor
-          WHERE vendor.owner_id = profile.id AND vendor.is_active
-            AND vendor.verification_status IN ('active', 'verified')
+          SELECT 1
+          FROM public.vendor_profiles AS vendor_profile
+          JOIN public.vendors AS vendor ON vendor.owner_id = vendor_profile.profile_id
+          WHERE vendor_profile.profile_id = profile.id
+            AND vendor_profile.verification_status IN ('active', 'verified')
+            AND vendor.is_verified AND vendor.is_active
         ))
       )
   )
