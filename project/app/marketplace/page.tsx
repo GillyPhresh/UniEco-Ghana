@@ -115,16 +115,16 @@ export default function MarketplacePage() {
   return (
     <>
       <SiteHeader />
-      <main className="container max-w-7xl px-4 py-5 sm:px-6 sm:py-8">
+      <main className="container max-w-7xl px-4 py-3 sm:px-6 sm:py-8">
         {/* Hero */}
-        <div className="mb-6 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:mb-8 sm:p-8">
+        <div className="mb-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:mb-8 sm:p-8">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-6 w-6 text-primary" />
             <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Marketplace
             </h1>
           </div>
-          <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2 sm:text-base">
             Discover products and services from vendors across campus. From food to fashion, repairs to tutoring — find everything you need.
           </p>
 
@@ -141,7 +141,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* Category chips */}
-        <div className="mb-8 space-y-3">
+        <div className="mb-5 space-y-3 sm:mb-8">
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               onClick={() => setActiveCategory(null)}

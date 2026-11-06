@@ -48,7 +48,7 @@ function OrdersContent() {
       <p className="text-sm text-muted-foreground mb-6">Track and manage your orders from campus vendors.</p>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-        <TabsList className="mb-6 flex flex-wrap h-auto">
+        <TabsList className="mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto px-1 sm:mb-6 [&>button]:shrink-0">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
           <TabsTrigger value="accepted">Accepted</TabsTrigger>

@@ -47,11 +47,11 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-card/95 shadow-[0_-8px_24px_-18px_hsl(var(--foreground)/0.45)] backdrop-blur-xl lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border/80 bg-background/95 backdrop-blur-xl lg:hidden"
       aria-label="Mobile bottom navigation"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="mx-auto grid min-h-[4.25rem] max-w-xl grid-cols-5 items-stretch gap-1 px-2 pb-1 pt-1">
+      <div className="mx-auto grid min-h-[3.75rem] max-w-xl grid-cols-5 items-stretch gap-1 px-2 pb-1 pt-1">
         {items.map((item) => {
           const isCurrent =
             pathname === item.href ||
@@ -64,21 +64,16 @@ export function MobileBottomNav() {
               href={item.href}
               prefetch
               className={cn(
-                'relative flex min-h-[3.5rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-colors duration-100',
-                isActive ? 'bg-primary/[0.07]' : 'hover:bg-muted/70',
+                'relative flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 transition-colors duration-100',
+                isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
               aria-label={item.label}
               aria-current={isCurrent ? 'page' : undefined}
             >
-              {isActive && (
-                <span className="absolute top-1 h-1 w-6 rounded-full bg-primary" aria-hidden="true" />
-              )}
-              <span className={cn('flex h-8 w-10 items-center justify-center rounded-xl transition-colors', isActive ? 'text-primary' : 'text-muted-foreground')}>
-                <Icon className="h-[21px] w-[21px]" strokeWidth={isActive ? 2.25 : 1.9} />
+              <span className={cn('flex h-9 w-10 items-center justify-center transition-colors', isActive ? 'text-foreground' : 'text-muted-foreground')}>
+                <Icon className="h-[23px] w-[23px]" strokeWidth={isActive ? 2.6 : 1.8} fill={isActive && item.href === '/' ? 'currentColor' : 'none'} />
               </span>
-              <span className={cn('max-w-full truncate text-[11px] font-semibold leading-none transition-colors', isActive ? 'text-primary' : 'text-muted-foreground')}>
-                {item.label}
-              </span>
+              <span className="sr-only">{item.label}</span>
             </Link>
           );
         })}

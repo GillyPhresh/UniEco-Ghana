@@ -84,7 +84,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#10b981',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#10b981' },
+    { media: '(prefers-color-scheme: dark)', color: '#090f19' },
+  ],
 };
 
 const organizationId = `${siteConfig.url}/#organization`;
@@ -134,7 +137,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
+        className={`${inter.variable} mobile-viewport-safe font-sans pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>

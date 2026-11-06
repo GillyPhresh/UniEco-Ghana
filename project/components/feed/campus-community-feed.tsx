@@ -121,7 +121,6 @@ function formatFeedTimestamp(value: string) {
 
 export function CampusCommunityFeed() {
   const { user } = useAuth();
-  const [scope, setScope] = useState<Scope>('all');
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [socialByPost, setSocialByPost] = useState<Record<string, CommunitySocialState>>({});
   const [loading, setLoading] = useState(true);
@@ -140,7 +139,11 @@ export function CampusCommunityFeed() {
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [reporting, setReporting] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const pullDistanceRef = useRef(0);
   const cursorRef = useRef<{ created_at: string; id: string } | null>(null);
   const requestRef = useRef(0);
   const hasMoreRef = useRef(false);
@@ -149,6 +152,7 @@ export function CampusCommunityFeed() {
 
   const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
   const hasUniversity = Boolean(user?.profile?.university_id);
+  const scope: Scope = hasUniversity ? 'university' : 'all';
   const feedCacheKey = `unieco:community-feed:v1:${user?.id ?? 'guest'}:${scope}:${user?.profile?.university_id ?? 'none'}`;
 
   useEffect(() => {
@@ -274,6 +278,36 @@ export function CampusCommunityFeed() {
     }
   };
 
+  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (viewportRef.current?.scrollTop === 0) touchStartYRef.current = event.touches[0]?.clientY ?? null;
+    else touchStartYRef.current = null;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
+    const startY = touchStartYRef.current;
+    if (startY === null || viewportRef.current?.scrollTop !== 0 || refreshing) return;
+    const distance = event.touches[0].clientY - startY;
+    const nextDistance = Math.max(0, Math.min(88, distance * 0.48));
+    pullDistanceRef.current = nextDistance;
+    setPullDistance(nextDistance);
+  };
+
+  const handleTouchEnd = () => {
+    touchStartYRef.current = null;
+    if (pullDistanceRef.current >= 54 && !loading) {
+      setRefreshing(true);
+      void loadPage(false).finally(() => setRefreshing(false));
+    }
+    pullDistanceRef.current = 0;
+    setPullDistance(0);
+  };
+
+  const handleTouchCancel = () => {
+    touchStartYRef.current = null;
+    pullDistanceRef.current = 0;
+    setPullDistance(0);
+  };
+
   const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); };
   const closePostDialog = (open: boolean) => { setPostOpen(open); if (!open && !uploading) resetPostForm(); };
 
@@ -366,17 +400,10 @@ export function CampusCommunityFeed() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#f0f2f5]">
-      <div className="sticky top-0 z-20 flex shrink-0 flex-col gap-2 border-b border-border/70 bg-background/95 px-3 py-2 backdrop-blur sm:min-h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-2 sm:px-6 sm:py-0">
-        <div className="flex min-w-0 items-center gap-1 rounded-full bg-slate-100 p-1 sm:bg-transparent sm:p-0" role="tablist" aria-label="Campus feed scope">
-          <button type="button" role="tab" aria-selected={scope === 'all'} onClick={() => setScope('all')} className={`min-h-10 min-w-0 flex-1 touch-manipulation rounded-full px-3 text-sm font-semibold transition-colors sm:flex-none sm:px-4 ${scope === 'all' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>Across Ghana</button>
-          <button type="button" role="tab" aria-selected={scope === 'university'} disabled={!hasUniversity} onClick={() => setScope('university')} title={!hasUniversity ? 'Add your university to your profile first' : undefined} className={`min-h-10 min-w-0 flex-1 touch-manipulation rounded-full px-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:flex-none sm:px-4 ${scope === 'university' ? 'bg-[#079b68] text-white shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>My university</button>
-        </div>
+    <div className="flex h-full min-h-0 flex-col bg-background">
+      <div className="sticky top-0 z-20 flex shrink-0 items-center justify-end gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur sm:min-h-14 sm:px-6 sm:py-0">
         <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:justify-end sm:gap-1.5">
           <div className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
-          <Button type="button" variant="ghost" onClick={() => void loadPage(false)} disabled={loading} aria-label="Refresh campus feed" className="min-h-10 min-w-10 touch-manipulation rounded-full px-3 text-muted-foreground">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} /><span className="sr-only">Refresh feed</span>
-          </Button>
           <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
           {user && <Link href="/community/saved" aria-label="Saved campus posts" className="inline-flex min-h-10 min-w-10 touch-manipulation items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
           </div>
@@ -397,19 +424,20 @@ export function CampusCommunityFeed() {
           <p className="max-w-xs text-xs leading-5 text-muted-foreground"><ShieldCheck className="mr-1 inline h-4 w-4 text-emerald-700" />Community posts are public. Share campus moments respectfully and avoid posting private details.</p>
         </aside>
 
-        <section className="relative min-h-0 bg-[#f0f2f5] lg:border-x lg:border-border/70" aria-label={scope === 'all' ? 'Posts from campuses across Ghana' : 'Posts from your university'}>
-          <div ref={viewportRef} onScroll={handleScroll} className="h-full min-h-0 overflow-y-auto overscroll-contain px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
+        <section className="relative min-h-0 bg-muted/40 lg:border-x lg:border-border/70" aria-label={hasUniversity ? 'Campus posts from your university' : 'Campus posts from Ghana'}>
+          <div ref={viewportRef} onScroll={handleScroll} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel} className="h-full min-h-0 overflow-y-auto overscroll-contain px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
+            {(pullDistance > 0 || refreshing) && <div className="flex items-center justify-center overflow-hidden text-muted-foreground" style={{ height: refreshing ? 44 : pullDistance }} aria-live="polite"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /><span className="sr-only">{refreshing ? 'Refreshing campus feed' : 'Pull down to refresh campus feed'}</span></div>}
             <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
-              <div className="border-y bg-white p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
+              <div className="border-y bg-card p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border border-emerald-100">
                     {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
                     <AvatarFallback className="bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</AvatarFallback>
                   </Avatar>
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-[#f0f2f5] px-4 text-left text-sm text-slate-600 transition hover:bg-slate-200">Share a campus moment…</button>
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-muted px-4 text-left text-sm text-muted-foreground transition hover:bg-muted/80">Share a campus moment…</button>
                 </div>
                 <div className="mt-3 flex items-center border-t pt-2">
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-800"><ImagePlus className="h-5 w-5 text-emerald-700" />Photo or video</button>
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition hover:bg-primary/5 hover:text-primary"><ImagePlus className="h-5 w-5 text-primary" />Photo or video</button>
                 </div>
               </div>
               {loading && posts.length === 0 ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
@@ -418,14 +446,14 @@ export function CampusCommunityFeed() {
                     : <>{(showingCachedPosts || loadError) && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status"><span>{loadError ? 'Connection unavailable. Showing recent posts saved on this device.' : 'Showing recent posts while we refresh the feed.'}</span>{loadError && <button type="button" onClick={() => void loadPage(false)} className="min-h-9 shrink-0 px-2 font-semibold underline underline-offset-2">Retry</button>}</div>}{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} onDelete={() => { const remaining = posts.filter((item) => item.id !== post.id); setPosts(remaining); setSocialByPost((current) => { const next = { ...current }; delete next[post.id]; return next; }); writeCachedFeed(feedCacheKey, remaining); if (activePostId === post.id) { setActivePostId(null); setPostOpen(false); } }} />)}
                       {loadingMore && <div className="flex min-h-20 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more posts…</div>}
                       {loadMoreError && <div className="rounded-2xl border bg-white p-5 text-center text-sm text-muted-foreground" role="status"><p>Couldn’t load the next posts. The posts already here are safe.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Try again</button></div>}
-                      {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground"><p>You’re all caught up.</p><button type="button" onClick={() => void loadPage(false)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Refresh the feed</button></div>}
+                      {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground">You’re all caught up.</div>}
                     </>}
             </div>
           </div>
         </section>
 
         <aside className="hidden flex-col gap-4 p-6 xl:flex">
-          <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"><MapPin className="h-5 w-5" /></div><h2 className="mt-4 font-bold text-slate-900">Your campus, your people</h2><p className="mt-2 text-sm leading-6 text-slate-600">Choose <span className="font-semibold">My university</span> to narrow the feed to your school. Your campus is taken from your UniEco profile.</p>{!hasUniversity && <Link href="/profile" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800">Add your university<ArrowUpRight className="h-4 w-4" /></Link>}</div>
+          <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"><MapPin className="h-5 w-5" /></div><h2 className="mt-4 font-bold text-slate-900">Your campus, your people</h2><p className="mt-2 text-sm leading-6 text-slate-600">{hasUniversity ? 'Your feed is automatically focused on your university. Change your campus anytime in your profile.' : 'Add your university to your profile and your feed will focus on the people and moments from your campus.'}</p>{!hasUniversity && <Link href="/profile" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800">Add your university<ArrowUpRight className="h-4 w-4" /></Link>}</div>
           <div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center gap-2 font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-700" />A safer campus feed</div><p className="mt-2 text-sm leading-6 text-slate-600">Every post is tied to an active UniEco account. Use the report control if something feels unsafe or inappropriate.</p></div>
           <Link href="/updates" className="flex min-h-12 items-center justify-between rounded-xl border bg-white px-4 text-sm font-semibold text-slate-800 transition hover:border-emerald-200 hover:text-emerald-800"><span>Official campus updates</span><ArrowUpRight className="h-4 w-4" /></Link>
         </aside>

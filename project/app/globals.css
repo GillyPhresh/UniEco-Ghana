@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     /* UniEco Ghana brand palette: campus green, Ghana gold, and confident ink. */
     --brand-green: 155 87% 28%;
     --brand-gold: 42 93% 52%;
@@ -64,6 +65,7 @@
   }
 
   .dark {
+    color-scheme: dark;
     --background: 222 47% 7%;
     --foreground: 210 40% 98%;
     --card: 222 44% 10%;
@@ -112,6 +114,23 @@
     --chart-5: 340 75% 55%;
   }
 }
+
+/* Several established screens use slate/white utility colors directly.
+   Keep those surfaces legible when the device switches to dark appearance. */
+.dark .bg-white { background-color: hsl(var(--card)) !important; }
+.dark .bg-slate-50,
+.dark .bg-slate-100,
+.dark .bg-\[\#f0f2f5\] { background-color: hsl(var(--background)) !important; }
+.dark .bg-slate-200 { background-color: hsl(var(--muted)) !important; }
+.dark .text-slate-950,
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 { color: hsl(var(--foreground)) !important; }
+.dark .text-slate-600,
+.dark .text-slate-500 { color: hsl(var(--muted-foreground)) !important; }
+.dark .border-slate-100,
+.dark .border-slate-200 { border-color: hsl(var(--border)) !important; }
+.dark .workspace-page { background-color: hsl(var(--background)); }
 
 @layer base {
   * {

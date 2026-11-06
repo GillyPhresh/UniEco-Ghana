@@ -10,8 +10,10 @@ test('homepage is a real community feed and keeps the university directory separ
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(page, /CampusCommunityFeed/);
   assert.doesNotMatch(page, /UniversitySection|FeaturedBusinesses|EventsPreview/);
-  assert.match(feed, /Across Ghana/);
-  assert.match(feed, /My university/);
+  assert.doesNotMatch(feed, /Across Ghana|My university|Refresh the feed/);
+  assert.match(feed, /const scope: Scope = hasUniversity \? 'university' : 'all'/);
+  assert.match(feed, /onTouchStart=\{handleTouchStart\} onTouchMove=\{handleTouchMove\} onTouchEnd=\{handleTouchEnd\}/);
+  assert.match(feed, /pullDistanceRef\.current >= 54/);
   assert.match(feed, /href="\/universities"/);
   assert.match(feed, /href="\/updates"/);
   assert.match(feed, /get_campus_community_feed/);

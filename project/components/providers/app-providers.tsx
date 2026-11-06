@@ -9,9 +9,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="light"
-      forcedTheme="light"
-      enableSystem={false}
+      storageKey="unieco-theme-mode"
+      defaultTheme="system"
+      enableSystem
       disableTransitionOnChange
     >
       <QueryProvider>

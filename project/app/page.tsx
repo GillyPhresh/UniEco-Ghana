@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <>
       <SiteHeader />
-      <main id="main-content" className="h-[calc(100dvh-4rem-4.25rem-env(safe-area-inset-bottom))] overflow-hidden lg:h-[calc(100dvh-4rem)]">
+      <main id="main-content" className="h-[calc(100dvh-4rem-3.75rem-env(safe-area-inset-bottom))] overflow-hidden lg:h-[calc(100dvh-4rem)]">
         <CampusCommunityFeed />
       </main>
     </>
