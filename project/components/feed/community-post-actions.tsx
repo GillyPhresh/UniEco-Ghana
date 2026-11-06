@@ -39,8 +39,8 @@ function requireMember(user: ReturnType<typeof useAuth>['user']) {
     window.location.assign(`/signin?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
     return false;
   }
-  if (!['student', 'student_vendor', 'external_vendor'].includes(user.role)) {
-    toast.error('An active student or vendor account is needed to interact with campus posts.');
+  if (!['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role)) {
+    toast.error('An active UniEco member account is needed to interact with campus posts.');
     return false;
   }
   return true;

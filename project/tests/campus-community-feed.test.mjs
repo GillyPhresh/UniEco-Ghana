@@ -125,7 +125,7 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.match(actions, /Share2/);
   assert.match(actions, /aria-pressed=\{state\.liked_by_me\}/);
   assert.match(actions, /aria-pressed=\{state\.bookmarked_by_me\}/);
-  assert.match(actions, /\['student', 'student_vendor', 'external_vendor'\]/);
+  assert.match(actions, /\['student', 'student_vendor', 'external_vendor', 'university_admin'\]/);
   assert.doesNotMatch(actions, /\.from\(['"]campus_community_(post_likes|post_bookmarks|follows|comments)['"]\)/);
 });
 

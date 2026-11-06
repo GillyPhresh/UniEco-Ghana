@@ -147,7 +147,7 @@ export function CampusCommunityFeed() {
   const loadingMoreRef = useRef(false);
   const pendingPostFocusRef = useRef<string | null>(null);
 
-  const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor'].includes(user.role));
+  const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
   const hasUniversity = Boolean(user?.profile?.university_id);
   const feedCacheKey = `unieco:community-feed:v1:${user?.id ?? 'guest'}:${scope}:${user?.profile?.university_id ?? 'none'}`;
 
@@ -279,7 +279,7 @@ export function CampusCommunityFeed() {
 
   const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!user || !canPost) { toast.error('Sign in with a student or vendor account to post.'); return; }
+    if (!user || !canPost) { toast.error('Sign in with an eligible UniEco account to post.'); return; }
     const trimmedCaption = caption.trim();
     if (!mediaFile && !trimmedCaption) {
       toast.error('Add a caption or attach a file before publishing.');

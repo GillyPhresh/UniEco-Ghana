@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { CampusMateExperience, type CampusMatePlace, type CampusMateUniversity } from '@/components/campus-mate/campus-mate-experience';
 import { getEventsByUniversity, getUniversities, getVendorsByUniversity } from '@/lib/data/public-queries';
+import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: 'Campus Mate — Find your way around campus',
@@ -17,11 +18,40 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+async function getPreferredUniversityId() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: role } = await supabase.rpc('current_app_role');
+  if (role === 'university_admin') {
+    const { data: score } = await supabase.rpc('get_my_university_admin_score', { p_university_id: null });
+    if (typeof score?.university_id === 'string') return score.university_id;
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('university_id')
+    .eq('id', user.id)
+    .maybeSingle();
+  if (typeof profile?.university_id === 'string') return profile.university_id;
+
+  const { data: student } = await supabase
+    .from('student_profiles')
+    .select('university_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  return typeof student?.university_id === 'string' ? student.university_id : null;
+}
+
 export default async function CampusMatePage({ searchParams }: CampusMatePageProps) {
   const params = searchParams ? await searchParams : {};
   const universities = await getUniversities();
   const requestedCampus = firstParam(params.campus)?.trim().toLowerCase();
-  const selectedUniversity = universities.find((university) => university.slug === requestedCampus) || universities[0];
+  const preferredUniversityId = requestedCampus ? null : await getPreferredUniversityId();
+  const selectedUniversity = universities.find((university) => university.slug === requestedCampus)
+    || universities.find((university) => university.id === preferredUniversityId)
+    || universities[0];
 
   if (!selectedUniversity) {
     return (
