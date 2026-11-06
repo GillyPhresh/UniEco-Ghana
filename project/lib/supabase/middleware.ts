@@ -44,6 +44,7 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
+  const isUniversityWorkspaceRoute = pathname === '/university-admin';
   // These are member areas. Anonymous visitors can still see the public
   // landing page, but every app link requires an authenticated account.
   const memberRoutePrefixes = [
@@ -79,7 +80,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  if (isAdminRoute) {
+  if (isAdminRoute || isUniversityWorkspaceRoute) {
     const copySessionCookies = (response: NextResponse) => {
       supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
       response.headers.set('Cache-Control', 'private, no-store, max-age=0');
@@ -135,14 +136,15 @@ export async function updateSession(request: NextRequest) {
       ));
       isPlatformStaff = permissionResults.some(result => !result.error && result.data === true);
     }
-    const isAssignedUniversityAdminRoute = role === 'university_admin' && (
-      pathname === '/admin' || pathname === '/admin/universities' || pathname === '/admin/orders' || pathname === '/admin/delivery' || pathname === '/admin/events' || pathname === '/admin/announcements' || pathname === '/admin/search'
-      || pathname === '/admin/businesses' || pathname === '/admin/verification/students' || pathname === '/admin/verification/vendors'
-      || pathname === '/admin/students'
-      || pathname === '/admin/university-admin'
-    );
+    if (!error && role === 'university_admin' && pathname === '/admin/university-admin') {
+      const workspaceUrl = request.nextUrl.clone();
+      workspaceUrl.pathname = '/university-admin';
+      workspaceUrl.search = request.nextUrl.search;
+      return copySessionCookies(NextResponse.redirect(workspaceUrl));
+    }
 
-    if (error || (!isPlatformStaff && !isAssignedUniversityAdminRoute)) {
+    const isAuthorizedUniversityWorkspace = isUniversityWorkspaceRoute && role === 'university_admin' && !error;
+    if (error || (isUniversityWorkspaceRoute ? !isAuthorizedUniversityWorkspace : !isPlatformStaff)) {
       return copySessionCookies(new NextResponse('Forbidden', { status: 403 }));
     }
 

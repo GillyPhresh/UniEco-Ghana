@@ -95,9 +95,9 @@ test('admin URL requests fail closed in middleware using the database-backed rol
   assert.match(middleware, /supabase\.rpc\('has_permission'/);
   assert.match(middleware, /pathname === '\/admin\/moderation'/);
   assert.match(middleware, /'can_review_verifications'/);
-  assert.match(middleware, /role === 'university_admin' && \(/);
-  assert.match(middleware, /pathname === '\/admin\/universities'/);
-  assert.match(middleware, /pathname === '\/admin\/announcements'/);
+  assert.match(middleware, /isUniversityWorkspaceRoute && role === 'university_admin'/);
+  assert.match(middleware, /role === 'university_admin' && pathname === '\/admin\/university-admin'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
   assert.match(middleware, /new NextResponse\('Forbidden', \{ status: 403 \}\)/);
   assert.match(middleware, /Cache-Control', 'private, no-store, max-age=0'/);
   assert.match(middleware, /X-Robots-Tag', 'noindex, nofollow, noarchive'/);
@@ -277,8 +277,8 @@ test('order monitoring is read-only, database-scoped, and cannot use browser exp
   assert.match(ordersPage, /useDeferredValue/);
   assert.match(ordersPage, /Unable to load orders/);
   assert.doesNotMatch(ordersPage, /exportToCsv|handleExport|Download/);
-  assert.match(middleware, /pathname === '\/admin\/universities' \|\| pathname === '\/admin\/orders'/);
-  assert.match(layout, /pathname === '\/admin\/universities' \|\| pathname === '\/admin\/orders'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.match(layout, /user\.role === 'super_admin'[\s\S]*user\.role === 'moderator'/);
 });
 
 test('delivery operations are read-only, paginated, tenant-scoped, and privacy-minimized', async () => {
@@ -296,7 +296,7 @@ test('delivery operations are read-only, paginated, tenant-scoped, and privacy-m
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.get_admin_delivery_operations/);
   assert.doesNotMatch(migration, /delivery_address|delivery_instructions|total_amount|buyer_email|fulfillment\.note/);
   assert.doesNotMatch(page, /\.insert\(|\.update\(|\.delete\(|vendor_transition_order|customer_confirm_order_handoff/);
-  assert.match(middleware, /pathname === '\/admin\/delivery'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
   assert.match(page, /No delivery operations match your filters/);
   assert.match(page, /Unable to load delivery operations/);
 });
@@ -430,8 +430,8 @@ test('university vendor verification uses tenant-scoped reads, decisions, and au
   assert.match(decision[0], /v_role = 'university_admin' AND NOT public\.can_manage_university\(v_vendor\.university_id\)/);
   assert.match(decision[0], /record_trusted_university_vendor_action/);
   assert.match(migration, /record_trusted_university_vendor_action\([\s\S]*current_app_role\(\) IS DISTINCT FROM 'university_admin'[\s\S]*can_manage_university\(p_university_id\)/);
-  assert.match(middleware, /pathname === '\/admin\/verification\/vendors'/);
-  assert.match(layout, /item\.href === '\/admin\/verification\/vendors'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.match(layout, /user\.role === 'super_admin'[\s\S]*user\.role === 'moderator'/);
   assert.match(page, /const canManageVendors = isSuperAdmin \|\| user\?\.role === 'university_admin'/);
   assert.match(page, /reason\.trim\(\)\.length < 10/);
   assert.match(dashboard, /href: '\/admin\/verification\/vendors'/);
@@ -610,8 +610,8 @@ test('active announcements require publication confirmation while database scope
   assert.match(client, /rpc\('get_admin_announcements'\)/);
   assert.doesNotMatch(client.match(/export async function getAdminAnnouncements\(\)[\s\S]*?\n}/)?.[0] || '', /\.from\('announcements'\)/);
   const adminLayout = await read('components/admin/admin-layout.tsx');
-  assert.match(adminLayout, /item\.href === '\/admin\/announcements'/);
-  assert.match(adminLayout, /pathname === '\/admin\/announcements'/);
+  assert.doesNotMatch(adminLayout, /isScopedUniversityAdmin/);
+  assert.doesNotMatch(adminLayout, /isScopedUniversityAdmin/);
   assert.match(client, /p_reason: data\.reason/);
   assert.doesNotMatch(page, /onClick=\{handleSave\}/);
 });
@@ -643,14 +643,14 @@ test('management search is permission-aware and excludes restricted content', as
   assert.match(searchPage, /searchManagementRecords\(normalized, page \* pageSize, pageSize\)/);
   assert.match(searchPage, /Next search results/);
   assert.match(searchPage, /No authorized records match this search/);
-  assert.match(middleware, /pathname === '\/admin\/search'/);
-  assert.match(adminLayout, /pathname === '\/admin\/search'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.doesNotMatch(adminLayout, /isScopedUniversityAdmin/);
   assert.match(adminLayout, /supabase\.rpc\('has_permission'/);
   assert.match(adminLayout, /moderatorPermissions\.has\('can_review_reports'\)/);
   assert.match(adminLayout, /moderatorPermissions\.has\('can_review_verifications'\)/);
   assert.match(adminLayout, /user\.role === 'super_admin'/);
-  assert.match(middleware, /pathname === '\/admin\/businesses'/);
-  assert.match(adminLayout, /href === '\/admin\/businesses'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.doesNotMatch(adminLayout, /isScopedUniversityAdmin/);
 });
 
 test('catalogue and event management search results remain tenant-scoped and privacy-minimized', async () => {
@@ -1108,7 +1108,7 @@ test('student verification reads omit private paths and documents use authorized
   assert.match(reviewer[0], /INSERT INTO public\.audit_logs/);
   assert.match(migration, /v_role <> 'university_admin'[\s\S]*can_manage_university\(COALESCE\(student\.university_id, profile\.university_id\)\)/);
   assert.match(migration, /Student verification is outside your university scope/);
-  assert.match(await read('lib/supabase/middleware.ts'), /pathname === '\/admin\/verification\/students'/);
+  assert.doesNotMatch(await read('lib/supabase/middleware.ts'), /isAssignedUniversityAdminRoute/);
   assert.match(signer, /caller\.auth\.getUser\(\)/);
   assert.match(signer, /authorize_student_verification_document_access/);
   assert.match(signer, /bucket_id !== 'student-documents'/);
@@ -1239,9 +1239,8 @@ test('student directory derives university scope and returns only minimized oper
   assert.match(page, /unresolved_support_tickets/);
   assert.match(page, /active_account_flags/);
   assert.match(page, /requestVersion/);
-  assert.match(middleware, /pathname === '\/admin\/students'/);
-  assert.match(layout, /pathname === '\/admin\/students'/);
-  assert.match(layout, /item\.href === '\/admin\/students'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.doesNotMatch(layout, /isScopedUniversityAdmin/);
 });
 
 test('university administrators receive a separate membership-scoped dashboard, never the platform summary', async () => {
@@ -1262,12 +1261,14 @@ test('university administrators receive a separate membership-scoped dashboard, 
   assert.doesNotMatch(summary[0], /payments|revenue|payment_providers|webhook_data|provider_reference/i);
   assert.match(migration, /REVOKE ALL ON FUNCTION public\.get_admin_university_control_center_summary[\s\S]*FROM PUBLIC, anon, authenticated, service_role/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.get_admin_university_control_center_summary\(integer\) TO authenticated/);
-  assert.match(dashboard, /user\?\.role === 'university_admin'[\s\S]*getAdminUniversityControlCenterSummary/);
+  const workspace = await read('app/university-admin/page.tsx');
+  assert.match(workspace, /UniversityAdminWorkspaceContent/);
   assert.match(dashboard, /user\?\.role === 'super_admin'[\s\S]*getAdminControlCenterSummary/);
   assert.match(dashboard, /University Overview/);
   assert.match(client, /rpc\('get_admin_university_control_center_summary'/);
-  assert.match(middleware, /pathname === '\/admin'[\s\S]*pathname === '\/admin\/universities'/);
-  assert.match(layout, /pathname === '\/admin'[\s\S]*pathname === '\/admin\/universities'/);
+  assert.match(middleware, /isUniversityWorkspaceRoute && role === 'university_admin'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.doesNotMatch(layout, /isScopedUniversityAdmin/);
   assert.match(layout, /item\.href === '\/admin'/);
 });
 

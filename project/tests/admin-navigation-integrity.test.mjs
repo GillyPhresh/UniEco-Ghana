@@ -18,11 +18,15 @@ test('every management navigation destination resolves to a page', () => {
   }
 });
 
-test('university administrators can reach their private workspace through the server guard', () => {
+test('university administrators have a separate member workspace, not management-console routes', () => {
   const middleware = read('lib/supabase/middleware.ts');
   const layout = read('components/admin/admin-layout.tsx');
-  assert.match(middleware, /pathname === '\/admin\/university-admin'/);
-  assert.match(layout, /item\.href === '\/admin\/university-admin'/);
+  const workspace = read('app/university-admin/page.tsx');
+  assert.match(middleware, /isUniversityWorkspaceRoute && role === 'university_admin'/);
+  assert.match(middleware, /role === 'university_admin' && pathname === '\/admin\/university-admin'/);
+  assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
+  assert.doesNotMatch(layout, /isScopedUniversityAdmin/);
+  assert.match(workspace, /UniversityAdminWorkspaceContent/);
 });
 
 test('user search waits for an explicit mobile-friendly search submission', () => {

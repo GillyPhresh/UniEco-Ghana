@@ -181,7 +181,7 @@ function ApplyContent() {
             <Button className="min-h-11 w-full sm:w-auto" onClick={() => void submit()} disabled={submitting}>{submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}{submitting ? 'Submitting…' : 'Submit application'}</Button>
           </CardContent></Card>}
         </>}
-        <p className="text-center text-xs text-muted-foreground">Already appointed? <Link href="/admin/university-admin" className="font-semibold text-primary hover:underline">Open your administrator workspace</Link></p>
+        <p className="text-center text-xs text-muted-foreground">Already appointed? <Link href="/university-admin" className="font-semibold text-primary hover:underline">Open your administrator workspace</Link></p>
       </div>
     </main>
     <SiteFooter />

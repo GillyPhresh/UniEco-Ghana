@@ -83,7 +83,6 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const isScopedUniversityAdmin = user.role === 'university_admin';
   const moderatorPath = pathname === '/admin/moderation'
     || pathname === '/admin/community-posts'
     || pathname === '/admin/events'
@@ -95,13 +94,7 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
     || pathname === '/admin/reviews'
     || pathname === '/admin/communication';
   const canAccessRoute = user.role === 'super_admin'
-    || (user.role === 'moderator' && (moderatorPath || pathname === '/admin'))
-    || (isScopedUniversityAdmin && (
-      pathname === '/admin' || pathname === '/admin/universities' || pathname === '/admin/orders' || pathname === '/admin/delivery' || pathname === '/admin/events' || pathname === '/admin/announcements' || pathname === '/admin/search'
-      || pathname === '/admin/businesses' || pathname === '/admin/verification/students' || pathname === '/admin/verification/vendors'
-      || pathname === '/admin/students'
-      || pathname === '/admin/university-admin'
-    ));
+    || (user.role === 'moderator' && (moderatorPath || pathname === '/admin'));
 
   if (!canAccessRoute) {
     return (
@@ -171,11 +164,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, [user?.role]);
 
-  const navGroups = user?.role === 'university_admin'
-    ? ADMIN_NAV_GROUPS
-        .map(group => ({ ...group, items: group.items.filter(item => item.href === '/admin' || item.href === '/admin/university-admin' || item.href === '/admin/universities' || item.href === '/admin/orders' || item.href === '/admin/delivery' || item.href === '/admin/events' || item.href === '/admin/announcements' || item.href === '/admin/search' || item.href === '/admin/businesses' || item.href === '/admin/verification/students' || item.href === '/admin/verification/vendors' || item.href === '/admin/students') }))
-        .filter(group => group.items.length > 0)
-    : user?.role === 'moderator'
+  const navGroups = user?.role === 'moderator'
       ? ADMIN_NAV_GROUPS
         .map(group => ({ ...group, items: group.items.filter(item =>
           (item.href === '/admin' && moderatorPermissions.size > 0)
