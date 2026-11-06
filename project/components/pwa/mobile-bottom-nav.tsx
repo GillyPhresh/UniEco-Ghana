@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { CalendarDays, Home, MapPinned, ShoppingCart, Package, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -18,11 +17,6 @@ const NAV_ITEMS = [
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
-  const [pendingHref, setPendingHref] = useState<string | null>(null);
-
-  useEffect(() => {
-    setPendingHref(null);
-  }, [pathname]);
 
   // Don't show on admin or vendor dashboard — they have their own layouts
   if (
@@ -62,23 +56,19 @@ export function MobileBottomNav() {
           const isCurrent =
             pathname === item.href ||
             (item.href !== '/' && pathname.startsWith(item.href));
-          const isActive = isCurrent || pendingHref === item.href;
+          const isActive = isCurrent;
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch
-              onClick={() => {
-                if (!isCurrent) setPendingHref(item.href);
-              }}
               className={cn(
-                'relative flex min-h-[3.5rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 transition-colors active:scale-[0.97]',
+                'relative flex min-h-[3.5rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1 transition-colors duration-100',
                 isActive ? 'bg-primary/[0.07]' : 'hover:bg-muted/70',
               )}
               aria-label={item.label}
               aria-current={isCurrent ? 'page' : undefined}
-              aria-busy={pendingHref === item.href || undefined}
             >
               {isActive && (
                 <span className="absolute top-1 h-1 w-6 rounded-full bg-primary" aria-hidden="true" />

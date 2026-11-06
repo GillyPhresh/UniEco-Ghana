@@ -43,7 +43,7 @@ export function UniversitySection({ universities, vendorCounts }: UniversitySect
             <Reveal key={uni.id} delay={i * 0.08}>
               <Link
                 href={`/university/${uni.slug}`}
-                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md active:scale-[0.995]"
+                className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md"
               >
                 <div className="relative h-28 overflow-hidden sm:h-32">
                   <UniversityMedia

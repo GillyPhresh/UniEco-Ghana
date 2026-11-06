@@ -450,7 +450,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
                   key={item.query}
                   type="button"
                   onClick={() => { setSearchQuery(item.query); setActiveFilter('all'); void searchGooglePlaces(item.query); }}
-                  className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-xs font-bold text-slate-700 transition active:scale-[0.98] hover:border-primary/50 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                  className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-xs font-bold text-slate-700 transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 >
                   <span className="text-base" aria-hidden="true">{item.emoji}</span>
                   <span className="truncate">{item.label}</span>

@@ -146,7 +146,7 @@ export default function MarketplacePage() {
             <button
               onClick={() => setActiveCategory(null)}
               aria-pressed={!activeCategory}
-              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors active:scale-[0.98] ${
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors ${
                 !activeCategory ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
               }`}
             >
@@ -157,7 +157,7 @@ export default function MarketplacePage() {
               key={cat}
               onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
               aria-pressed={activeCategory === cat}
-              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors active:scale-[0.98] ${
+              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors ${
                 activeCategory === cat ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
               }`}
             >

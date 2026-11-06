@@ -112,8 +112,8 @@ export function SiteHeader() {
 
         <nav className="hidden flex-1 items-stretch justify-center gap-0.5 xl:flex" aria-label="Primary">
           {networkLinks.map(({ href, label, icon: Icon }) => (
-            <Link key={href} href={href} className="group flex min-w-[4rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary">
-              <Icon className="h-[18px] w-[18px] transition-transform group-hover:-translate-y-0.5" />
+            <Link key={href} href={href} className="flex min-w-[4rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors duration-100 hover:bg-muted">
+              <Icon className="h-[18px] w-[18px]" />
               <span>{label}</span>
             </Link>
           ))}
@@ -124,7 +124,7 @@ export function SiteHeader() {
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : user ? (
             <>
-              <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-primary md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
+              <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors duration-100 hover:bg-muted md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
               <div className="flex items-center gap-0 sm:gap-1">
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
                 <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unreadNotifs} />
@@ -239,7 +239,7 @@ export function SiteHeader() {
 
 function HeaderIconLink({ href, label, icon: Icon, count = 0 }: { href: string; label: string; icon: typeof Bell; count?: number }) {
   return (
-    <Link href={href} className="relative flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-primary" aria-label={label}>
+    <Link href={href} className="relative flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-muted-foreground transition-colors duration-100 hover:bg-muted" aria-label={label}>
       <Icon className="h-[18px] w-[18px]" />
       {count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{count > 99 ? '99+' : count}</span>}
     </Link>
