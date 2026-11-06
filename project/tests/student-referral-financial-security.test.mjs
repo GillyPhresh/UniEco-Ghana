@@ -73,3 +73,27 @@ test('referral migration preserves role helper and separates read summary from s
   assert.match(migration, /Referral payouts are not enabled yet/);
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.try_qualify_student_referral/);
 });
+
+test('Paystack transfer approval only approves an exact, claimed live UniEco reward', async () => {
+  const [route, migration, worker] = await Promise.all([
+    read('app/api/paystack/transfer-approval/[token]/route.ts'),
+    read('supabase/migrations/20261106100000_0182_paystack_transfer_approval_guard.sql'),
+    read('app/api/internal/referral-payouts/route.ts'),
+  ]);
+  assert.match(route, /PAYSTACK_TRANSFER_APPROVAL_TOKEN/);
+  assert.match(route, /timingSafeEqual/);
+  assert.match(route, /AbortSignal\.timeout\(1800\)/);
+  assert.match(route, /UNIECO_REFERRAL_PAYOUTS_ENABLED !== 'true'/);
+  assert.match(route, /body\.source !== 'balance'/);
+  assert.match(route, /body\.reason !== 'UniEco Ghana referral reward'/);
+  assert.match(route, /is_referral_payout_approval_valid/);
+  assert.match(route, /return response\(400\)/);
+  assert.match(migration, /auth\.role\(\) IS DISTINCT FROM 'service_role'/);
+  assert.match(migration, /p\.status = 'processing'/);
+  assert.match(migration, /p\.environment = 'live'/);
+  assert.match(migration, /p\.amount = p_amount_pesewas::numeric \/ 100/);
+  assert.match(migration, /p\.recipient_code = p_recipient_code/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.is_referral_payout_approval_valid\(text,bigint,text,text\) TO service_role/);
+  assert.match(worker, /reason: 'UniEco Ghana referral reward'/);
+  assert.match(worker, /source: 'balance', amount, currency: 'GHS', recipient, reference: payout\.reference/);
+});
