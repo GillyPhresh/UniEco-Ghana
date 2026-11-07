@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -40,6 +40,7 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 
 function ServiceDetailContent({ serviceId }: { serviceId: string }) {
   const { user } = useAuth();
+  const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [service, setService] = useState<Service | null>(null);
   const [vendor, setVendor] = useState<{ id: string; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean } | null>(null);
@@ -48,49 +49,75 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
   const [inWishlist, setInWishlist] = useState(false);
   const [booking, setBooking] = useState(false);
   const [bookingForm, setBookingForm] = useState({ date: '', time: '', notes: '' });
+  const loadRequestId = useRef(0);
+
+  const loadService = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    setLoading(true);
+    try {
+      const s = await getServiceById(serviceId);
+      if (requestId !== loadRequestId.current) return;
+      if (!s) {
+        setService(null);
+        setVendor(null);
+        setRelated([]);
+        setReviews([]);
+        return;
+      }
+      setService(s);
+      trackAnalyticsEvent({ event_type: 'service_view', subject_type: 'service', subject_id: s.id });
+
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified)')
+        .eq('id', s.business_id)
+        .maybeSingle();
+      if (requestId !== loadRequestId.current) return;
+      const v = business?.vendor
+        ? ((Array.isArray(business.vendor) ? business.vendor[0] : business.vendor) as typeof vendor)
+        : null;
+      setVendor(v);
+
+      const [rel, reviewResult] = await Promise.all([
+        getRelatedServices(s.business_id, s.id, 4),
+        v
+          ? supabase
+              .from('reviews')
+              .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
+              .eq('vendor_id', v.id)
+              .eq('is_approved', true)
+              .order('created_at', { ascending: false })
+              .limit(5)
+          : Promise.resolve({ data: [] as Review[] }),
+      ]);
+      if (requestId !== loadRequestId.current) return;
+      setRelated(rel);
+      setReviews(reviewResult.data || []);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        toast.error('Could not load this service. Please try again.');
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false);
+    }
+  }, [serviceId]);
 
   useEffect(() => {
     loadService();
-  }, [serviceId]);
+    return () => {
+      loadRequestId.current += 1;
+    };
+  }, [loadService]);
 
-  async function loadService() {
-    setLoading(true);
-    const s = await getServiceById(serviceId);
-    if (!s) { setLoading(false); return; }
-    setService(s);
-    trackAnalyticsEvent({ event_type: 'service_view', subject_type: 'service', subject_id: s.id });
-
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified)')
-      .eq('id', s.business_id)
-      .maybeSingle();
-
-    if (business?.vendor) {
-      const v = (Array.isArray(business.vendor) ? business.vendor[0] : business.vendor) as typeof vendor;
-      if (v) setVendor(v);
-    }
-
-    const rel = await getRelatedServices(s.business_id, s.id, 4);
-    setRelated(rel);
-
-    const { data: revs } = await supabase
-      .from('reviews')
-      .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
-      .eq('vendor_id', vendor?.id || '')
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    setReviews(revs || []);
-
-    if (user) {
-      const inWish = await isInWishlist('service', s.id);
-      setInWishlist(inWish);
-    }
-
-    setLoading(false);
-  }
+  useEffect(() => {
+    let active = true;
+    setInWishlist(false);
+    if (!userId) return () => { active = false; };
+    isInWishlist('service', serviceId)
+      .then((saved) => { if (active) setInWishlist(saved); })
+      .catch(() => { if (active) setInWishlist(false); });
+    return () => { active = false; };
+  }, [serviceId, userId]);
 
   const handleBook = async () => {
     if (!user) { toast.error('Please sign in to book a service'); return; }

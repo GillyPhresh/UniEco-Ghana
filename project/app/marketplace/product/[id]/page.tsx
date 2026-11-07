@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -38,6 +38,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
 function ProductDetailContent({ productId }: { productId: string }) {
   const { user } = useAuth();
+  const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
   const [vendor, setVendor] = useState<{ id: string; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean; delivery_available: boolean } | null>(null);
@@ -47,53 +48,73 @@ function ProductDetailContent({ productId }: { productId: string }) {
   const [inWishlist, setInWishlist] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const loadRequestId = useRef(0);
+
+  const loadProduct = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    setLoading(true);
+    try {
+      const p = await getProductById(productId);
+      if (requestId !== loadRequestId.current) return;
+      if (!p) {
+        setProduct(null);
+        setVendor(null);
+        setSimilar([]);
+        setReviews([]);
+        return;
+      }
+      setProduct(p);
+      trackAnalyticsEvent({ event_type: 'product_view', subject_type: 'product', subject_id: p.id });
+
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified, delivery_available)')
+        .eq('id', p.business_id)
+        .maybeSingle();
+      if (requestId !== loadRequestId.current) return;
+      const v = business?.vendor
+        ? ((Array.isArray(business.vendor) ? business.vendor[0] : business.vendor) as typeof vendor)
+        : null;
+      setVendor(v);
+
+      const [sim, reviewResult] = await Promise.all([
+        getSimilarProducts(p.id, p.business_id, 4),
+        supabase
+          .from('reviews')
+          .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
+          .eq('product_id', p.id)
+          .eq('is_approved', true)
+          .order('created_at', { ascending: false })
+          .limit(5),
+      ]);
+      if (requestId !== loadRequestId.current) return;
+      setSimilar(sim);
+      setReviews(reviewResult.data || []);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        toast.error('Could not load this product. Please try again.');
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false);
+    }
+  }, [productId]);
 
   useEffect(() => {
     loadProduct();
-  }, [productId]);
+    return () => {
+      loadRequestId.current += 1;
+    };
+  }, [loadProduct]);
 
-  async function loadProduct() {
-    setLoading(true);
-    const p = await getProductById(productId);
-    if (!p) { setLoading(false); return; }
-    setProduct(p);
-    trackAnalyticsEvent({ event_type: 'product_view', subject_type: 'product', subject_id: p.id });
-
-    // Load vendor
-    const { data: business } = await supabase
-      .from('businesses')
-      .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified, delivery_available)')
-      .eq('id', p.business_id)
-      .maybeSingle();
-
-    if (business?.vendor) {
-      const v = (Array.isArray(business.vendor) ? business.vendor[0] : business.vendor) as typeof vendor;
-      if (v) setVendor(v);
-    }
-
-    // Load similar products
-    const sim = await getSimilarProducts(p.id, p.business_id, 4);
-    setSimilar(sim);
-
-    // Load reviews
-    const { data: revs } = await supabase
-      .from('reviews')
-      .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
-      .eq('product_id', p.id)
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    setReviews(revs || []);
-
-    // Check wishlist
-    if (user) {
-      const inWish = await isInWishlist('product', p.id);
-      setInWishlist(inWish);
-    }
-
-    setLoading(false);
-  }
+  useEffect(() => {
+    let active = true;
+    setInWishlist(false);
+    if (!userId) return () => { active = false; };
+    isInWishlist('product', productId)
+      .then((saved) => { if (active) setInWishlist(saved); })
+      .catch(() => { if (active) setInWishlist(false); });
+    return () => { active = false; };
+  }, [productId, userId]);
 
   const handleAddToCart = async () => {
     if (!user) { toast.error('Please sign in to add items to your cart'); return; }
