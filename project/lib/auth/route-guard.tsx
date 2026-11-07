@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Fragment, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import type { UserRole } from '@/lib/types';
@@ -61,5 +61,5 @@ export function RouteGuard({
     );
   }
 
-  return <>{children}</>;
+  return <Fragment key={`${user?.id ?? 'anonymous'}:${user?.role ?? 'none'}`}>{children}</Fragment>;
 }
