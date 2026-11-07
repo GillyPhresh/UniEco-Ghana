@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { readBoundedJson, boundedBodyErrorResponse } from '../_shared/bounded-json.ts';
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type' };
 const URL_TTL_SECONDS = 300;
@@ -13,7 +14,14 @@ Deno.serve(async (request) => {
   if (request.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405, headers: corsHeaders });
   const authorization = request.headers.get('Authorization');
   if (!authorization) return Response.json({ error: 'Authentication required' }, { status: 401, headers: corsHeaders });
-  const { documentId } = await request.json().catch(() => ({}));
+  let body: Record<string, unknown>;
+  try {
+    body = await readBoundedJson(request, 4 * 1024);
+  } catch (error) {
+    const boundedError = boundedBodyErrorResponse(error, corsHeaders);
+    return boundedError || Response.json({ error: 'Invalid request body' }, { status: 400, headers: corsHeaders });
+  }
+  const { documentId } = body;
   if (typeof documentId !== 'string') return Response.json({ error: 'documentId is required' }, { status: 400, headers: corsHeaders });
   const url = Deno.env.get('SUPABASE_URL')!;
   const anon = Deno.env.get('SUPABASE_ANON_KEY')!;

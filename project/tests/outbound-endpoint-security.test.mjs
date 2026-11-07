@@ -68,6 +68,8 @@ test('internal outbound Edge Functions bound and validate provider payloads befo
   const sms = read('supabase/functions/send-sms/index.ts');
   const whatsapp = read('supabase/functions/send-whatsapp/index.ts');
   const dispatcher = read('supabase/functions/dispatch-communication-queue/index.ts');
+  const studentDocument = read('supabase/functions/get-student-verification-document-url/index.ts');
+  const vendorDocument = read('supabase/functions/get-verification-document-url/index.ts');
   assert.match(helper, /content-length/);
   assert.match(helper, /reader\.cancel\(\)/);
   assert.match(helper, /status: tooLarge \? 413 : 400/);
@@ -78,5 +80,7 @@ test('internal outbound Edge Functions bound and validate provider payloads befo
   assert.match(whatsapp, /readBoundedJson\(req, 32 \* 1024\)/);
   assert.match(whatsapp, /templateKey\.length > 2000/);
   assert.match(dispatcher, /readBoundedJson\(req, 1024\)/);
-  for (const source of [email, sms, whatsapp, dispatcher]) assert.doesNotMatch(source, /await req\.json\(\)/);
+  assert.match(studentDocument, /readBoundedJson\(request, 4 \* 1024\)/);
+  assert.match(vendorDocument, /readBoundedJson\(request, 4 \* 1024\)/);
+  for (const source of [email, sms, whatsapp, dispatcher, studentDocument, vendorDocument]) assert.doesNotMatch(source, /await (?:req|request)\.json\(\)/);
 });

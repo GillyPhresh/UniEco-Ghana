@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { readBoundedJson, boundedBodyErrorResponse } from '../_shared/bounded-json.ts';
 
 const URL_TTL_SECONDS = 300;
 const corsHeaders = {
@@ -28,11 +29,12 @@ Deno.serve(async (request) => {
   const authorization = request.headers.get('Authorization');
   if (!authorization?.match(/^Bearer\s+\S+$/i)) return response({ error: 'Authentication required' }, 401);
 
-  let body: { studentProfileId?: unknown };
+  let body: Record<string, unknown>;
   try {
-    body = await request.json();
-  } catch {
-    return response({ error: 'Invalid request body' }, 400);
+    body = await readBoundedJson(request, 4 * 1024);
+  } catch (error) {
+    const boundedError = boundedBodyErrorResponse(error, corsHeaders);
+    return boundedError || response({ error: 'Invalid request body' }, 400);
   }
   if (typeof body.studentProfileId !== 'string' || !/^[0-9a-f-]{36}$/i.test(body.studentProfileId)) {
     return response({ error: 'Invalid student profile' }, 400);

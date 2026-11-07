@@ -30,7 +30,7 @@ test('private verification signing authenticates then authorizes before service 
   assert.match(signer, /object_path\.startsWith\(`\$\{authorizedDocument\.owner_id\}\/`\)/);
   assert.match(signer, /createSignedUrl\(authorizedDocument\.object_path, URL_TTL_SECONDS\)/);
   assert.match(signer, /const URL_TTL_SECONDS = 300/);
-  assert.match(signer, /const \{ documentId \} = await request\.json\(\)\.catch/);
+  assert.match(signer, /readBoundedJson\(request, 4 \* 1024\)/);
   assert.doesNotMatch(signer, /const \{[^}]*?(?:bucket|objectPath|vendorId|requestId)[^}]*?\} = await request\.json/);
 });
 
