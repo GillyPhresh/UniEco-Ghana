@@ -7,10 +7,10 @@ SET LOCAL search_path = extensions, public;
 
 SELECT plan(29);
 
-INSERT INTO public.universities(id, name, short_name, slug, is_enabled)
+INSERT INTO public.universities(id, name, official_name, short_name, slug, is_enabled)
 VALUES
-  ('e1000000-0000-4000-8000-000000000001', 'Management Tenant Test A', 'MT-A', 'management-tenant-test-a', true),
-  ('e1000000-0000-4000-8000-000000000002', 'Management Tenant Test B', 'MT-B', 'management-tenant-test-b', true);
+  ('e1000000-0000-4000-8000-000000000001', 'Management Tenant Test A', 'Management Tenant Test University A', 'MT-A', 'management-tenant-test-a', true),
+  ('e1000000-0000-4000-8000-000000000002', 'Management Tenant Test B', 'Management Tenant Test University B', 'MT-B', 'management-tenant-test-b', true);
 
 -- The Supabase auth trigger creates student profiles. This test promotes only
 -- the two scoped test accounts and assigns one active membership per tenant.
