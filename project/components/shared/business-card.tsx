@@ -34,6 +34,8 @@ export function BusinessCard({ vendor }: BusinessCardProps) {
           <img
             src={vendor.logo_url}
             alt={vendor.business_name}
+            loading="lazy"
+            decoding="async"
             className="h-full w-full object-cover"
           />
         ) : (

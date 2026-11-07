@@ -46,7 +46,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/marketplace/product/${product.id}`} className="block rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary" aria-label={`View ${product.name}`}>
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
-            <img src={image} alt={product.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+            <img src={image} alt={product.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground/40">
               <ImageIcon className="h-8 w-8" />
@@ -114,7 +114,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
       <Card className="group h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
-            <img src={image} alt={service.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+            <img src={image} alt={service.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground/40">
               <Wrench className="h-8 w-8" />
