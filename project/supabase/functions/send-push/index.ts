@@ -11,6 +11,40 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+const MAX_REQUEST_BYTES = 64 * 1024;
+
+async function readBoundedJson(req: Request): Promise<Record<string, unknown>> {
+  const contentLength = Number(req.headers.get("content-length"));
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) throw new RangeError("Request body too large");
+  if (!req.body) throw new SyntaxError("Request body is empty");
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_REQUEST_BYTES) {
+        await reader.cancel();
+        throw new RangeError("Request body too large");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new SyntaxError("Expected a JSON object");
+  return value as Record<string, unknown>;
+}
+
 function normalizeVapidKey(value: string | undefined, expectedBytes: number, publicKey = false): string | null {
   if (!value) return null;
   let key = value.trim().replace(/^['"`]|['"`]$/g, '');
@@ -63,9 +97,19 @@ Deno.serve(async (req: Request) => {
   if (!outboundProvidersEnabled()) return providersDisabledResponse();
 
   try {
-    const { recipientId, title, body, actionUrl, eventType, eventId } = await req.json();
+    const input = await readBoundedJson(req);
+    const recipientId = typeof input.recipientId === "string" ? input.recipientId : "";
+    const title = typeof input.title === "string" ? input.title.trim() : "";
+    const body = typeof input.body === "string" ? input.body : "";
+    const actionUrl = typeof input.actionUrl === "string" ? input.actionUrl : undefined;
+    const eventType = typeof input.eventType === "string" ? input.eventType : undefined;
+    const eventId = typeof input.eventId === "string" ? input.eventId : undefined;
 
-    if (!recipientId || !title || !body) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(recipientId)
+      || !title || title.length > 120 || !body.trim() || body.length > 4000
+      || (actionUrl !== undefined && actionUrl.length > 2048)
+      || (eventType !== undefined && eventType.length > 120)
+      || (eventId !== undefined && eventId.length > 120)) {
       return new Response(JSON.stringify({ error: "Missing required fields: recipientId, title, body" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -170,6 +214,16 @@ Deno.serve(async (req: Request) => {
       failedCount,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
+    if (err instanceof RangeError) {
+      return new Response(JSON.stringify({ error: "Request body is too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (err instanceof SyntaxError) {
+      return new Response(JSON.stringify({ error: "Invalid JSON request body" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     console.error("Push send error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

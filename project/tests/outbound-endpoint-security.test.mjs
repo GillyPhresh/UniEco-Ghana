@@ -22,6 +22,11 @@ test('push endpoints are restricted to known browser push providers at storage a
   assert.match(subscriptionRoute, /isAllowedPushEndpoint\(endpoint\)/);
   assert.match(sender, /isAllowedPushEndpoint\(sub\.endpoint\)/);
   assert.match(sender, /is_active: false/);
+  assert.match(sender, /MAX_REQUEST_BYTES = 64 \* 1024/);
+  assert.match(sender, /reader\.cancel\(\)/);
+  assert.match(sender, /status: 413/);
+  assert.match(sender, /title\.length > 120/);
+  assert.match(sender, /body\.length > 4000/);
   assert.match(migration, /ADD CONSTRAINT push_subscriptions_endpoint_provider_check/);
   assert.match(migration, /NOT VALID/);
   assert.match(migration, /updates\[\.\]push\[\.\]services\[\.\]mozilla/);
