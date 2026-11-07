@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -47,24 +47,37 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [confirmingHandoff, setConfirmingHandoff] = useState(false);
+  const loadRequestId = useRef(0);
+
+  const loadOrder = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    setLoading(true);
+    try {
+      const [o, h, m] = await Promise.all([
+        getOrderById(orderId),
+        getOrderStatusHistory(orderId),
+        getOrderMessages(orderId),
+      ]);
+      if (requestId !== loadRequestId.current) return;
+      setOrder(o);
+      setHistory(h);
+      setMessages(m);
+      if (user) await markOrderMessagesRead(orderId);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        toast.error('Could not load this order. Please try again.');
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false);
+    }
+  }, [orderId, user]);
 
   useEffect(() => {
     loadOrder();
-  }, [orderId]);
-
-  async function loadOrder() {
-    setLoading(true);
-    const [o, h, m] = await Promise.all([
-      getOrderById(orderId),
-      getOrderStatusHistory(orderId),
-      getOrderMessages(orderId),
-    ]);
-    setOrder(o);
-    setHistory(h);
-    setMessages(m);
-    if (user) await markOrderMessagesRead(orderId);
-    setLoading(false);
-  }
+    return () => {
+      loadRequestId.current += 1;
+    };
+  }, [loadOrder]);
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) { toast.error('Please provide a reason'); return; }

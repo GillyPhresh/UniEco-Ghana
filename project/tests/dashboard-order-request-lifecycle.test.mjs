@@ -24,3 +24,11 @@ test('customer orders refetch on filter changes and discard out-of-order respons
   assert.match(orders, /requestVersion\.current !== version/);
   assert.match(orders, /return \(\) => \{ requestVersion\.current \+= 1; \}/);
 });
+
+test('order detail reloads for identity changes and ignores stale route responses', () => {
+  const orderDetail = read('app/orders/[id]/page.tsx');
+  assert.match(orderDetail, /const loadOrder = useCallback/);
+  assert.match(orderDetail, /\}, \[orderId, user\]\);/);
+  assert.match(orderDetail, /requestId !== loadRequestId\.current/);
+  assert.match(orderDetail, /return \(\) => \{\s*loadRequestId\.current \+= 1;/);
+});
