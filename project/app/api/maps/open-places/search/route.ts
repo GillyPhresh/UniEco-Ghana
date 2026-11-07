@@ -68,6 +68,19 @@ const CATEGORY_LABELS: Record<string, string> = {
 const geocodeCache = new Map<string, { expiresAt: number; result: { latitude: number; longitude: number; address: string; approximate: boolean } }>();
 const placesCache = new Map<string, { expiresAt: number; places: Array<Record<string, unknown>> }>();
 let lastNominatimRequestAt = 0;
+let nominatimQueue: Promise<void> = Promise.resolve();
+let activeSearches = 0;
+const maxCacheEntries = 500;
+const maxConcurrentSearches = 12;
+
+function setBoundedCache<T>(cache: Map<string, T>, key: string, value: T) {
+  cache.delete(key);
+  if (cache.size >= maxCacheEntries) {
+    const oldestKey = cache.keys().next().value;
+    if (oldestKey !== undefined) cache.delete(oldestKey);
+  }
+  cache.set(key, value);
+}
 
 function safeText(value: unknown, fallback = '') {
   return typeof value === 'string' ? value.trim().slice(0, 240) : fallback;
@@ -93,10 +106,14 @@ function categoryKey(query: string) {
   return normalized;
 }
 
-async function waitForNominatimWindow() {
-  const waitMs = 1000 - (Date.now() - lastNominatimRequestAt);
-  if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
-  lastNominatimRequestAt = Date.now();
+function waitForNominatimWindow() {
+  const slot = nominatimQueue.then(async () => {
+    const waitMs = 1000 - (Date.now() - lastNominatimRequestAt);
+    if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+    lastNominatimRequestAt = Date.now();
+  });
+  nominatimQueue = slot.catch(() => undefined);
+  return slot;
 }
 
 async function geocodeCampus(campus: string) {
@@ -134,7 +151,7 @@ async function geocodeCampus(campus: string) {
       address: safeText(results[0]?.display_name, queries[index]),
       approximate: index > 0,
     };
-    geocodeCache.set(cacheKey, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, result });
+    setBoundedCache(geocodeCache, cacheKey, { expiresAt: Date.now() + 24 * 60 * 60 * 1000, result });
     return result;
   }
 
@@ -235,7 +252,7 @@ async function searchNominatimPlaces(latitude: number, longitude: number, query:
   if (!response.ok) throw new Error(`OpenStreetMap search returned ${response.status}.`);
   const results = await response.json() as NominatimPlace[];
   const places = results.map((place) => mapNominatimPlace(place, query)).filter(Boolean).slice(0, 20) as Array<Record<string, unknown>>;
-  placesCache.set(cacheKey, { expiresAt: Date.now() + 15 * 60 * 1000, places });
+  setBoundedCache(placesCache, cacheKey, { expiresAt: Date.now() + 15 * 60 * 1000, places });
   return places;
 }
 
@@ -260,7 +277,7 @@ async function searchOverpass(latitude: number, longitude: number, query: string
       }
       const result = await response.json() as { elements?: OverpassElement[] };
       const places = (result.elements || []).map((element) => mapElement(element, query)).filter(Boolean).slice(0, 30) as Array<Record<string, unknown>>;
-      placesCache.set(cacheKey, { expiresAt: Date.now() + 15 * 60 * 1000, places });
+      setBoundedCache(placesCache, cacheKey, { expiresAt: Date.now() + 15 * 60 * 1000, places });
       return places;
     } catch (error) {
       lastError = error;
@@ -274,7 +291,14 @@ export async function GET(request: NextRequest) {
   const campus = safeText(request.nextUrl.searchParams.get('campus'));
   if (query.length < 2) return NextResponse.json({ error: 'Enter at least two characters to search campus places.' }, { status: 400 });
   if (campus.length < 2) return NextResponse.json({ error: 'Choose a campus before searching places.' }, { status: 400 });
+  if (activeSearches >= maxConcurrentSearches) {
+    return NextResponse.json({ error: 'Campus place search is busy. Please retry shortly.' }, {
+      status: 429,
+      headers: { 'Cache-Control': 'no-store', 'Retry-After': '3' },
+    });
+  }
 
+  activeSearches++;
   try {
     const location = await geocodeCampus(campus);
     let places: Array<Record<string, unknown>> = [];
@@ -293,5 +317,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'OpenStreetMap place search is temporarily unavailable.' }, { status: 502 });
+  } finally {
+    activeSearches--;
   }
 }

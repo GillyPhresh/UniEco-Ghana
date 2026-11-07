@@ -12,7 +12,7 @@ export function isAllowedPushEndpoint(value: unknown): value is string {
     const endpoint = new URL(value);
     const hostname = endpoint.hostname.toLowerCase();
     const knownProvider = EXACT_PUSH_HOSTS.has(hostname)
-      || hostname.endsWith('.notify.windows.com');
+      || (hostname !== 'notify.windows.com' && hostname.endsWith('.notify.windows.com'));
 
     return endpoint.protocol === 'https:'
       && !endpoint.username

@@ -10,6 +10,7 @@ test('push endpoints are restricted to known browser push providers at storage a
   const validator = read('lib/notifications/push-endpoint.ts');
   const subscriptionRoute = read('app/api/notifications/push-subscription/route.ts');
   const sender = read('supabase/functions/send-push/index.ts');
+  const migration = read('supabase/migrations/20261107140000_0187_push_subscription_endpoint_constraints.sql');
 
   for (const host of ['fcm.googleapis.com', 'updates.push.services.mozilla.com', 'web.push.apple.com']) {
     assert.ok(validator.includes(`'${host}'`), `expected provider allowlist to include ${host}`);
@@ -21,6 +22,9 @@ test('push endpoints are restricted to known browser push providers at storage a
   assert.match(subscriptionRoute, /isAllowedPushEndpoint\(endpoint\)/);
   assert.match(sender, /isAllowedPushEndpoint\(sub\.endpoint\)/);
   assert.match(sender, /is_active: false/);
+  assert.match(migration, /ADD CONSTRAINT push_subscriptions_endpoint_provider_check/);
+  assert.match(migration, /NOT VALID/);
+  assert.match(migration, /updates\[\.\]push\[\.\]services\[\.\]mozilla/);
 });
 
 test('Google Places billing proxy authenticates users, bounds input, and times out upstream calls', () => {
@@ -32,6 +36,18 @@ test('Google Places billing proxy authenticates users, bounds input, and times o
   assert.match(route, /longitude < -180 \|\| longitude > 180/);
   assert.match(route, /AbortSignal\.timeout\(8000\)/);
   assert.match(route, /Cache-Control': 'no-store'/);
+});
+
+test('OpenStreetMap proxy serializes provider requests, bounds cache growth, and caps concurrent work', () => {
+  const route = read('app/api/maps/open-places/search/route.ts');
+  assert.match(route, /let nominatimQueue: Promise<void> = Promise\.resolve\(\)/);
+  assert.match(route, /nominatimQueue = slot\.catch/);
+  assert.match(route, /maxCacheEntries = 500/);
+  assert.match(route, /setBoundedCache\(geocodeCache/);
+  assert.match(route, /setBoundedCache\(placesCache/);
+  assert.match(route, /maxConcurrentSearches = 12/);
+  assert.match(route, /status: 429/);
+  assert.match(route, /finally \{\s*activeSearches--/);
 });
 
 test('Railway Docker builds install exactly the committed dependency lockfile', () => {
