@@ -32,6 +32,17 @@ test('the sitemap advertises useful public pages and omits account/search URLs',
   assert.doesNotMatch(sitemap, /\/signin|\/signup|\/search/);
 });
 
+test('anonymous visitors can crawl public discovery pages while account workspaces stay protected', () => {
+  const middleware = read('lib/supabase/middleware.ts');
+  const memberRoutes = middleware.match(/const memberRoutePrefixes = \[([\s\S]*?)\];/)?.[1] ?? '';
+  for (const route of ['/business', '/categories', '/discover', '/events', '/marketplace', '/universities', '/university']) {
+    assert.ok(!memberRoutes.includes(`'${route}'`), `${route} should be publicly crawlable`);
+  }
+  for (const route of ['/dashboard', '/orders', '/profile', '/vendor-dashboard']) {
+    assert.ok(memberRoutes.includes(`'${route}'`), `${route} should remain protected`);
+  }
+});
+
 test('product and service listings receive route-specific metadata and structured data', () => {
   const product = read('app/marketplace/product/[id]/layout.tsx');
   const service = read('app/marketplace/service/[id]/layout.tsx');

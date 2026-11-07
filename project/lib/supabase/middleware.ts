@@ -52,13 +52,13 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname.replace(/\/+$/, '') || '/';
   const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isUniversityWorkspaceRoute = pathname === '/university-admin';
-  // These are member areas. Anonymous visitors can still see the public
-  // landing page, but every app link requires an authenticated account.
+  // Keep account workspaces private, but let search engines and signed-out
+  // visitors browse public discovery pages and listing details.
   const memberRoutePrefixes = [
-    '/business', '/campus-mate', '/cart', '/categories', '/checkout',
-    '/dashboard', '/discover', '/events', '/marketplace', '/messages', '/notifications',
+    '/campus-mate', '/cart', '/checkout',
+    '/dashboard', '/messages', '/notifications',
     '/orders', '/payment-history', '/profile', '/referrals', '/saved',
-    '/search', '/start-business', '/universities', '/university',
+    '/start-business',
     '/payments', '/vendor-dashboard', '/wishlist',
   ];
   const paymentProtectedPrefixes = [
