@@ -6,6 +6,7 @@ import test from 'node:test';
 const project = path.resolve(import.meta.dirname, '..');
 const read = (relative) => fs.readFileSync(path.join(project, relative), 'utf8');
 const migration = read('supabase/migrations/20261101170000_0174_moderated_campus_feed.sql');
+const expansion = read('supabase/migrations/20261107100000_0185_expand_campus_feed_school_sources.sql');
 const ingest = read('app/api/internal/campus-feed/ingest/route.ts');
 const admin = read('app/api/admin/campus-feed/route.ts');
 const publicPage = read('components/feed/campus-updates.tsx');
@@ -15,9 +16,14 @@ test('feed ingestion has a long secret, constant-time auth and bounded request',
   assert.match(ingest, /UNIECO_FEED_INGEST_TOKEN/);
   assert.match(ingest, /timingSafeEqual/);
   assert.match(ingest, /maxBodyBytes/);
-  assert.match(ingest, /sourceIds/);
+  assert.match(ingest, /source_id.*\[a-z0-9-\]/);
+  assert.match(ingest, /export async function GET\(request: Request\)/);
+  assert.match(ingest, /\.from\('campus_feed_sources'\)/);
   assert.match(ingest, /supabase\.rpc\('ingest_campus_feed_items'/);
   assert.doesNotMatch(ingest, /NEXT_PUBLIC_.*SERVICE_ROLE/);
+  assert.match(expansion, /university\.is_enabled/);
+  assert.match(expansion, /university\.website_url/);
+  assert.match(expansion, /ON CONFLICT \(id\) DO NOTHING/);
 });
 
 test('database exposes only approved public fields and keeps review RPC super-admin-only', () => {

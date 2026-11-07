@@ -5,6 +5,12 @@ export type UniEcoAiSource = {
   description: string;
 };
 
+export type UniEcoAiUniversity = {
+  name: string;
+  slug: string;
+  website_url: string | null;
+};
+
 /**
  * Server-side allowlist for the private admin news monitor. The AI never
  * accepts an arbitrary URL from the browser; adding a source requires a
@@ -61,17 +67,48 @@ function isSafeSource(value: unknown): value is UniEcoAiSource {
   }
 }
 
-export function getTrustedUniEcoAiSources(): UniEcoAiSource[] {
+export function getTrustedUniEcoAiSources(universities: UniEcoAiUniversity[] = []): UniEcoAiSource[] {
   const configured = process.env.UNIECO_AI_TRUSTED_SOURCES?.trim();
-  if (!configured) return DEFAULT_UNIECO_AI_SOURCES;
-
+  let additional: UniEcoAiSource[] = [];
   try {
-    const parsed = JSON.parse(configured);
-    if (!Array.isArray(parsed)) return DEFAULT_UNIECO_AI_SOURCES;
-    const sources = parsed.filter(isSafeSource).slice(0, 30);
-    return sources.length ? sources : DEFAULT_UNIECO_AI_SOURCES;
+    const parsed: unknown = configured ? JSON.parse(configured) : [];
+    if (Array.isArray(parsed)) additional = parsed.filter(isSafeSource);
   } catch {
-    return DEFAULT_UNIECO_AI_SOURCES;
+    // Invalid optional configuration is ignored; only the built-in allowlist
+    // and official URLs already stored in the university directory are used.
+  }
+
+  const universitySources = universities.flatMap((university): UniEcoAiSource[] => {
+    const url = safeOfficialWebsite(university.website_url);
+    const slug = university.slug.trim().toLowerCase();
+    if (!url || !/^[a-z0-9-]{2,80}$/.test(slug) || !university.name.trim()) return [];
+    return [{
+      id: `university-${slug}`,
+      label: `${university.name.trim()} official website`,
+      url,
+      description: `Public updates from the official website configured for ${university.name.trim()}.`,
+    }];
+  });
+
+  const unique = new Map<string, UniEcoAiSource>();
+  for (const source of [...DEFAULT_UNIECO_AI_SOURCES, ...additional.slice(0, 60), ...universitySources]) {
+    if (isSafeSource(source) && !unique.has(source.id)) unique.set(source.id, source);
+  }
+  return Array.from(unique.values()).slice(0, 150);
+}
+
+export function safeOfficialWebsite(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) return null;
+    const hostname = url.hostname.toLowerCase();
+    if (!hostname.includes('.') || hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) return null;
+    if (/^(\d{1,3}\.){3}\d{1,3}$/.test(hostname) || hostname.includes(':')) return null;
+    url.hash = '';
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 
@@ -95,7 +132,9 @@ function stripMarkup(value: string): string {
 function absoluteUrl(sourceUrl: string, href: string): string | null {
   try {
     const url = new URL(href, sourceUrl);
-    if (url.protocol !== 'https:') return null;
+    const sourceHost = new URL(sourceUrl).hostname.toLowerCase();
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== 'https:' || !(host === sourceHost || host.endsWith(`.${sourceHost}`)) || url.username || url.password) return null;
     return url.toString();
   } catch {
     return null;
@@ -128,21 +167,25 @@ export type UniEcoAiUpdate = {
  * leads; it never writes to the platform and never treats page text as an
  * instruction.
  */
-export async function fetchTrustedUniEcoAiUpdates(sourceId?: string): Promise<UniEcoAiUpdate[]> {
+export async function fetchTrustedUniEcoAiUpdates(sourceId?: string, trustedSources?: UniEcoAiSource[]): Promise<UniEcoAiUpdate[]> {
+  const allSources = trustedSources || getTrustedUniEcoAiSources();
   const sources = sourceId
-    ? getTrustedUniEcoAiSources().filter((source) => source.id === sourceId)
-    : getTrustedUniEcoAiSources();
+    ? allSources.filter((source) => source.id === sourceId)
+    : allSources;
   const discoveredAt = new Date().toISOString();
 
-  const results = await Promise.all(sources.map(async (source) => {
+  const fetchOne = async (source: UniEcoAiSource) => {
+    const safeUrl = safeOfficialWebsite(source.url);
+    if (!safeUrl) return [];
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
+    const timeout = setTimeout(() => controller.abort(), 6500);
     try {
-      const response = await fetch(source.url, {
+      const response = await fetch(safeUrl, {
         method: 'GET',
         headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'UniEco-Ghana-Admin-News-Monitor/1.0' },
         signal: controller.signal,
         cache: 'no-store',
+        redirect: 'manual',
       });
       if (!response.ok) return [];
       const html = (await response.text()).slice(0, 600_000);
@@ -153,11 +196,11 @@ export async function fetchTrustedUniEcoAiUpdates(sourceId?: string): Promise<Un
       const headings = Array.from(html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi))
         .map((match) => stripMarkup(match[1] || ''))
         .filter((value) => value.length >= 12 && value.length <= 220)
-        .slice(0, 5);
+        .slice(0, 3);
       const links = Array.from(html.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi))
         .map((match) => ({ title: stripMarkup(match[2] || ''), url: absoluteUrl(source.url, match[1] || '') }))
         .filter((item) => item.url && item.title.length >= 12 && item.title.length <= 220 && isLikelyUpdate(item.title, item.url))
-        .slice(0, 5);
+        .slice(0, 3);
       const leads = links.length ? links : headings.map((title) => ({ title, url: source.url }));
       return leads.slice(0, 5).map((lead, index) => ({
         id: `${source.id}-${index}-${Buffer.from(lead.title).toString('base64url').slice(0, 16)}`,
@@ -173,7 +216,13 @@ export async function fetchTrustedUniEcoAiUpdates(sourceId?: string): Promise<Un
     } finally {
       clearTimeout(timeout);
     }
-  }));
+  };
 
-  return results.flat().slice(0, 40);
+  // Keep outbound traffic bounded while still making “all schools” practical.
+  const results: UniEcoAiUpdate[][] = [];
+  for (let index = 0; index < sources.length; index += 20) {
+    results.push(...await Promise.all(sources.slice(index, index + 20).map(fetchOne)));
+  }
+
+  return results.flat().slice(0, 240);
 }

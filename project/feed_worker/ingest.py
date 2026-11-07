@@ -8,17 +8,19 @@ full articles/media, and it cannot approve or publish content.
 from __future__ import annotations
 
 import argparse
+from html.parser import HTMLParser
 import hashlib
 import html
 import json
 import os
 import re
+import random
 import sys
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from html.parser import HTMLParser
@@ -30,7 +32,7 @@ MAX_FEED_BYTES = 2 * 1024 * 1024
 MAX_ITEMS_PER_SOURCE = 25
 MAX_BATCH_ITEMS = 80
 MAX_AGE_DAYS = 365
-REQUEST_TIMEOUT = 12
+REQUEST_TIMEOUT = 6
 USER_AGENT = "UniEcoGhanaCampusFeed/1.0 (+https://www.uniecoghana.com/updates)"
 CATEGORY_RULES = (
     ("events", re.compile(r"\b(event|ceremony|festival|conference|workshop|webinar|lecture|exhibition)\b", re.I)),
@@ -43,13 +45,51 @@ TRACKING_KEYS = {"fbclid", "gclid", "dclid", "mc_cid", "mc_eid"}
 
 
 def load_sources() -> list[dict[str, str]]:
-    sources = json.loads((HERE / "sources.json").read_text(encoding="utf-8"))
-    if not isinstance(sources, list) or not sources:
+    token = os.environ.get("UNIECO_FEED_INGEST_TOKEN", "").strip()
+    if token:
+        sources = fetch_configured_sources(token)
+    else:
+        # Local development without credentials stays limited to the checked-in
+        # sample list; production uses the authenticated database allowlist.
+        sources = json.loads((HERE / "sources.json").read_text(encoding="utf-8"))
+    if not isinstance(sources, list) or not sources or len(sources) > 120:
         raise ValueError("No trusted feed sources are configured")
     for source in sources:
+        if not isinstance(source, dict) or any(not isinstance(source.get(key), str) or not source[key].strip()
+                                               for key in ("id", "label", "university_name", "feed_url", "source_domain")):
+            raise ValueError("Trusted source entry is incomplete")
+        if not re.fullmatch(r"[a-z0-9-]{2,48}", source["id"]):
+            raise ValueError("Trusted source id is invalid")
         parsed = urllib.parse.urlsplit(source["feed_url"])
-        if parsed.scheme != "https" or not host_allowed(parsed.hostname or "", source["source_domain"]):
+        if (parsed.scheme != "https" or parsed.username or parsed.password or parsed.port not in (None, 443)
+                or not host_allowed(parsed.hostname or "", source["source_domain"])):
             raise ValueError(f"Unsafe configured feed URL for {source.get('id', 'unknown source')}")
+    return sources
+
+
+def sources_url() -> str:
+    value = os.environ.get("UNIECO_FEED_INGEST_URL", "https://www.uniecoghana.com/api/internal/campus-feed/ingest").strip()
+    parsed = urllib.parse.urlsplit(value)
+    allowed = {"www.uniecoghana.com", "uniecoghana.com"}
+    if parsed.scheme != "https" or parsed.hostname not in allowed or parsed.path != "/api/internal/campus-feed/ingest" or parsed.query or parsed.fragment:
+        raise ValueError("Source directory URL must be the UniEco Ghana HTTPS endpoint")
+    return value
+
+
+def fetch_configured_sources(token: str) -> list[dict[str, str]]:
+    request = urllib.request.Request(sources_url(), headers={
+        "Accept": "application/json", "Authorization": f"Bearer {token}", "User-Agent": USER_AGENT,
+    })
+    with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+        if response.status != 200:
+            raise RuntimeError(f"Trusted source directory returned HTTP {response.status}")
+        payload = response.read(256 * 1024 + 1)
+    if len(payload) > 256 * 1024:
+        raise ValueError("Trusted source directory exceeded the size limit")
+    parsed = json.loads(payload.decode("utf-8"))
+    sources = parsed.get("sources") if isinstance(parsed, dict) else None
+    if not isinstance(sources, list) or not sources or len(sources) > 120:
+        raise ValueError("Trusted source directory returned an invalid source list")
     return sources
 
 
@@ -76,24 +116,66 @@ class SameSourceRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def fetch_feed(source: dict[str, str]) -> bytes:
-    url = urllib.parse.urlsplit(source["feed_url"])
-    if url.scheme != "https" or url.username or url.password or url.port not in (None, 443):
-        raise ValueError("Feed URL must use HTTPS on the standard port")
-    opener = urllib.request.build_opener(SameSourceRedirect(source["source_domain"]))
-    request = urllib.request.Request(source["feed_url"], headers={
-        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9",
-        "User-Agent": USER_AGENT,
-    })
-    with opener.open(request, timeout=REQUEST_TIMEOUT) as response:
-        final = urllib.parse.urlsplit(response.geturl())
-        if final.scheme != "https" or not host_allowed(final.hostname or "", source["source_domain"]):
-            raise ValueError("Feed response left the trusted HTTPS source")
-        data = response.read(MAX_FEED_BYTES + 1)
-    if len(data) > MAX_FEED_BYTES:
-        raise ValueError("Feed exceeded the 2 MiB safety limit")
-    if re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
-        raise ValueError("DTD and entity declarations are not accepted")
-    return data
+    def fetch_url(value: str) -> bytes:
+        url = urllib.parse.urlsplit(value)
+        if url.scheme != "https" or url.username or url.password or url.port not in (None, 443) or not host_allowed(url.hostname or "", source["source_domain"]):
+            raise ValueError("Feed URL must remain on its trusted HTTPS source")
+        opener = urllib.request.build_opener(SameSourceRedirect(source["source_domain"]))
+        request = urllib.request.Request(value, headers={
+            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, text/html;q=0.8",
+            "User-Agent": USER_AGENT,
+        })
+        with opener.open(request, timeout=REQUEST_TIMEOUT) as response:
+            final = urllib.parse.urlsplit(response.geturl())
+            if final.scheme != "https" or not host_allowed(final.hostname or "", source["source_domain"]):
+                raise ValueError("Feed response left the trusted HTTPS source")
+            data = response.read(MAX_FEED_BYTES + 1)
+        if len(data) > MAX_FEED_BYTES:
+            raise ValueError("Feed exceeded the 2 MiB safety limit")
+        if re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
+            raise ValueError("DTD and entity declarations are not accepted")
+        return data
+
+    initial = fetch_url(source["feed_url"])
+    if is_feed_document(initial):
+        return initial
+
+    parser = AdvertisedFeedParser()
+    parser.feed(initial[:600_000].decode("utf-8", errors="replace"))
+    for candidate in parser.urls[:3]:
+        try:
+            data = fetch_url(urllib.parse.urljoin(source["feed_url"], candidate))
+            if is_feed_document(data):
+                return data
+        except (OSError, ValueError, urllib.error.URLError):
+            continue
+    raise ValueError("No same-domain RSS or Atom feed was advertised by this official website")
+
+
+class AdvertisedFeedParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.urls: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "link":
+            return
+        values = {key.lower(): (value or "") for key, value in attrs}
+        rel = {part.lower() for part in values.get("rel", "").split()}
+        content_type = values.get("type", "").lower()
+        href = values.get("href", "").strip()
+        if "alternate" not in rel or not href:
+            return
+        if any(token in content_type for token in ("rss", "atom", "xml")) or re.search(r"/(feed|rss|atom)(\.xml)?/?(?:\?|$)", href, re.I):
+            if href not in self.urls:
+                self.urls.append(href)
+
+
+def is_feed_document(data: bytes) -> bool:
+    sample = data[:4096].lstrip(b"\xef\xbb\xbf\x00\t\r\n ").lower()
+    return not re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I) and bool(
+        re.search(br"<(rss|feed|rdf:rdf)(?:\s|>)", sample)
+    )
 
 
 class ContentExtractor(HTMLParser):
@@ -274,6 +356,18 @@ def ingest_url() -> str:
     return value
 
 
+def balanced_batch(source_items: list[list[dict[str, Any]]], limit: int = MAX_BATCH_ITEMS) -> list[dict[str, Any]]:
+    """Take a round-robin sample so a few busy schools cannot crowd out others."""
+    output: list[dict[str, Any]] = []
+    for item_index in range(MAX_ITEMS_PER_SOURCE):
+        for items in source_items:
+            if item_index < len(items):
+                output.append(items[item_index])
+                if len(output) >= limit:
+                    return output
+    return output
+
+
 def send_items(items: list[dict[str, Any]], token: str, url: str) -> dict[str, Any]:
     payload = json.dumps({"items": items}, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     if len(payload) > 160 * 1024:
@@ -303,18 +397,24 @@ def main() -> int:
             sources = [source for source in sources if source["id"] == args.source]
             if not sources:
                 raise ValueError("Unknown source id")
-        all_items: list[dict[str, Any]] = []
-        failures = 0
-        for source in sources:
+        def collect(source: dict[str, str]) -> tuple[dict[str, str], list[dict[str, Any]], Exception | None]:
             try:
-                items = parse_feed(source, fetch_feed(source))
-                all_items.extend(items)
-                print(f"{source['label']}: {len(items)} candidate(s)")
+                return source, parse_feed(source, fetch_feed(source)), None
             except (OSError, ValueError, ET.ParseError, urllib.error.URLError) as error:
-                failures += 1
+                return source, [], error
+
+        with ThreadPoolExecutor(max_workers=10) as pool:
+            outcomes = list(pool.map(collect, sources))
+        failures = sum(error is not None for _, _, error in outcomes)
+        for source, items, error in outcomes:
+            if error:
                 print(f"{source['label']}: fetch unavailable ({type(error).__name__})", file=sys.stderr)
-            time.sleep(0.25)
-        all_items = all_items[:MAX_BATCH_ITEMS]
+            else:
+                print(f"{source['label']}: {len(items)} candidate(s)")
+
+        successful = [items for _, items, error in outcomes if error is None and items]
+        random.Random(datetime.now(timezone.utc).strftime("%Y-%j-%H")).shuffle(successful)
+        all_items = balanced_batch(successful)
         print(f"Candidates: {len(all_items)}; sources unavailable: {failures}")
         if args.dry_run:
             for item in all_items:

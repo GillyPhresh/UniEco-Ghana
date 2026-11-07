@@ -5,6 +5,8 @@ UniEco Intelligence is a private, super-admin-only operations workspace at `/adm
 It can:
 
 - scan the server-side allowlist of official public university and UniEco pages;
+- scan enabled university-directory HTTPS websites in bounded batches;
+- optionally search the live public web for an individual admin-chat message when explicitly enabled in the UI;
 - return reviewable update leads with source links;
 - answer operational questions using aggregate system-health context;
 - prepare a draft broadcast that remains in Broadcasts for human review.
@@ -13,7 +15,7 @@ It cannot publish, send, delete, refund, change roles, change authentication, or
 
 ## Campus Updates feed
 
-The public `/updates` page is a separately moderated campus-news feed. A small standard-library Python worker in `feed_worker/` reads the fixed official RSS/Atom sources in `feed_worker/sources.json` and submits bounded headlines, excerpts and same-publisher media URLs to the internal ingest API. Only a super administrator may approve or reject an item in the review panel at `/admin/ai`; approving publishes it to Campus Updates but does not send a push, email or broadcast.
+The public `/updates` page is a separately moderated campus-news feed. A small standard-library Python worker in `feed_worker/` uses its four checked-in sample feeds for local work without credentials. In production, it loads enabled official sources from the authenticated internal API and discovers only RSS/Atom feeds advertised by those HTTPS websites. The migration `20261107100000_0185_expand_campus_feed_school_sources.sql` adds configured enabled university websites to that source list. Institutions without a configured official website or advertised feed are skipped rather than guessed. The worker submits bounded headlines, excerpts and same-publisher media URLs for human review. Only a super administrator may approve or reject an item in the review panel at `/admin/ai`; approving publishes it to Campus Updates but does not send a push, email or broadcast.
 
 Content is treated as untrusted data. The worker rejects unsafe redirects, non-HTTPS URLs, cross-domain links, entity declarations and oversized XML. The public page shows only approved fields, attributes each item, links to the institution's original page and does not autoplay video. Feed outages are skipped rather than replaced with invented content.
 
@@ -26,6 +28,8 @@ The feature works in safe fallback mode without an AI provider. For richer analy
 - `UNIECO_AI_API_KEY` — preferred secret name; `OPENAI_API_KEY` is accepted for compatibility.
 - `UNIECO_AI_MODEL` — model name supported by the configured provider.
 - `UNIECO_AI_BASE_URL` — optional OpenAI-compatible API base URL; defaults to `https://api.openai.com/v1`.
-- `UNIECO_AI_TRUSTED_SOURCES` — optional JSON array of `{id,label,url,description}` objects. Only HTTPS URLs are accepted and the list is capped at 30 sources.
+- `UNIECO_AI_TRUSTED_SOURCES` — optional JSON array of `{id,label,url,description}` objects. Only HTTPS URLs are accepted. These are combined with built-in sources and enabled university websites (up to 150 total).
+
+Live worldwide search is available only with the official OpenAI API base URL and only when the super administrator checks “Search the live web for this chat”. It is an interactive answer feature, not an automatic public-content source. OpenAI bills its web-search tool separately from model tokens; check current [API pricing](https://openai.com/api/pricing/) before frequent use. Search citations are returned as links and results remain untrusted until reviewed. No student-facing post or broadcast is published automatically.
 
 Never put any of these values in `NEXT_PUBLIC_*` variables. Rotate the key through the hosting provider if it is exposed.

@@ -6,7 +6,6 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const noStore = { 'Cache-Control': 'no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' };
-const sourceIds = new Set(['university-of-ghana', 'knust', 'accra-technical-university', 'academic-city']);
 const categories = new Set(['news', 'events', 'opportunities', 'research', 'notices', 'campus_life']);
 const maxBodyBytes = 160 * 1024;
 
@@ -64,7 +63,7 @@ function validateItems(value: unknown): Record<string, unknown>[] | null {
   for (const raw of value.items) {
     if (!isRecord(raw)) return null;
     const { source_id, source_item_key, title, excerpt, canonical_url, published_at, media_url, media_type, category } = raw;
-    if (typeof source_id !== 'string' || !sourceIds.has(source_id)
+    if (typeof source_id !== 'string' || !/^[a-z0-9-]{2,48}$/.test(source_id)
       || typeof source_item_key !== 'string' || !/^[a-f0-9]{64}$/.test(source_item_key)
       || typeof title !== 'string' || title.trim().length < 8 || title.length > 220
       || typeof excerpt !== 'string' || excerpt.length > 600
@@ -98,4 +97,20 @@ export async function POST(request: Request) {
   if (error) return json({ error: 'Feed batch could not be queued for review.' }, 503);
   const result = isRecord(data) ? data : {};
   return json({ accepted: Number(result.accepted) || 0, ignored: Number(result.ignored) || 0, status: 'pending_review' });
+}
+
+export async function GET(request: Request) {
+  if (!tokenMatches(request)) return json({ error: 'Feed source access is not authorized.' }, 401);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) return json({ error: 'Feed ingestion is not configured.' }, 503);
+  const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await supabase
+    .from('campus_feed_sources')
+    .select('id, label, university_name, website_url, feed_url, source_domain')
+    .eq('enabled', true)
+    .order('label')
+    .limit(120);
+  if (error) return json({ error: 'Trusted feed sources could not be loaded.' }, 503);
+  return json({ sources: data || [] });
 }

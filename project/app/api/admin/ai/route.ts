@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { askUniEcoAi, createUniEcoAiDraft, isUniEcoAiConfigured, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
-import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources } from '@/lib/ai/trusted-sources';
+import { askUniEcoAi, createUniEcoAiDraft, isUniEcoAiConfigured, isUniEcoAiWebSearchAvailable, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
+import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+export const maxDuration = 60;
 
 function privateJson(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -26,11 +27,26 @@ async function requireSuperAdmin() {
 export async function GET() {
   const auth = await requireSuperAdmin();
   if (auth.error) return auth.error;
+  const { data: universities, error: directoryError, count } = await auth.supabase
+    .from('universities')
+    .select('name, slug, website_url', { count: 'exact' })
+    .eq('is_enabled', true)
+    .order('name')
+    .limit(200);
+  const directory = (universities || []) as UniEcoAiUniversity[];
+  const sources = getTrustedUniEcoAiSources(directory);
+  const covered = new Set(sources.filter((source) => source.id.startsWith('university-')).map((source) => source.id));
   return privateJson({
     configured: isUniEcoAiConfigured(),
+    webSearchAvailable: isUniEcoAiWebSearchAvailable(),
     mode: isUniEcoAiConfigured() ? 'configured' : 'safe-fallback',
     capabilities: ['trusted_source_scan', 'admin_chat', 'draft_broadcast', 'system_snapshot'],
-    sources: getTrustedUniEcoAiSources(),
+    sources,
+    schoolCoverage: {
+      total: count ?? directory.length,
+      withOfficialWebsite: covered.size,
+      directoryAvailable: !directoryError,
+    },
   });
 }
 
@@ -48,8 +64,19 @@ export async function POST(request: Request) {
   const action = typeof body.action === 'string' ? body.action : '';
   if (action === 'discover') {
     const sourceId = typeof body.sourceId === 'string' ? body.sourceId : undefined;
-    const updates = await fetchTrustedUniEcoAiUpdates(sourceId);
-    return privateJson({ updates, checkedAt: new Date().toISOString() });
+    const { data: universities, error: directoryError } = await auth.supabase
+      .from('universities')
+      .select('name, slug, website_url')
+      .eq('is_enabled', true)
+      .order('name')
+      .limit(200);
+    if (directoryError) return privateJson({ error: 'Unable to load the trusted university directory for this scan.' }, 503);
+    const sources = getTrustedUniEcoAiSources((universities || []) as UniEcoAiUniversity[]);
+    if (sourceId && !sources.some((source) => source.id === sourceId)) {
+      return privateJson({ error: 'That source is not in the trusted source list. Refresh and try again.' }, 400);
+    }
+    const updates = await fetchTrustedUniEcoAiUpdates(sourceId, sources);
+    return privateJson({ updates, checkedAt: new Date().toISOString(), sourcesChecked: sourceId ? 1 : sources.length });
   }
 
   if (action === 'chat') {
@@ -65,8 +92,9 @@ export async function POST(request: Request) {
     const result = await askUniEcoAi({
       messages: [...messages, { role: 'user', content: message }],
       context: JSON.stringify({ systemHealth: health && typeof health === 'object' ? health : null }),
+      webSearch: body.webSearch === true && isUniEcoAiWebSearchAvailable(),
     });
-    return privateJson({ reply: result.text, mode: result.mode });
+    return privateJson({ reply: result.text, mode: result.mode, citations: result.citations || [], webSearched: result.webSearched || false });
   }
 
   if (action === 'draft') {

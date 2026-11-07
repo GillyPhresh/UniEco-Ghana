@@ -69,6 +69,29 @@ class FeedParserTests(unittest.TestCase):
             self.assertTrue(source["feed_url"].startswith("https://"))
             self.assertTrue(ingest.host_allowed(__import__("urllib.parse").parse.urlsplit(source["feed_url"]).hostname, source["source_domain"]))
 
+    def test_homepage_feed_discovery_only_accepts_advertised_rss_or_atom_links(self):
+        parser = ingest.AdvertisedFeedParser()
+        parser.feed('''<html><head>
+          <link rel="alternate" type="application/rss+xml" href="/news/feed.xml">
+          <link rel="alternate" type="application/atom+xml" href="https://evil.example/feed.xml">
+          <link rel="stylesheet" href="/theme.css">
+        </head></html>''')
+        self.assertEqual(parser.urls, ["/news/feed.xml", "https://evil.example/feed.xml"])
+        page = b"<html><head><title>School</title></head></html>"
+        self.assertFalse(ingest.is_feed_document(page))
+        self.assertTrue(ingest.is_feed_document(b"<?xml version='1.0'?><rss><channel/></rss>"))
+        self.assertFalse(ingest.is_feed_document(b"<!DOCTYPE rss><rss/>"))
+
+    def test_feed_worker_restricts_remote_source_directory_to_unieco(self):
+        self.assertTrue(ingest.sources_url().startswith("https://www.uniecoghana.com/api/internal/campus-feed/ingest"))
+
+    def test_feed_batch_round_robins_instead_of_filling_from_one_school(self):
+        schools = [[{"source": "one", "item": index} for index in range(25)],
+                   [{"source": "two", "item": index} for index in range(25)],
+                   [{"source": "three", "item": index} for index in range(25)]]
+        batch = ingest.balanced_batch(schools, limit=5)
+        self.assertEqual([item["source"] for item in batch], ["one", "two", "three", "one", "two"])
+
     def test_url_cleaning_removes_tracking_and_rejects_non_https(self):
         safe = ingest.safe_source_url("/news?a=1&utm_campaign=x&fbclid=y#section", "https://atu.edu.gh/feed/", "atu.edu.gh")
         self.assertEqual(safe, "https://atu.edu.gh/news?a=1")

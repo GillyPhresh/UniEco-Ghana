@@ -11,10 +11,17 @@ const sources = fs.readFileSync(path.join(root, 'lib/ai/trusted-sources.ts'), 'u
 test('UniEco AI route is super-admin gated and never accepts arbitrary source URLs', () => {
   assert.match(route, /current_app_role/);
   assert.match(route, /role !== 'super_admin'/);
-  assert.match(route, /fetchTrustedUniEcoAiUpdates\(sourceId\)/);
+  assert.match(route, /fetchTrustedUniEcoAiUpdates\(sourceId, sources\)/);
   assert.doesNotMatch(route, /fetch\(sourceUpdate\.url/);
   assert.match(sources, /UNIECO_AI_TRUSTED_SOURCES/);
   assert.match(sources, /url\.protocol === 'https:'/);
+  assert.match(sources, /universities\.flatMap/);
+  assert.match(sources, /slice\(0, 150\)/);
+  assert.match(sources, /redirect: 'manual'/);
+  assert.match(route, /schoolCoverage/);
+  assert.match(route, /isUniEcoAiWebSearchAvailable/);
+  assert.match(page, /Search the live web for this chat/);
+  assert.match(page, /opt-in live-web-search checkbox in chat/);
 });
 
 test('private AI UI is mounted only in the management area and drafts are not auto-published', () => {
