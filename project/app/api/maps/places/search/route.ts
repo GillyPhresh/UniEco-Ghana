@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+
+export const dynamic = 'force-dynamic';
 
 const GOOGLE_PLACES_SEARCH_URL = 'https://places.googleapis.com/v1/places:searchText';
 const GOOGLE_PLACES_FIELD_MASK = [
@@ -42,6 +45,12 @@ function safeText(value: unknown, fallback = '') {
 }
 
 export async function GET(request: NextRequest) {
+  const authClient = await createClient();
+  const { data: { user } } = await authClient.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401, headers: { 'Cache-Control': 'no-store' } });
+  }
+
   const apiKey = process.env.GOOGLE_MAPS_PLACES_API_KEY?.trim();
   if (!apiKey) {
     return NextResponse.json(
@@ -57,9 +66,12 @@ export async function GET(request: NextRequest) {
   const radiusParam = Number(request.nextUrl.searchParams.get('radius') || 3000);
   const radius = Number.isFinite(radiusParam) ? Math.min(Math.max(radiusParam, 100), 50000) : 3000;
 
-  if (query.length < 2) {
+  if (query.length < 2 || query.length > 100 || context.length > 100
+    || ((latitude === null) !== (longitude === null))
+    || (latitude !== null && (latitude < -90 || latitude > 90))
+    || (longitude !== null && (longitude < -180 || longitude > 180))) {
     return NextResponse.json(
-      { error: 'Enter at least two characters to search Google places.' },
+      { error: 'Search text or coordinates are invalid.' },
       { status: 400, headers: { 'Cache-Control': 'no-store' } },
     );
   }
@@ -90,6 +102,7 @@ export async function GET(request: NextRequest) {
       },
       body: JSON.stringify(body),
       cache: 'no-store',
+      signal: AbortSignal.timeout(8000),
     });
     const result = await response.json() as { places?: GooglePlace[]; error?: { message?: string } };
 

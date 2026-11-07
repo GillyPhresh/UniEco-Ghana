@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import webpush from "npm:web-push@3.6.7";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
 import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
+import { isAllowedPushEndpoint } from "../../../lib/notifications/push-endpoint.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +118,13 @@ Deno.serve(async (req: Request) => {
     let lastFailure: string | null = null;
 
     for (const sub of subs) {
+      if (!isAllowedPushEndpoint(sub.endpoint)) {
+        failedCount++;
+        lastFailure = "Push subscription endpoint is not an approved provider.";
+        await supabase.from("push_subscriptions").update({ is_active: false }).eq("id", sub.id);
+        continue;
+      }
+
       try {
         const pushPayload = JSON.stringify({
           title,

@@ -10,7 +10,7 @@ ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
 ENV UNIECO_PUBLIC_APP_URL=$UNIECO_PUBLIC_APP_URL
 
 COPY package.json package-lock.json ./
-RUN npm install
+RUN npm ci
 
 COPY . ./
 RUN npm run build

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import { isAllowedPushEndpoint } from '@/lib/notifications/push-endpoint';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,14 +62,7 @@ export async function POST(request: Request) {
       ? new Date(body.expirationTime).toISOString()
       : null;
 
-    let endpointUrl: URL;
-    try {
-      endpointUrl = new URL(endpoint);
-    } catch {
-      return NextResponse.json({ error: 'Invalid push endpoint' }, { status: 400 });
-    }
-
-    if (endpointUrl.protocol !== 'https:' || !p256dh || !auth || endpoint.length > 2048 || p256dh.length > 512 || auth.length > 512) {
+    if (!isAllowedPushEndpoint(endpoint) || !p256dh || !auth || p256dh.length > 512 || auth.length > 512) {
       return NextResponse.json({ error: 'Invalid push subscription' }, { status: 400 });
     }
 
