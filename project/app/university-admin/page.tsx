@@ -6,6 +6,7 @@ import { UniversityAdminWorkspaceContent } from '@/components/admin/university-a
 export const metadata: Metadata = {
   title: 'Campus impact — UniEco Ghana',
   description: 'View your university administrator appointment and campus impact.',
+  robots: { index: false, follow: false, noarchive: true },
 };
 
 export default function UniversityAdminPage() {

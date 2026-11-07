@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EventReminderButton } from '@/components/communication/event-reminder-button';
 import Link from 'next/link';
+import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -74,6 +75,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   return (
     <>
+      <EntityViewTracker eventType="event_view" subjectType="event" subjectId={event.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}

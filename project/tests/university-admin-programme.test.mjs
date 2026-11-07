@@ -77,7 +77,7 @@ test('mobile administrator screens keep touch targets and safe disclosure', asyn
   const [apply, review, workspace] = await Promise.all([
     read('app/university-admin/apply/page.tsx'),
     read('app/admin/university-administrators/page.tsx'),
-    read('app/admin/university-admin/page.tsx'),
+    read('components/admin/university-admin-workspace-content.tsx'),
   ]);
   assert.match(apply, /min-h-11/);
   assert.match(apply, /never request passwords or payment PINs/i);
@@ -121,7 +121,8 @@ test('mobile navigation exposes a prominent university administrator application
 });
 
 test('university administrators cannot open the super-admin application review queue', async () => {
-  const layout = await read('components/admin/admin-layout.tsx');
-  assert.match(layout, /pathname === '\/admin\/university-admin'/);
-  assert.doesNotMatch(layout, /isScopedUniversityAdmin[^;]+[\s\S]*pathname === '\/admin\/university-administrators'/);
+  const middleware = await read('lib/supabase/middleware.ts');
+  assert.match(middleware, /role === 'university_admin' && pathname === '\/admin\/university-admin'/);
+  assert.match(middleware, /workspaceUrl\.pathname = '\/university-admin'/);
+  assert.match(middleware, /isUniversityWorkspaceRoute \? !isAuthorizedUniversityWorkspace : !isPlatformStaff/);
 });

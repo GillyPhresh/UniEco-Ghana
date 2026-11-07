@@ -20,6 +20,7 @@ export default function robots(): MetadataRoute.Robots {
           '/payments',
           '/wishlist',
           '/onboarding',
+          '/community/saved',
         ],
       },
     ],

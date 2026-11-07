@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 export const metadata: Metadata = {
   title: 'Campus Mate — Find your way around campus',
   description: 'Find campus businesses, events, services and useful places with UniEco Ghana Campus Mate.',
+  robots: { index: false, follow: false, noarchive: true },
 };
 
 type CampusMatePageProps = {

@@ -20,6 +20,7 @@ import {
 } from '@/lib/data/marketplace-client';
 import { supabase } from '@/lib/supabase/client';
 import type { Service, Review } from '@/lib/types';
+import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import {
   Calendar, Clock, Heart, Share2, MessageSquare, Store, Wrench,
   ArrowLeft, Check, Image as ImageIcon, Loader2,
@@ -57,6 +58,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
     const s = await getServiceById(serviceId);
     if (!s) { setLoading(false); return; }
     setService(s);
+    trackAnalyticsEvent({ event_type: 'service_view', subject_type: 'service', subject_id: s.id });
 
     const { data: business } = await supabase
       .from('businesses')

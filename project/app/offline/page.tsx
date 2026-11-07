@@ -7,6 +7,7 @@ import { RefreshButton } from './refresh-button';
 
 export const metadata = {
   title: "You're Offline",
+  robots: { index: false, follow: false, noarchive: true },
 };
 
 export default function OfflinePage() {

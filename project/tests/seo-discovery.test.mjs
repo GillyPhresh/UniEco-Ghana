@@ -38,9 +38,20 @@ test('anonymous visitors can crawl public discovery pages while account workspac
   for (const route of ['/business', '/categories', '/discover', '/events', '/marketplace', '/universities', '/university']) {
     assert.ok(!memberRoutes.includes(`'${route}'`), `${route} should be publicly crawlable`);
   }
-  for (const route of ['/dashboard', '/orders', '/profile', '/vendor-dashboard']) {
+  for (const route of ['/dashboard', '/orders', '/profile', '/vendor-dashboard', '/community/saved']) {
     assert.ok(memberRoutes.includes(`'${route}'`), `${route} should remain protected`);
   }
+  assert.match(middleware, /X-Robots-Tag', 'noindex, nofollow, noarchive'/);
+});
+
+test('account, onboarding, search, and offline pages are excluded from search results', () => {
+  const privateMetadata = read('lib/seo/private-metadata.ts');
+  assert.match(privateMetadata, /index: false/);
+  for (const route of ['signin', 'signup', 'forgot-password', 'verify-email', 'onboarding', 'search', 'community/saved', 'payments/callback', 'auth/reset-password']) {
+    assert.ok(fs.existsSync(path.join(root, `app/${route}/layout.tsx`)), `${route} noindex layout is missing`);
+  }
+  assert.match(read('app/offline/page.tsx'), /robots: \{ index: false/);
+  assert.match(read('app/university-admin/page.tsx'), /robots: \{ index: false/);
 });
 
 test('product and service listings receive route-specific metadata and structured data', () => {
@@ -52,6 +63,11 @@ test('product and service listings receive route-specific metadata and structure
   assert.match(service, /getPublicServiceSeoById/);
   assert.match(service, /'@type': 'Service'/);
   assert.match(service, /createPublicPageMetadata/);
+  assert.match(read('app/marketplace/product/[id]/page.tsx'), /event_type: 'product_view'/);
+  assert.match(read('app/marketplace/service/[id]/page.tsx'), /event_type: 'service_view'/);
+  assert.match(read('app/business/[slug]/page.tsx'), /eventType="business_view"/);
+  assert.match(read('app/events/[slug]/page.tsx'), /eventType="event_view"/);
+  assert.match(read('app/university/[slug]/page.tsx'), /eventType="university_view"/);
 });
 
 test('public audience landing pages use distinct, useful copy and remain linked from the homepage', () => {

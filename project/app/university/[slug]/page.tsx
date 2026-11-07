@@ -18,6 +18,7 @@ import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/l
 import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
 import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap } from 'lucide-react';
+import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -126,6 +127,7 @@ export default async function UniversityPage({ params }: PageProps) {
 
   return (
     <>
+      <EntityViewTracker eventType="university_view" subjectType="university" subjectId={university.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}

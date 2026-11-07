@@ -18,6 +18,7 @@ import {
 } from '@/lib/data/marketplace-client';
 import { supabase } from '@/lib/supabase/client';
 import type { Product, Review } from '@/lib/types';
+import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import {
   ShoppingCart, Heart, Share2, MessageSquare, Store, Package,
   ArrowLeft, Check, AlertCircle, Image as ImageIcon, Truck,
@@ -56,6 +57,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
     const p = await getProductById(productId);
     if (!p) { setLoading(false); return; }
     setProduct(p);
+    trackAnalyticsEvent({ event_type: 'product_view', subject_type: 'product', subject_id: p.id });
 
     // Load vendor
     const { data: business } = await supabase

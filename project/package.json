@@ -10,8 +10,9 @@
     "start": "next start",
     "start:railway": "node scripts/run-railway.mjs",
     "start:staging": "node scripts/run-staging.mjs start",
-    "lint": "next lint",
+    "lint": "eslint app components hooks lib middleware.ts",
     "typecheck": "tsc --noEmit",
+    "test": "node --test",
     "test:referrals": "node --test tests/referral-product-experience.test.mjs",
     "test:maps": "node --test tests/google-maps-location.test.mjs",
     "test:registration": "node --test tests/registration-flow.test.mjs",
@@ -91,6 +92,9 @@
   "overrides": {
     "next": {
       "postcss": "8.5.23"
+    },
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
     },
     "postcss-selector-parser": "6.1.5",
     "react-remove-scroll": "2.7.2"

@@ -57,7 +57,7 @@ export async function updateSession(request: NextRequest) {
   const memberRoutePrefixes = [
     '/campus-mate', '/cart', '/checkout',
     '/dashboard', '/messages', '/notifications',
-    '/orders', '/payment-history', '/profile', '/referrals', '/saved',
+    '/orders', '/payment-history', '/profile', '/referrals', '/saved', '/community/saved',
     '/start-business',
     '/payments', '/vendor-dashboard', '/wishlist',
   ];
@@ -79,12 +79,20 @@ export async function updateSession(request: NextRequest) {
   const isMemberRoute = memberRoutePrefixes.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`))
     || (pathname === '/' && Boolean(user));
 
+  if (isMemberRoute) {
+    supabaseResponse.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    supabaseResponse.headers.set('Cache-Control', 'private, no-store, max-age=0');
+  }
+
   if (isMemberRoute && !user) {
     const signInUrl = request.nextUrl.clone();
     signInUrl.pathname = '/signin';
     signInUrl.search = '';
     signInUrl.searchParams.set('next', safeInternalPath(`${pathname}${request.nextUrl.search}`));
-    return NextResponse.redirect(signInUrl);
+    const response = NextResponse.redirect(signInUrl);
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+    return response;
   }
 
   if (isAdminRoute || isUniversityWorkspaceRoute) {
@@ -172,7 +180,10 @@ export async function updateSession(request: NextRequest) {
       paymentUrl.search = '';
       paymentUrl.searchParams.set('payment_required', '1');
       paymentUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(paymentUrl);
+      const response = NextResponse.redirect(paymentUrl);
+      response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+      return response;
     }
   }
 

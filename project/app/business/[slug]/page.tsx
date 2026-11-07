@@ -14,6 +14,7 @@ import {
 } from '@/lib/data/public-queries';
 import { siteConfig } from '@/lib/constants/site';
 import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
+import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -74,6 +75,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
 
   return (
     <>
+      <EntityViewTracker eventType="business_view" subjectType="business" subjectId={vendor.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
