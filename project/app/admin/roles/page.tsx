@@ -74,7 +74,7 @@ function Content() {
   const permissionsToRevoke = savedModeratorPermissions.filter(permission => !draftPermissions.includes(permission));
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-6xl">
+    <div className="w-full p-4 sm:p-6 space-y-6 max-w-7xl">
       <div>
         <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
           <ShieldCheck className="h-6 w-6 text-primary" /> Roles & Permission Reference

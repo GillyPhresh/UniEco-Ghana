@@ -93,7 +93,7 @@ function Content() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 max-w-4xl">
+    <div className="w-full p-4 sm:p-6 space-y-4 max-w-7xl">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">

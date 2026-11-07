@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 export type UniEcoAiSource = {
   id: string;
   label: string;
@@ -154,8 +156,23 @@ function absoluteUrl(sourceUrl: string, href: string): string | null {
 }
 
 function isLikelyUpdate(title: string, url: string): boolean {
-  const value = `${title} ${url}`.toLowerCase();
-  return /(news|event|update|notice|announcement|press|story|article|publication|calendar|bulletin)/i.test(value);
+  const normalizedTitle = title.toLowerCase().replace(/[\s\u00a0]+/g, ' ').trim();
+  const genericNavigation = /^(?:skip to (?:main )?content|home|news|events?|updates?|notices?|announcements?|academic calendar(?:\s+\d{4}(?:\/\d{4})?)?|calendar|read more|view all|see all|learn more|more|about(?: us)?|contact(?: us)?|admissions?|apply now|programmes?|publications?)\.?$/i;
+  if (genericNavigation.test(normalizedTitle)) return false;
+
+  const words = normalizedTitle.match(/[\p{L}\p{N}]{2,}/gu) || [];
+  if (words.length < 4 || normalizedTitle.length < 24) return false;
+
+  const value = `${normalizedTitle} ${url}`;
+  return /(news|event|update|notice|announcement|press|story|article|publication|calendar|bulletin|scholarship|opportunit|funding|programme|project)/i.test(value);
+}
+
+function canonicalLeadUrl(value: string): string {
+  const url = new URL(value);
+  url.hash = '';
+  url.search = '';
+  url.pathname = url.pathname.replace(/\/+$/, '') || '/';
+  return url.toString().toLowerCase();
 }
 
 function extractFirstMatch(html: string, expression: RegExp): string | null {
@@ -205,17 +222,20 @@ export async function fetchTrustedUniEcoAiUpdates(sourceId?: string, trustedSour
       const description = extractFirstMatch(html, /<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([\s\S]*?)["']/i)
         || extractFirstMatch(html, /<meta[^>]+content=["']([\s\S]*?)["'][^>]+(?:name|property)=["'](?:description|og:description)["']/i)
         || source.description;
-      const headings = Array.from(html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi))
-        .map((match) => stripMarkup(match[1] || ''))
-        .filter((value) => value.length >= 12 && value.length <= 220)
-        .slice(0, 3);
-      const links = Array.from(html.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi))
+      const sourcePath = canonicalLeadUrl(source.url);
+      const seenUrls = new Set<string>();
+      const leads = Array.from(html.matchAll(/<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi))
         .map((match) => ({ title: stripMarkup(match[2] || ''), url: absoluteUrl(source.url, match[1] || '') }))
-        .filter((item) => item.url && item.title.length >= 12 && item.title.length <= 220 && isLikelyUpdate(item.title, item.url))
+        .filter((item): item is { title: string; url: string } => {
+          if (!item.url || item.title.length > 220 || !isLikelyUpdate(item.title, item.url)) return false;
+          const canonicalUrl = canonicalLeadUrl(item.url);
+          if (canonicalUrl === sourcePath || seenUrls.has(canonicalUrl)) return false;
+          seenUrls.add(canonicalUrl);
+          return true;
+        })
         .slice(0, 3);
-      const leads = links.length ? links : headings.map((title) => ({ title, url: source.url }));
-      return leads.slice(0, 5).map((lead, index) => ({
-        id: `${source.id}-${index}-${Buffer.from(lead.title).toString('base64url').slice(0, 16)}`,
+      return leads.slice(0, 5).map((lead) => ({
+        id: `${source.id}-${createHash('sha256').update(canonicalLeadUrl(lead.url)).digest('hex').slice(0, 20)}`,
         sourceId: source.id,
         sourceLabel: source.label,
         title: lead.title || pageTitle,

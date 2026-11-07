@@ -32,3 +32,12 @@ test('private AI UI is mounted only in the management area and drafts are not au
   assert.match(route, /p_submit_for_approval: false/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
 });
+
+test('trusted source scans reject generic navigation and duplicate or source-home links', () => {
+  assert.match(sources, /genericNavigation/);
+  assert.match(sources, /words\.length < 4/);
+  assert.match(sources, /canonicalLeadUrl/);
+  assert.match(sources, /seenUrls\.has\(canonicalUrl\)/);
+  assert.match(sources, /canonicalUrl === sourcePath/);
+  assert.doesNotMatch(sources, /headings\.map\(\(title\) => \(\{ title, url: source\.url \}\)\)/);
+});

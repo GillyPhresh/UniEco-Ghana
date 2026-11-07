@@ -94,7 +94,7 @@ function Content() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 max-w-4xl">
+    <div className="w-full p-4 sm:p-6 space-y-6 max-w-7xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2"><Activity className="h-6 w-6 text-primary" /> System Health</h1>

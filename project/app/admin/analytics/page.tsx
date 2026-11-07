@@ -74,7 +74,7 @@ function Content() {
               <ChartContainer config={chartConfig} className="h-64 w-full">
                 <AreaChart data={summary.registrationTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} minTickGap={24} interval="preserveStartEnd" stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Area dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary)/0.2)" strokeWidth={2} />
@@ -91,7 +91,7 @@ function Content() {
               <ChartContainer config={chartConfig} className="h-64 w-full">
                 <LineChart data={summary.orderTrend}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="date" tickFormatter={v => v.slice(5)} tick={{ fontSize: 10 }} minTickGap={24} interval="preserveStartEnd" stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Line dataKey="count" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
@@ -108,7 +108,7 @@ function Content() {
               <ChartContainer config={chartConfig} className="h-64 w-full">
                 <BarChart data={summary.universityGrowth}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tickFormatter={v => v.slice(0, 10)} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                  <XAxis dataKey="name" tickFormatter={v => v.slice(0, 12)} tick={{ fontSize: 10 }} angle={-35} textAnchor="end" height={64} interval="preserveStartEnd" stroke="hsl(var(--muted-foreground))" />
                   <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="students" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -132,7 +132,7 @@ function Content() {
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ChartContainer>
-            ) : <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">No data</div>}
+            ) : <div className="flex h-64 items-center justify-center px-4 text-center text-sm text-muted-foreground">No active businesses are available for this breakdown yet.</div>}
           </CardContent>
         </Card>
       </div>
