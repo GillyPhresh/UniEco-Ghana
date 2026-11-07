@@ -6,6 +6,15 @@ const worker = await readFile(new URL('../app/api/internal/referral-payouts/rout
 const migration = await readFile(new URL('../supabase/migrations/20261104100000_0181_referral_weekly_paystack_payouts.sql', import.meta.url), 'utf8');
 const payouts = await readFile(new URL('../lib/referrals/paystack-payouts.ts', import.meta.url), 'utf8');
 const settings = await readFile(new URL('../app/api/referrals/payout-settings/route.ts', import.meta.url), 'utf8');
+const workflow = await readFile(new URL('../../.github/workflows/referral-payouts.yml', import.meta.url), 'utf8');
+
+test('payout workflow targets the existing production secret environment without logging secrets', () => {
+  assert.match(workflow, /environment: "UniEco Ghana - Production \/ production"/);
+  assert.match(workflow, /secrets\.UNIECO_REFERRAL_PAYOUT_WORKER_TOKEN/);
+  assert.match(workflow, /if \[ -z "\$PAYOUT_WORKER_TOKEN" \]/);
+  assert.doesNotMatch(workflow, /echo\s+.*PAYOUT_WORKER_TOKEN[" ]*\$/);
+  assert.match(workflow, /refs\/heads\/deploy-main/);
+});
 
 test('live payouts require explicit production and live Paystack gates', () => {
   for (const gate of ["UNIECO_REFERRAL_PAYOUTS_ENABLED === 'true'", "UNIECO_ENV === 'production'", "PAYSTACK_MODE === 'live'", "PAYSTACK_LIVE_ENABLED === 'true'", "startsWith('sk_live_')"]) assert.ok(worker.includes(gate));

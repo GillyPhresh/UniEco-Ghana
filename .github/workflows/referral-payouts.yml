@@ -16,7 +16,8 @@ concurrency:
 jobs:
   process:
     if: github.ref == 'refs/heads/deploy-main'
-    environment: production
+    # Match the existing production environment containing the worker secret.
+    environment: "UniEco Ghana - Production / production"
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -24,7 +25,10 @@ jobs:
         env:
           PAYOUT_WORKER_TOKEN: ${{ secrets.UNIECO_REFERRAL_PAYOUT_WORKER_TOKEN }}
         run: |
-          test -n "$PAYOUT_WORKER_TOKEN"
+          if [ -z "$PAYOUT_WORKER_TOKEN" ]; then
+            echo "::error::UNIECO_REFERRAL_PAYOUT_WORKER_TOKEN was not provided by the selected production environment."
+            exit 1
+          fi
           curl --fail-with-body --silent --show-error --max-time 90 \
             -X POST 'https://www.uniecoghana.com/api/internal/referral-payouts' \
             -H "Authorization: Bearer $PAYOUT_WORKER_TOKEN" \

@@ -63,7 +63,7 @@ test('only private UniEco AI review control can approve; public feed does not au
 test('scheduled worker uses secrets only and invokes the bounded Python collector', () => {
   const workflow = fs.readFileSync(path.resolve(project, '..', '.github/workflows/campus-feed-ingest.yml'), 'utf8');
   assert.match(workflow, /refs\/heads\/deploy-main/);
-  assert.match(workflow, /environment: production/);
+  assert.match(workflow, /environment: "UniEco Ghana - Production \/ production"/);
   assert.match(workflow, /secrets\.UNIECO_FEED_INGEST_TOKEN/);
   assert.match(workflow, /python feed_worker\/ingest\.py/);
   assert.doesNotMatch(workflow, /SUPABASE_SERVICE_ROLE_KEY/);
