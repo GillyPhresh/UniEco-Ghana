@@ -15,6 +15,7 @@ import {
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { siteConfig } from '@/lib/constants/site';
 import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
+import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
 import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap } from 'lucide-react';
 
@@ -25,53 +26,21 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const university = await getUniversityBySlug(slug);
-  if (!university) {
-    return { title: 'University not found' };
-  }
+  if (!university) return { title: 'University not found', robots: { index: false, follow: false } };
 
-  const title = `${university.name} (${university.short_name}) — Businesses, Events & Services | ${siteConfig.name}`;
-  const description = `Discover businesses, food vendors, services, and events at ${university.name} in ${university.city}. Find everything around ${university.short_name} campus on UniEco Ghana.`;
-  const canonicalUrl = `${siteConfig.url}/university/${university.slug}`;
+  const title = `${university.name} (${university.short_name}) — Campus Guide`;
+  const description = `Explore the ${university.name} campus profile, public businesses, services, events, and updates on UniEco Ghana. ${university.city ? `Located in ${university.city}, Ghana.` : ''}`.trim();
   const localBranding = getLocalUniversityBranding(university.slug);
-  const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/og-image.png';
+  const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/unieco-ghana-dark-logo.png';
   const ogImageAlt = university.hero_alt_text || university.logo_alt_text || `${university.name} campus`;
 
-  return {
+  return createPublicPageMetadata({
     title,
     description,
-    keywords: [
-      `${university.short_name} businesses`,
-      `${university.short_name} campus`,
-      `businesses near ${university.short_name}`,
-      `${university.short_name} food vendors`,
-      `${university.short_name} events`,
-      `${university.city} student services`,
-      'university Ghana marketplace',
-    ],
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: siteConfig.name,
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: ogImageAlt,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+    path: `/university/${university.slug}`,
+    image: ogImage,
+    imageAlt: ogImageAlt,
+  });
 }
 
 function formatDate(dateString: string | null): string {
@@ -159,7 +128,7 @@ export default async function UniversityPage({ params }: PageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <SiteHeader />
       <main>

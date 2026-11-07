@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getEventBySlug } from '@/lib/data/public-queries';
 import { siteConfig } from '@/lib/constants/site';
+import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 import { Calendar, MapPin, Clock, Building2, ArrowLeft, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,30 +18,17 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEventBySlug(slug);
-  if (!event) {
-    return { title: 'Event not found' };
-  }
+  if (!event) return { title: 'Event not found', robots: { index: false, follow: false } };
 
-  const title = `${event.title} | ${siteConfig.name}`;
-  const description = event.description || `Event at ${event.university?.name || 'UniEco Ghana'}`;
-
-  return {
+  const title = event.title;
+  const description = (event.description || `Event at ${event.university?.name || 'UniEco Ghana'}`).slice(0, 300);
+  return createPublicPageMetadata({
     title,
     description,
-    keywords: [
-      event.title,
-      `${event.university?.short_name} event`,
-      'campus event Ghana',
-      event.university?.city || 'Ghana',
-    ].filter(Boolean) as string[],
-    openGraph: {
-      title,
-      description,
-      url: `${siteConfig.url}/events/${event.slug}`,
-      siteName: siteConfig.name,
-      images: event.cover_image_url ? [{ url: event.cover_image_url }] : undefined,
-    },
-  };
+    path: `/events/${event.slug}`,
+    image: event.cover_image_url,
+    imageAlt: `${event.title} campus event`,
+  });
 }
 
 function formatFullDate(dateString: string | null): string {
@@ -88,7 +76,7 @@ export default async function EventDetailPage({ params }: PageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <SiteHeader />
       <main className="container py-6 sm:py-8">

@@ -1,11 +1,13 @@
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { CampusUpdates } from '@/components/feed/campus-updates';
+import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
-export const metadata = {
-  title: 'Campus Updates | UniEco Ghana',
+export const metadata = createPublicPageMetadata({
+  title: 'Campus Updates',
   description: 'University news, events, opportunities, research and notices from trusted official sources.',
-};
+  path: '/updates',
+});
 
 export default function UpdatesPage() {
   return <>

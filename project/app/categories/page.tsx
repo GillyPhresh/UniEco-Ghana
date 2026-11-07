@@ -3,13 +3,15 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getCategoryCounts, ALL_CATEGORIES, CATEGORY_ICONS } from '@/lib/data/public-queries';
 import { ArrowRight } from 'lucide-react';
+import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
+export const metadata = createPublicPageMetadata({
   title: 'Browse Categories',
   description: 'Discover businesses by category on UniEco Ghana — from food and fashion to electronics and education.',
-};
+  path: '/categories',
+});
 
 export default async function CategoriesPage() {
   const categoryCounts = await getCategoryCounts();

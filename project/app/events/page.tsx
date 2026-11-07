@@ -2,21 +2,15 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { getPublishedEvents } from '@/lib/data/public-queries';
 import { EventsBrowser } from '@/components/events/events-browser';
+import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = {
+export const metadata = createPublicPageMetadata({
   title: 'Campus Events in Ghana — Tech Fairs, Food Festivals & More',
   description: 'Discover upcoming events at universities across Ghana — tech fairs, food festivals, career fairs, sports galas, and campus gatherings on UniEco Ghana.',
-  keywords: [
-    'campus events Ghana',
-    'university events Ghana',
-    'UENR events',
-    'tech fair Ghana',
-    'campus festival',
-    'university career fair',
-  ],
-};
+  path: '/events',
+});
 
 export default async function EventsPage() {
   const events = await getPublishedEvents(50);

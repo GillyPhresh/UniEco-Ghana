@@ -59,6 +59,54 @@ export async function getIndexableEventSlugs(limit = 1000) {
   return (data || []) as Array<{ slug: string; updated_at: string | null }>;
 }
 
+export async function getIndexableProductIds(limit = 1000) {
+  const supabase = createPublicServerClient();
+  const { data } = await supabase
+    .from('products')
+    .select('id, updated_at')
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  return (data || []) as Array<{ id: string; updated_at: string | null }>;
+}
+
+export async function getIndexableServiceIds(limit = 1000) {
+  const supabase = createPublicServerClient();
+  const { data } = await supabase
+    .from('services')
+    .select('id, updated_at')
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .order('updated_at', { ascending: false })
+    .limit(limit);
+  return (data || []) as Array<{ id: string; updated_at: string | null }>;
+}
+
+export async function getPublicProductSeoById(id: string) {
+  const supabase = createPublicServerClient();
+  const { data } = await supabase
+    .from('products')
+    .select('id, name, description, price, discount_price, currency, stock, image_url, updated_at')
+    .eq('id', id)
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .maybeSingle();
+  return data as { id: string; name: string; description: string | null; price: number; discount_price: number | null; currency: string; stock: number; image_url: string | null; updated_at: string | null } | null;
+}
+
+export async function getPublicServiceSeoById(id: string) {
+  const supabase = createPublicServerClient();
+  const { data } = await supabase
+    .from('services')
+    .select('id, name, description, price, currency, duration_estimate, image_url, updated_at')
+    .eq('id', id)
+    .eq('is_active', true)
+    .eq('is_archived', false)
+    .maybeSingle();
+  return data as { id: string; name: string; description: string | null; price: number; currency: string; duration_estimate: string | null; image_url: string | null; updated_at: string | null } | null;
+}
+
 export async function getUniversityDirectory() {
   const supabase = createPublicServerClient();
   const { data } = await supabase

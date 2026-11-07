@@ -3,7 +3,7 @@ export const siteConfig = {
   shortName: 'UniEco',
   tagline: 'Your Campus. Your Marketplace. Your Community.',
   description:
-    'UniEco Ghana is the campus commerce and community platform connecting students, businesses, and opportunities across every tertiary institution in Ghana.',
+    'UniEco Ghana is a campus marketplace and community platform built for Ghanaian tertiary communities. Discover campus businesses, student services, events, and opportunities.',
   url: (process.env.UNIECO_PUBLIC_APP_URL?.replace(/\/+$/, '') || 'https://www.uniecoghana.com').replace(
     /^https:\/\/uniecoghana\.com$/,
     'https://www.uniecoghana.com',
@@ -50,6 +50,7 @@ export const footerLinks = {
     { label: 'For Students', href: '/#student-benefits' },
     { label: 'For Vendors', href: '/#vendor-benefits' },
     { label: 'For Universities', href: '/#university-benefits' },
+    { label: 'University network', href: '/for-universities' },
     { label: 'University Administrator opportunity', href: '/university-admin/apply' },
   ],
   Account: [

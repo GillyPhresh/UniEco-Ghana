@@ -13,6 +13,7 @@ import {
   getRelatedVendors,
 } from '@/lib/data/public-queries';
 import { siteConfig } from '@/lib/constants/site';
+import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -21,32 +22,17 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   const vendor = await getVendorBySlug(slug);
-  if (!vendor) {
-    return {
-      title: 'Business not found',
-      description: 'This business could not be found on UniEco Ghana.',
-    };
-  }
+  if (!vendor) return { title: 'Business not found', robots: { index: false, follow: false } };
 
-  const title = `${vendor.business_name} — ${vendor.business_type} | ${siteConfig.name}`;
-  const description = vendor.description || `${vendor.business_name} on ${siteConfig.name}`;
-
-  return {
+  const title = `${vendor.business_name} — ${vendor.business_type}`;
+  const description = (vendor.description || `${vendor.business_name} on ${siteConfig.name}`).slice(0, 300);
+  return createPublicPageMetadata({
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url: `${siteConfig.url}/business/${vendor.business_slug}`,
-      siteName: siteConfig.name,
-      images: vendor.logo_url ? [{ url: vendor.logo_url }] : undefined,
-    },
-    twitter: {
-      card: 'summary',
-      title,
-      description,
-    },
-  };
+    path: `/business/${vendor.business_slug}`,
+    image: vendor.logo_url,
+    imageAlt: `${vendor.business_name} on UniEco Ghana`,
+  });
 }
 
 export default async function BusinessProfilePage({ params }: PageProps) {
@@ -90,7 +76,7 @@ export default async function BusinessProfilePage({ params }: PageProps) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <SiteHeader />
       <main>

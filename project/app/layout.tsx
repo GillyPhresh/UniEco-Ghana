@@ -21,7 +21,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
-    default: `${siteConfig.name} — ${siteConfig.tagline}`,
+    default: `${siteConfig.name} | Ghana's Campus Marketplace & Community`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -32,9 +32,6 @@ export const metadata: Metadata = {
     ? { google: googleSiteVerification }
     : undefined,
   manifest: '/manifest.webmanifest',
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     type: 'website',
     locale: siteConfig.locale,
@@ -44,9 +41,9 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/unieco-ghana-dark-logo.png',
+        width: 1280,
+        height: 1280,
         alt: siteConfig.name,
       },
     ],
@@ -55,7 +52,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    images: ['/og-image.png'],
+    images: ['/unieco-ghana-dark-logo.png'],
   },
   icons: {
     icon: [{ url: '/unieco-main-logo.png', type: 'image/png', sizes: '1280x1280' }],
@@ -133,7 +130,7 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
         />
       </head>
       <body

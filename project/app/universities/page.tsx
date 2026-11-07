@@ -2,6 +2,13 @@ import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { UniversityDirectory } from '@/components/universities/university-directory';
 import { getUniversityDirectory } from '@/lib/data/public-queries';
+import { createPublicPageMetadata } from '@/lib/seo/metadata';
+
+export const metadata = createPublicPageMetadata({
+  title: 'Ghana University Directory',
+  description: 'Search Ghanaian tertiary institutions by name, abbreviation, city, region, or alias. Explore public institution profiles on UniEco Ghana.',
+  path: '/universities',
+});
 
 // The directory is public data. A short cache keeps mobile navigation quick
 // while still allowing newly approved branding to appear without a deploy.
