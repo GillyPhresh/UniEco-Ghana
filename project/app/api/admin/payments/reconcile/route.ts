@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PaystackReconciliationApplyError, reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
 import { PaystackVerificationError } from '@/lib/payments/paystack.server';
+import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   const diagnosticId = crypto.randomUUID();
   try {
-    const body = await request.json() as { reference?: string };
+    const body = await readJsonLimited<{ reference?: string }>(request, 4 * 1024);
     const reference = String(body.reference || '');
     if (!/^[A-Za-z0-9._=-]{8,120}$/.test(reference)) return NextResponse.json({ error: 'Invalid payment reference.' }, { status: 400, headers: { 'Cache-Control': 'private, no-store, max-age=0' } });
     const supabase = await createClient();
@@ -34,6 +35,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
     return NextResponse.json({ payment: refreshed, verification }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ error: 'Request body is too large.', diagnosticId }, { status: 413, headers: { 'Cache-Control': 'no-store' } });
+    if (error instanceof SyntaxError) return NextResponse.json({ error: 'Invalid request body.', diagnosticId }, { status: 400, headers: { 'Cache-Control': 'no-store' } });
     const code = error instanceof PaystackVerificationError
       ? error.code
       : error instanceof PaystackReconciliationApplyError

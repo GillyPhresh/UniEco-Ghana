@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { askUniEcoAi, createUniEcoAiDraft, isUniEcoAiConfigured, isUniEcoAiWebSearchAvailable, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
 import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
+import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -56,9 +57,9 @@ export async function POST(request: Request) {
 
   let body: Record<string, unknown>;
   try {
-    body = await request.json() as Record<string, unknown>;
-  } catch {
-    return privateJson({ error: 'Invalid request body.' }, 400);
+    body = await readJsonLimited<Record<string, unknown>>(request, 64 * 1024);
+  } catch (error) {
+    return privateJson({ error: error instanceof RequestBodyTooLargeError ? 'Request body is too large.' : 'Invalid request body.' }, error instanceof RequestBodyTooLargeError ? 413 : 400);
   }
 
   const action = typeof body.action === 'string' ? body.action : '';
