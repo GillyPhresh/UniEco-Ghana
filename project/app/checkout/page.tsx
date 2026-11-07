@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -70,22 +70,18 @@ function CheckoutContent() {
   const [selectedMethod, setSelectedMethod] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
 
-  useEffect(() => {
-    if (!user) { if (!authLoading) setLoading(false); return; }
-    loadCart();
-    loadProviders();
-  }, [user, authLoading]);
-
-  async function loadProviders() {
+  const loadProviders = useCallback(async (isCurrent: () => boolean) => {
     const provs = await getEnabledPaymentProviders();
-    setPaymentProviders(provs);
-  }
+    if (isCurrent()) setPaymentProviders(provs);
+  }, []);
 
-  async function loadCart() {
-    setLoading(true);
+  const loadCart = useCallback(async (isCurrent: () => boolean) => {
+    if (isCurrent()) setLoading(true);
     const data = await getCartItems();
+    if (!isCurrent()) return;
     const active = data.filter(i => !i.save_for_later);
     setItems(active);
+    setVendorDeliveryAvailable(false);
 
     if (active.length > 0) {
       // Get vendor info from first item's business
@@ -97,6 +93,7 @@ function CheckoutContent() {
           .eq('id', firstBusinessId)
           .maybeSingle();
 
+        if (!isCurrent()) return;
         if (business?.vendor) {
           const v = (Array.isArray(business.vendor) ? business.vendor[0] : business.vendor) as { id: string; university_id: string | null; delivery_available: boolean };
           if (v) {
@@ -120,8 +117,26 @@ function CheckoutContent() {
       setBookingForm(bookings);
     }
 
-    setLoading(false);
-  }
+    if (isCurrent()) setLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    if (!user) {
+      setItems([]);
+      setVendorDeliveryAvailable(false);
+      setBookingForm({});
+      if (!authLoading) setLoading(false);
+      return () => { isCurrent = false; };
+    }
+
+    setItems([]);
+    setVendorDeliveryAvailable(false);
+    setBookingForm({});
+    void loadCart(() => isCurrent);
+    void loadProviders(() => isCurrent);
+    return () => { isCurrent = false; };
+  }, [user, authLoading, loadCart, loadProviders]);
 
   // The database calculates any delivery fee during secure checkout.
   const summary = calculateCartSummary(items, form.deliveryMethod, 0);
