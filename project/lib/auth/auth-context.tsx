@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import type { AuthUser, Profile, StudentProfile, VendorProfile, UserRole } from '@/lib/types';
@@ -128,16 +128,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [loadProfileData]);
 
-  const user: AuthUser | null = session?.user
+  const sessionUser = session?.user;
+  const user = useMemo<AuthUser | null>(() => sessionUser
     ? {
-        id: session.user.id,
-        email: session.user.email ?? '',
+        id: sessionUser.id,
+        email: sessionUser.email ?? '',
         role: roleFromProfile(profile),
         profile,
         studentProfile,
         vendorProfile,
       }
-    : null;
+    : null, [sessionUser, profile, studentProfile, vendorProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     setLoading(true);
@@ -235,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (session?.user) await loadProfileData(session.user.id);
   }, [session?.user, loadProfileData]);
 
-  const value: AuthContextValue = {
+  const value = useMemo<AuthContextValue>(() => ({
     user,
     session,
     loading,
@@ -248,7 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updatePassword,
     changePassword,
     refreshProfile,
-  };
+  }), [user, session, loading, signIn, signUp, signInWithGoogle, signOut, signOutAll, resetPassword, updatePassword, changePassword, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
