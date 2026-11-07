@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,8 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getUserPayments, exportToCsv } from '@/lib/data/payment-client';
-import type { PaymentRecord } from '@/lib/types/payment';
+import { exportToCsv } from '@/lib/data/payment-client';
+import { useUserPaymentHistory } from '@/hooks/use-user-payment-history';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Download, Wallet, Search } from 'lucide-react';
@@ -22,19 +22,9 @@ export default function StudentPaymentHistoryPage() {
 }
 
 function Content() {
-  const [loading, setLoading] = useState(true);
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  useEffect(() => { loadPayments(); }, [search, statusFilter]);
-
-  async function loadPayments() {
-    setLoading(true);
-    const { payments } = await getUserPayments({ limit: 50, search: search || undefined, status: statusFilter });
-    setPayments(payments);
-    setLoading(false);
-  }
+  const { payments, loading, error, retry } = useUserPaymentHistory(search, statusFilter);
 
   const handleExport = () => {
     exportToCsv(payments.map(p => ({
@@ -58,7 +48,7 @@ function Content() {
             <p className="mt-1 text-sm text-muted-foreground">{payments.length} transactions</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Export</Button>
+          <Button variant="outline" size="sm" onClick={handleExport} disabled={loading || !!error || payments.length === 0} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Export</Button>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -77,7 +67,9 @@ function Content() {
           </TabsList>
         </Tabs>
 
-        {loading ? (
+        {error ? (
+          <Card><CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground"><p>{error}</p><Button type="button" variant="outline" onClick={retry}>Try again</Button></CardContent></Card>
+        ) : loading ? (
           <div className="space-y-2">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 rounded-lg" />)}</div>
         ) : payments.length === 0 ? (
           <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No payments yet</CardContent></Card>

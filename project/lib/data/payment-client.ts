@@ -157,7 +157,8 @@ export async function getUserPayments(params: {
   status?: string;
   paymentType?: string;
 }): Promise<{ payments: PaymentRecord[]; total: number }> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) throw new Error('Could not verify your session to load payment history.');
   if (!user) return { payments: [], total: 0 };
 
   const limit = Math.min(100, Math.max(1, Math.trunc(params.limit || 20)));
@@ -177,7 +178,8 @@ export async function getUserPayments(params: {
     query = query.or(`payment_reference.ilike.%${search}%,provider_reference.ilike.%${search}%`);
   }
 
-  const { data, count } = await query;
+  const { data, count, error } = await query;
+  if (error) throw new Error('Could not load your payment history.');
   return { payments: (data || []) as unknown as PaymentRecord[], total: count || 0 };
 }
 
