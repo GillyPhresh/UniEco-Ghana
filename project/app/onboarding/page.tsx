@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath } from '@/lib/auth/redirects';
@@ -15,15 +15,17 @@ export default function OnboardingPage() {
   const [checkingAccess, setCheckingAccess] = useState(false);
   const [checkFailed, setCheckFailed] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const checkInFlight = useRef(false);
 
   useEffect(() => {
-    if (loading || checkingAccess) return;
+    if (loading || checkInFlight.current) return;
     if (!user) {
       router.replace('/signin?next=%2Fonboarding');
       return;
     }
 
     let active = true;
+    checkInFlight.current = true;
     setCheckingAccess(true);
     setCheckFailed(false);
     const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
@@ -52,10 +54,17 @@ export default function OnboardingPage() {
       if (active) setCheckFailed(true);
     }).finally(() => {
       clearTimeout(timeout!);
-      if (active) setCheckingAccess(false);
+      if (active) {
+        checkInFlight.current = false;
+        setCheckingAccess(false);
+      }
     });
 
-    return () => { active = false; clearTimeout(timeout!); };
+    return () => {
+      active = false;
+      checkInFlight.current = false;
+      clearTimeout(timeout!);
+    };
   }, [loading, router, user, retryCount]);
 
   if (checkingAccess) return <main className="flex min-h-[60vh] items-center justify-center gap-3 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Preparing your secure registration…</main>;
