@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseConfig } from './config';
 import { safeInternalPath } from '@/lib/auth/redirects';
+import { getModeratorPermissionForAdminPath } from '@/lib/auth/admin-route-policy';
 
 type CookieToSet = {
   name: string;
@@ -114,23 +115,7 @@ export async function updateSession(request: NextRequest) {
     // Resolve the application role from profiles via the existing database
     // authority; session metadata and browser role values are not trusted.
     const { data: role, error } = await supabase.rpc('current_app_role');
-    const moderatorPermission = pathname === '/admin/moderation' || pathname === '/admin/trust-safety'
-      ? 'can_review_reports'
-      : pathname === '/admin/advertisements' || pathname.startsWith('/admin/advertisements/')
-        ? 'can_moderate_content'
-      : pathname === '/admin/reviews' || pathname.startsWith('/admin/reviews/')
-        ? 'can_moderate_content'
-      : pathname === '/admin/events' || pathname.startsWith('/admin/events/')
-        ? 'can_moderate_content'
-      : pathname === '/admin/community-posts' || pathname.startsWith('/admin/community-posts/')
-        ? 'can_moderate_content'
-      : pathname === '/admin/support' || pathname.startsWith('/admin/support/')
-        ? 'can_manage_support'
-      : pathname === '/admin/communication' || pathname.startsWith('/admin/communication/')
-        ? 'can_manage_communications'
-        : pathname === '/admin/verification' || pathname.startsWith('/admin/verification/')
-          ? 'can_review_verifications'
-          : null;
+    const moderatorPermission = getModeratorPermissionForAdminPath(pathname);
     let isPlatformStaff = role === 'super_admin';
 
     // Platform moderators only enter modules for which the database-backed

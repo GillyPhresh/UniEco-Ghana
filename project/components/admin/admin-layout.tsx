@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { ADMIN_NAV_GROUPS } from '@/lib/types/admin';
+import { isModeratorScopedAdminPath } from '@/lib/auth/admin-route-policy';
 import {
   Activity,
   ArrowLeft,
@@ -83,16 +84,7 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const moderatorPath = pathname === '/admin/moderation'
-    || pathname === '/admin/community-posts'
-    || pathname === '/admin/events'
-    || pathname === '/admin/trust-safety'
-    || pathname === '/admin/verification'
-    || pathname.startsWith('/admin/verification/')
-    || pathname === '/admin/support'
-    || pathname === '/admin/advertisements'
-    || pathname === '/admin/reviews'
-    || pathname === '/admin/communication';
+  const moderatorPath = isModeratorScopedAdminPath(pathname);
   const canAccessRoute = user.role === 'super_admin'
     || (user.role === 'moderator' && (moderatorPath || pathname === '/admin'));
 

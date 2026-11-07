@@ -88,13 +88,15 @@ test('active admin browser paths no longer write protected resources directly', 
 
 test('admin URL requests fail closed in middleware using the database-backed role', async () => {
   const middleware = await read('lib/supabase/middleware.ts');
+  const routePolicy = await read('lib/auth/admin-route-policy.ts');
   assert.match(middleware, /supabase\.auth\.getUser\(\)/);
   assert.match(middleware, /supabase\.rpc\('current_app_role'\)/);
   assert.match(middleware, /role === 'super_admin'/);
   assert.match(middleware, /role === 'moderator' && moderatorPermission/);
   assert.match(middleware, /supabase\.rpc\('has_permission'/);
-  assert.match(middleware, /pathname === '\/admin\/moderation'/);
-  assert.match(middleware, /'can_review_verifications'/);
+  assert.match(middleware, /getModeratorPermissionForAdminPath\(pathname\)/);
+  assert.match(routePolicy, /prefix: '\/admin\/moderation', permission: 'can_review_reports'/);
+  assert.match(routePolicy, /prefix: '\/admin\/verification', permission: 'can_review_verifications'/);
   assert.match(middleware, /isUniversityWorkspaceRoute && role === 'university_admin'/);
   assert.match(middleware, /role === 'university_admin' && pathname === '\/admin\/university-admin'/);
   assert.doesNotMatch(middleware, /isAssignedUniversityAdminRoute/);
@@ -262,6 +264,7 @@ test('order monitoring is read-only, database-scoped, and cannot use browser exp
   const adminClient = await read('lib/data/admin-client.ts');
   const ordersPage = await read('app/admin/orders/page.tsx');
   const middleware = await read('lib/supabase/middleware.ts');
+  const routePolicy = await read('lib/auth/admin-route-policy.ts');
   const layout = await read('components/admin/admin-layout.tsx');
   const orderReader = adminClient.match(/export async function getAdminOrders[\s\S]*?\n}\n/);
 
@@ -306,6 +309,7 @@ test('Trust and Safety cases use the existing report-review capability, legal tr
   const page = await read('app/admin/trust-safety/page.tsx');
   const adminClient = await read('lib/data/admin-client.ts');
   const middleware = await read('lib/supabase/middleware.ts');
+  const routePolicy = await read('lib/auth/admin-route-policy.ts');
   const layout = await read('components/admin/admin-layout.tsx');
 
   assert.match(migration, /public\.has_permission\('can_review_reports'\)/);
@@ -318,7 +322,8 @@ test('Trust and Safety cases use the existing report-review capability, legal tr
   assert.match(page, /decision reason/i);
   assert.match(page, /updateAdminModerationCase\(selected\.id, nextStatus, reason\)/);
   assert.match(page, /No Trust & Safety cases match your filters/);
-  assert.match(middleware, /pathname === '\/admin\/trust-safety'/);
+  assert.match(middleware, /getModeratorPermissionForAdminPath\(pathname\)/);
+  assert.match(routePolicy, /prefix: '\/admin\/trust-safety', permission: 'can_review_reports'/);
   assert.match(layout, /moderatorPermissions\.has\('can_review_reports'\)/);
   assert.match(adminClient, /rpc\('get_admin_moderation_cases'/);
   assert.match(adminClient, /rpc\('update_admin_moderation_case'/);
@@ -329,6 +334,7 @@ test('event moderation is assigned-capability and university scoped with reasone
   const page = await read('app/admin/events/page.tsx');
   const client = await read('lib/data/admin-client.ts');
   const middleware = await read('lib/supabase/middleware.ts');
+  const routePolicy = await read('lib/auth/admin-route-policy.ts');
   const layout = await read('components/admin/admin-layout.tsx');
   const reader = client.match(/export async function getAdminEventModerationFlags[\s\S]*?\n}\n/);
 
@@ -345,7 +351,8 @@ test('event moderation is assigned-capability and university scoped with reasone
   assert.match(page, /Approve and publish/);
   assert.match(page, /Hide event/);
   assert.match(page, /Dismiss report/);
-  assert.match(middleware, /pathname === '\/admin\/events'/);
+  assert.match(middleware, /getModeratorPermissionForAdminPath\(pathname\)/);
+  assert.match(routePolicy, /prefix: '\/admin\/events', permission: 'can_moderate_content'/);
   assert.match(layout, /item\.href === '\/admin\/events' && moderatorPermissions\.has\('can_moderate_content'\)/);
 });
 
@@ -1180,6 +1187,7 @@ test('review center uses a bounded privacy-minimized queue and existing audited 
   const adminClient = await read('lib/data/admin-client.ts');
   const page = await read('app/admin/reviews/page.tsx');
   const middleware = await read('lib/supabase/middleware.ts');
+  const routePolicy = await read('lib/auth/admin-route-policy.ts');
   const layout = await read('components/admin/admin-layout.tsx');
   const queue = migration.match(/CREATE OR REPLACE FUNCTION public\.get_admin_review_moderation_queue\([\s\S]*?\$\$;/);
   const reader = adminClient.match(/export async function getAdminReviewQueue\([\s\S]*?\n}\n/);
@@ -1202,7 +1210,8 @@ test('review center uses a bounded privacy-minimized queue and existing audited 
   assert.match(page, /Confirm review moderation/);
   assert.match(page, /requestVersion/);
   assert.match(page, /getAdminReviewQueue/);
-  assert.match(middleware, /pathname === '\/admin\/reviews'[\s\S]*'can_moderate_content'/);
+  assert.match(middleware, /getModeratorPermissionForAdminPath\(pathname\)/);
+  assert.match(routePolicy, /prefix: '\/admin\/reviews', permission: 'can_moderate_content'/);
   assert.match(layout, /item\.href === '\/admin\/reviews' && moderatorPermissions\.has\('can_moderate_content'\)/);
 });
 
