@@ -32,3 +32,16 @@ test('order detail reloads for identity changes and ignores stale route response
   assert.match(orderDetail, /requestId !== loadRequestId\.current/);
   assert.match(orderDetail, /return \(\) => \{\s*loadRequestId\.current \+= 1;/);
 });
+
+test('vendor order filters discard stale responses and distinguish read failures from empty queues', () => {
+  const vendorOrdersPage = read('app/vendor-dashboard/orders/page.tsx');
+  const marketplaceClient = read('lib/data/marketplace-client.ts');
+  assert.match(vendorOrdersPage, /const loadOrders = useCallback/);
+  assert.match(vendorOrdersPage, /\}, \[filter\]\);/);
+  assert.match(vendorOrdersPage, /\[loadOrders, vendor\?\.id\]/);
+  assert.match(vendorOrdersPage, /requestId === loadRequestId\.current/);
+  assert.match(vendorOrdersPage, /Could not load orders/);
+  assert.match(vendorOrdersPage, /onClick=\{loadOrders\}/);
+  assert.match(marketplaceClient, /if \(vendorError\) throw new Error\('Could not load vendor orders'\)/);
+  assert.match(marketplaceClient, /if \(error\) throw new Error\('Could not load vendor orders'\)/);
+});

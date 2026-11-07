@@ -566,14 +566,16 @@ export async function confirmOrderHandoff(orderId: string, note?: string): Promi
 // ============================================================
 
 export async function getVendorOrders(status?: OrderStatus): Promise<OrderWithDetails[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) throw new Error('Could not verify vendor access');
   if (!user) return [];
 
   // Get vendor IDs owned by this user
-  const { data: vendors } = await supabase
+  const { data: vendors, error: vendorError } = await supabase
     .from('vendors')
     .select('id')
     .eq('owner_id', user.id);
+  if (vendorError) throw new Error('Could not load vendor orders');
 
   if (!vendors || vendors.length === 0) return [];
 
@@ -598,7 +600,8 @@ export async function getVendorOrders(status?: OrderStatus): Promise<OrderWithDe
     query = query.eq('status', status);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error) throw new Error('Could not load vendor orders');
   return (data || []) as unknown as OrderWithDetails[];
 }
 

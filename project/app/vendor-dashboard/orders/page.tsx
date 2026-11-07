@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -42,6 +42,8 @@ function VendorOrdersContent() {
   const { vendor, loading } = useVendor();
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const loadRequestId = useRef(0);
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
   const [rejectReason, setRejectReason] = useState('');
@@ -49,14 +51,29 @@ function VendorOrdersContent() {
   const [rejecting, setRejecting] = useState(false);
   const [vendorNotes, setVendorNotes] = useState('');
 
-  useEffect(() => { loadOrders(); }, [filter]);
-
-  async function loadOrders() {
+  const loadOrders = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
     setDataLoading(true);
-    const data = await getVendorOrders(filter === 'all' ? undefined : filter);
-    setOrders(data);
-    setDataLoading(false);
-  }
+    setLoadError(false);
+    try {
+      const data = await getVendorOrders(filter === 'all' ? undefined : filter);
+      if (requestId === loadRequestId.current) setOrders(data);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setOrders([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
+    }
+  }, [filter]);
+
+  useEffect(() => {
+    loadOrders();
+    return () => {
+      loadRequestId.current += 1;
+    };
+  }, [loadOrders, vendor?.id]);
 
   const handleAccept = async (orderId: string) => {
     const { error } = await updateOrderStatus(orderId, 'accepted', 'Order accepted by vendor');
@@ -152,6 +169,14 @@ function VendorOrdersContent() {
         <div className="space-y-3">
           {[1, 2, 3].map(i => <Skeleton key={i} className="h-32 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="text-sm font-medium text-foreground">Could not load orders</p>
+            <p className="mt-1 text-xs text-muted-foreground">Your order data may be temporarily unavailable.</p>
+            <Button variant="outline" className="mt-4" onClick={loadOrders}>Try again</Button>
+          </CardContent>
+        </Card>
       ) : orders.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
