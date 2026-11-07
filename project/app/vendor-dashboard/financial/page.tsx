@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,17 +22,35 @@ function Content() {
   const { vendor } = useVendor();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<VendorFinancialSummary | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const requestId = useRef(0);
 
-  useEffect(() => {
-    if (vendor?.id) loadData();
+  const loadData = useCallback(async () => {
+    const currentRequest = ++requestId.current;
+    if (!vendor?.id) {
+      setSummary(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getVendorFinancialSummary(vendor.id);
+      if (currentRequest === requestId.current) setSummary(data);
+    } catch {
+      if (currentRequest === requestId.current) {
+        setSummary(null);
+        setLoadError(true);
+      }
+    } finally {
+      if (currentRequest === requestId.current) setLoading(false);
+    }
   }, [vendor?.id]);
 
-  async function loadData() {
-    setLoading(true);
-    const data = await getVendorFinancialSummary(vendor!.id);
-    setSummary(data);
-    setLoading(false);
-  }
+  useEffect(() => {
+    loadData();
+    return () => { requestId.current += 1; };
+  }, [loadData]);
 
   if (loading || !vendor) {
     return (
@@ -58,6 +76,15 @@ function Content() {
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">Your subscription and payment overview</p>
         </div>
+
+        {loadError && (
+          <Card role="alert">
+            <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <p className="text-sm text-muted-foreground">Financial data could not be loaded. Please retry.</p>
+              <button type="button" onClick={loadData} className="text-sm font-medium text-primary underline">Try again</button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Summary cards */}
         <div className="grid gap-3 sm:grid-cols-3">
