@@ -72,9 +72,15 @@ export function SiteHeader() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
-    getUnreadNotificationCount().then(setUnreadNotifs).catch(() => setUnreadNotifs(0));
-  }, [user]);
+    let active = true;
+    setUnreadNotifs(0);
+    if (user?.id) {
+      getUnreadNotificationCount()
+        .then((count) => { if (active) setUnreadNotifs(count); })
+        .catch(() => { if (active) setUnreadNotifs(0); });
+    }
+    return () => { active = false; };
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -127,7 +133,7 @@ export function SiteHeader() {
               <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors duration-100 hover:bg-muted md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
               <div className="flex items-center gap-0 sm:gap-1">
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
-                <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unreadNotifs} />
+                <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={user ? unreadNotifs : 0} />
               </div>
               {user.role === 'super_admin' && (
                 <Button asChild size="sm" variant="outline" className="hidden border-primary/30 text-primary hover:bg-primary/10 lg:inline-flex">
