@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -32,15 +32,21 @@ function OrdersContent() {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
+  const requestVersion = useRef(0);
 
-  useEffect(() => { loadOrders(); }, [filter]);
-
-  async function loadOrders() {
+  const loadOrders = useCallback(async () => {
+    const version = ++requestVersion.current;
     setLoading(true);
     const data = await getStudentOrders(filter === 'all' ? undefined : filter);
+    if (requestVersion.current !== version) return;
     setOrders(data);
     setLoading(false);
-  }
+  }, [filter]);
+
+  useEffect(() => {
+    void loadOrders();
+    return () => { requestVersion.current += 1; };
+  }, [loadOrders]);
 
   return (
     <main className="container max-w-4xl py-6 sm:py-8 px-4 sm:px-6">

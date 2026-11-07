@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { RouteGuard } from '@/lib/auth/route-guard';
@@ -52,14 +52,11 @@ function DashboardContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [profileCompletion, setProfileCompletion] = useState(0);
   const [upcomingEvents, setUpcomingEvents] = useState<{ id: string; title: string; slug: string; start_time: string | null; location: string | null }[]>([]);
+  const requestVersion = useRef(0);
 
-  useEffect(() => {
+  const loadDashboardData = useCallback(async () => {
     if (!user) return;
-    loadDashboardData();
-  }, [user]);
-
-  async function loadDashboardData() {
-    if (!user) return;
+    const version = ++requestVersion.current;
     setLoading(true);
 
     const [saved, recent, notifs, unread, prefs] = await Promise.all([
@@ -69,6 +66,8 @@ function DashboardContent() {
       getUnreadNotificationCount(),
       getStudentPreferences(),
     ]);
+
+    if (requestVersion.current !== version) return;
 
     setSavedCounts(saved);
     setRecentlyViewed(recent);
@@ -104,12 +103,18 @@ function DashboardContent() {
       .order('start_time', { ascending: true })
       .limit(3);
     const [{ data: featured }, { data: recentBusinesses }, { data: events }] = await Promise.all([featuredQuery, recentQuery, eventsQuery]);
+    if (requestVersion.current !== version) return;
     setRecommendedVendors((featured || []) as unknown as VendorWithRelations[]);
     setRecentVendors((recentBusinesses || []) as unknown as VendorWithRelations[]);
     setUpcomingEvents(events || []);
 
     setLoading(false);
-  }
+  }, [user]);
+
+  useEffect(() => {
+    void loadDashboardData();
+    return () => { requestVersion.current += 1; };
+  }, [loadDashboardData]);
 
   if (!user) return null;
 
