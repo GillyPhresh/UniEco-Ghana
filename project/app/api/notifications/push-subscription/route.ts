@@ -2,8 +2,17 @@ import { NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { isAllowedPushEndpoint } from '@/lib/notifications/push-endpoint';
+import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
 export const dynamic = 'force-dynamic';
+
+type PushSubscriptionBody = {
+  endpoint?: unknown;
+  p256dh?: unknown;
+  auth?: unknown;
+  keys?: { p256dh?: unknown; auth?: unknown };
+  expirationTime?: unknown;
+};
 
 async function getAuthenticatedUser(request: Request) {
   const authClient = await createServerClient();
@@ -54,7 +63,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
 
   try {
-    const body = await request.json();
+    const body = await readJsonLimited<PushSubscriptionBody>(request, 16 * 1024);
     const endpoint = typeof body.endpoint === 'string' ? body.endpoint : '';
     const p256dh = typeof body.p256dh === 'string' ? body.p256dh : typeof body.keys?.p256dh === 'string' ? body.keys.p256dh : '';
     const auth = typeof body.auth === 'string' ? body.auth : typeof body.keys?.auth === 'string' ? body.keys.auth : '';
@@ -91,7 +100,7 @@ export async function POST(request: Request) {
       .eq('user_id', user.id)
       .eq('is_active', true);
     return NextResponse.json({ success: true, subscriptionId: saved?.id, activeSubscriptions: count || 0 });
-  } catch {
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof RequestBodyTooLargeError ? 'Request body is too large' : 'Invalid request' }, { status: error instanceof RequestBodyTooLargeError ? 413 : 400 });
   }
 }

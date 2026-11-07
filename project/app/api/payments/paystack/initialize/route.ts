@@ -4,6 +4,7 @@ import { createClient as createAdminClient, createClient as createTokenClient } 
 import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransaction, paystackIsEnabled, PaystackCheckoutError, permittedChannels, type PaystackMobileMoneyProvider } from '@/lib/payments/paystack.server';
 import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
 import { siteConfig } from '@/lib/constants/site';
+import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ function normalizeGhanaPhone(value: string | undefined): string | null {
 export async function POST(request: NextRequest) {
   try {
     if (!paystackIsEnabled()) return NextResponse.json({ error: 'Paystack checkout is not enabled in this environment.' }, { status: 503 });
-    const body = await request.json() as RequestBody;
+    const body = await readJsonLimited<RequestBody>(request, 32 * 1024);
     if (!body.idempotencyKey || !/^[A-Za-z0-9._=-]{8,120}$/.test(body.idempotencyKey)) return NextResponse.json({ error: 'A valid idempotency key is required.' }, { status: 400 });
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -419,6 +420,7 @@ export async function POST(request: NextRequest) {
     if (markError) return NextResponse.json({ error: 'Checkout was created but could not be recorded safely. Please contact support.' }, { status: 422 });
     return NextResponse.json({ reference: checkout.reference, authorizationUrl: checkout.authorizationUrl, status: 'pending' }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
+    if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ error: 'Request body is too large.' }, { status: 413, headers: { 'Cache-Control': 'no-store' } });
     if (error instanceof PaystackCheckoutError) {
       console.error('[paystack-initialize] provider checkout request failed', { code: error.code });
       return NextResponse.json({
