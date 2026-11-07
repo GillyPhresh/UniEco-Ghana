@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
 import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
 import { createUniversityAdminAppointmentAttachments, type EmailAttachment } from "./university-admin-documents.ts";
+import { readBoundedJson, boundedBodyErrorResponse } from "../_shared/bounded-json.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -45,9 +46,16 @@ Deno.serve(async (req: Request) => {
   if (!outboundProvidersEnabled()) return providersDisabledResponse();
 
   try {
-    const { to, subject, body, eventType, eventId, recipientId, metadata = {} } = await req.json();
+    const input = await readBoundedJson(req, 1024 * 1024);
+    const to = typeof input.to === 'string' ? input.to.trim() : '';
+    const subject = typeof input.subject === 'string' ? input.subject : '';
+    const body = typeof input.body === 'string' ? input.body : '';
+    const eventType = typeof input.eventType === 'string' ? input.eventType : undefined;
+    const eventId = typeof input.eventId === 'string' ? input.eventId : undefined;
+    const recipientId = typeof input.recipientId === 'string' ? input.recipientId : undefined;
+    const metadata = input.metadata && typeof input.metadata === 'object' && !Array.isArray(input.metadata) ? input.metadata : {};
 
-    if (!to || !subject || !body) {
+    if (!to || to.length > 320 || !subject.trim() || subject.length > 300 || !body.trim() || body.length > 100_000) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject, body" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -223,6 +231,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const boundedError = boundedBodyErrorResponse(err, corsHeaders);
+    if (boundedError) return boundedError;
     console.error("Email send error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,

@@ -2,6 +2,7 @@ import 'jsr:@supabase/functions-js/edge-runtime.d.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternalRequest } from '../_shared/internal-auth.ts';
 import { outboundProvidersEnabled } from '../_shared/provider-mode.ts';
+import { readBoundedJson, boundedBodyErrorResponse } from '../_shared/bounded-json.ts';
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
 
@@ -30,10 +31,10 @@ Deno.serve(async (req: Request) => {
 
   let limit = 10;
   try {
-    const body = await req.json().catch(() => ({}));
+    const body = await readBoundedJson(req, 1024);
     if (body.limit !== undefined) limit = Number(body.limit);
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: jsonHeaders });
+  } catch (error) {
+    return boundedBodyErrorResponse(error, jsonHeaders) || new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: jsonHeaders });
   }
   if (!Number.isInteger(limit) || limit < 1 || limit > 25) {
     return new Response(JSON.stringify({ error: 'limit must be an integer from 1 to 25' }), { status: 400, headers: jsonHeaders });

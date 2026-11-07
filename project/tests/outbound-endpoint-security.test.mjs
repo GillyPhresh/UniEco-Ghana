@@ -61,3 +61,22 @@ test('Railway Docker builds install exactly the committed dependency lockfile', 
   assert.match(dockerfile, /RUN npm ci/);
   assert.doesNotMatch(dockerfile, /RUN npm install/);
 });
+
+test('internal outbound Edge Functions bound and validate provider payloads before dispatch', () => {
+  const helper = read('supabase/functions/_shared/bounded-json.ts');
+  const email = read('supabase/functions/send-email/index.ts');
+  const sms = read('supabase/functions/send-sms/index.ts');
+  const whatsapp = read('supabase/functions/send-whatsapp/index.ts');
+  const dispatcher = read('supabase/functions/dispatch-communication-queue/index.ts');
+  assert.match(helper, /content-length/);
+  assert.match(helper, /reader\.cancel\(\)/);
+  assert.match(helper, /status: tooLarge \? 413 : 400/);
+  assert.match(email, /readBoundedJson\(req, 1024 \* 1024\)/);
+  assert.match(email, /body\.length > 100_000/);
+  assert.match(sms, /readBoundedJson\(req, 16 \* 1024\)/);
+  assert.match(sms, /message\.length > 4000/);
+  assert.match(whatsapp, /readBoundedJson\(req, 32 \* 1024\)/);
+  assert.match(whatsapp, /templateKey\.length > 2000/);
+  assert.match(dispatcher, /readBoundedJson\(req, 1024\)/);
+  for (const source of [email, sms, whatsapp, dispatcher]) assert.doesNotMatch(source, /await req\.json\(\)/);
+});

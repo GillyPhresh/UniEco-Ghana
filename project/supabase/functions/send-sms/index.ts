@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { requireInternalRequest } from "../_shared/internal-auth.ts";
 import { outboundProvidersEnabled, providersDisabledResponse } from "../_shared/provider-mode.ts";
+import { readBoundedJson, boundedBodyErrorResponse } from "../_shared/bounded-json.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -24,9 +25,12 @@ Deno.serve(async (req: Request) => {
   if (!outboundProvidersEnabled()) return providersDisabledResponse();
 
   try {
-    const { to, message, recipientId } = await req.json();
+    const input = await readBoundedJson(req, 16 * 1024);
+    const to = typeof input.to === 'string' ? input.to.trim() : '';
+    const message = typeof input.message === 'string' ? input.message : '';
+    const recipientId = typeof input.recipientId === 'string' ? input.recipientId : undefined;
 
-    if (!to || !message) {
+    if (!/^\+?[0-9]{7,15}$/.test(to) || !message.trim() || message.length > 4000) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, message" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -119,6 +123,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const boundedError = boundedBodyErrorResponse(err, corsHeaders);
+    if (boundedError) return boundedError;
     console.error("SMS send error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
