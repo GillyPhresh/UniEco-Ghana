@@ -6,11 +6,17 @@ import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = createPublicPageMetadata({
-  title: 'Campus Events in Ghana — Tech Fairs, Food Festivals & More',
-  description: 'Discover upcoming events at universities across Ghana — tech fairs, food festivals, career fairs, sports galas, and campus gatherings on UniEco Ghana.',
-  path: '/events',
-});
+export async function generateMetadata() {
+  const events = await getPublishedEvents(1);
+  return {
+    ...createPublicPageMetadata({
+      title: 'Campus Events in Ghana — Tech Fairs, Food Festivals & More',
+      description: 'Discover upcoming events at universities across Ghana — tech fairs, food festivals, career fairs, sports galas, and campus gatherings on UniEco Ghana.',
+      path: '/events',
+    }),
+    ...(events.length === 0 ? { robots: { index: false, follow: true } } : {}),
+  };
+}
 
 export default async function EventsPage() {
   const events = await getPublishedEvents(50);

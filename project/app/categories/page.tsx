@@ -7,11 +7,18 @@ import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = createPublicPageMetadata({
-  title: 'Browse Categories',
-  description: 'Discover businesses by category on UniEco Ghana — from food and fashion to electronics and education.',
-  path: '/categories',
-});
+export async function generateMetadata() {
+  const categoryCounts = await getCategoryCounts();
+  const hasBusinesses = Object.values(categoryCounts).some((count) => count > 0);
+  return {
+    ...createPublicPageMetadata({
+      title: 'Browse Categories',
+      description: 'Discover businesses by category on UniEco Ghana — from food and fashion to electronics and education.',
+      path: '/categories',
+    }),
+    ...(!hasBusinesses ? { robots: { index: false, follow: true } } : {}),
+  };
+}
 
 export default async function CategoriesPage() {
   const categoryCounts = await getCategoryCounts();

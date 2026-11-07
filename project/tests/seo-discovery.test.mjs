@@ -29,7 +29,22 @@ test('the sitemap advertises useful public pages and omits account/search URLs',
   }
   assert.match(sitemap, /getIndexableProductIds/);
   assert.match(sitemap, /getIndexableServiceIds/);
+  assert.match(sitemap, /staticIndexableEntries/);
+  assert.match(sitemap, /path === '\/discover' \|\| path === '\/categories'[\s\S]*vendors\.length > 0/);
+  assert.match(sitemap, /path === '\/marketplace'[\s\S]*products\.length > 0 \|\| services\.length > 0/);
+  assert.match(sitemap, /path === '\/events'[\s\S]*events\.length > 0/);
   assert.doesNotMatch(sitemap, /\/signin|\/signup|\/search/);
+});
+
+test('empty public directories are crawlable for users but noindexed until they contain real listings', () => {
+  const categories = read('app/categories/page.tsx');
+  const events = read('app/events/page.tsx');
+  const discover = read('app/discover/layout.tsx');
+  const marketplace = read('app/marketplace/layout.tsx');
+  assert.match(categories, /generateMetadata[\s\S]*hasBusinesses[\s\S]*index: false/);
+  assert.match(events, /generateMetadata[\s\S]*events\.length === 0[\s\S]*index: false/);
+  assert.match(discover, /getIndexableVendorSlugs\(1\)[\s\S]*index: false/);
+  assert.match(marketplace, /getIndexableProductIds\(1\)[\s\S]*getIndexableServiceIds\(1\)[\s\S]*index: false/);
 });
 
 test('anonymous visitors can crawl public discovery pages while account workspaces stay protected', () => {

@@ -95,5 +95,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     }));
-  return [...staticEntries, ...universityEntries, ...vendorEntries, ...eventEntries, ...productEntries, ...serviceEntries];
+  const staticIndexableEntries = staticEntries.filter((entry) => {
+    const path = new URL(entry.url).pathname;
+    if (path === '/discover' || path === '/categories') return vendors.length > 0;
+    if (path === '/marketplace') return products.length > 0 || services.length > 0;
+    if (path === '/events') return events.length > 0;
+    return true;
+  });
+  return [...staticIndexableEntries, ...universityEntries, ...vendorEntries, ...eventEntries, ...productEntries, ...serviceEntries];
 }
