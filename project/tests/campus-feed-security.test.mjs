@@ -7,10 +7,12 @@ const project = path.resolve(import.meta.dirname, '..');
 const read = (relative) => fs.readFileSync(path.join(project, relative), 'utf8');
 const migration = read('supabase/migrations/20261101170000_0174_moderated_campus_feed.sql');
 const expansion = read('supabase/migrations/20261107100000_0185_expand_campus_feed_school_sources.sql');
+const opportunitySources = read('supabase/migrations/20261107120000_0186_official_opportunity_sources.sql');
 const ingest = read('app/api/internal/campus-feed/ingest/route.ts');
 const admin = read('app/api/admin/campus-feed/route.ts');
 const publicPage = read('components/feed/campus-updates.tsx');
 const review = read('app/admin/ai/campus-feed-review.tsx');
+const alertCard = read('app/api/campus-feed/alert-card/route.tsx');
 
 test('feed ingestion has a long secret, constant-time auth and bounded request', () => {
   assert.match(ingest, /UNIECO_FEED_INGEST_TOKEN/);
@@ -58,6 +60,24 @@ test('only private UniEco AI review control can approve; public feed does not au
   assert.match(review, /10–500 characters/);
   assert.match(read('components/layout/site-header.tsx'), /href: '\/updates'/);
   assert.match(read('app/admin/ai/page.tsx'), /<CampusFeedReview \/>/);
+});
+
+test('official opportunity sources stay moderated and use a narrow public source directory', () => {
+  assert.match(opportunitySources, /source_kind IN \('campus', 'opportunities'\)/);
+  assert.match(opportunitySources, /scholarships\.gov\.gh/);
+  assert.match(opportunitySources, /neip\.gov\.gh/);
+  assert.match(opportunitySources, /campus_feed_public_sources/);
+  assert.match(publicPage, /campus_feed_public_sources/);
+  assert.match(publicPage, /Confirm eligibility, deadlines/);
+  assert.match(read('feed_worker/ingest.py'), /parse_official_opportunities/);
+  assert.match(read('feed_worker/ingest.py'), /Confirm current eligibility/);
+});
+
+test('branded alert image can only render a public approved feed item', () => {
+  assert.match(alertCard, /campus_feed_public_items/);
+  assert.match(alertCard, /ImageResponse/);
+  assert.match(alertCard, /unieco-main-logo\.png/);
+  assert.match(alertCard, /attachment; filename=/);
 });
 
 test('scheduled worker uses secrets only and invokes the bounded Python collector', () => {

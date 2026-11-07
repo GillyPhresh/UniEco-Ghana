@@ -105,12 +105,24 @@ export async function GET(request: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !serviceRoleKey) return json({ error: 'Feed ingestion is not configured.' }, 503);
   const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('campus_feed_sources')
-    .select('id, label, university_name, website_url, feed_url, source_domain')
+    .select('id, label, university_name, website_url, feed_url, source_domain, source_kind')
     .eq('enabled', true)
     .order('label')
     .limit(120);
+  // Keep the existing campus worker online during the short window before
+  // migration 0186 is applied. The opportunity sources appear after migration.
+  if (error) {
+    const legacy = await supabase
+      .from('campus_feed_sources')
+      .select('id, label, university_name, website_url, feed_url, source_domain')
+      .eq('enabled', true)
+      .order('label')
+      .limit(120);
+    data = (legacy.data || []).map((source) => ({ ...source, source_kind: 'campus' }));
+    error = legacy.error;
+  }
   if (error) return json({ error: 'Trusted feed sources could not be loaded.' }, 503);
   return json({ sources: data || [] });
 }

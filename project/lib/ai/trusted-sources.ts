@@ -53,6 +53,18 @@ export const DEFAULT_UNIECO_AI_SOURCES: UniEcoAiSource[] = [
     url: 'https://acity.edu.gh/news/',
     description: 'Public updates from Academic City University.',
   },
+  {
+    id: 'ghana-scholarships-authority',
+    label: 'Ghana Scholarships Authority',
+    url: 'https://scholarships.gov.gh/',
+    description: 'Official government scholarship notices and application guidance.',
+  },
+  {
+    id: 'neip-student-enterprise',
+    label: 'NEIP student enterprise programme',
+    url: 'https://neip.gov.gh/projects',
+    description: 'Government programme listings for student entrepreneurship, training, and funding support.',
+  },
 ];
 
 function isSafeSource(value: unknown): value is UniEcoAiSource {

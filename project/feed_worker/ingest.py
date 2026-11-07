@@ -149,6 +149,8 @@ def fetch_feed(source: dict[str, str]) -> bytes:
                 return data
         except (OSError, ValueError, urllib.error.URLError):
             continue
+    if source.get("source_kind") == "opportunities":
+        return initial
     raise ValueError("No same-domain RSS or Atom feed was advertised by this official website")
 
 
@@ -169,6 +171,77 @@ class AdvertisedFeedParser(HTMLParser):
         if any(token in content_type for token in ("rss", "atom", "xml")) or re.search(r"/(feed|rss|atom)(\.xml)?/?(?:\?|$)", href, re.I):
             if href not in self.urls:
                 self.urls.append(href)
+
+
+class OpportunityLinkParser(HTMLParser):
+    """Extract only visible, relevant links from an official opportunity site."""
+
+    KEYWORDS = re.compile(
+        r"\b(scholarship\w*|bursar\w*|grant\w*|internship\w*|job\w*|vacanc\w*|fund\w*|business\w*|"
+        r"entrepreneur\w*|youth\w*|train\w*|application\w*|opportunit\w*|call for|student\w*|seed)\b",
+        re.I,
+    )
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.links: list[tuple[str, str]] = []
+        self._href: str | None = None
+        self._parts: list[str] = []
+        self._depth = 0
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        values = dict(attrs)
+        if tag in {"script", "style", "noscript", "svg"}:
+            self._skip_depth += 1
+        if tag == "a" and self._skip_depth == 0 and values.get("href"):
+            self._href = values["href"] or ""
+            self._parts = []
+            self._depth = 1
+        elif self._depth and tag == "a":
+            self._depth += 1
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag in {"script", "style", "noscript", "svg"} and self._skip_depth:
+            self._skip_depth -= 1
+        if tag == "a" and self._depth:
+            self._depth -= 1
+            if self._depth == 0 and self._href:
+                title = clean_excerpt(" ".join(self._parts), 220)
+                if len(title) >= 12 and self.KEYWORDS.search(title):
+                    self.links.append((self._href, title))
+                self._href = None
+                self._parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self._depth and not self._skip_depth:
+            self._parts.append(data)
+
+
+def parse_official_opportunities(source: dict[str, str], data: bytes) -> list[dict[str, Any]]:
+    if len(data) > MAX_FEED_BYTES or re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
+        raise ValueError("Unsafe or oversized opportunity page")
+    parser = OpportunityLinkParser()
+    parser.feed(data.decode("utf-8", errors="replace"))
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for href, title in parser.links:
+        link = safe_source_url(href, source["feed_url"], source["source_domain"])
+        if not link or link in seen:
+            continue
+        seen.add(link)
+        key = hashlib.sha256((source["id"] + "\0" + link + "\n" + title).encode("utf-8")).hexdigest()
+        results.append({
+            "source_id": source["id"], "source_item_key": key, "title": title,
+            "excerpt": "Official opportunity lead. Confirm current eligibility, closing date, and application details at the source before acting.",
+            "canonical_url": link, "published_at": None, "media_url": None,
+            "media_type": None, "category": "opportunities",
+        })
+        if len(results) >= MAX_ITEMS_PER_SOURCE:
+            break
+    return results
 
 
 def is_feed_document(data: bytes) -> bool:
@@ -314,6 +387,8 @@ def categorize(title: str, excerpt: str) -> str:
 def parse_feed(source: dict[str, str], data: bytes, now: datetime | None = None) -> list[dict[str, Any]]:
     if len(data) > MAX_FEED_BYTES or re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
         raise ValueError("Unsafe or oversized XML feed")
+    if source.get("source_kind") == "opportunities" and not is_feed_document(data):
+        return parse_official_opportunities(source, data)
     root = ET.fromstring(data)
     entries = [node for node in root.iter() if tag_local_name(node.tag) in {"item", "entry"}]
     now = now or datetime.now(timezone.utc)

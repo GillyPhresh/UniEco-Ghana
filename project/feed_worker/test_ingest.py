@@ -97,6 +97,33 @@ class FeedParserTests(unittest.TestCase):
         self.assertEqual(safe, "https://atu.edu.gh/news?a=1")
         self.assertIsNone(ingest.safe_source_url("http://atu.edu.gh/news", "https://atu.edu.gh/feed/", "atu.edu.gh"))
 
+    def test_official_opportunity_page_extracts_only_relevant_same_domain_links(self):
+        source = {
+            "id": "neip-student-enterprise", "label": "NEIP student enterprise programme",
+            "university_name": "National opportunities across Ghana",
+            "feed_url": "https://neip.gov.gh/projects", "source_domain": "neip.gov.gh",
+            "source_kind": "opportunities",
+        }
+        page = b'''<html><body>
+          <a href="/programs/seed">Students Entrepreneurship and Enterprise Development programme</a>
+          <a href="https://evil.example/seed">Student enterprise seed funding application</a>
+          <a href="/about">About the Authority</a>
+          <script><a href="/fake">Business grant opportunity</a></script>
+        </body></html>'''
+        [item] = ingest.parse_feed(source, page, self.now)
+        self.assertEqual(item["canonical_url"], "https://neip.gov.gh/programs/seed")
+        self.assertEqual(item["category"], "opportunities")
+        self.assertIsNone(item["published_at"])
+        self.assertIn("Confirm current eligibility", item["excerpt"])
+
+    def test_opportunity_page_rejects_dtd_and_entities(self):
+        source = {
+            "id": "neip-student-enterprise", "feed_url": "https://neip.gov.gh/projects",
+            "source_domain": "neip.gov.gh", "source_kind": "opportunities",
+        }
+        with self.assertRaises(ValueError):
+            ingest.parse_feed(source, b'<!DOCTYPE html [<!ENTITY x SYSTEM "file:///etc/passwd">]><html/>', self.now)
+
 
 if __name__ == "__main__":
     unittest.main()
