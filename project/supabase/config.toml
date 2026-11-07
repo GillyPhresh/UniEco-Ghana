@@ -420,3 +420,21 @@ verify_jwt = true
 # request body with Paystack's HMAC-SHA512 signature before it can write.
 [functions.payment-webhook]
 verify_jwt = false
+
+# These functions authenticate internally with UNIECO_INTERNAL_FUNCTION_SECRET.
+# They are called service-to-service without a user JWT, so the platform JWT
+# gate must be disabled while the in-handler shared-secret check stays enabled.
+[functions.dispatch-communication-queue]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = false
+
+[functions.send-whatsapp]
+verify_jwt = false

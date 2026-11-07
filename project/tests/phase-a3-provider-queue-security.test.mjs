@@ -27,13 +27,14 @@ test('browser communication service is quarantined and cannot dispatch provider 
 });
 
 test('dispatcher and provider functions require the internal secret and default to disabled providers', async () => {
-  const [dispatcher, email, sms, push, whatsapp, guard] = await Promise.all([
+  const [dispatcher, email, sms, push, whatsapp, guard, config] = await Promise.all([
     read('supabase/functions/dispatch-communication-queue/index.ts'),
     read('supabase/functions/send-email/index.ts'),
     read('supabase/functions/send-sms/index.ts'),
     read('supabase/functions/send-push/index.ts'),
     read('supabase/functions/send-whatsapp/index.ts'),
     read('supabase/functions/_shared/internal-auth.ts'),
+    read('supabase/config.toml'),
   ]);
   assert.match(guard, /UNIECO_INTERNAL_FUNCTION_SECRET/);
   assert.match(dispatcher, /requireInternalRequest/);
@@ -43,4 +44,8 @@ test('dispatcher and provider functions require the internal secret and default 
     assert.match(fn, /requireInternalRequest/);
     assert.match(fn, /outboundProvidersEnabled/);
   }
+  for (const name of ['dispatch-communication-queue', 'send-email', 'send-push', 'send-sms', 'send-whatsapp']) {
+    assert.match(config, new RegExp(`\\[functions\\.${name}\\]\\s+verify_jwt = false`));
+  }
+  assert.match(config, /\[functions\.get-student-verification-document-url\]\s+verify_jwt = true/);
 });
