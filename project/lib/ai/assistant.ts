@@ -5,6 +5,7 @@ export type UniEcoAiChatMessage = {
 
 export type UniEcoAiMode = 'configured' | 'safe-fallback';
 export type UniEcoAiCitation = { title: string; url: string };
+export type UniEcoAiFailureReason = 'not_configured' | 'provider_unavailable' | 'web_search_unavailable';
 
 const MAX_CONTEXT = 8_000;
 
@@ -64,7 +65,7 @@ export async function askUniEcoAi(params: {
   context?: string;
   instruction?: string;
   webSearch?: boolean;
-}): Promise<{ text: string; mode: UniEcoAiMode; citations?: UniEcoAiCitation[]; webSearched?: boolean }> {
+}): Promise<{ text: string; mode: UniEcoAiMode; citations?: UniEcoAiCitation[]; webSearched?: boolean; failureReason?: UniEcoAiFailureReason }> {
   const { apiKey, baseUrl, model } = providerConfig();
   const context = (params.context || '').slice(0, MAX_CONTEXT);
   const messages = [
@@ -76,7 +77,7 @@ export async function askUniEcoAi(params: {
 
   if (!apiKey) {
     const lastUserMessage = [...params.messages].reverse().find((message) => message.role === 'user')?.content || '';
-    return { text: fallbackReply(lastUserMessage, context), mode: 'safe-fallback' };
+    return { text: fallbackReply(lastUserMessage, context), mode: 'safe-fallback', failureReason: 'not_configured' };
   }
 
   if (params.webSearch && isUniEcoAiWebSearchAvailable()) {
@@ -124,7 +125,7 @@ export async function askUniEcoAi(params: {
       return { text, citations: Array.from(citationMap.values()).slice(0, 8), mode: 'configured', webSearched: true };
     } catch {
       const lastUserMessage = [...params.messages].reverse().find((message) => message.role === 'user')?.content || '';
-      return { text: `${fallbackReply(lastUserMessage, context)}\n\nLive web search was unavailable for this reply, so I have not presented it as current research.`, mode: 'safe-fallback', citations: [], webSearched: false };
+      return { text: `${fallbackReply(lastUserMessage, context)}\n\nLive web search was unavailable for this reply, so I have not presented it as current research.`, mode: 'safe-fallback', citations: [], webSearched: false, failureReason: 'web_search_unavailable' };
     } finally {
       clearTimeout(timeout);
     }
@@ -146,7 +147,7 @@ export async function askUniEcoAi(params: {
     return { text, mode: 'configured' };
   } catch {
     const lastUserMessage = [...params.messages].reverse().find((message) => message.role === 'user')?.content || '';
-    return { text: `${fallbackReply(lastUserMessage, context)}\n\nThe configured AI provider was unavailable, so I did not guess or perform an action.`, mode: 'safe-fallback' };
+    return { text: `${fallbackReply(lastUserMessage, context)}\n\nThe configured AI provider was unavailable, so I did not guess or perform an action.`, mode: 'safe-fallback', failureReason: 'provider_unavailable' };
   } finally {
     clearTimeout(timeout);
   }

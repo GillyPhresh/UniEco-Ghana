@@ -63,6 +63,19 @@ export async function POST(request: Request) {
   }
 
   const action = typeof body.action === 'string' ? body.action : '';
+  if (action === 'test') {
+    const result = await askUniEcoAi({
+      messages: [{ role: 'user', content: 'Reply with only the word OK.' }],
+      context: 'This is a one-time provider connectivity check. Do not include any other information.',
+    });
+    const ok = result.mode === 'configured';
+    return privateJson({
+      ok,
+      failureReason: result.failureReason || null,
+      message: ok ? 'AI provider responded successfully.' : 'AI provider did not respond; the private assistant is using safe fallback mode.',
+    }, ok ? 200 : 503);
+  }
+
   if (action === 'discover') {
     const sourceId = typeof body.sourceId === 'string' ? body.sourceId : undefined;
     const { data: universities, error: directoryError } = await auth.supabase
@@ -95,7 +108,7 @@ export async function POST(request: Request) {
       context: JSON.stringify({ systemHealth: health && typeof health === 'object' ? health : null }),
       webSearch: body.webSearch === true && isUniEcoAiWebSearchAvailable(),
     });
-    return privateJson({ reply: result.text, mode: result.mode, citations: result.citations || [], webSearched: result.webSearched || false });
+    return privateJson({ reply: result.text, mode: result.mode, failureReason: result.failureReason || null, citations: result.citations || [], webSearched: result.webSearched || false });
   }
 
   if (action === 'draft') {
@@ -116,6 +129,9 @@ export async function POST(request: Request) {
       update: { title: sourceUpdate.title.slice(0, 220), summary: sourceUpdate.summary.slice(0, 500), url: sourceUpdate.url, sourceLabel: sourceUpdate.sourceLabel.slice(0, 160) },
       audience,
     });
+    if (draft.mode !== 'configured') {
+      return privateJson({ error: 'The AI provider is unavailable. No broadcast was created; verify the AI connection and try again.' }, 503);
+    }
     const { data: draftId, error } = await auth.supabase.rpc('create_admin_broadcast_draft', {
       p_title: draft.title,
       p_body: draft.body,
@@ -123,10 +139,10 @@ export async function POST(request: Request) {
       p_target_audience: audience,
       p_target_filters: { ai_generated: true, source_url: sourceUpdate.url, source_label: sourceUpdate.sourceLabel },
       p_channels: ['in_app'],
-      p_submit_for_approval: false,
+      p_submit_for_approval: true,
     });
-    if (error) return privateJson({ error: 'The draft was prepared but could not be saved to Broadcasts.' }, 503);
-    return privateJson({ draftId, title: draft.title, mode: draft.mode });
+    if (error) return privateJson({ error: 'The AI message was prepared but could not be submitted to Broadcasts for review.' }, 503);
+    return privateJson({ draftId, title: draft.title, mode: draft.mode, status: 'pending_approval' });
   }
 
   return privateJson({ error: 'Unsupported AI action.' }, 400);

@@ -20,6 +20,10 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
   assert.match(sources, /redirect: 'manual'/);
   assert.match(route, /schoolCoverage/);
   assert.match(route, /isUniEcoAiWebSearchAvailable/);
+  assert.match(route, /action === 'test'/);
+  assert.match(route, /failureReason: result\.failureReason/);
+  assert.match(page, /Test AI connection/);
+  assert.match(page, /connection not tested/);
   assert.match(page, /Search the live web for this chat/);
   assert.match(page, /opt-in live-web-search checkbox in chat/);
 });
@@ -27,9 +31,11 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
 test('private AI UI is mounted only in the management area and drafts are not auto-published', () => {
   assert.match(page, /AdminRouteGuard/);
   assert.match(page, /\/api\/admin\/ai/);
-  assert.match(page, /Prepare draft/);
+  assert.match(page, /Prepare for approval/);
   assert.match(page, /review.*Broadcasts/i);
-  assert.match(route, /p_submit_for_approval: false/);
+  assert.match(route, /p_submit_for_approval: true/);
+  assert.match(route, /draft\.mode !== 'configured'/);
+  assert.match(route, /status: 'pending_approval'/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
 });
 
