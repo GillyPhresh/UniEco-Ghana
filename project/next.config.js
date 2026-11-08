@@ -2,7 +2,11 @@
 const nextConfig = {
   // Keep build tracing inside this app; the workspace parent has a separate lockfile.
   outputFileTracingRoot: __dirname,
-  images: { unoptimized: true },
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.pexels.com', pathname: '/photos/**' },
+    ],
+  },
   experimental: {
     workerThreads: false,
     cpus: 1,

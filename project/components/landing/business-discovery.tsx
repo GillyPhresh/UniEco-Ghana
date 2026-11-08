@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Search, Filter, MapPin, Star } from 'lucide-react';
+import Image from 'next/image';
 import { Section, Reveal, SectionHeading } from '@/components/landing/section';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -100,10 +101,14 @@ export function BusinessDiscovery() {
                   i === 0 ? 'col-span-2 aspect-[16/10]' : 'aspect-[3/4]'
                 }`}
               >
-                <img
+                <Image
                   src={src}
                   alt=""
-                  className="h-full w-full object-cover"
+                  fill
+                  sizes={i === 0
+                    ? '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 40vw'
+                    : '(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 20vw'}
+                  className="object-cover"
                   loading="lazy"
                   decoding="async"
                 />
