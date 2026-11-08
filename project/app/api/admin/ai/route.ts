@@ -112,7 +112,7 @@ export async function POST(request: Request) {
     }
     try {
       const url = new URL(sourceUpdate.url);
-      if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) {
+      if (sourceUpdate.url.length > 650 || url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) {
         return privateJson({ error: 'Only secure public source links are allowed.' }, 400);
       }
       const { data: universities, error: directoryError } = await auth.supabase

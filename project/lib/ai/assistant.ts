@@ -77,10 +77,12 @@ export async function createUniEcoAiDraft(params: {
   audience: 'all' | 'students' | 'vendors';
 }): Promise<{ title: string; body: string; mode: UniEcoAiMode }> {
   const title = params.update.title.replace(/\s+/g, ' ').trim().slice(0, 120);
-  const summary = params.update.summary.replace(/\s+/g, ' ').trim().slice(0, 620);
-  const sourceLabel = params.update.sourceLabel.replace(/[\r\n]+/g, ' ').trim().slice(0, 120);
+  const summary = params.update.summary.replace(/\s+/g, ' ').trim();
+  const sourceLabel = params.update.sourceLabel.replace(/[\r\n]+/g, ' ').trim().slice(0, 80);
   const url = new URL(params.update.url);
   const audienceLabel = params.audience === 'all' ? 'students and vendors' : params.audience;
-  const body = `${sourceLabel}: ${summary}\n\nFor ${audienceLabel}. Please check the original source for full details and dates.\nSource: ${url.toString()}`.slice(0, 900);
+  const prefix = `${sourceLabel}: `;
+  const suffix = `\n\nFor ${audienceLabel}. Verify dates and details at the source.\nSource: ${url.toString()}`;
+  const body = `${prefix}${summary.slice(0, Math.max(0, 900 - prefix.length - suffix.length))}${suffix}`;
   return { title, body, mode: 'safe-fallback' };
 }

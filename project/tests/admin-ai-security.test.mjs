@@ -15,6 +15,7 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
   assert.match(route, /fetchTrustedUniEcoAiUpdates\(sourceId, sources\)/);
   assert.doesNotMatch(route, /fetch\(sourceUpdate\.url/);
   assert.match(route, /source\.label !== sourceUpdate\.sourceLabel/);
+  assert.match(route, /sourceUpdate\.url\.length > 650/);
   assert.match(route, /updateHost\.endsWith\(`\.\$\{sourceHost\}`\)/);
   assert.match(sources, /UNIECO_AI_TRUSTED_SOURCES/);
   assert.match(sources, /url\.protocol === 'https:'/);
@@ -48,6 +49,7 @@ test('built-in AI drafts are source-grounded and always submitted for human revi
   assert.match(route, /draft_mode: aiGenerated \? 'ai_assisted' : 'source_fallback'/);
   assert.match(assistant, /For \$\{audienceLabel\}/);
   assert.match(assistant, /Source: \$\{url\.toString\(\)\}/);
+  assert.match(assistant, /900 - prefix\.length - suffix\.length/);
   assert.match(assistant, /mode: 'safe-fallback'/);
   assert.match(route, /p_submit_for_approval: true/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
