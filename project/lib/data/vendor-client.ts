@@ -601,11 +601,12 @@ export async function getVendorAnalytics(vendorId: string): Promise<VendorAnalyt
 // ============================================================
 
 export async function getVendorSettings(vendorId: string): Promise<VendorSettings | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('vendor_settings')
     .select('*')
     .eq('vendor_id', vendorId)
     .maybeSingle();
+  if (error) throw new Error('Could not load vendor settings');
   return data as VendorSettings | null;
 }
 

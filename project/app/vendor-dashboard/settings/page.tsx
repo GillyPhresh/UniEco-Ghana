@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -44,32 +44,35 @@ function SettingsContent() {
     two_factor_enabled: boolean;
   } | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const loadRequestId = useRef(0);
   const [saving, setSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
 
-  useEffect(() => {
-    if (!vendor) return;
-    loadSettings();
-  }, [vendor]);
-
-  async function loadSettings() {
-    if (!vendor) return;
+  const loadSettings = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendor?.id) {
+      setSettings(null);
+      setDataLoading(false);
+      return;
+    }
     setDataLoading(true);
-    const data = await getVendorSettings(vendor.id);
-    if (data) {
-      setSettings({
+    setLoadError(false);
+    setSettings(null);
+    try {
+      const data = await getVendorSettings(vendor.id);
+      if (requestId !== loadRequestId.current) return;
+      setSettings(data ? {
         email_notifications: data.email_notifications,
         push_notifications: data.push_notifications,
         order_alerts: data.order_alerts,
         review_alerts: data.review_alerts,
         message_alerts: data.message_alerts,
         two_factor_enabled: data.two_factor_enabled,
-      });
-    } else {
-      setSettings({
+      } : {
         email_notifications: true,
         push_notifications: true,
         order_alerts: true,
@@ -77,9 +80,17 @@ function SettingsContent() {
         message_alerts: true,
         two_factor_enabled: false,
       });
+    } catch {
+      if (requestId === loadRequestId.current) setLoadError(true);
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
     }
-    setDataLoading(false);
-  }
+  }, [vendor?.id]);
+
+  useEffect(() => {
+    loadSettings();
+    return () => { loadRequestId.current += 1; };
+  }, [loadSettings]);
 
   const handleSaveSettings = async () => {
     if (!vendor || !settings) return;
@@ -150,6 +161,11 @@ function SettingsContent() {
               <div className="space-y-3">
                 {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12 rounded-lg" />)}
               </div>
+            ) : loadError ? (
+              <div role="alert" className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-muted-foreground">Settings could not be loaded; saving is disabled until they can be verified.</p>
+                <Button type="button" variant="outline" onClick={loadSettings}>Try again</Button>
+              </div>
             ) : settings ? (
               <>
                 <NotificationRow
@@ -187,7 +203,7 @@ function SettingsContent() {
                   checked={settings.message_alerts}
                   onChange={v => setSettings(p => p ? { ...p, message_alerts: v } : p)}
                 />
-                <Button onClick={handleSaveSettings} disabled={saving} className="w-full">
+                <Button onClick={handleSaveSettings} disabled={saving || dataLoading || loadError} className="w-full">
                   {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   {saving ? 'Saving...' : 'Save Settings'}
                 </Button>

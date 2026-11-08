@@ -8,6 +8,8 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const source = readFileSync(path.join(projectRoot, 'hooks/use-vendor.ts'), 'utf8');
 const verification = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/verification/page.tsx'), 'utf8');
 const analytics = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/analytics/page.tsx'), 'utf8');
+const settingsPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/settings/page.tsx'), 'utf8');
+const vendorClient = readFileSync(path.join(projectRoot, 'lib/data/vendor-client.ts'), 'utf8');
 
 test('vendor profile loader clears old account data and ignores stale requests', () => {
   assert.match(source, /const requestSequence = useRef\(0\)/);
@@ -15,6 +17,18 @@ test('vendor profile loader clears old account data and ignores stale requests',
   assert.match(source, /const v = await getVendorProfile\(\);\s*if \(requestSequence\.current !== requestId\) return;/);
   assert.match(source, /if \(requestSequence\.current === requestId\) setLoading\(false\)/);
   assert.match(source, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+});
+
+test('vendor settings reads distinguish missing rows from read errors and block saving until verified', () => {
+  assert.match(vendorClient, /export async function getVendorSettings[\s\S]*?if \(error\) throw new Error\('Could not load vendor settings'\)/);
+  assert.match(settingsPage, /const loadSettings = useCallback/);
+  assert.match(settingsPage, /\}, \[vendor\?\.id\]\);/);
+  assert.match(settingsPage, /requestId !== loadRequestId\.current/);
+  assert.match(settingsPage, /setSettings\(null\)/);
+  assert.match(settingsPage, /loadSettings\(\);\s*return \(\) => \{ loadRequestId\.current \+= 1; \};/);
+  assert.match(settingsPage, /saving is disabled until they can be verified/);
+  assert.match(settingsPage, /disabled=\{saving \|\| dataLoading \|\| loadError\}/);
+  assert.match(settingsPage, /onClick=\{loadSettings\}/);
 });
 
 test('vendor analytics reloads by vendor identity and discards stale responses', () => {
