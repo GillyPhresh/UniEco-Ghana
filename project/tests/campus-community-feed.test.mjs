@@ -47,7 +47,7 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.doesNotMatch(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[^;]+TO anon/);
 });
 
-test('unsupported attachments remain private while eligible videos can be played from a short-lived signed link', async () => {
+test('private video attachments render inline in the feed from short-lived signed links', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   const admin = await read('app/admin/community-posts/page.tsx');
   const migration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
@@ -57,13 +57,16 @@ test('unsupported attachments remain private while eligible videos can be played
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /Play video/);
+  assert.match(feed, /Your video is ready to play/);
+  assert.match(feed, /tap play to watch/);
   assert.match(feed, /preload="metadata"/);
   assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
   assert.match(feed, /VIDEO_FILE_EXTENSION = \/\\\.\(mp4\|m4v\|mov\|qt\|webm\|ogv\|ogg\|avi\|mkv\|3gp\|3g2\|3gpp\|3gpp2/);
-  const privatePlayback = feed.slice(feed.indexOf('const playPrivateVideo'), feed.indexOf('useEffect(() => {\n    const video = videoRef.current'));
+  const privatePlayback = feed.slice(feed.indexOf('if (!active || post.media_type !== \'file\''), feed.indexOf('useEffect(() => {\n    const connection'));
   assert.match(privatePlayback, /canPlayPrivateVideoInline\(fileInfo\)/);
-  assert.doesNotMatch(privatePlayback, /\{ download:/);
+  assert.match(privatePlayback, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
+  assert.match(feed, /Video shared by \$\{post\.author_name\}/);
+  assert.doesNotMatch(feed, /Play video/);
   assert.match(feed, /onClick=\{\(\) => void downloadAttachment\(\)\}/);
   assert.match(admin, /media_type: 'image' \| 'video' \| 'file' \| 'text'/);
   assert.match(admin, /get_campus_community_post_file_info/);

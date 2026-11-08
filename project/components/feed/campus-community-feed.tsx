@@ -546,6 +546,25 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [fileError, setFileError] = useState(false);
   const [fileChecking, setFileChecking] = useState(false);
   const [privateVideoUrl, setPrivateVideoUrl] = useState<string | null>(null);
+  const [privateVideoLoading, setPrivateVideoLoading] = useState(false);
+  const [privateVideoAttempted, setPrivateVideoAttempted] = useState(false);
+
+  useEffect(() => {
+    if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
+      || privateVideoUrl || privateVideoLoading || privateVideoAttempted) return;
+    setPrivateVideoAttempted(true);
+    setPrivateVideoLoading(true);
+    void supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60)
+      .then(({ data, error }) => {
+        if (error || !data?.signedUrl) {
+          setFileError(true);
+          return;
+        }
+        setPrivateVideoUrl(data.signedUrl);
+      })
+      .catch(() => setFileError(true))
+      .finally(() => setPrivateVideoLoading(false));
+  }, [active, post.media_type, fileInfo, privateVideoUrl, privateVideoLoading, privateVideoAttempted]);
 
   useEffect(() => {
     if (!active || post.media_type !== 'file' || fileInfo) return;
@@ -595,22 +614,6 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } catch {
       setFileError(true);
       toast.error('This attachment is not available right now. Please try again.');
-    } finally {
-      setFileLoading(false);
-    }
-  };
-
-  const playPrivateVideo = async () => {
-    if (!fileInfo || !canPlayPrivateVideoInline(fileInfo) || fileLoading) return;
-    setFileLoading(true);
-    setFileError(false);
-    try {
-      const { data, error } = await supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60);
-      if (error || !data?.signedUrl) throw error || new Error('Video link unavailable');
-      setPrivateVideoUrl(data.signedUrl);
-    } catch {
-      setFileError(true);
-      toast.error('This video is not available for playback right now. You can still download the original.');
     } finally {
       setFileLoading(false);
     }
@@ -666,16 +669,26 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
         <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
       ) : post.media_type === 'file' ? (
         <div className="border-t bg-slate-50 p-4 sm:p-5">
-          {privateVideoUrl ? (
-            <div className="overflow-hidden rounded-2xl border bg-black">
-              <video src={privateVideoUrl} controls playsInline preload="metadata" aria-label={`Private video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} />
-              <p className="bg-white px-3 py-2 text-xs text-slate-600">Private video link expires automatically. Playback is user-controlled.</p>
+          {fileInfo && canPlayPrivateVideoInline(fileInfo) ? (
+            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+              <div className="relative flex min-h-52 items-center justify-center bg-black sm:min-h-64">
+                {privateVideoUrl ? <video src={privateVideoUrl} controls playsInline preload="none" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} /> : (
+                  <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
+                    {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
+                    <p className="text-sm font-medium">{privateVideoLoading ? 'Preparing your video…' : fileError ? 'This video could not be opened on this device.' : 'Your video is ready to play.'}</p>
+                    {fileError && <Button type="button" variant="outline" onClick={() => { setFileError(false); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading} className="min-h-11 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4">
+                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-900">{fileInfo.name}</p><p className="text-xs text-slate-500">{readableSize(fileInfo.size)} · private video · tap play to watch</p></div>
+                <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing video download' : 'Download video'} title="Download video" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
+              </div>
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">{fileInfo && canPlayPrivateVideoInline(fileInfo) ? <Play className="h-5 w-5" /> : <FileText className="h-5 w-5" />}</div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'Tap to retry, or ask the author to share it again.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
-              {fileInfo && canPlayPrivateVideoInline(fileInfo) && <Button type="button" variant="outline" onClick={() => void playPrivateVideo()} disabled={fileLoading} className="min-h-11 touch-manipulation rounded-full"><Play className="mr-2 h-4 w-4" />{fileLoading ? 'Preparing…' : 'Play video'}</Button>}
               <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
             </div>
           )}
