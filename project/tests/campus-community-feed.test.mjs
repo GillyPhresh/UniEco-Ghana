@@ -59,7 +59,8 @@ test('unsupported attachments remain private while eligible videos can be played
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
   assert.match(feed, /Play video/);
   assert.match(feed, /preload="metadata"/);
-  assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && \/\\\.\(mp4\|webm\)/);
+  assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
+  assert.match(feed, /VIDEO_FILE_EXTENSION = \/\\\.\(mp4\|m4v\|mov\|qt\|webm\|ogv\|ogg\|avi\|mkv\|3gp\|3g2\|3gpp\|3gpp2/);
   const privatePlayback = feed.slice(feed.indexOf('const playPrivateVideo'), feed.indexOf('useEffect(() => {\n    const video = videoRef.current'));
   assert.match(privatePlayback, /canPlayPrivateVideoInline\(fileInfo\)/);
   assert.doesNotMatch(privatePlayback, /\{ download:/);
@@ -79,9 +80,10 @@ test('post composer tells members before posting when a video will be download-o
   assert.match(feed, /selectedVideoCanPlayInline/);
   assert.match(feed, /This video will play inline in the feed/);
   assert.match(feed, /short-lived private link/);
-  assert.match(feed, /25 MB public inline-play limit/);
-  assert.match(feed, /video format is not enabled for inline playback, so it will appear as a download/);
-  assert.match(feed, /MP4 \(H\.264 video with AAC audio\) or WebM at 25 MB or less/);
+  assert.match(feed, /This video will be available to play from a short-lived private link/);
+  assert.match(feed, /Your video will upload privately and remain downloadable/);
+  assert.match(feed, /browser and codec support can vary/);
+  assert.match(feed, /original can still be downloaded/);
 });
 
 test('campus feed uses readable social cards and exposes video recovery controls', async () => {

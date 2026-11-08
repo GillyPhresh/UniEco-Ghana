@@ -44,7 +44,9 @@ const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
-const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|webm|avi|mkv|3gp|mpeg|mpg)$/i;
+// Accept common phone, camera, desktop-editor, and legacy video containers.
+// Every upload remains private; native playback depends on the viewer's browser/codec.
+const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|qt|webm|ogv|ogg|avi|mkv|3gp|3g2|3gpp|3gpp2|mpeg|mpg|mpe|mpv|m2v|mts|m2ts|ts|vob|wmv|asf|flv|f4v|dv|mxf|divx|xvid|rm|rmvb|amv)$/i;
 
 function isVideoUploadCandidate(file: File) {
   return file.type.startsWith('video/') || VIDEO_FILE_EXTENSION.test(file.name);
@@ -59,7 +61,7 @@ function canPlayVideoInline(file: File) {
 }
 
 function canPlayPrivateVideoInline(file: { name: string; size: number }) {
-  return file.size <= MAX_ATTACHMENT_BYTES && /\.(mp4|webm)$/i.test(file.name);
+  return file.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION.test(file.name);
 }
 
 type NetworkInformationLike = {
@@ -492,10 +494,8 @@ export function CampusCommunityFeed() {
                 ? 'This video will play inline in the feed.'
                 : selectedVideo
                   ? canPlayPrivateVideoInline({ name: mediaFile.name, size: mediaFile.size })
-                    ? 'This MP4 or WebM will play in the feed from a short-lived private link. Playback starts only when a viewer taps play.'
-                    : mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
-                      ? 'This video is over the 25 MB public inline-play limit and is not an MP4 or WebM eligible for private playback, so it will appear as a download.'
-                      : 'This video format is not enabled for inline playback, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
+                    ? 'This video will be available to play from a short-lived private link. Playback starts only when a viewer taps play; browser and codec support can vary, and the original can still be downloaded.'
+                    : 'Your video will upload privately and remain downloadable. This file type is not recognized for an in-feed playback attempt on every device.'
                   : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
                     ? 'This attachment will appear as a download. JPG, PNG, WebP, MP4, and WebM files up to 25 MB can display inline.'
                     : 'This photo will display inline in the feed.'}
