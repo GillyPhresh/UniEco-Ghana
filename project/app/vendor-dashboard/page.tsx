@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -35,35 +35,54 @@ function VendorDashboardContent() {
   const { user } = useAuth();
   const { vendor, loading: vendorLoading } = useVendor();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [dashboardData, setDashboardData] = useState<Awaited<ReturnType<typeof getVendorDashboardData>> | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState(0);
   const [recentNotifs, setRecentNotifs] = useState<{ id: string; title: string | null; body: string | null; created_at: string; is_read: boolean }[]>([]);
+  const loadRequestId = useRef(0);
+  const vendorId = vendor?.id;
 
-  useEffect(() => {
-    if (!vendor) {
-      if (!vendorLoading) setLoading(false);
+  const loadData = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendorId) {
+      setLoading(false);
       return;
     }
-    loadData();
-  }, [vendor, vendorLoading]);
-
-  async function loadData() {
-    if (!vendor) return;
     setLoading(true);
+    setLoadError(false);
+    try {
+      const [data, unread, notifs] = await Promise.all([
+        getVendorDashboardData(vendorId),
+        getUnreadNotificationCount(),
+        getNotifications(3),
+      ]);
+      if (requestId !== loadRequestId.current) return;
+      setDashboardData(data);
+      setUnreadNotifs(unread);
+      setRecentNotifs(notifs as typeof recentNotifs);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setDashboardData(null);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setLoading(false);
+    }
+  }, [vendorId]);
 
-    const [data, unread, notifs] = await Promise.all([
-      getVendorDashboardData(vendor.id),
-      getUnreadNotificationCount(),
-      getNotifications(3),
-    ]);
+  useEffect(() => {
+    if (vendorLoading) return;
+    if (!vendorId) {
+      setDashboardData(null);
+      setLoading(false);
+      return;
+    }
+    setDashboardData(null);
+    void loadData();
+    return () => { loadRequestId.current += 1; };
+  }, [vendorLoading, vendorId, loadData]);
 
-    setDashboardData(data);
-    setUnreadNotifs(unread);
-    setRecentNotifs(notifs as typeof recentNotifs);
-    setLoading(false);
-  }
-
-  if (vendorLoading || (!vendor && loading)) {
+  if (vendorLoading || loading) {
     return (
       <VendorDashboardLayout vendorName="" isVerified={false} subscriptionStatus="none">
         <Skeleton className="h-8 w-64" />
@@ -91,13 +110,30 @@ function VendorDashboardContent() {
     );
   }
 
+  if (loadError) {
+    return (
+      <VendorDashboardLayout
+        vendorName={vendor.business_name}
+        isVerified={vendor.is_verified}
+        subscriptionStatus={user?.vendorProfile?.subscription_status ?? 'none'}
+      >
+        <Card role="alert">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <p className="text-sm text-muted-foreground">Your dashboard could not be loaded. Your business data has not been changed.</p>
+            <Button variant="outline" onClick={() => { void loadData(); }}>Try again</Button>
+          </CardContent>
+        </Card>
+      </VendorDashboardLayout>
+    );
+  }
+
   const verificationInfo = user?.vendorProfile?.verification_status
     ? VERIFICATION_STATUS_LABELS[user.vendorProfile.verification_status] || VERIFICATION_STATUS_LABELS.pending
     : VERIFICATION_STATUS_LABELS.pending;
 
   const businessStatus = dashboardData?.hours
     ? getBusinessStatus(dashboardData.hours, vendor.is_temporarily_closed)
-    : { status: 'closed' as const, label: 'Closed', color: 'error' };
+    : { status: 'closed' as const, label: 'Schedule unavailable', color: 'warning' };
 
   const analytics = dashboardData?.analytics;
   const stats = [

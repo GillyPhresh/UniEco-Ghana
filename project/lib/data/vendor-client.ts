@@ -693,7 +693,7 @@ export async function getVendorDashboardData(vendorId: string) {
     getVendorSubscription(vendorId),
     getVendorReviews(vendorId),
     getVendorAnalytics(vendorId),
-    getBusinessHours(vendorId),
+    getBusinessHours(vendorId, true).catch(() => null),
     getGalleryImages(vendorId),
   ]);
 
