@@ -44,6 +44,19 @@ const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
+const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|webm|avi|mkv|3gp|mpeg|mpg)$/i;
+
+function isVideoUploadCandidate(file: File) {
+  return file.type.startsWith('video/') || VIDEO_FILE_EXTENSION.test(file.name);
+}
+
+function canDisplayInline(file: File) {
+  return PREVIEW_MEDIA.has(file.type) && file.size <= MAX_PREVIEW_MEDIA_BYTES;
+}
+
+function canPlayVideoInline(file: File) {
+  return ['video/mp4', 'video/webm'].includes(file.type) && canDisplayInline(file);
+}
 
 type NetworkInformationLike = {
   saveData?: boolean;
@@ -321,7 +334,7 @@ export function CampusCommunityFeed() {
     }
     if (mediaFile && mediaFile.size > MAX_ATTACHMENT_BYTES) { toast.error('Attachments can be up to 50 MB.'); return; }
     const safePreviewExtension = mediaFile ? PREVIEW_MEDIA.get(mediaFile.type) : undefined;
-    const previewable = Boolean(mediaFile && safePreviewExtension && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES);
+    const previewable = Boolean(mediaFile && safePreviewExtension && canDisplayInline(mediaFile));
     if (trimmedCaption.length > 500) { toast.error('Keep the caption under 500 characters.'); return; }
     const mediaType = previewable ? (mediaFile!.type.startsWith('video/') ? 'video' : 'image') : mediaFile ? 'file' : 'text';
     const publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
@@ -399,6 +412,9 @@ export function CampusCommunityFeed() {
     setReportDetails('');
   };
 
+  const selectedVideo = mediaFile ? isVideoUploadCandidate(mediaFile) : false;
+  const selectedVideoCanPlayInline = Boolean(mediaFile && isVideoUploadCandidate(mediaFile) && canPlayVideoInline(mediaFile));
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="sticky top-0 z-20 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur sm:min-h-14 sm:px-6 sm:py-0">
@@ -466,7 +482,18 @@ export function CampusCommunityFeed() {
           <form onSubmit={submitPost} className="space-y-4">
             <label className="block text-sm font-semibold" htmlFor="community-media">Add a file <span className="font-normal text-muted-foreground">(any format, up to 50 MB; images and videos up to 25 MB)</span></label>
             <input id="community-media" type="file" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
-            {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}{!PREVIEW_MEDIA.has(mediaFile.type) && ' · shared as a download'}</p>}
+            {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}</p>}
+            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideoCanPlayInline ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+              {selectedVideoCanPlayInline
+                ? 'This video will play inline in the feed.'
+                : selectedVideo
+                  ? mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
+                    ? 'This video is over the 25 MB inline-play limit, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
+                    : 'This video format is not enabled for inline playback, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
+                  : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
+                    ? 'This attachment will appear as a download. JPG, PNG, WebP, MP4, and WebM files up to 25 MB can display inline.'
+                    : 'This photo will display inline in the feed.'}
+            </p>}
             {previewUrl && mediaFile && PREVIEW_MEDIA.has(mediaFile.type) && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && (mediaFile.type.startsWith('video/') ? <video src={previewUrl} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black object-contain" /> : <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />)}
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />

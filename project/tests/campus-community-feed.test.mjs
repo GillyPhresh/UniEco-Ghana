@@ -67,6 +67,16 @@ test('unsupported file types remain private and are fetched only on explicit dow
   assert.match(migration, /uploaded_attachment\.bucket_id = 'campus-community-files'/);
 });
 
+test('post composer tells members before posting when a video will be download-only', async () => {
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  assert.match(feed, /VIDEO_FILE_EXTENSION/);
+  assert.match(feed, /selectedVideoCanPlayInline/);
+  assert.match(feed, /This video will play inline in the feed/);
+  assert.match(feed, /25 MB inline-play limit, so it will appear as a download/);
+  assert.match(feed, /video format is not enabled for inline playback, so it will appear as a download/);
+  assert.match(feed, /MP4 \(H\.264 video with AAC audio\) or WebM at 25 MB or less/);
+});
+
 test('campus feed uses readable social cards and exposes video recovery controls', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(feed, /Share a campus moment/);
