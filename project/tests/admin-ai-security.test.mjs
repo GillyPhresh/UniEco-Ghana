@@ -7,6 +7,8 @@ const root = path.resolve(process.cwd());
 const route = fs.readFileSync(path.join(root, 'app/api/admin/ai/route.ts'), 'utf8');
 const page = fs.readFileSync(path.join(root, 'app/admin/ai/page.tsx'), 'utf8');
 const sources = fs.readFileSync(path.join(root, 'lib/ai/trusted-sources.ts'), 'utf8');
+const assistant = fs.readFileSync(path.join(root, 'lib/ai/assistant.ts'), 'utf8');
+const failureMessages = fs.readFileSync(path.join(root, 'lib/ai/failure-messages.ts'), 'utf8');
 
 test('UniEco AI route is super-admin gated and never accepts arbitrary source URLs', () => {
   assert.match(route, /current_app_role/);
@@ -24,6 +26,13 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
   assert.match(route, /failureReason: result\.failureReason/);
   assert.match(page, /Test AI connection/);
   assert.match(page, /connection not tested/);
+  assert.match(assistant, /provider_authentication_failed/);
+  assert.match(assistant, /provider_rate_limited/);
+  assert.match(assistant, /provider_model_or_endpoint_not_found/);
+  assert.match(assistant, /provider_timeout/);
+  assert.match(failureMessages, /UNIECO_AI_API_KEY/);
+  assert.match(failureMessages, /UNIECO_AI_BASE_URL/);
+  assert.doesNotMatch(failureMessages, /process\.env|apiKey|response\.text\(/i);
   assert.match(page, /Search the live web for this chat/);
   assert.match(page, /opt-in live-web-search checkbox in chat/);
 });

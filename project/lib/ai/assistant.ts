@@ -5,7 +5,39 @@ export type UniEcoAiChatMessage = {
 
 export type UniEcoAiMode = 'configured' | 'safe-fallback';
 export type UniEcoAiCitation = { title: string; url: string };
-export type UniEcoAiFailureReason = 'not_configured' | 'provider_unavailable' | 'web_search_unavailable';
+export type UniEcoAiFailureReason =
+  | 'not_configured'
+  | 'provider_authentication_failed'
+  | 'provider_rate_limited'
+  | 'provider_model_or_endpoint_not_found'
+  | 'provider_request_rejected'
+  | 'provider_server_error'
+  | 'provider_timeout'
+  | 'provider_network_error'
+  | 'provider_invalid_response'
+  | 'provider_unavailable'
+  | 'web_search_unavailable';
+
+class UniEcoAiHttpError extends Error {
+  constructor(readonly status: number) {
+    super('AI provider returned an unsuccessful HTTP response');
+  }
+}
+
+function classifyProviderFailure(error: unknown): UniEcoAiFailureReason {
+  if (error instanceof UniEcoAiHttpError) {
+    if (error.status === 401 || error.status === 403) return 'provider_authentication_failed';
+    if (error.status === 429) return 'provider_rate_limited';
+    if (error.status === 404) return 'provider_model_or_endpoint_not_found';
+    if (error.status === 408 || error.status === 504) return 'provider_timeout';
+    if (error.status >= 500) return 'provider_server_error';
+    return 'provider_request_rejected';
+  }
+  if (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError')) return 'provider_timeout';
+  if (error instanceof TypeError) return 'provider_network_error';
+  if (error instanceof SyntaxError) return 'provider_invalid_response';
+  return 'provider_unavailable';
+}
 
 const MAX_CONTEXT = 8_000;
 
@@ -41,7 +73,7 @@ Safety rules:
 function fallbackReply(message: string, context: string): string {
   const lower = message.toLowerCase();
   if (lower.includes('health') || lower.includes('queue') || lower.includes('failure')) {
-    return `I am in safe fallback mode because no server AI key is configured. I can still read the authorised system snapshot.\n\n${context || 'No system snapshot was returned.'}\n\nI can help you review the communication queue, payment configuration, or prepare a message draft, but a Super Admin must approve every operational action.`;
+    return `I am in safe fallback mode because an AI response is unavailable. I can still read the authorised system snapshot.\n\n${context || 'No system snapshot was returned.'}\n\nI can help you review the communication queue, payment configuration, or prepare a message draft, but a Super Admin must approve every operational action.`;
   }
   if (lower.includes('news') || lower.includes('update') || lower.includes('university')) {
     return 'I can scan the allowlisted official university pages and return reviewable news leads. Use “Scan trusted sources”, then choose “Prepare draft”. Nothing will be published automatically.';
@@ -102,13 +134,13 @@ export async function askUniEcoAi(params: {
         signal: controller.signal,
         cache: 'no-store',
       });
-      if (!response.ok) throw new Error('AI web search request failed');
+      if (!response.ok) throw new UniEcoAiHttpError(response.status);
       const payload = await response.json() as {
         output_text?: unknown;
         output?: Array<{ content?: Array<{ annotations?: Array<{ type?: string; url?: string; title?: string }> }> }>;
       };
       const text = typeof payload.output_text === 'string' ? payload.output_text.trim() : '';
-      if (!text) throw new Error('AI web search returned no text');
+      if (!text) throw new SyntaxError('AI web search returned no text');
       const citationMap = new Map<string, UniEcoAiCitation>();
       for (const item of payload.output || []) {
         for (const content of item.content || []) {
@@ -123,9 +155,9 @@ export async function askUniEcoAi(params: {
         }
       }
       return { text, citations: Array.from(citationMap.values()).slice(0, 8), mode: 'configured', webSearched: true };
-    } catch {
+    } catch (error) {
       const lastUserMessage = [...params.messages].reverse().find((message) => message.role === 'user')?.content || '';
-      return { text: `${fallbackReply(lastUserMessage, context)}\n\nLive web search was unavailable for this reply, so I have not presented it as current research.`, mode: 'safe-fallback', citations: [], webSearched: false, failureReason: 'web_search_unavailable' };
+      return { text: `${fallbackReply(lastUserMessage, context)}\n\nLive web search was unavailable for this reply, so I have not presented it as current research.`, mode: 'safe-fallback', citations: [], webSearched: false, failureReason: classifyProviderFailure(error) };
     } finally {
       clearTimeout(timeout);
     }
@@ -141,13 +173,13 @@ export async function askUniEcoAi(params: {
       signal: controller.signal,
       cache: 'no-store',
     });
-    if (!response.ok) throw new Error('AI provider request failed');
+    if (!response.ok) throw new UniEcoAiHttpError(response.status);
     const text = extractAssistantText(await response.json());
-    if (!text) throw new Error('AI provider returned no text');
+    if (!text) throw new SyntaxError('AI provider returned no text');
     return { text, mode: 'configured' };
-  } catch {
+  } catch (error) {
     const lastUserMessage = [...params.messages].reverse().find((message) => message.role === 'user')?.content || '';
-    return { text: `${fallbackReply(lastUserMessage, context)}\n\nThe configured AI provider was unavailable, so I did not guess or perform an action.`, mode: 'safe-fallback', failureReason: 'provider_unavailable' };
+    return { text: `${fallbackReply(lastUserMessage, context)}\n\nThe configured AI provider was unavailable, so I did not guess or perform an action.`, mode: 'safe-fallback', failureReason: classifyProviderFailure(error) };
   } finally {
     clearTimeout(timeout);
   }

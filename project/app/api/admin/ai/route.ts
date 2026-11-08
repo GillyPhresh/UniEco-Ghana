@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { askUniEcoAi, createUniEcoAiDraft, isUniEcoAiConfigured, isUniEcoAiWebSearchAvailable, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
+import { getUniEcoAiFailureMessage } from '@/lib/ai/failure-messages';
 import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
@@ -72,7 +73,7 @@ export async function POST(request: Request) {
     return privateJson({
       ok,
       failureReason: result.failureReason || null,
-      message: ok ? 'AI provider responded successfully.' : 'AI provider did not respond; the private assistant is using safe fallback mode.',
+      message: ok ? 'AI provider responded successfully.' : getUniEcoAiFailureMessage(result.failureReason),
     }, ok ? 200 : 503);
   }
 
