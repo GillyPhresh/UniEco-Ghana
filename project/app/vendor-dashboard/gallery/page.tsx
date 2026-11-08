@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -45,23 +45,40 @@ function GalleryContent() {
   const { vendor, loading } = useVendor();
   const [images, setImages] = useState<BusinessGalleryItem[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<BusinessGalleryItem | null>(null);
   const [form, setForm] = useState({ image_url: '', caption: '', image_type: 'general' });
+  const loadRequestId = useRef(0);
+
+  const loadGallery = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendor?.id) {
+      setImages([]);
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getGalleryImages(vendor.id, true);
+      if (requestId === loadRequestId.current) setImages(data);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setImages([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
+    }
+  }, [vendor?.id]);
 
   useEffect(() => {
-    if (!vendor) return;
+    setImages([]);
     loadGallery();
-  }, [vendor]);
-
-  async function loadGallery() {
-    if (!vendor) return;
-    setDataLoading(true);
-    const data = await getGalleryImages(vendor.id);
-    setImages(data);
-    setDataLoading(false);
-  }
+    return () => { loadRequestId.current += 1; };
+  }, [loadGallery]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -143,6 +160,13 @@ function GalleryContent() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-48 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <Card role="alert">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Gallery images could not be loaded.</p>
+            <Button variant="outline" onClick={loadGallery}>Try again</Button>
+          </CardContent>
+        </Card>
       ) : images.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">

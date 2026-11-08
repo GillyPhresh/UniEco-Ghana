@@ -12,6 +12,7 @@ const settingsPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/s
 const vendorClient = readFileSync(path.join(projectRoot, 'lib/data/vendor-client.ts'), 'utf8');
 const productsPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/products/page.tsx'), 'utf8');
 const servicesPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/services/page.tsx'), 'utf8');
+const galleryPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/gallery/page.tsx'), 'utf8');
 
 test('vendor profile loader clears old account data and ignores stale requests', () => {
   assert.match(source, /const requestSequence = useRef\(0\)/);
@@ -19,6 +20,17 @@ test('vendor profile loader clears old account data and ignores stale requests',
   assert.match(source, /const v = await getVendorProfile\(\);\s*if \(requestSequence\.current !== requestId\) return;/);
   assert.match(source, /if \(requestSequence\.current === requestId\) setLoading\(false\)/);
   assert.match(source, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+});
+
+test('vendor gallery clears on account change and distinguishes read failure from an empty gallery', () => {
+  assert.match(galleryPage, /const loadGallery = useCallback/);
+  assert.match(galleryPage, /\}, \[vendor\?\.id\]\);/);
+  assert.match(galleryPage, /requestId === loadRequestId\.current/);
+  assert.match(galleryPage, /getGalleryImages\(vendor\.id, true\)/);
+  assert.match(galleryPage, /Gallery images could not be loaded/);
+  assert.match(galleryPage, /onClick=\{loadGallery\}/);
+  assert.match(vendorClient, /throwOnError = false/);
+  assert.match(vendorClient, /if \(error && throwOnError\) throw new Error\('Could not load vendor gallery'\)/);
 });
 
 test('vendor service filters discard stale responses and surface catalogue read failures', () => {

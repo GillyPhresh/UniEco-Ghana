@@ -290,12 +290,13 @@ export async function deleteService(serviceId: string): Promise<{ error: string 
 // Business Gallery
 // ============================================================
 
-export async function getGalleryImages(vendorId: string): Promise<BusinessGalleryItem[]> {
-  const { data } = await supabase
+export async function getGalleryImages(vendorId: string, throwOnError = false): Promise<BusinessGalleryItem[]> {
+  const { data, error } = await supabase
     .from('business_gallery')
     .select('*')
     .eq('vendor_id', vendorId)
     .order('sort_order', { ascending: true });
+  if (error && throwOnError) throw new Error('Could not load vendor gallery');
   return (data || []) as BusinessGalleryItem[];
 }
 
