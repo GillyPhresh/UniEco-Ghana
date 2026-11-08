@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowDownToLine, ArrowUpRight, Bookmark, Building2, CircleAlert, FileText,
-  Flag, ImagePlus, Loader2, MapPin, Paperclip, Plus, RefreshCw, Send,
+  Flag, ImagePlus, Loader2, MapPin, Paperclip, Play, Plus, RefreshCw, Send,
   ShieldCheck,
 } from 'lucide-react';
 import {
@@ -56,6 +56,10 @@ function canDisplayInline(file: File) {
 
 function canPlayVideoInline(file: File) {
   return ['video/mp4', 'video/webm'].includes(file.type) && canDisplayInline(file);
+}
+
+function canPlayPrivateVideoInline(file: { name: string; size: number }) {
+  return file.size <= MAX_ATTACHMENT_BYTES && /\.(mp4|webm)$/i.test(file.name);
 }
 
 type NetworkInformationLike = {
@@ -480,16 +484,18 @@ export function CampusCommunityFeed() {
         <DialogContent className="max-h-[min(90dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-xl sm:p-6">
           <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Post a photo or short video for the UniEco Ghana community. Your post is public and linked to your account and campus.</DialogDescription></DialogHeader>
           <form onSubmit={submitPost} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="community-media">Add a file <span className="font-normal text-muted-foreground">(any format, up to 50 MB; images and videos up to 25 MB)</span></label>
+            <label className="block text-sm font-semibold" htmlFor="community-media">Add a file <span className="font-normal text-muted-foreground">(any format, up to 50 MB; photos up to 25 MB; MP4/WebM videos up to 50 MB can play on demand)</span></label>
             <input id="community-media" type="file" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
             {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}</p>}
-            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideoCanPlayInline ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideoCanPlayInline || (selectedVideo && canPlayPrivateVideoInline({ name: mediaFile.name, size: mediaFile.size })) ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
               {selectedVideoCanPlayInline
                 ? 'This video will play inline in the feed.'
                 : selectedVideo
-                  ? mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
-                    ? 'This video is over the 25 MB inline-play limit, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
-                    : 'This video format is not enabled for inline playback, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
+                  ? canPlayPrivateVideoInline({ name: mediaFile.name, size: mediaFile.size })
+                    ? 'This MP4 or WebM will play in the feed from a short-lived private link. Playback starts only when a viewer taps play.'
+                    : mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
+                      ? 'This video is over the 25 MB public inline-play limit and is not an MP4 or WebM eligible for private playback, so it will appear as a download.'
+                      : 'This video format is not enabled for inline playback, so it will appear as a download. For in-feed playback, export as MP4 (H.264 video with AAC audio) or WebM at 25 MB or less.'
                   : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
                     ? 'This attachment will appear as a download. JPG, PNG, WebP, MP4, and WebM files up to 25 MB can display inline.'
                     : 'This photo will display inline in the feed.'}
@@ -538,6 +544,29 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [fileInfo, setFileInfo] = useState<{ path: string; name: string; size: number } | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState(false);
+  const [fileChecking, setFileChecking] = useState(false);
+  const [privateVideoUrl, setPrivateVideoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!active || post.media_type !== 'file' || fileInfo) return;
+    let cancelled = false;
+    setFileChecking(true);
+    void (async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: post.id });
+        const result = (data || [])[0] as { file_path: string; file_name: string; file_size: number } | undefined;
+        if (!cancelled && !error && result?.file_path) {
+          setFileInfo({ path: result.file_path, name: safeFileName(result.file_name), size: Number(result.file_size) || 0 });
+        }
+        if (!cancelled && error) setFileError(true);
+      } catch {
+        if (!cancelled) setFileError(true);
+      } finally {
+        if (!cancelled) setFileChecking(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [active, post.id, post.media_type, fileInfo]);
 
   useEffect(() => {
     const connection = (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
@@ -566,6 +595,22 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } catch {
       setFileError(true);
       toast.error('This attachment is not available right now. Please try again.');
+    } finally {
+      setFileLoading(false);
+    }
+  };
+
+  const playPrivateVideo = async () => {
+    if (!fileInfo || !canPlayPrivateVideoInline(fileInfo) || fileLoading) return;
+    setFileLoading(true);
+    setFileError(false);
+    try {
+      const { data, error } = await supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60);
+      if (error || !data?.signedUrl) throw error || new Error('Video link unavailable');
+      setPrivateVideoUrl(data.signedUrl);
+    } catch {
+      setFileError(true);
+      toast.error('This video is not available for playback right now. You can still download the original.');
     } finally {
       setFileLoading(false);
     }
@@ -621,11 +666,19 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
         <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
       ) : post.media_type === 'file' ? (
         <div className="border-t bg-slate-50 p-4 sm:p-5">
-          <div className="flex items-center gap-3 rounded-2xl border bg-white p-4">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
-            <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'Tap to retry, or ask the author to share it again.' : 'Secure download · type is never opened inline'}</p></div>
-            <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
-          </div>
+          {privateVideoUrl ? (
+            <div className="overflow-hidden rounded-2xl border bg-black">
+              <video src={privateVideoUrl} controls playsInline preload="metadata" aria-label={`Private video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} />
+              <p className="bg-white px-3 py-2 text-xs text-slate-600">Private video link expires automatically. Playback is user-controlled.</p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800">{fileInfo && canPlayPrivateVideoInline(fileInfo) ? <Play className="h-5 w-5" /> : <FileText className="h-5 w-5" />}</div>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'Tap to retry, or ask the author to share it again.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
+              {fileInfo && canPlayPrivateVideoInline(fileInfo) && <Button type="button" variant="outline" onClick={() => void playPrivateVideo()} disabled={fileLoading} className="min-h-11 touch-manipulation rounded-full"><Play className="mr-2 h-4 w-4" />{fileLoading ? 'Preparing…' : 'Play video'}</Button>}
+              <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
+            </div>
+          )}
         </div>
       ) : post.media_type === 'video' ? (
         <div className="relative flex min-h-48 items-center justify-center bg-slate-950">

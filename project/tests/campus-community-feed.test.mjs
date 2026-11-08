@@ -47,16 +47,22 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.doesNotMatch(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[^;]+TO anon/);
 });
 
-test('unsupported file types remain private and are fetched only on explicit download', async () => {
+test('unsupported attachments remain private while eligible videos can be played from a short-lived signed link', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   const admin = await read('app/admin/community-posts/page.tsx');
   const migration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
   assert.match(feed, /type="file"/);
-  assert.match(feed, /Secure download · type is never opened inline/);
+  assert.match(feed, /Secure attachment · private by default/);
   assert.match(feed, /get_campus_community_post_file_info/);
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
-  const cardBeforeExplicitDownload = feed.slice(feed.indexOf('export function CommunityPostCard'), feed.indexOf('const downloadAttachment'));
-  assert.doesNotMatch(cardBeforeExplicitDownload, /get_campus_community_post_file_info|createSignedUrl/);
+  assert.match(feed, /canPlayPrivateVideoInline/);
+  assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
+  assert.match(feed, /Play video/);
+  assert.match(feed, /preload="metadata"/);
+  assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && \/\\\.\(mp4\|webm\)/);
+  const privatePlayback = feed.slice(feed.indexOf('const playPrivateVideo'), feed.indexOf('useEffect(() => {\n    const video = videoRef.current'));
+  assert.match(privatePlayback, /canPlayPrivateVideoInline\(fileInfo\)/);
+  assert.doesNotMatch(privatePlayback, /\{ download:/);
   assert.match(feed, /onClick=\{\(\) => void downloadAttachment\(\)\}/);
   assert.match(admin, /media_type: 'image' \| 'video' \| 'file' \| 'text'/);
   assert.match(admin, /get_campus_community_post_file_info/);
@@ -72,7 +78,8 @@ test('post composer tells members before posting when a video will be download-o
   assert.match(feed, /VIDEO_FILE_EXTENSION/);
   assert.match(feed, /selectedVideoCanPlayInline/);
   assert.match(feed, /This video will play inline in the feed/);
-  assert.match(feed, /25 MB inline-play limit, so it will appear as a download/);
+  assert.match(feed, /short-lived private link/);
+  assert.match(feed, /25 MB public inline-play limit/);
   assert.match(feed, /video format is not enabled for inline playback, so it will appear as a download/);
   assert.match(feed, /MP4 \(H\.264 video with AAC audio\) or WebM at 25 MB or less/);
 });
