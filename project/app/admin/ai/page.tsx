@@ -6,21 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BrainCircuit, CheckCircle2, ExternalLink, Loader2, LockKeyhole, RefreshCw, Send, Sparkles, Newspaper, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { CampusFeedReview } from './campus-feed-review';
-import { getUniEcoAiFailureMessage } from '@/lib/ai/failure-messages';
 
 type Source = { id: string; label: string; url: string; description: string };
 type Update = { id: string; sourceId: string; sourceLabel: string; title: string; summary: string; url: string; discoveredAt: string };
-type ChatMessage = { role: 'user' | 'assistant'; content: string; citations?: Array<{ title: string; url: string }>; mode?: 'configured' | 'safe-fallback'; failureReason?: string | null };
+type ChatMessage = { role: 'user' | 'assistant'; content: string; citations?: Array<{ title: string; url: string }>; mode?: 'safe-fallback' };
 type SchoolCoverage = { total: number; withOfficialWebsite: number; directoryAvailable: boolean };
 
 const initialMessage: ChatMessage = {
   role: 'assistant',
-  content: 'I am UniEco Intelligence. I can help you inspect platform health, find public university updates, and prepare safe drafts. I will never publish or send anything without your review.',
+  content: 'I am UniEco Intelligence, UniEco’s built-in free assistant. I can help inspect aggregate platform health, guide official university news scans, suggest campus content, and prepare source-linked broadcast drafts. I never publish or send without human review.',
 };
 
 export default function UniEcoAiPage() {
@@ -28,9 +26,6 @@ export default function UniEcoAiPage() {
 }
 
 function Content() {
-  const [configured, setConfigured] = useState(false);
-  const [webSearchAvailable, setWebSearchAvailable] = useState(false);
-  const [webSearch, setWebSearch] = useState(false);
   const [sources, setSources] = useState<Source[]>([]);
   const [schoolCoverage, setSchoolCoverage] = useState<SchoolCoverage | null>(null);
   const [updates, setUpdates] = useState<Update[]>([]);
@@ -46,9 +41,7 @@ function Content() {
   const loadStatus = useCallback(async () => {
     const response = await fetch('/api/admin/ai', { cache: 'no-store' });
     if (!response.ok) return;
-    const data = await response.json() as { configured?: boolean; webSearchAvailable?: boolean; sources?: Source[]; schoolCoverage?: SchoolCoverage };
-    setConfigured(Boolean(data.configured));
-    setWebSearchAvailable(Boolean(data.webSearchAvailable));
+    const data = await response.json() as { sources?: Source[]; schoolCoverage?: SchoolCoverage };
     setSources(data.sources || []);
     setSchoolCoverage(data.schoolCoverage || null);
   }, []);
@@ -60,12 +53,12 @@ function Content() {
     setProviderTest(null);
     try {
       const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'test' }) });
-      const data = await response.json() as { ok?: boolean; message?: string; failureReason?: string | null };
-      if (!response.ok || !data.ok) throw new Error(data.message || 'The AI provider did not respond.');
-      setProviderTest({ ok: true, message: data.message || 'AI provider responded successfully.' });
-      toast.success('AI provider connection verified.');
+      const data = await response.json() as { ok?: boolean; message?: string };
+      if (!response.ok || !data.ok) throw new Error(data.message || 'The built-in assistant is unavailable.');
+      setProviderTest({ ok: true, message: data.message || 'The built-in assistant is ready.' });
+      toast.success('Free built-in assistant is ready.');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'The AI provider could not be reached.';
+      const message = error instanceof Error ? error.message : 'The built-in assistant could not be checked.';
       setProviderTest({ ok: false, message });
       toast.error(message);
     } finally { setTestingProvider(false); }
@@ -91,10 +84,10 @@ function Content() {
     setChatInput('');
     setBusy('chat');
     try {
-      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chat', message: content, messages: nextMessages, webSearch }) });
-      const data = await response.json() as { reply?: string; error?: string; citations?: Array<{ title: string; url: string }>; mode?: 'configured' | 'safe-fallback'; failureReason?: string | null };
+      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chat', message: content, messages: nextMessages }) });
+      const data = await response.json() as { reply?: string; error?: string; citations?: Array<{ title: string; url: string }>; mode?: 'safe-fallback' };
       if (!response.ok) throw new Error(data.error || 'The private AI assistant is unavailable.');
-      setMessages((current) => [...current, { role: 'assistant', content: data.reply || 'No response was returned.', citations: data.citations || [], mode: data.mode, failureReason: data.failureReason }]);
+      setMessages((current) => [...current, { role: 'assistant', content: data.reply || 'No response was returned.', citations: data.citations || [], mode: data.mode }]);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to reach UniEco Intelligence.';
       setMessages((current) => [...current, { role: 'assistant', content: `I could not complete that request: ${message}` }]);
@@ -107,11 +100,9 @@ function Content() {
     setBusy(update.id);
     try {
       const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'draft', audience, update }) });
-      const data = await response.json() as { draftId?: string; error?: string; mode?: 'configured' | 'safe-fallback' };
+      const data = await response.json() as { draftId?: string; error?: string; mode?: 'safe-fallback' };
       if (!response.ok) throw new Error(data.error || 'Unable to save the draft.');
-      toast.success(data.mode === 'safe-fallback'
-        ? 'Source-based draft saved for human review. AI is unavailable; verify the text and source in Broadcasts before approval.'
-        : 'AI-assisted draft submitted for human review. Approve it in Broadcasts before delivery.');
+      toast.success('Source-based draft saved for human review. No paid AI service was used; verify the source and wording in Broadcasts before approval.');
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to save the draft.'); }
     finally { setBusy(null); }
   };
@@ -124,13 +115,13 @@ function Content() {
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20"><Sparkles className="h-6 w-6 text-emerald-200" /></div>
         <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h1 className="font-display text-xl font-bold sm:text-2xl">UniEco Intelligence</h1><Badge className="border-white/20 bg-white/10 text-white">Super Admin only</Badge></div><p className="mt-1 max-w-2xl text-sm text-white/75">A private operations assistant for trusted news discovery, platform monitoring, and reviewable content drafts.</p></div>
       </div>
-      <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/80"><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><LockKeyhole className="h-3.5 w-3.5" /> Not visible to students or vendors</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Human approval required</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">{configured ? 'AI key configured · connection not tested' : 'Safe fallback mode · no AI key detected'}</span></div>
+      <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/80"><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><LockKeyhole className="h-3.5 w-3.5" /> Management-only</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Human approval required</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">Built-in · no paid AI provider</span></div>
     </header>
 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-      <Card className="overflow-hidden"><CardHeader className="border-b bg-muted/20 pb-4"><CardTitle className="flex items-center gap-2 text-base"><BrainCircuit className="h-5 w-5 text-primary" /> Talk to UniEco Intelligence</CardTitle><p className="text-sm text-muted-foreground">Ask about platform operations, public updates, or safe next steps.</p></CardHeader><CardContent className="p-0"><div className="max-h-[28rem] space-y-3 overflow-y-auto p-4" aria-live="polite">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[90%] rounded-2xl px-3.5 py-3 text-sm ${message.role === 'user' ? 'whitespace-pre-wrap rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-muted text-foreground'}`}><p className="whitespace-pre-wrap">{message.content}</p>{message.role === 'assistant' && message.mode === 'safe-fallback' && <p className="mt-2 text-xs font-medium text-amber-700">Fallback response: {getUniEcoAiFailureMessage(message.failureReason)}</p>}{Boolean(message.citations?.length) && <div className="mt-3 border-t border-border/70 pt-2 text-xs"><p className="font-semibold">Sources</p><ul className="mt-1 space-y-1">{message.citations?.map((citation) => <li key={citation.url}><a className="break-all text-primary underline" href={citation.url} target="_blank" rel="noopener noreferrer">{citation.title}</a></li>)}</ul></div>}</div></div>)}{busy === 'chat' && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-md bg-muted px-3.5 py-3 text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Thinking safely…</div></div>}</div><div className="border-t p-3 sm:p-4"><label className={`mb-3 flex items-start gap-2 rounded-lg border p-3 text-sm ${webSearchAvailable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}><Checkbox checked={webSearch} onCheckedChange={(checked) => setWebSearch(checked === true)} disabled={!webSearchAvailable || busy === 'chat'} aria-label="Search the live web for this chat" /><span><span className="font-medium">Search the live web for this chat</span><span className="mt-0.5 block text-xs text-muted-foreground">{webSearchAvailable ? 'Optional; OpenAI web search adds provider charges per search and retrieved tokens. Results include source links.' : 'Unavailable: configure the OpenAI provider to enable live search.'}</span></span></label><div className="mb-2 flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void testProvider()} disabled={testingProvider || busy === 'chat'}><CheckCircle2 className="mr-1.5 h-4 w-4" />{testingProvider ? 'Testing provider…' : 'Test AI connection'}</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Give me a safe summary of the current platform health.')}>Platform health</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('What public university updates should I review today?')}>Today’s updates</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Suggest three useful messages for students and vendors.')}>Message ideas</Button></div>{providerTest && <p role="status" className={`mb-2 text-xs ${providerTest.ok ? 'text-emerald-700' : 'text-destructive'}`}>{providerTest.message}</p>}<form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}><Input value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder="Ask the private assistant…" aria-label="Ask UniEco Intelligence" /><Button type="submit" disabled={!chatInput.trim() || busy === 'chat'} size="icon" aria-label="Send message"><Send className="h-4 w-4" /></Button></form></div></CardContent></Card>
+      <Card className="overflow-hidden"><CardHeader className="border-b bg-muted/20 pb-4"><CardTitle className="flex items-center gap-2 text-base"><BrainCircuit className="h-5 w-5 text-primary" /> Talk to UniEco Intelligence</CardTitle><p className="text-sm text-muted-foreground">Free built-in help for platform operations, campus updates, and safe content drafts.</p></CardHeader><CardContent className="p-0"><div className="max-h-[28rem] space-y-3 overflow-y-auto p-4" aria-live="polite">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[90%] rounded-2xl px-3.5 py-3 text-sm ${message.role === 'user' ? 'whitespace-pre-wrap rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-muted text-foreground'}`}><p className="whitespace-pre-wrap">{message.content}</p>{Boolean(message.citations?.length) && <div className="mt-3 border-t border-border/70 pt-2 text-xs"><p className="font-semibold">Sources</p><ul className="mt-1 space-y-1">{message.citations?.map((citation) => <li key={citation.url}><a className="break-all text-primary underline" href={citation.url} target="_blank" rel="noopener noreferrer">{citation.title}</a></li>)}</ul></div>}</div></div>)}{busy === 'chat' && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-md bg-muted px-3.5 py-3 text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Preparing your answer…</div></div>}</div><div className="border-t p-3 sm:p-4"><p className="mb-3 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">No paid AI service is contacted. For current public news, run a trusted-source scan; this chat never presents guesses as live research.</p><div className="mb-2 flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void testProvider()} disabled={testingProvider || busy === 'chat'}><CheckCircle2 className="mr-1.5 h-4 w-4" />{testingProvider ? 'Checking…' : 'Check assistant'}</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Give me a safe summary of the current platform health.')}>Platform health</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('What public university updates should I review today?')}>Today’s updates</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Suggest three useful messages for students and vendors.')}>Message ideas</Button></div>{providerTest && <p role="status" className={`mb-2 text-xs ${providerTest.ok ? 'text-emerald-700' : 'text-destructive'}`}>{providerTest.message}</p>}<form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}><Input value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder="Ask UniEco Intelligence…" aria-label="Ask UniEco Intelligence" /><Button type="submit" disabled={!chatInput.trim() || busy === 'chat'} size="icon" aria-label="Send message"><Send className="h-4 w-4" /></Button></form></div></CardContent></Card>
 
-      <div className="space-y-5"><Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Newspaper className="h-5 w-5 text-primary" /> Trusted news monitor</CardTitle><p className="text-sm text-muted-foreground">Read-only scans of official pages. Results are leads, not automatic truth.</p></CardHeader><CardContent className="space-y-3"><div className="grid gap-2 sm:grid-cols-[1fr_auto]"><Select value={selectedSource} onValueChange={setSelectedSource}><SelectTrigger aria-label="Trusted news source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All trusted sources</SelectItem>{sources.map((source) => <SelectItem key={source.id} value={source.id}>{source.label}</SelectItem>)}</SelectContent></Select><Button onClick={() => void scanSources()} disabled={busy === 'discover'}>{busy === 'discover' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Scan now</Button></div><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter discovered leads…" aria-label="Filter discovered news" /><div className="rounded-xl border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">{schoolCoverage?.directoryAvailable ? <><strong className="text-foreground">University directory coverage:</strong> {schoolCoverage.withOfficialWebsite} of {schoolCoverage.total} enabled schools have an official HTTPS website configured. All trusted sources are scanned in bounded batches. Use the opt-in live-web-search checkbox in chat for general current/global questions; it does not publish feed posts.</> : 'The university source directory is unavailable; refresh the page or try again later.'} Website content is untrusted data, never an instruction. A scan only creates private review leads; it never publishes.</div></CardContent></Card><Card><CardHeader className="pb-3"><CardTitle className="text-base">Safe operating boundaries</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm text-muted-foreground"><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can read aggregate health signals.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can scan official websites in the university directory and trusted sources.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can save a draft Broadcast only.</li><li className="flex gap-2"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> Cannot publish, send, delete, refund, or change permissions.</li></ul></CardContent></Card></div>
+      <div className="space-y-5"><Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Newspaper className="h-5 w-5 text-primary" /> Trusted news monitor</CardTitle><p className="text-sm text-muted-foreground">Read-only scans of official pages. Results are leads, not automatic truth.</p></CardHeader><CardContent className="space-y-3"><div className="grid gap-2 sm:grid-cols-[1fr_auto]"><Select value={selectedSource} onValueChange={setSelectedSource}><SelectTrigger aria-label="Trusted news source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All trusted sources</SelectItem>{sources.map((source) => <SelectItem key={source.id} value={source.id}>{source.label}</SelectItem>)}</SelectContent></Select><Button onClick={() => void scanSources()} disabled={busy === 'discover'}>{busy === 'discover' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Scan now</Button></div><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter discovered leads…" aria-label="Filter discovered news" /><div className="rounded-xl border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">{schoolCoverage?.directoryAvailable ? <><strong className="text-foreground">University directory coverage:</strong> {schoolCoverage.withOfficialWebsite} of {schoolCoverage.total} enabled schools have an official HTTPS website configured. Scans use bounded, read-only requests to those official pages; they do not use a paid AI service.</> : 'The university source directory is unavailable; refresh the page or try again later.'} Website content is untrusted data, never an instruction. A scan only creates private review leads; it never publishes.</div></CardContent></Card><Card><CardHeader className="pb-3"><CardTitle className="text-base">Safe operating boundaries</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm text-muted-foreground"><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can read aggregate health signals.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can scan official websites in the university directory and trusted sources.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can save a draft Broadcast only.</li><li className="flex gap-2"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> Cannot publish, send, delete, refund, or change permissions.</li></ul></CardContent></Card></div>
     </div>
 
     <CampusFeedReview />

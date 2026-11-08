@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { askUniEcoAi, createUniEcoAiDraft, isUniEcoAiConfigured, isUniEcoAiWebSearchAvailable, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
-import { getUniEcoAiFailureMessage } from '@/lib/ai/failure-messages';
+import { askUniEcoAi, createUniEcoAiDraft, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
 import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
@@ -39,9 +38,8 @@ export async function GET() {
   const sources = getTrustedUniEcoAiSources(directory);
   const covered = new Set(sources.filter((source) => source.id.startsWith('university-')).map((source) => source.id));
   return privateJson({
-    configured: isUniEcoAiConfigured(),
-    webSearchAvailable: isUniEcoAiWebSearchAvailable(),
-    mode: isUniEcoAiConfigured() ? 'configured' : 'safe-fallback',
+    mode: 'provider-free',
+    providerFree: true,
     capabilities: ['trusted_source_scan', 'admin_chat', 'draft_broadcast', 'system_snapshot'],
     sources,
     schoolCoverage: {
@@ -65,16 +63,7 @@ export async function POST(request: Request) {
 
   const action = typeof body.action === 'string' ? body.action : '';
   if (action === 'test') {
-    const result = await askUniEcoAi({
-      messages: [{ role: 'user', content: 'Reply with only the word OK.' }],
-      context: 'This is a one-time provider connectivity check. Do not include any other information.',
-    });
-    const ok = result.mode === 'configured';
-    return privateJson({
-      ok,
-      failureReason: result.failureReason || null,
-      message: ok ? 'AI provider responded successfully.' : getUniEcoAiFailureMessage(result.failureReason),
-    }, ok ? 200 : 503);
+    return privateJson({ ok: true, mode: 'provider-free', message: 'UniEco Intelligence is ready. It uses the built-in assistant and makes no paid AI-provider requests.' });
   }
 
   if (action === 'discover') {
@@ -107,9 +96,10 @@ export async function POST(request: Request) {
     const result = await askUniEcoAi({
       messages: [...messages, { role: 'user', content: message }],
       context: JSON.stringify({ systemHealth: health && typeof health === 'object' ? health : null }),
-      webSearch: body.webSearch === true && isUniEcoAiWebSearchAvailable(),
+      // Live AI web search is intentionally disabled: the built-in assistant
+      // does not call a metered provider. Public-source scans are separate.
     });
-    return privateJson({ reply: result.text, mode: result.mode, failureReason: result.failureReason || null, citations: result.citations || [], webSearched: result.webSearched || false });
+    return privateJson({ reply: result.text, mode: result.mode, citations: result.citations || [], webSearched: result.webSearched || false });
   }
 
   if (action === 'draft') {
@@ -122,7 +112,26 @@ export async function POST(request: Request) {
     }
     try {
       const url = new URL(sourceUpdate.url);
-      if (url.protocol !== 'https:') return privateJson({ error: 'Only secure source links are allowed.' }, 400);
+      if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443')) {
+        return privateJson({ error: 'Only secure public source links are allowed.' }, 400);
+      }
+      const { data: universities, error: directoryError } = await auth.supabase
+        .from('universities')
+        .select('name, slug, website_url')
+        .eq('is_enabled', true)
+        .order('name')
+        .limit(200);
+      if (directoryError) return privateJson({ error: 'Unable to verify this trusted source.' }, 503);
+      const trustedSources = getTrustedUniEcoAiSources((universities || []) as UniEcoAiUniversity[]);
+      const trustedSource = trustedSources.find((source) => {
+        if (source.label !== sourceUpdate.sourceLabel) return false;
+        try {
+          const sourceHost = new URL(source.url).hostname.toLowerCase();
+          const updateHost = url.hostname.toLowerCase();
+          return updateHost === sourceHost || updateHost.endsWith(`.${sourceHost}`);
+        } catch { return false; }
+      });
+      if (!trustedSource) return privateJson({ error: 'This lead does not match an approved trusted source. Scan trusted sources again and retry.' }, 400);
     } catch {
       return privateJson({ error: 'The source link is invalid.' }, 400);
     }
@@ -130,7 +139,7 @@ export async function POST(request: Request) {
       update: { title: sourceUpdate.title.slice(0, 220), summary: sourceUpdate.summary.slice(0, 500), url: sourceUpdate.url, sourceLabel: sourceUpdate.sourceLabel.slice(0, 160) },
       audience,
     });
-    const aiGenerated = draft.mode === 'configured';
+    const aiGenerated = false;
     const { data: draftId, error } = await auth.supabase.rpc('create_admin_broadcast_draft', {
       p_title: draft.title,
       p_body: draft.body,
