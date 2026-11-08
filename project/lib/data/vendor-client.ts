@@ -203,7 +203,7 @@ export function getStockStatus(product: Pick<Product, 'stock' | 'low_stock_thres
 // Services
 // ============================================================
 
-export async function getVendorServices(vendorId: string, includeArchived = false): Promise<(Service & { business: { id: string; name: string; slug: string } })[]> {
+export async function getVendorServices(vendorId: string, includeArchived = false, throwOnError = false): Promise<(Service & { business: { id: string; name: string; slug: string } })[]> {
   let query = supabase
     .from('services')
     .select(`
@@ -217,7 +217,8 @@ export async function getVendorServices(vendorId: string, includeArchived = fals
     query = query.eq('is_archived', false);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error && throwOnError) throw new Error('Could not load vendor services');
   return (data || []) as unknown as (Service & { business: { id: string; name: string; slug: string } })[];
 }
 

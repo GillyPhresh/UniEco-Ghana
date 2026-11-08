@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -41,23 +41,40 @@ function ServicesContent() {
   const { vendor, loading } = useVendor();
   const [services, setServices] = useState<(Service & { business: { id: string; name: string; slug: string } })[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const loadRequestId = useRef(0);
+
+  const loadServices = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendor?.id) {
+      setServices([]);
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getVendorServices(vendor.id, showArchived, true);
+      if (requestId === loadRequestId.current) setServices(data);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setServices([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
+    }
+  }, [vendor?.id, showArchived]);
 
   useEffect(() => {
-    if (!vendor) return;
+    setServices([]);
     loadServices();
-  }, [vendor, showArchived]);
-
-  async function loadServices() {
-    if (!vendor) return;
-    setDataLoading(true);
-    const data = await getVendorServices(vendor.id, showArchived);
-    setServices(data);
-    setDataLoading(false);
-  }
+    return () => { loadRequestId.current += 1; };
+  }, [loadServices]);
 
   const filtered = services.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -106,6 +123,13 @@ function ServicesContent() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-52 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <Card role="alert">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Services could not be loaded.</p>
+            <Button variant="outline" onClick={loadServices}>Try again</Button>
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
