@@ -130,15 +130,18 @@ export async function POST(request: Request) {
       update: { title: sourceUpdate.title.slice(0, 220), summary: sourceUpdate.summary.slice(0, 500), url: sourceUpdate.url, sourceLabel: sourceUpdate.sourceLabel.slice(0, 160) },
       audience,
     });
-    if (draft.mode !== 'configured') {
-      return privateJson({ error: 'The AI provider is unavailable. No broadcast was created; verify the AI connection and try again.' }, 503);
-    }
+    const aiGenerated = draft.mode === 'configured';
     const { data: draftId, error } = await auth.supabase.rpc('create_admin_broadcast_draft', {
       p_title: draft.title,
       p_body: draft.body,
       p_broadcast_type: 'update',
       p_target_audience: audience,
-      p_target_filters: { ai_generated: true, source_url: sourceUpdate.url, source_label: sourceUpdate.sourceLabel },
+      p_target_filters: {
+        ai_generated: aiGenerated,
+        draft_mode: aiGenerated ? 'ai_assisted' : 'source_fallback',
+        source_url: sourceUpdate.url,
+        source_label: sourceUpdate.sourceLabel,
+      },
       p_channels: ['in_app'],
       p_submit_for_approval: true,
     });

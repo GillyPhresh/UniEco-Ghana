@@ -206,6 +206,6 @@ export async function createUniEcoAiDraft(params: {
   return {
     title: params.update.title.slice(0, 120),
     body: `${params.update.summary.slice(0, 680)}\n\nSource: ${params.update.url}`.slice(0, 900),
-    mode: result.mode,
+    mode: 'safe-fallback',
   };
 }

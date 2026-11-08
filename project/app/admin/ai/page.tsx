@@ -107,9 +107,11 @@ function Content() {
     setBusy(update.id);
     try {
       const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'draft', audience, update }) });
-      const data = await response.json() as { draftId?: string; error?: string };
+      const data = await response.json() as { draftId?: string; error?: string; mode?: 'configured' | 'safe-fallback' };
       if (!response.ok) throw new Error(data.error || 'Unable to save the draft.');
-      toast.success('AI message submitted for human review. Approve it in Broadcasts before delivery.');
+      toast.success(data.mode === 'safe-fallback'
+        ? 'Source-based draft saved for human review. AI is unavailable; verify the text and source in Broadcasts before approval.'
+        : 'AI-assisted draft submitted for human review. Approve it in Broadcasts before delivery.');
     } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to save the draft.'); }
     finally { setBusy(null); }
   };

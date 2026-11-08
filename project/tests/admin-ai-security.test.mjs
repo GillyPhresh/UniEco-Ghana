@@ -43,9 +43,17 @@ test('private AI UI is mounted only in the management area and drafts are not au
   assert.match(page, /Prepare for approval/);
   assert.match(page, /review.*Broadcasts/i);
   assert.match(route, /p_submit_for_approval: true/);
-  assert.match(route, /draft\.mode !== 'configured'/);
+  assert.match(route, /ai_generated: aiGenerated/);
+  assert.match(route, /draft_mode: aiGenerated \? 'ai_assisted' : 'source_fallback'/);
   assert.match(route, /status: 'pending_approval'/);
+  assert.match(page, /Source-based draft saved for human review/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
+});
+
+test('AI draft fallback is labeled source-based when the provider is down or returns invalid JSON', () => {
+  assert.match(route, /const aiGenerated = draft\.mode === 'configured'/);
+  assert.match(route, /draft_mode: aiGenerated \? 'ai_assisted' : 'source_fallback'/);
+  assert.match(assistant, /body: `\$\{params\.update\.summary\.slice\(0, 680\)\}\\n\\nSource: \$\{params\.update\.url\}`\.slice\(0, 900\),\s*mode: 'safe-fallback'/);
 });
 
 test('trusted source scans reject generic navigation and duplicate or source-home links', () => {
