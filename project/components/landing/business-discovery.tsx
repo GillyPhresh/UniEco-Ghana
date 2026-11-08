@@ -102,9 +102,10 @@ export function BusinessDiscovery() {
               >
                 <img
                   src={src}
-                  alt="Local campus vendor"
+                  alt=""
                   className="h-full w-full object-cover"
                   loading="lazy"
+                  decoding="async"
                 />
               </motion.div>
             ))}
