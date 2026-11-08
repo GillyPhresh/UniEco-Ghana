@@ -33,6 +33,18 @@ test('vendor gallery clears on account change and distinguishes read failure fro
   assert.match(vendorClient, /if \(error && throwOnError\) throw new Error\('Could not load vendor gallery'\)/);
 });
 
+test('vendor image uploads restrict type and size and do not trust the supplied filename extension', () => {
+  const uploadHelper = vendorClient.slice(vendorClient.indexOf('export async function uploadVendorImage('));
+  assert.match(uploadHelper, /const imageExtensions: Record<string, string>/);
+  assert.match(uploadHelper, /if \(!extension\) return \{ url: null, error:/);
+  assert.match(uploadHelper, /const maxImageBytes = 10 \* 1024 \* 1024/);
+  assert.match(uploadHelper, /file\.size > maxImageBytes/);
+  assert.match(uploadHelper, /\$\{extension\}/);
+  assert.doesNotMatch(uploadHelper, /file\.name\.split\(/);
+  assert.match(uploadHelper, /contentType: file\.type/);
+  assert.match(uploadHelper, /catch \{/);
+});
+
 test('vendor service filters discard stale responses and surface catalogue read failures', () => {
   assert.match(servicesPage, /const loadServices = useCallback/);
   assert.match(servicesPage, /\}, \[vendor\?\.id, showArchived\]\);/);

@@ -651,14 +651,32 @@ export async function uploadVendorImage(
   bucket: string = 'vendor-assets',
   folder: string = 'gallery'
 ): Promise<{ url: string | null; error: string | null }> {
-  const ext = file.name.split('.').pop();
-  const path = `${vendorId}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const imageExtensions: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  };
+  const maxImageBytes = 10 * 1024 * 1024;
+  const extension = imageExtensions[file.type];
+  if (!extension) return { url: null, error: 'Choose a JPEG, PNG, WebP, or GIF image.' };
+  if (file.size <= 0 || file.size > maxImageBytes) {
+    return { url: null, error: 'Images must be smaller than 10 MB.' };
+  }
 
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, { upsert: false });
+  const path = `${vendorId}/${folder}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-  if (uploadError) return { url: null, error: uploadError.message };
+  let uploadError: { message: string } | null;
+  try {
+    const result = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: false, contentType: file.type });
+    uploadError = result.error;
+  } catch {
+    return { url: null, error: 'Image upload failed. Please try again.' };
+  }
+
+  if (uploadError) return { url: null, error: 'Image upload failed. Please try again.' };
 
   const { data: urlData } = supabase.storage
     .from(bucket)
