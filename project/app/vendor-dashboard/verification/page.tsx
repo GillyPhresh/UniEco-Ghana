@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -33,26 +33,49 @@ export default function VerificationPage() {
 
 function VerificationContent() {
   const { user } = useAuth();
+  const userId = user?.id;
   const { vendor, loading } = useVendor();
   const [uploading, setUploading] = useState(false);
   const [uploadedDocs, setUploadedDocs] = useState<{ url: string; label: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(false);
   const [verificationRequests, setVerificationRequests] = useState<{ id: string; status: string; request_type: string; admin_note: string | null; created_at: string; documents: { url: string; label: string }[] }[]>([]);
+  const historyRequestId = useRef(0);
+
+  const loadVerificationRequests = useCallback(async () => {
+    const requestId = ++historyRequestId.current;
+    setHistoryError(false);
+    setHistoryLoading(true);
+    if (!userId) {
+      setVerificationRequests([]);
+      setHistoryLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from('verification_requests')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (requestId !== historyRequestId.current) return;
+      if (error) throw error;
+      setVerificationRequests(data || []);
+    } catch {
+      if (requestId === historyRequestId.current) {
+        setVerificationRequests([]);
+        setHistoryError(true);
+      }
+    } finally {
+      if (requestId === historyRequestId.current) setHistoryLoading(false);
+    }
+  }, [userId]);
 
   useEffect(() => {
-    if (!user) return;
+    setVerificationRequests([]);
     loadVerificationRequests();
-  }, [user]);
-
-  async function loadVerificationRequests() {
-    if (!user) return;
-    const { data } = await supabase
-      .from('verification_requests')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-    setVerificationRequests(data || []);
-  }
+    return () => { historyRequestId.current += 1; };
+  }, [loadVerificationRequests]);
 
   if (loading) {
     return (
@@ -240,7 +263,15 @@ function VerificationContent() {
       )}
 
       {/* Verification history */}
-      {verificationRequests.length > 0 && (
+      {historyError && (
+        <Card role="alert">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Verification history could not be loaded.</p>
+            <Button variant="outline" onClick={loadVerificationRequests}>Try again</Button>
+          </CardContent>
+        </Card>
+      )}
+      {!historyLoading && !historyError && verificationRequests.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Verification History</CardTitle>

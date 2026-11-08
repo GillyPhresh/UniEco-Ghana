@@ -6,6 +6,7 @@ import test from 'node:test';
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(path.join(projectRoot, 'hooks/use-vendor.ts'), 'utf8');
+const verification = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/verification/page.tsx'), 'utf8');
 
 test('vendor profile loader clears old account data and ignores stale requests', () => {
   assert.match(source, /const requestSequence = useRef\(0\)/);
@@ -13,4 +14,14 @@ test('vendor profile loader clears old account data and ignores stale requests',
   assert.match(source, /const v = await getVendorProfile\(\);\s*if \(requestSequence\.current !== requestId\) return;/);
   assert.match(source, /if \(requestSequence\.current === requestId\) setLoading\(false\)/);
   assert.match(source, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+});
+
+test('vendor verification history clears on identity changes and distinguishes read errors from empty history', () => {
+  assert.match(verification, /const loadVerificationRequests = useCallback/);
+  assert.match(verification, /\.eq\('user_id', userId\)/);
+  assert.match(verification, /requestId !== historyRequestId\.current/);
+  assert.match(verification, /setVerificationRequests\(\[\]\);\s*loadVerificationRequests\(\)/);
+  assert.match(verification, /Verification history could not be loaded/);
+  assert.match(verification, /onClick=\{loadVerificationRequests\}/);
+  assert.match(verification, /\}, \[loadVerificationRequests\]\);/);
 });
