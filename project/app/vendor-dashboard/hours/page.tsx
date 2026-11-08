@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { DAYS_OF_WEEK } from '@/lib/types/vendor';
 import type { BusinessHour } from '@/lib/types/vendor';
-import { Clock, Save, Loader2, Trash2, Plus, Calendar } from 'lucide-react';
+import { Clock, Save, Loader2, Trash2, Plus, Calendar, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function BusinessHoursPage() {
@@ -36,36 +36,55 @@ function HoursContent() {
   const [hours, setHours] = useState<BusinessHour[]>([]);
   const [holidays, setHolidays] = useState<{ id: string; holiday_date: string; description: string | null }[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newHoliday, setNewHoliday] = useState({ date: '', description: '' });
+  const loadRequestId = useRef(0);
+  const vendorId = vendor?.id;
 
-  useEffect(() => {
-    if (!vendor) return;
-    loadData();
-  }, [vendor]);
-
-  async function loadData() {
-    if (!vendor) return;
+  const loadData = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendorId) {
+      setHours([]);
+      setHolidays([]);
+      setDataLoading(false);
+      return;
+    }
     setDataLoading(true);
-    const [h, hol] = await Promise.all([getBusinessHours(vendor.id), getHolidays(vendor.id)]);
-    setHours(h);
-
-    // Fill in missing days
-    const fullHours: BusinessHour[] = DAYS_OF_WEEK.map((_, day) => {
-      const existing = h.find(hh => hh.day_of_week === day);
-      return existing || {
+    setLoadError(false);
+    try {
+      const [h, hol] = await Promise.all([
+        getBusinessHours(vendorId, true),
+        getHolidays(vendorId, true),
+      ]);
+      if (requestId !== loadRequestId.current) return;
+      const fullHours: BusinessHour[] = DAYS_OF_WEEK.map((_, day) => h.find(hh => hh.day_of_week === day) || {
         id: '',
-        vendor_id: vendor.id,
+        vendor_id: vendorId,
         day_of_week: day,
         is_open: false,
         open_time: '08:00',
         close_time: '17:00',
-      };
-    });
-    setHours(fullHours);
-    setHolidays(hol);
-    setDataLoading(false);
-  }
+      });
+      setHours(fullHours);
+      setHolidays(hol);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setHours([]);
+        setHolidays([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
+    }
+  }, [vendorId]);
+
+  useEffect(() => {
+    setHours([]);
+    setHolidays([]);
+    void loadData();
+    return () => { loadRequestId.current += 1; };
+  }, [loadData]);
 
   const updateHour = (day: number, field: 'is_open' | 'open_time' | 'close_time', value: string | boolean) => {
     setHours(prev => prev.map(h => h.day_of_week === day ? { ...h, [field]: value } : h));
@@ -128,6 +147,17 @@ function HoursContent() {
         <p className="mt-1 text-sm text-muted-foreground">Set when your business is open so students know when to visit.</p>
       </div>
 
+      {loadError && (
+        <Card role="alert" className="mb-6">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Your schedule could not be loaded. Saving is disabled until it can be verified.</p>
+            <Button variant="outline" onClick={() => { void loadData(); }}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Try again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current status */}
       <Card className="mb-6">
         <CardContent className="flex items-center gap-4 p-5">
@@ -187,7 +217,7 @@ function HoursContent() {
                   )}
                 </div>
               ))}
-              <Button onClick={handleSave} disabled={saving} className="w-full">
+              <Button onClick={handleSave} disabled={saving || dataLoading || loadError} className="w-full">
                 {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                 {saving ? 'Saving...' : 'Save Hours'}
               </Button>

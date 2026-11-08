@@ -339,31 +339,27 @@ export async function deleteGalleryImage(id: string): Promise<{ error: string | 
 // Business Hours
 // ============================================================
 
-export async function getBusinessHours(vendorId: string): Promise<BusinessHour[]> {
-  const { data } = await supabase
+export async function getBusinessHours(vendorId: string, throwOnError = false): Promise<BusinessHour[]> {
+  const { data, error } = await supabase
     .from('business_hours')
     .select('*')
     .eq('vendor_id', vendorId)
     .order('day_of_week', { ascending: true });
+  if (error && throwOnError) throw new Error('Could not load business hours');
   return (data || []) as BusinessHour[];
 }
 
 export async function upsertBusinessHours(vendorId: string, hours: Omit<BusinessHour, 'id' | 'vendor_id'>[]): Promise<{ error: string | null }> {
+  const days = new Set(hours.map(hour => hour.day_of_week));
+  if (hours.length !== 7 || days.size !== 7 || Array.from(days).some(day => !Number.isInteger(day) || day < 0 || day > 6)) {
+    return { error: 'A complete schedule for all seven days is required.' };
+  }
   const rows = hours.map(h => ({ ...h, vendor_id: vendorId }));
-
-  const { error: deleteError } = await supabase
-    .from('business_hours')
-    .delete()
-    .eq('vendor_id', vendorId);
-
-  if (deleteError) return { error: deleteError.message };
-
-  if (rows.length === 0) return { error: null };
 
   const { error } = await supabase
     .from('business_hours')
-    .insert(rows);
-  return { error: error?.message || null };
+    .upsert(rows, { onConflict: 'vendor_id,day_of_week' });
+  return { error: error ? 'Could not save business hours.' : null };
 }
 
 export function getBusinessStatus(hours: BusinessHour[], isTemporarilyClosed: boolean): {
@@ -398,12 +394,13 @@ export function getBusinessStatus(hours: BusinessHour[], isTemporarilyClosed: bo
 // Business Holidays
 // ============================================================
 
-export async function getHolidays(vendorId: string): Promise<BusinessHoliday[]> {
-  const { data } = await supabase
+export async function getHolidays(vendorId: string, throwOnError = false): Promise<BusinessHoliday[]> {
+  const { data, error } = await supabase
     .from('business_holidays')
     .select('*')
     .eq('vendor_id', vendorId)
     .order('holiday_date', { ascending: true });
+  if (error && throwOnError) throw new Error('Could not load business holidays');
   return (data || []) as BusinessHoliday[];
 }
 
