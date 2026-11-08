@@ -85,14 +85,18 @@ test('product and service listings receive route-specific metadata and structure
   assert.match(read('app/university/[slug]/page.tsx'), /eventType="university_view"/);
 });
 
-test('public audience landing pages use distinct, useful copy and remain linked from the homepage', () => {
+test('public audience landing pages remain linked from the discovery hub, not the social home feed', () => {
   for (const route of ['for-students', 'for-vendors', 'for-universities']) {
     const page = read(`app/${route}/page.tsx`);
     assert.match(page, /createPublicPageMetadata/);
     assert.match(page, /SeoLandingPage/);
   }
   const home = read('app/page.tsx');
+  const discovery = read('app/discover/page.tsx');
   assert.match(home, /<h1/);
-  assert.match(home, /href="\/for-students"/);
-  assert.match(home, /href="\/for-vendors"/);
+  assert.match(home, /<CampusCommunityFeed\s*\/>/);
+  assert.doesNotMatch(home, /Discover Ghana|Browse the marketplace|Explore UniEco Ghana/);
+  assert.match(discovery, /href="\/for-students"/);
+  assert.match(discovery, /href="\/for-vendors"/);
+  assert.match(discovery, /href="\/for-universities"/);
 });

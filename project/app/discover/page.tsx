@@ -2,6 +2,7 @@
 
 import { Suspense, useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -174,13 +175,23 @@ function DiscoverContent() {
       <SiteHeader />
       <main className="container py-8 sm:py-10">
         {/* Page header */}
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Discover businesses
+        <div className="mb-6 rounded-2xl border bg-card p-4 sm:p-6">
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Explore UniEco Ghana</p>
+          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Find what you need around campus
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Browse all businesses on UniEco Ghana across every campus.
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
+            Browse student businesses and everyday services across Ghana’s university communities. Choose a campus, search a category, or see what else is happening around the network.
           </p>
+          <nav aria-label="Explore UniEco Ghana" className="mt-4 flex gap-2 overflow-x-auto pb-1 text-sm font-semibold [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full bg-primary/10 px-4 text-primary" href="/marketplace">Marketplace</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/events">Campus events</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/updates">Campus updates</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/universities">Universities</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/for-students">For students</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/for-vendors">For vendors</Link>
+            <Link className="inline-flex min-h-10 shrink-0 items-center rounded-full border px-4 text-foreground" href="/for-universities">For universities</Link>
+          </nav>
         </div>
 
         {/* Search and filter bar */}

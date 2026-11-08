@@ -401,7 +401,8 @@ export function CampusCommunityFeed() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="sticky top-0 z-20 flex shrink-0 items-center justify-end gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur sm:min-h-14 sm:px-6 sm:py-0">
+      <div className="sticky top-0 z-20 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur sm:min-h-14 sm:px-6 sm:py-0">
+        <h2 className="truncate text-sm font-bold text-foreground sm:text-base xl:hidden">Campus feed</h2>
         <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:justify-end sm:gap-1.5">
           <div className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
           <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
@@ -417,7 +418,7 @@ export function CampusCommunityFeed() {
         <aside className="hidden flex-col justify-between border-r border-border/60 p-6 xl:flex">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800"><span className="h-2 w-2 rounded-full bg-emerald-500" />Campus community</span>
-            <h1 className="mt-5 max-w-xs text-3xl font-bold leading-tight tracking-tight text-slate-900">What’s happening on campus?</h1>
+            <h2 className="mt-5 max-w-xs text-3xl font-bold leading-tight tracking-tight text-slate-900">What’s happening on campus?</h2>
             <p className="mt-3 max-w-xs text-sm leading-6 text-slate-600">Short videos, photos and everyday moments shared by students and vendors across Ghana.</p>
             <Link href="/universities" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-emerald-200 hover:text-emerald-800"><Building2 className="h-4 w-4 text-emerald-700" />Explore universities<ArrowUpRight className="h-4 w-4" /></Link>
           </div>
