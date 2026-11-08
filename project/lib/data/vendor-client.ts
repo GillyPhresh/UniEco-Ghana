@@ -99,7 +99,7 @@ export function calculateVendorProfileCompletion(vendor: Partial<Vendor>): numbe
 // Products
 // ============================================================
 
-export async function getVendorProducts(vendorId: string, includeArchived = false): Promise<(Product & { business: { id: string; name: string; slug: string } })[]> {
+export async function getVendorProducts(vendorId: string, includeArchived = false, throwOnError = false): Promise<(Product & { business: { id: string; name: string; slug: string } })[]> {
   let query = supabase
     .from('products')
     .select(`
@@ -113,7 +113,8 @@ export async function getVendorProducts(vendorId: string, includeArchived = fals
     query = query.eq('is_archived', false);
   }
 
-  const { data } = await query;
+  const { data, error } = await query;
+  if (error && throwOnError) throw new Error('Could not load vendor products');
   return (data || []) as unknown as (Product & { business: { id: string; name: string; slug: string } })[];
 }
 

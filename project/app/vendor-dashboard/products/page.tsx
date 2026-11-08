@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -43,23 +43,40 @@ function ProductsContent() {
   const { vendor, loading } = useVendor();
   const [products, setProducts] = useState<(Product & { business: { id: string; name: string; slug: string } })[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const loadRequestId = useRef(0);
+
+  const loadProducts = useCallback(async () => {
+    const requestId = ++loadRequestId.current;
+    if (!vendor?.id) {
+      setProducts([]);
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getVendorProducts(vendor.id, showArchived, true);
+      if (requestId === loadRequestId.current) setProducts(data);
+    } catch {
+      if (requestId === loadRequestId.current) {
+        setProducts([]);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === loadRequestId.current) setDataLoading(false);
+    }
+  }, [vendor?.id, showArchived]);
 
   useEffect(() => {
-    if (!vendor) return;
+    setProducts([]);
     loadProducts();
-  }, [vendor, showArchived]);
-
-  async function loadProducts() {
-    if (!vendor) return;
-    setDataLoading(true);
-    const data = await getVendorProducts(vendor.id, showArchived);
-    setProducts(data);
-    setDataLoading(false);
-  }
+    return () => { loadRequestId.current += 1; };
+  }, [loadProducts]);
 
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -115,6 +132,13 @@ function ProductsContent() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map(i => <Skeleton key={i} className="h-52 rounded-xl" />)}
         </div>
+      ) : loadError ? (
+        <Card role="alert">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Products could not be loaded.</p>
+            <Button variant="outline" onClick={loadProducts}>Try again</Button>
+          </CardContent>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">

@@ -10,6 +10,7 @@ const verification = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/v
 const analytics = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/analytics/page.tsx'), 'utf8');
 const settingsPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/settings/page.tsx'), 'utf8');
 const vendorClient = readFileSync(path.join(projectRoot, 'lib/data/vendor-client.ts'), 'utf8');
+const productsPage = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/products/page.tsx'), 'utf8');
 
 test('vendor profile loader clears old account data and ignores stale requests', () => {
   assert.match(source, /const requestSequence = useRef\(0\)/);
@@ -17,6 +18,17 @@ test('vendor profile loader clears old account data and ignores stale requests',
   assert.match(source, /const v = await getVendorProfile\(\);\s*if \(requestSequence\.current !== requestId\) return;/);
   assert.match(source, /if \(requestSequence\.current === requestId\) setLoading\(false\)/);
   assert.match(source, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+});
+
+test('vendor product filters discard stale responses and show read failures separately from an empty catalogue', () => {
+  assert.match(productsPage, /const loadProducts = useCallback/);
+  assert.match(productsPage, /\}, \[vendor\?\.id, showArchived\]\);/);
+  assert.match(productsPage, /requestId === loadRequestId\.current/);
+  assert.match(productsPage, /getVendorProducts\(vendor\.id, showArchived, true\)/);
+  assert.match(productsPage, /Products could not be loaded/);
+  assert.match(productsPage, /onClick=\{loadProducts\}/);
+  assert.match(vendorClient, /throwOnError = false/);
+  assert.match(vendorClient, /if \(error && throwOnError\) throw new Error\('Could not load vendor products'\)/);
 });
 
 test('vendor settings reads distinguish missing rows from read errors and block saving until verified', () => {
