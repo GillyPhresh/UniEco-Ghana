@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
@@ -29,19 +29,36 @@ function AnalyticsContent() {
   const { vendor, loading } = useVendor();
   const [analytics, setAnalytics] = useState<VendorAnalytics | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const requestSequence = useRef(0);
+
+  const loadAnalytics = useCallback(async () => {
+    const requestId = ++requestSequence.current;
+    if (!vendor?.id) {
+      setAnalytics(null);
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
+    setLoadError(false);
+    try {
+      const data = await getVendorAnalytics(vendor.id);
+      if (requestId === requestSequence.current) setAnalytics(data);
+    } catch {
+      if (requestId === requestSequence.current) {
+        setAnalytics(null);
+        setLoadError(true);
+      }
+    } finally {
+      if (requestId === requestSequence.current) setDataLoading(false);
+    }
+  }, [vendor?.id]);
 
   useEffect(() => {
-    if (!vendor) return;
+    setAnalytics(null);
     loadAnalytics();
-  }, [vendor]);
-
-  async function loadAnalytics() {
-    if (!vendor) return;
-    setDataLoading(true);
-    const data = await getVendorAnalytics(vendor.id);
-    setAnalytics(data);
-    setDataLoading(false);
-  }
+    return () => { requestSequence.current += 1; };
+  }, [loadAnalytics]);
 
   if (loading) {
     return (
@@ -136,6 +153,11 @@ function AnalyticsContent() {
         <CardContent>
           {dataLoading ? (
             <Skeleton className="h-48 rounded-lg" />
+          ) : loadError ? (
+            <div role="alert" className="flex h-48 flex-col items-center justify-center gap-3 text-center">
+              <p className="text-sm text-muted-foreground">Analytics could not be loaded.</p>
+              <button type="button" onClick={loadAnalytics} className="text-sm font-medium text-primary underline">Try again</button>
+            </div>
           ) : months.length > 0 ? (
             <div className="flex items-end justify-between gap-2 h-48">
               {months.map(month => {

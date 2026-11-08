@@ -7,6 +7,7 @@ import test from 'node:test';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(path.join(projectRoot, 'hooks/use-vendor.ts'), 'utf8');
 const verification = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/verification/page.tsx'), 'utf8');
+const analytics = readFileSync(path.join(projectRoot, 'app/vendor-dashboard/analytics/page.tsx'), 'utf8');
 
 test('vendor profile loader clears old account data and ignores stale requests', () => {
   assert.match(source, /const requestSequence = useRef\(0\)/);
@@ -14,6 +15,15 @@ test('vendor profile loader clears old account data and ignores stale requests',
   assert.match(source, /const v = await getVendorProfile\(\);\s*if \(requestSequence\.current !== requestId\) return;/);
   assert.match(source, /if \(requestSequence\.current === requestId\) setLoading\(false\)/);
   assert.match(source, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+});
+
+test('vendor analytics reloads by vendor identity and discards stale responses', () => {
+  assert.match(analytics, /const loadAnalytics = useCallback/);
+  assert.match(analytics, /\}, \[vendor\?\.id\]\);/);
+  assert.match(analytics, /requestId === requestSequence\.current/);
+  assert.match(analytics, /return \(\) => \{ requestSequence\.current \+= 1; \};/);
+  assert.match(analytics, /Analytics could not be loaded/);
+  assert.match(analytics, /onClick=\{loadAnalytics\}/);
 });
 
 test('vendor verification history clears on identity changes and distinguishes read errors from empty history', () => {
