@@ -18,6 +18,21 @@ test('push setup registers the service worker immediately on direct route loads'
   assert.match(card, /serviceWorker\.register\('\/sw\.js'/);
 });
 
+test('push enable prepares iPhone requirements before the tap and enables push across all categories', async () => {
+  const [card, preferencesPage] = await Promise.all([
+    read('components/notifications/push-permission-card.tsx'),
+    read('app/dashboard/notifications/preferences/page.tsx'),
+  ]);
+  const clickHandler = card.slice(card.indexOf('const enablePush = async () =>'), card.indexOf('const sendTestPush = async () =>'));
+  assert.match(card, /Promise\.all\(\[getPushRegistration\(\), getPushConfig\(\)\]\)/);
+  assert.ok(clickHandler.indexOf('Notification.requestPermission()') < clickHandler.indexOf('registration.pushManager.subscribe('));
+  assert.match(clickHandler, /NOTIFICATION_CATEGORIES_FULL\.map/);
+  assert.match(clickHandler, /push: true/);
+  assert.match(card, /iOS or iPadOS to version 16\.4 or later/);
+  assert.match(card, /Share → Add to Home Screen/);
+  assert.match(preferencesPage, /Push/);
+});
+
 test('direct messages create an in-app notification and queue push only for subscribed users', async () => {
   const migration = await read('supabase/migrations/20261021150000_0135_push_notification_delivery.sql');
 

@@ -1,16 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bell, Check, Info, Loader2, RefreshCw, Send, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { subscribeToPush } from '@/lib/data/communication-client';
+import {
+  getNotificationPreferences,
+  subscribeToPush,
+  updateNotificationPreferences,
+} from '@/lib/data/communication-client';
+import { NOTIFICATION_CATEGORIES_FULL } from '@/lib/types/communication';
 import { supabase } from '@/lib/supabase/client';
 
 type PushSupport = {
   supported: boolean;
   installRequired: boolean;
   message: string;
+};
+
+type PreparedPushDevice = {
+  registration: ServiceWorkerRegistration;
+  publicKey: string;
 };
 
 function decodeBase64Url(value: string) {
@@ -24,8 +34,13 @@ function decodeBase64Url(value: string) {
 }
 
 function getPushSupport(): PushSupport {
-  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent)
+  const userAgent = navigator.userAgent;
+  const isIos = /iPad|iPhone|iPod/.test(userAgent)
     || (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1);
+  const iosVersion = userAgent.match(/(?:iPhone|iPad|iPod).*?OS\s(\d+)[_.](\d+)/i);
+  const needsIosUpdate = Boolean(iosVersion && (
+    Number(iosVersion[1]) < 16 || (Number(iosVersion[1]) === 16 && Number(iosVersion[2]) < 4)
+  ));
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches
     || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const hasWebPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
@@ -35,6 +50,13 @@ function getPushSupport(): PushSupport {
       supported: false,
       installRequired: true,
       message: 'On iPhone or iPad, add UniEco to your Home Screen first, then open the installed app to enable push notifications.',
+    };
+  }
+  if (isIos && needsIosUpdate) {
+    return {
+      supported: false,
+      installRequired: true,
+      message: 'Update iOS or iPadOS to version 16.4 or later, add UniEco Ghana to your Home Screen, then open the Home Screen app to enable push.',
     };
   }
   if (!hasWebPush) {
@@ -47,7 +69,7 @@ function getPushSupport(): PushSupport {
   return {
     supported: true,
     installRequired: false,
-    message: 'This device is ready. Notifications are registered separately on each phone and browser.',
+    message: 'This device is ready. Push works on iPhone and iPad from the Home Screen app; each phone and browser must be enabled separately.',
   };
 }
 
@@ -98,6 +120,8 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
   const [enabled, setEnabled] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [support, setSupport] = useState<PushSupport | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const preparedDevice = useRef<PreparedPushDevice | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,8 +129,11 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
     setSupport(detectedSupport);
     if (!detectedSupport.supported) return;
 
-    getPushRegistration()
-      .then(async (registration) => {
+    setPreparing(true);
+    Promise.all([getPushRegistration(), getPushConfig()])
+      .then(async ([registration, config]) => {
+        preparedDevice.current = { registration, publicKey: config.publicKey };
+        if (!cancelled) setPreparing(false);
         const subscription = await registration.pushManager.getSubscription();
         if (!subscription) return;
         const subscriptionJson = subscription.toJSON();
@@ -125,7 +152,10 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
         }
       })
       .catch(() => {
-        if (!cancelled) setSyncError('Could not synchronize this device with UniEco. Tap refresh to try again.');
+        if (!cancelled) {
+          setPreparing(false);
+          setSyncError('Could not prepare this device. Check your connection and tap the button to try again.');
+        }
       });
     return () => {
       cancelled = true;
@@ -142,23 +172,30 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
     setBusy(true);
     setSyncError(null);
     try {
-      const config = await getPushConfig();
+      let prepared = preparedDevice.current;
+      if (!prepared) {
+        const [registration, config] = await Promise.all([getPushRegistration(), getPushConfig()]);
+        prepared = { registration, publicKey: config.publicKey };
+        preparedDevice.current = prepared;
+        toast({ title: 'This device is ready', description: 'Tap enable once more so your browser can ask for notification permission.' });
+        return;
+      }
+
       if (Notification.permission === 'denied') {
         throw new Error('Notifications are blocked for UniEco in this browser. Allow them in site settings, then tap refresh.');
       }
+      // iOS Safari requires this permission prompt to be initiated directly by
+      // the tap. Service-worker registration and VAPID lookup are prepared
+      // before the user gesture so no network wait precedes the prompt.
       const permission = Notification.permission === 'granted'
         ? 'granted'
         : await Notification.requestPermission();
       if (permission !== 'granted') throw new Error('Notification permission was not granted.');
 
-      const registration = await getPushRegistration();
-      const existingSubscription = await registration.pushManager.getSubscription();
-      // A refresh deliberately creates a new subscription. This repairs a
-      // subscription created with an older VAPID public key or browser token.
-      if (existingSubscription && enabled) await existingSubscription.unsubscribe();
+      const registration = prepared.registration;
       const subscription = await registration.pushManager.getSubscription() || await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: decodeBase64Url(config.publicKey),
+        applicationServerKey: decodeBase64Url(prepared.publicKey),
       });
       const subscriptionJson = subscription.toJSON();
       const endpoint = subscriptionJson.endpoint;
@@ -168,8 +205,17 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
 
       const result = await subscribeToPush({ endpoint, keys: { p256dh, auth }, expirationTime: subscriptionJson.expirationTime });
       if (result.error) throw new Error(result.error);
+      const currentPreferences = await getNotificationPreferences();
+      const allPushPreferences = Object.fromEntries(NOTIFICATION_CATEGORIES_FULL.map((category) => [
+        category.key,
+        { ...(currentPreferences?.[category.key] || category.defaultPrefs), push: true },
+      ]));
+      const preferenceResult = await updateNotificationPreferences(allPushPreferences);
+      if (preferenceResult.error) {
+        throw new Error('This device is connected, but notification types could not be enabled. Save your notification preferences and try again.');
+      }
       setEnabled(true);
-      toast({ title: 'Push notifications connected', description: 'This device is now registered with UniEco. Send a test notification to confirm delivery.' });
+      toast({ title: 'Push notifications connected', description: 'This device is enabled for every message category. You can fine-tune types below.' });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Please try again.';
       setSyncError(message);
@@ -209,15 +255,16 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
           </div>
           <div>
             <p className="font-semibold">Device notifications</p>
-            <p className="mt-1 text-sm text-muted-foreground">{onboarding ? 'Receive messages, order updates, and campus alerts even when the site is closed.' : 'Receive important UniEco updates even when the site is closed.'}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{onboarding ? 'Receive messages, order updates, and campus alerts even when the site is closed.' : 'Enable push for every message category on this device, then fine-tune individual types below.'}</p>
             {support && <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{support.message}</p>}
+            {support?.installRequired && <p className="mt-2 text-xs text-muted-foreground">On iPhone: open UniEco in Safari, tap Share → Add to Home Screen, open the new UniEco icon, then enable notifications here.</p>}
             {syncError && <p className="mt-2 text-xs font-medium text-destructive">{syncError}</p>}
           </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-44">
-          <Button type="button" size="sm" onClick={enablePush} disabled={busy || !support?.supported} className="w-full">
+          <Button type="button" size="sm" onClick={enablePush} disabled={busy || preparing || !support?.supported} className="w-full">
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : enabled ? <RefreshCw className="mr-2 h-4 w-4" /> : <Smartphone className="mr-2 h-4 w-4" />}
-            {enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : onboarding ? 'Turn on notifications' : 'Enable push'}
+            {preparing ? 'Preparing this device…' : enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : onboarding ? 'Turn on all notifications' : 'Enable all push types'}
           </Button>
           {enabled && <Button type="button" size="sm" variant="outline" onClick={sendTestPush} disabled={busy} className="w-full"><Send className="mr-2 h-4 w-4" /> Send test notification</Button>}
         </div>
