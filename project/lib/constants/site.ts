@@ -33,9 +33,8 @@ export const navLinks = [
   { label: 'Discover', href: '/discover' },
   { label: 'Categories', href: '/categories' },
   { label: 'Events', href: '/events' },
-  { label: 'Universities', href: '/#universities' },
-  { label: 'Benefits', href: '/#student-benefits' },
-  { label: 'FAQ', href: '/#faq' },
+  { label: 'Universities', href: '/universities' },
+  { label: 'For students', href: '/for-students' },
 ] as const;
 
 export const footerLinks = {
@@ -44,12 +43,12 @@ export const footerLinks = {
     { label: 'Browse Businesses', href: '/discover' },
     { label: 'Categories', href: '/categories' },
     { label: 'Events', href: '/events' },
-    { label: 'Universities', href: '/#universities' },
+    { label: 'Universities', href: '/universities' },
   ],
   Community: [
-    { label: 'For Students', href: '/#student-benefits' },
-    { label: 'For Vendors', href: '/#vendor-benefits' },
-    { label: 'For Universities', href: '/#university-benefits' },
+    { label: 'For Students', href: '/for-students' },
+    { label: 'For Vendors', href: '/for-vendors' },
+    { label: 'For Universities', href: '/for-universities' },
     { label: 'University network', href: '/for-universities' },
     { label: 'University Administrator opportunity', href: '/university-admin/apply' },
   ],

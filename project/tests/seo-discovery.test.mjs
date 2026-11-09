@@ -24,7 +24,7 @@ test('social previews reference an existing image asset', () => {
 
 test('the sitemap advertises useful public pages and omits account/search URLs', () => {
   const sitemap = read('app/sitemap.ts');
-  for (const pathPart of ['/updates', '/for-students', '/for-vendors', '/for-universities']) {
+  for (const pathPart of ['/updates', '/universities', '/for-students', '/for-vendors', '/for-universities']) {
     assert.ok(sitemap.includes(pathPart), `${pathPart} is missing from sitemap`);
   }
   assert.match(sitemap, /getIndexableProductIds/);
@@ -99,4 +99,12 @@ test('public audience landing pages remain linked from the discovery hub, not th
   assert.match(discovery, /href="\/for-students"/);
   assert.match(discovery, /href="\/for-vendors"/);
   assert.match(discovery, /href="\/for-universities"/);
+});
+
+test('role-specific footer links lead to indexable landing pages rather than missing homepage anchors', () => {
+  const site = read('lib/constants/site.ts');
+  for (const path of ['/for-students', '/for-vendors', '/for-universities']) {
+    assert.ok(site.includes(`href: '${path}'`), `${path} should be used by site navigation`);
+  }
+  assert.doesNotMatch(site, /href: '\/#(?:universities|student-benefits|vendor-benefits|university-benefits|faq)'/);
 });
