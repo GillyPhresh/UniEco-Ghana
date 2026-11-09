@@ -40,6 +40,7 @@ const PAGE_SIZE = 8;
 const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
+const VIDEO_PREPARATION_TIMEOUT_MS = 240_000;
 const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
@@ -151,6 +152,7 @@ export function CampusCommunityFeed() {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState('');
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [reporting, setReporting] = useState(false);
@@ -323,7 +325,7 @@ export function CampusCommunityFeed() {
     setPullDistance(0);
   };
 
-  const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); };
+  const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); setUploadStage(''); };
   const closePostDialog = (open: boolean) => { setPostOpen(open); if (!open && !uploading) resetPostForm(); };
 
   const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -344,6 +346,7 @@ export function CampusCommunityFeed() {
     let attachmentPath: string | null = null;
     let attachmentName: string | null = null;
     setUploading(true);
+    setUploadStage(isVideo ? 'Preparing video for playback…' : 'Uploading your post…');
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
     let uploadPath: string | null = publicPath;
     let uploadBucket: 'campus-community' | 'campus-community-files' | null = publicPath ? 'campus-community' : null;
@@ -352,7 +355,10 @@ export function CampusCommunityFeed() {
       if (mediaFile && isVideo) {
         const form = new FormData();
         form.append('video', mediaFile);
-        const response = await fetch('/api/community/video/prepare', { method: 'POST', body: form, credentials: 'same-origin' });
+        const response = await fetch('/api/community/video/prepare', {
+          method: 'POST', body: form, credentials: 'same-origin',
+          signal: AbortSignal.timeout(VIDEO_PREPARATION_TIMEOUT_MS),
+        });
         if (!response.ok) {
           const result = await response.json().catch(() => null) as { error?: string } | null;
           throw new Error(`VIDEO_PREPARE:${result?.error || 'UniEco could not prepare this video for playback.'}`);
@@ -373,6 +379,7 @@ export function CampusCommunityFeed() {
         uploadBucket = 'campus-community-files';
       }
       if (fileToUpload && uploadPath && uploadBucket) {
+        setUploadStage('Uploading your post…');
         const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, fileToUpload, {
           contentType: fileToUpload.type || 'application/octet-stream',
           cacheControl: publicPath ? '31536000' : '0',
@@ -381,6 +388,7 @@ export function CampusCommunityFeed() {
         if (uploadError) throw uploadError;
         uploadedBucket = uploadBucket;
       }
+      setUploadStage('Publishing to the campus feed…');
       const { error: postError } = await supabase.rpc('create_campus_community_post_with_attachment', {
         p_caption: trimmedCaption,
         p_media_path: publicPath,
@@ -395,16 +403,23 @@ export function CampusCommunityFeed() {
       setPostOpen(false);
       setCaption('');
       setMediaFile(null);
-      await loadPage(false);
+      // Do not keep the publish dialog in its busy state while refreshing the
+      // feed. A slow feed query must not make a successful post look stuck or
+      // tempt the user to submit it a second time.
+      setUploading(false);
+      setUploadStage('');
+      void loadPage(false);
     } catch (error) {
       if (uploadedBucket && uploadPath) await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
       const message = error instanceof Error ? error.message : '';
       if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
       else if (message.startsWith('VIDEO_PREPARE:')) toast.error(message.slice('VIDEO_PREPARE:'.length));
+      else if (message === 'TimeoutError' || message === 'AbortError') toast.error('Video preparation took too long. Please try a shorter video or a stronger connection.');
       else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
       else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
     } finally {
       setUploading(false);
+      setUploadStage('');
     }
   };
 
@@ -523,7 +538,7 @@ export function CampusCommunityFeed() {
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
-            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Publishing…</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadStage || 'Publishing…'}</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

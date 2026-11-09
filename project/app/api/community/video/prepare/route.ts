@@ -63,23 +63,73 @@ function takeRateLimit(userId: string) {
   return true;
 }
 
+async function isFastBrowserMp4(sourcePath: string) {
+  return await new Promise<boolean>((resolve) => {
+    let settled = false;
+    let output = '';
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const finish = (result: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolve(result);
+    };
+    let probe: ReturnType<typeof spawn>;
+    try {
+      probe = spawn('ffprobe', [
+        '-v', 'error', '-protocol_whitelist', 'file,pipe,data',
+        '-show_entries', 'stream=codec_type,codec_name,pix_fmt,width,height',
+        '-of', 'json', sourcePath,
+      ], { stdio: ['ignore', 'pipe', 'ignore'] });
+    } catch {
+      finish(false);
+      return;
+    }
+    probe.stdout?.on('data', (chunk: Buffer) => {
+      if (output.length < 16_000) output += chunk.toString('utf8').slice(0, 16_000 - output.length);
+    });
+    probe.once('error', () => finish(false));
+    probe.once('close', (code) => {
+      if (code !== 0) { finish(false); return; }
+      try {
+        const streams = JSON.parse(output).streams as Array<{
+          codec_type?: string; codec_name?: string; pix_fmt?: string; width?: number; height?: number;
+        }>;
+        const video = streams.find((stream) => stream.codec_type === 'video');
+        const audio = streams.filter((stream) => stream.codec_type === 'audio');
+        finish(Boolean(video?.codec_name === 'h264' && video.pix_fmt === 'yuv420p'
+          && Number(video.width) <= 1280 && Number(video.height) <= 1280
+          && audio.every((stream) => stream.codec_name === 'aac')));
+      } catch {
+        finish(false);
+      }
+    });
+    timer = setTimeout(() => { probe.kill('SIGKILL'); finish(false); }, 10_000);
+  });
+}
+
 async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
   const directory = await mkdtemp(path.join(tmpdir(), 'unieco-video-'));
   const sourcePath = path.join(directory, `upload.${inputExtension || 'video'}`);
   const outputPath = path.join(directory, 'prepared.mp4');
   try {
     await writeFile(sourcePath, input, { flag: 'wx', mode: 0o600 });
+    const copyCompatibleStreams = inputExtension === 'mp4' && await isFastBrowserMp4(sourcePath);
     await new Promise<void>((resolve, reject) => {
-      const process = spawn('ffmpeg', [
+      const commonArgs = [
         '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-        '-protocol_whitelist', 'file,pipe,data',
-        '-max_alloc', '100000000', '-filter_threads', '1',
-        '-i', sourcePath,
-        '-map', '0:v:0', '-map', '0:a:0?',
-        '-map_metadata', '-1', '-map_chapters', '-1',
-        '-vf', "scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
-        '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '25', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-fs', String(MAX_OUTPUT_BYTES), '-movflags', '+faststart', '-f', 'mp4', outputPath,
+        '-protocol_whitelist', 'file,pipe,data', '-max_alloc', '100000000', '-i', sourcePath,
+        '-map', '0:v:0', '-map', '0:a:0?', '-map_metadata', '-1', '-map_chapters', '-1',
+      ];
+      const mediaArgs = copyCompatibleStreams
+        ? ['-c:v', 'copy', '-c:a', 'copy']
+        : [
+          '-filter_threads', '1', '-vf', "scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+          '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '25', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac', '-b:a', '96k', '-ac', '2',
+        ];
+      const process = spawn('ffmpeg', [
+        ...commonArgs, ...mediaArgs, '-fs', String(MAX_OUTPUT_BYTES), '-movflags', '+faststart', '-f', 'mp4', outputPath,
       ], { stdio: ['ignore', 'ignore', 'pipe'] });
       let stderr = '';
       let settled = false;

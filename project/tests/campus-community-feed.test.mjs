@@ -88,6 +88,12 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(feed, /\.mov/);
   assert.match(dockerfile, /apk add --no-cache ffmpeg/);
   assert.match(dockerfile, /libx264/);
+  assert.match(feed, /VIDEO_PREPARATION_TIMEOUT_MS = 240_000/);
+  assert.match(feed, /signal: AbortSignal\.timeout\(VIDEO_PREPARATION_TIMEOUT_MS\)/);
+  assert.match(feed, /Uploading your post…/);
+  assert.match(feed, /Publishing to the campus feed…/);
+  assert.match(feed, /void loadPage\(false\)/);
+  assert.doesNotMatch(feed, /await loadPage\(false\);/);
 });
 
 test('campus feed has a quiet branded composer and automatic legacy video recovery', async () => {
@@ -120,6 +126,9 @@ test('video preparation is authenticated, bounded, private-file authorized, and 
   assert.match(route, /USER_TRANSCODE_LIMIT = 4/);
   assert.match(route, /-protocol_whitelist', 'file,pipe,data'/);
   assert.match(route, /'libx264'/);
+  assert.match(route, /isFastBrowserMp4/);
+  assert.match(route, /'ffprobe'/);
+  assert.match(route, /copyCompatibleStreams[\s\S]*\['-c:v', 'copy', '-c:a', 'copy'\]/);
   assert.match(route, /'yuv420p'/);
   assert.match(route, /'aac'/);
   assert.match(route, /export async function GET\(request: NextRequest\)/);
