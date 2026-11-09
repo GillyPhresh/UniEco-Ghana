@@ -299,6 +299,20 @@ html {
 }
 
 @media (max-width: 639px) {
+  .dark a[aria-label="UniEco Ghana home"] img:first-of-type {
+    display: none !important;
+  }
+
+  .dark a[aria-label="UniEco Ghana home"]::after {
+    content: "";
+    display: block !important;
+    width: 2.75rem;
+    height: 2.25rem;
+    background: url('/unieco-mobile-dark-logo.png') left center / contain no-repeat;
+  }
+}
+
+@media (max-width: 639px) {
   .landing-hero-overlay {
     background: linear-gradient(180deg, rgba(6, 45, 39, 0.66) 0%, rgba(6, 45, 39, 0.58) 48%, rgba(6, 45, 39, 0.68) 100%);
   }
