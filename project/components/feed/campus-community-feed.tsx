@@ -56,10 +56,6 @@ function canDisplayInline(file: File) {
   return PREVIEW_MEDIA.has(file.type) && file.size <= MAX_PREVIEW_MEDIA_BYTES;
 }
 
-function canPlayVideoInline(file: File) {
-  return ['video/mp4', 'video/webm'].includes(file.type) && canDisplayInline(file);
-}
-
 function canPlayPrivateVideoInline(file: { name: string; size: number }) {
   return file.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION.test(file.name);
 }
@@ -339,21 +335,46 @@ export function CampusCommunityFeed() {
       return;
     }
     if (mediaFile && mediaFile.size > MAX_ATTACHMENT_BYTES) { toast.error('Attachments can be up to 50 MB.'); return; }
-    const safePreviewExtension = mediaFile ? PREVIEW_MEDIA.get(mediaFile.type) : undefined;
+    const isVideo = Boolean(mediaFile && isVideoUploadCandidate(mediaFile));
+    const safePreviewExtension = mediaFile && !isVideo ? PREVIEW_MEDIA.get(mediaFile.type) : undefined;
     const previewable = Boolean(mediaFile && safePreviewExtension && canDisplayInline(mediaFile));
     if (trimmedCaption.length > 500) { toast.error('Keep the caption under 500 characters.'); return; }
-    const mediaType = previewable ? (mediaFile!.type.startsWith('video/') ? 'video' : 'image') : mediaFile ? 'file' : 'text';
+    const mediaType = previewable ? 'image' : mediaFile ? 'file' : 'text';
     const publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
-    const attachmentPath = mediaFile && !previewable ? `${user.id}/${crypto.randomUUID()}` : null;
-    const attachmentName = mediaFile && !previewable ? safeFileName(mediaFile.name) : null;
+    let attachmentPath: string | null = null;
+    let attachmentName: string | null = null;
     setUploading(true);
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
-    const uploadPath = publicPath || attachmentPath;
-    const uploadBucket = publicPath ? 'campus-community' : attachmentPath ? 'campus-community-files' : null;
+    let uploadPath: string | null = publicPath;
+    let uploadBucket: 'campus-community' | 'campus-community-files' | null = publicPath ? 'campus-community' : null;
     try {
-      if (mediaFile && uploadPath && uploadBucket) {
-        const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, mediaFile, {
-          contentType: mediaFile.type || 'application/octet-stream',
+      let fileToUpload = mediaFile;
+      if (mediaFile && isVideo) {
+        const form = new FormData();
+        form.append('video', mediaFile);
+        const response = await fetch('/api/community/video/prepare', { method: 'POST', body: form, credentials: 'same-origin' });
+        if (!response.ok) {
+          const result = await response.json().catch(() => null) as { error?: string } | null;
+          throw new Error(`VIDEO_PREPARE:${result?.error || 'UniEco could not prepare this video for playback.'}`);
+        }
+        const mp4 = await response.blob();
+        if (!mp4.size || mp4.size > MAX_ATTACHMENT_BYTES || mp4.type !== 'video/mp4') {
+          throw new Error('VIDEO_PREPARE:This video could not be safely prepared. Try a shorter video.');
+        }
+        const baseName = safeFileName(mediaFile.name).replace(/\.[^.]*$/, '') || 'campus-video';
+        fileToUpload = new File([mp4], `unieco-${baseName}.mp4`, { type: 'video/mp4' });
+        attachmentName = fileToUpload.name;
+      } else if (mediaFile && !previewable) {
+        attachmentName = safeFileName(mediaFile.name);
+      }
+      if (fileToUpload && !previewable) {
+        attachmentPath = `${user.id}/${crypto.randomUUID()}`;
+        uploadPath = attachmentPath;
+        uploadBucket = 'campus-community-files';
+      }
+      if (fileToUpload && uploadPath && uploadBucket) {
+        const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, fileToUpload, {
+          contentType: fileToUpload.type || 'application/octet-stream',
           cacheControl: publicPath ? '31536000' : '0',
           upsert: false,
         });
@@ -366,7 +387,7 @@ export function CampusCommunityFeed() {
         p_media_type: previewable ? mediaType : null,
         p_attachment_path: attachmentPath,
         p_attachment_name: attachmentName,
-        p_attachment_size: mediaFile && attachmentPath ? mediaFile.size : null,
+        p_attachment_size: fileToUpload && attachmentPath ? fileToUpload.size : null,
       });
       if (postError) throw postError;
       uploadedBucket = null;
@@ -379,6 +400,7 @@ export function CampusCommunityFeed() {
       if (uploadedBucket && uploadPath) await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
       const message = error instanceof Error ? error.message : '';
       if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
+      else if (message.startsWith('VIDEO_PREPARE:')) toast.error(message.slice('VIDEO_PREPARE:'.length));
       else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
       else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
     } finally {
@@ -419,7 +441,6 @@ export function CampusCommunityFeed() {
   };
 
   const selectedVideo = mediaFile ? isVideoUploadCandidate(mediaFile) : false;
-  const selectedVideoCanPlayInline = Boolean(mediaFile && isVideoUploadCandidate(mediaFile) && canPlayVideoInline(mediaFile));
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
@@ -486,21 +507,17 @@ export function CampusCommunityFeed() {
         <DialogContent className="max-h-[min(90dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-xl sm:p-6">
           <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Post a photo or short video for the UniEco Ghana community. Your post is public and linked to your account and campus.</DialogDescription></DialogHeader>
           <form onSubmit={submitPost} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="community-media">Add a file <span className="font-normal text-muted-foreground">(any format, up to 50 MB; photos up to 25 MB; MP4/WebM videos up to 50 MB can play on demand)</span></label>
-            <input id="community-media" type="file" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
+            <label className="block text-sm font-semibold" htmlFor="community-media">Add a photo or video <span className="font-normal text-muted-foreground">(videos in common camera and editor formats up to 50 MB are prepared for smooth phone and browser playback)</span></label>
+            <input id="community-media" type="file" accept="image/*,video/*,.mov,.m4v,.qt,.ogv,.ogg,.avi,.mkv,.3gp,.3g2,.mpeg,.mpg,.mts,.m2ts,.ts,.vob,.wmv,.asf,.flv,.f4v,.mxf,.rm,.rmvb,.amv" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
             {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}</p>}
-            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideoCanPlayInline || (selectedVideo && canPlayPrivateVideoInline({ name: mediaFile.name, size: mediaFile.size })) ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
-              {selectedVideoCanPlayInline
-                ? 'This video will play inline in the feed.'
-                : selectedVideo
-                  ? canPlayPrivateVideoInline({ name: mediaFile.name, size: mediaFile.size })
-                    ? 'This video will be available to play from a short-lived private link. Playback starts only when a viewer taps play; browser and codec support can vary, and the original can still be downloaded.'
-                    : 'Your video will upload privately and remain downloadable. This file type is not recognized for an in-feed playback attempt on every device.'
-                  : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
-                    ? 'This attachment will appear as a download. JPG, PNG, WebP, MP4, and WebM files up to 25 MB can display inline.'
-                    : 'This photo will display inline in the feed.'}
+            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideo || (PREVIEW_MEDIA.has(mediaFile.type) && canDisplayInline(mediaFile)) ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
+              {selectedVideo
+                ? 'UniEco will prepare this video as a phone-friendly MP4 before posting, so the feed can play it inline instead of showing a download.'
+                : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
+                  ? 'This attachment will be available to download. JPG, PNG, and WebP photos up to 25 MB display inline.'
+                  : 'This photo will display inline in the feed.'}
             </p>}
-            {previewUrl && mediaFile && PREVIEW_MEDIA.has(mediaFile.type) && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && (mediaFile.type.startsWith('video/') ? <video src={previewUrl} controls playsInline preload="metadata" className="max-h-72 w-full rounded-xl bg-black object-contain" /> : <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />)}
+            {previewUrl && mediaFile && !selectedVideo && mediaFile.type.startsWith('image/') && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />}
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
@@ -548,6 +565,8 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [privateVideoUrl, setPrivateVideoUrl] = useState<string | null>(null);
   const [privateVideoLoading, setPrivateVideoLoading] = useState(false);
   const [privateVideoAttempted, setPrivateVideoAttempted] = useState(false);
+  const [preparedLegacyVideoUrl, setPreparedLegacyVideoUrl] = useState<string | null>(null);
+  const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
 
   useEffect(() => {
     if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
@@ -594,6 +613,45 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     connection?.addEventListener?.('change', update);
     return () => connection?.removeEventListener?.('change', update);
   }, []);
+
+  useEffect(() => () => {
+    if (preparedLegacyVideoUrl) URL.revokeObjectURL(preparedLegacyVideoUrl);
+  }, [preparedLegacyVideoUrl]);
+
+  useEffect(() => {
+    if (!preparedLegacyVideoUrl || post.media_type !== 'video') return;
+    const video = videoRef.current;
+    if (!video) return;
+    video.load();
+    void video.play().catch(() => undefined);
+  }, [preparedLegacyVideoUrl, post.media_type]);
+
+  const prepareLegacyVideoForPlayback = async () => {
+    if (preparingLegacyVideo) return;
+    setPreparingLegacyVideo(true);
+    setFileError(false);
+    try {
+      const response = await fetch('/api/community/video/prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ postId: post.id }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(result?.error || 'UniEco could not prepare this video for playback.');
+      }
+      const video = await response.blob();
+      if (!video.size || video.type !== 'video/mp4') throw new Error('The prepared video was incomplete.');
+      const nextUrl = URL.createObjectURL(video);
+      setPreparedLegacyVideoUrl(nextUrl);
+    } catch (error) {
+      setFileError(true);
+      toast.error(error instanceof Error ? error.message : 'This video could not be prepared. Please try again.');
+    } finally {
+      setPreparingLegacyVideo(false);
+    }
+  };
 
   const downloadAttachment = async () => {
     if (fileLoading) return;
@@ -672,10 +730,11 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
           {fileInfo && canPlayPrivateVideoInline(fileInfo) ? (
             <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
               <div className="relative flex min-h-52 items-center justify-center bg-black sm:min-h-64">
-                {privateVideoUrl ? <video src={privateVideoUrl} controls playsInline preload="none" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} /> : (
+                {preparedLegacyVideoUrl ? <video src={preparedLegacyVideoUrl} controls playsInline autoPlay preload="metadata" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => setFileError(true)} /> : privateVideoUrl ? <video src={privateVideoUrl} controls playsInline preload="none" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} /> : (
                   <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
                     {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
-                    <p className="text-sm font-medium">{privateVideoLoading ? 'Preparing your video…' : fileError ? 'This video could not be opened on this device.' : 'Your video is ready to play.'}</p>
+                    <p className="text-sm font-medium">{privateVideoLoading ? 'Opening your video…' : fileError ? 'We can prepare this older video for your device.' : 'Your video is ready to play.'}</p>
+                    {fileError && <Button type="button" variant="outline" onClick={() => void prepareLegacyVideoForPlayback()} disabled={preparingLegacyVideo} className="min-h-11 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">{preparingLegacyVideo ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing video…</> : <><Play className="mr-2 h-4 w-4" />Prepare &amp; play video</>}</Button>}
                     {fileError && <Button type="button" variant="outline" onClick={() => { setFileError(false); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading} className="min-h-11 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
                   </div>
                 )}
@@ -697,7 +756,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
         <div className="relative flex min-h-48 items-center justify-center bg-slate-950">
           <video
             ref={videoRef}
-            src={post.media_url || undefined}
+            src={preparedLegacyVideoUrl || post.media_url || undefined}
             playsInline
             muted
             loop
@@ -723,10 +782,11 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">{videoFailure === 'network'
               ? 'The video stream was interrupted by the connection. Try again when the signal is steadier; the rest of the feed remains available.'
               : videoFailure === 'decode' || videoFailure === 'unsupported'
-                ? 'This phone cannot decode this video’s format. The person who posted it will need to re-export and upload an MP4 using H.264 video and AAC audio. UniEco cannot convert a video that is already uploaded.'
-                : 'The video could not be opened. Try again, or open the original file. If it still fails on this phone, ask the person who posted it to upload an MP4 using H.264 video and AAC audio.'}</p>
+                ? 'This older video uses a format this device cannot play directly. UniEco can prepare a phone-friendly copy for playback.'
+                : 'The video could not be opened. Try again or prepare a compatible copy for this device.'}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
+              {videoFailure !== 'network' && <Button type="button" variant="secondary" onClick={() => void prepareLegacyVideoForPlayback()} disabled={preparingLegacyVideo} className="min-h-10 rounded-full">{preparingLegacyVideo ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing…</> : 'Prepare &amp; play'}</Button>}
               {post.media_url && <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>}
             </div>
           </div>}

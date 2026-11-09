@@ -77,16 +77,16 @@ test('private video attachments render inline in the feed from short-lived signe
   assert.match(migration, /uploaded_attachment\.bucket_id = 'campus-community-files'/);
 });
 
-test('post composer tells members before posting when a video will be download-only', async () => {
+test('post composer prepares accepted video containers for phone-friendly inline playback', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
+  const dockerfile = await read('Dockerfile');
   assert.match(feed, /VIDEO_FILE_EXTENSION/);
-  assert.match(feed, /selectedVideoCanPlayInline/);
-  assert.match(feed, /This video will play inline in the feed/);
-  assert.match(feed, /short-lived private link/);
-  assert.match(feed, /This video will be available to play from a short-lived private link/);
-  assert.match(feed, /Your video will upload privately and remain downloadable/);
-  assert.match(feed, /browser and codec support can vary/);
-  assert.match(feed, /original can still be downloaded/);
+  assert.match(feed, /api\/community\/video\/prepare/);
+  assert.match(feed, /UniEco will prepare this video as a phone-friendly MP4 before posting/);
+  assert.match(feed, /video\/mp4/);
+  assert.match(feed, /\.mov/);
+  assert.match(dockerfile, /apk add --no-cache ffmpeg/);
+  assert.match(dockerfile, /libx264/);
 });
 
 test('campus feed uses readable social cards and exposes video recovery controls', async () => {
@@ -96,12 +96,31 @@ test('campus feed uses readable social cards and exposes video recovery controls
   assert.match(feed, /controls/);
   assert.match(feed, /event\.currentTarget\.error\?\.code/);
   assert.match(feed, /The video stream was interrupted by the connection/);
-  assert.match(feed, /This phone cannot decode this video’s format/);
   assert.match(feed, /We couldn’t play this video/);
   assert.match(feed, /Try again/);
   assert.match(feed, /Open original/);
-  assert.match(feed, /MP4 using H\.264 video and AAC audio/);
+  assert.match(feed, /Prepare &amp; play video/);
+  assert.match(feed, /prepareLegacyVideoForPlayback/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
+});
+
+test('video preparation is authenticated, bounded, private-file authorized, and emits mobile-compatible MP4', async () => {
+  const route = await read('app/api/community/video/prepare/route.ts');
+  assert.match(route, /export const runtime = 'nodejs'/);
+  assert.match(route, /supabase\.auth\.getUser\(\)/);
+  assert.match(route, /sameOrigin\(request\)/);
+  assert.match(route, /can_upload_campus_community_media/);
+  assert.match(route, /get_campus_community_post_file_info/);
+  assert.match(route, /MAX_VIDEO_BYTES = 50 \* 1024 \* 1024/);
+  assert.match(route, /MAX_CONCURRENT_TRANSCODES = 1/);
+  assert.match(route, /USER_TRANSCODE_LIMIT = 4/);
+  assert.match(route, /-protocol_whitelist', 'file,pipe,data'/);
+  assert.match(route, /'libx264'/);
+  assert.match(route, /'yuv420p'/);
+  assert.match(route, /'aac'/);
+  assert.match(route, /'video\/mp4'/);
+  assert.match(route, /-map_metadata', '-1'/);
+  assert.match(route, /rm\(directory, \{ recursive: true, force: true \}\)/);
 });
 
 test('slow connections can use cached feed content and media remains lazy', async () => {
