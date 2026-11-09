@@ -444,15 +444,15 @@ export function CampusCommunityFeed() {
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="sticky top-0 z-20 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 backdrop-blur sm:min-h-14 sm:px-6 sm:py-0">
+      <div className="sticky top-0 z-20 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 shadow-[0_4px_18px_-14px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:min-h-14 sm:px-6 sm:py-0">
         <h2 className="truncate text-sm font-bold text-foreground sm:text-base xl:hidden">Campus feed</h2>
         <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:justify-end sm:gap-1.5">
           <div className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
           <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
           {user && <Link href="/community/saved" aria-label="Saved campus posts" className="inline-flex min-h-10 min-w-10 touch-manipulation items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
           </div>
-          <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-10 touch-manipulation rounded-full bg-[#079b68] px-4 text-sm hover:bg-[#07855b]">
-            <Plus className="mr-1 h-4 w-4" /><span className="hidden sm:inline">Create post</span><span className="sm:hidden">Post</span>
+          <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="group min-h-10 touch-manipulation gap-2 rounded-full border border-emerald-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900 sm:px-4">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 transition group-hover:bg-emerald-200"><Plus className="h-4 w-4" /></span><span className="hidden sm:inline">Create post</span><span className="sm:hidden">Post</span>
           </Button>
         </div>
       </div>
@@ -472,7 +472,8 @@ export function CampusCommunityFeed() {
           <div ref={viewportRef} onScroll={handleScroll} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel} className="h-full min-h-0 overflow-y-auto overscroll-contain px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
             {(pullDistance > 0 || refreshing) && <div className="flex items-center justify-center overflow-hidden text-muted-foreground" style={{ height: refreshing ? 44 : pullDistance }} aria-live="polite"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /><span className="sr-only">{refreshing ? 'Refreshing campus feed' : 'Pull down to refresh campus feed'}</span></div>}
             <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
-              <div className="border-y bg-card p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
+              <div className="relative overflow-hidden border-y border-slate-200/80 bg-gradient-to-br from-white via-white to-emerald-50/70 p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
+                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald-300 via-teal-500 to-emerald-200" aria-hidden="true" />
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border border-emerald-100">
                     {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
@@ -480,8 +481,9 @@ export function CampusCommunityFeed() {
                   </Avatar>
                   <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-muted px-4 text-left text-sm text-muted-foreground transition hover:bg-muted/80">Share a campus moment…</button>
                 </div>
-                <div className="mt-3 flex items-center border-t pt-2">
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-11 flex-1 touch-manipulation items-center justify-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition hover:bg-primary/5 hover:text-primary"><ImagePlus className="h-5 w-5 text-primary" />Photo or video</button>
+                <div className="mt-3 flex items-center gap-2 border-t border-slate-200/70 pt-2">
+                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-900"><ImagePlus className="h-5 w-5 text-emerald-700" />Photo or video</button>
+                  <span className="hidden text-xs text-slate-400 sm:inline">Share a little campus life</span>
                 </div>
               </div>
               {loading && posts.length === 0 ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
@@ -567,6 +569,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [privateVideoAttempted, setPrivateVideoAttempted] = useState(false);
   const [preparedLegacyVideoUrl, setPreparedLegacyVideoUrl] = useState<string | null>(null);
   const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
+  const legacyPrepareAttemptedRef = useRef(false);
 
   useEffect(() => {
     if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
@@ -615,7 +618,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   }, []);
 
   useEffect(() => () => {
-    if (preparedLegacyVideoUrl) URL.revokeObjectURL(preparedLegacyVideoUrl);
+    if (preparedLegacyVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(preparedLegacyVideoUrl);
   }, [preparedLegacyVideoUrl]);
 
   useEffect(() => {
@@ -626,31 +629,13 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     void video.play().catch(() => undefined);
   }, [preparedLegacyVideoUrl, post.media_type]);
 
-  const prepareLegacyVideoForPlayback = async () => {
-    if (preparingLegacyVideo) return;
+  const prepareLegacyVideoForPlayback = () => {
+    if (preparingLegacyVideo || legacyPrepareAttemptedRef.current) return;
+    legacyPrepareAttemptedRef.current = true;
     setPreparingLegacyVideo(true);
     setFileError(false);
-    try {
-      const response = await fetch('/api/community/video/prepare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({ postId: post.id }),
-      });
-      if (!response.ok) {
-        const result = await response.json().catch(() => null) as { error?: string } | null;
-        throw new Error(result?.error || 'UniEco could not prepare this video for playback.');
-      }
-      const video = await response.blob();
-      if (!video.size || video.type !== 'video/mp4') throw new Error('The prepared video was incomplete.');
-      const nextUrl = URL.createObjectURL(video);
-      setPreparedLegacyVideoUrl(nextUrl);
-    } catch (error) {
-      setFileError(true);
-      toast.error(error instanceof Error ? error.message : 'This video could not be prepared. Please try again.');
-    } finally {
-      setPreparingLegacyVideo(false);
-    }
+    setVideoState('loading');
+    setPreparedLegacyVideoUrl(`/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`);
   };
 
   const downloadAttachment = async () => {
@@ -694,8 +679,14 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const retryVideo = () => {
     const video = videoRef.current;
     if (!video) return;
+    legacyPrepareAttemptedRef.current = false;
     setVideoState('loading');
     setVideoFailure(null);
+    if (preparedLegacyVideoUrl) {
+      setPreparedLegacyVideoUrl(null);
+      void prepareLegacyVideoForPlayback();
+      return;
+    }
     video.load();
     if (active && !reducedData) void video.play().catch(() => {
       if (!video.error) setVideoState('ready');
@@ -726,23 +717,23 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
       {post.media_type === 'text' ? (
         <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
       ) : post.media_type === 'file' ? (
-        <div className="border-t bg-slate-50 p-4 sm:p-5">
+        <div className="border-t border-slate-200/70 bg-black">
           {fileInfo && canPlayPrivateVideoInline(fileInfo) ? (
-            <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-              <div className="relative flex min-h-52 items-center justify-center bg-black sm:min-h-64">
-                {preparedLegacyVideoUrl ? <video src={preparedLegacyVideoUrl} controls playsInline autoPlay preload="metadata" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => setFileError(true)} /> : privateVideoUrl ? <video src={privateVideoUrl} controls playsInline preload="none" aria-label={`Video shared by ${post.author_name}`} className="max-h-[min(68dvh,44rem)] w-full object-contain" onError={() => { setPrivateVideoUrl(null); setFileError(true); }} /> : (
+            <div className="relative flex min-h-56 w-full items-center justify-center bg-black sm:min-h-72">
+                {preparedLegacyVideoUrl || privateVideoUrl ? <video ref={videoRef} src={preparedLegacyVideoUrl || privateVideoUrl || undefined} controls playsInline autoPlay muted loop preload={active ? 'auto' : 'none'} aria-label={`Video shared by ${post.author_name}`} className="block max-h-[min(78dvh,52rem)] w-full object-contain" onLoadedData={() => setPreparingLegacyVideo(false)} onPlaying={() => setPreparingLegacyVideo(false)} onError={(event) => {
+                  if (preparedLegacyVideoUrl) { setPreparingLegacyVideo(false); setPreparedLegacyVideoUrl(null); setFileError(true); return; }
+                  setPrivateVideoUrl(null);
+                  const code = event.currentTarget.error?.code;
+                  if (code === 3 || code === 4 || !code) void prepareLegacyVideoForPlayback();
+                  else setFileError(true);
+                }} /> : (
                   <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
                     {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
-                    <p className="text-sm font-medium">{privateVideoLoading ? 'Opening your video…' : fileError ? 'We can prepare this older video for your device.' : 'Your video is ready to play.'}</p>
-                    {fileError && <Button type="button" variant="outline" onClick={() => void prepareLegacyVideoForPlayback()} disabled={preparingLegacyVideo} className="min-h-11 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">{preparingLegacyVideo ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing video…</> : <><Play className="mr-2 h-4 w-4" />Prepare &amp; play video</>}</Button>}
-                    {fileError && <Button type="button" variant="outline" onClick={() => { setFileError(false); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading} className="min-h-11 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
+                    <p className="text-sm font-medium">{preparingLegacyVideo ? 'Making this video ready…' : privateVideoLoading ? 'Loading campus video…' : fileError ? 'This video could not load. Tap to retry.' : 'Loading campus video…'}</p>
+                    {fileError && <Button type="button" variant="outline" onClick={() => { legacyPrepareAttemptedRef.current = false; setFileError(false); setPreparedLegacyVideoUrl(null); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading || preparingLegacyVideo} className="min-h-10 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
                   </div>
                 )}
-              </div>
-              <div className="flex flex-wrap items-center gap-3 p-3 sm:p-4">
-                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-900">{fileInfo.name}</p><p className="text-xs text-slate-500">{readableSize(fileInfo.size)} · private video · tap play to watch</p></div>
-                <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing video download' : 'Download video'} title="Download video" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
-              </div>
+                {preparingLegacyVideo && (preparedLegacyVideoUrl || privateVideoUrl) && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-sm font-medium text-white" role="status"><Loader2 className="h-7 w-7 animate-spin text-emerald-300" />Making this video ready…</div>}
             </div>
           ) : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
@@ -761,6 +752,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             muted
             loop
             controls
+            autoPlay={active && !reducedData}
             preload={active && !reducedData ? 'metadata' : 'none'}
             onLoadedMetadata={() => setVideoState('loading')}
             onLoadedData={() => setVideoState('ready')}
@@ -769,6 +761,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             onError={(event) => {
               const code = event.currentTarget.error?.code;
               setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
+              if ((code === 3 || code === 4) && !preparedLegacyVideoUrl) void prepareLegacyVideoForPlayback();
               setVideoState('error');
             }}
             aria-label={`Video shared by ${post.author_name}`}
@@ -776,19 +769,19 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
           />
           {active && reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto w-fit rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status">Data saver is on · tap play to load this video</div>}
           {active && !reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
-          {videoState === 'error' && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">
-            <CircleAlert className="h-8 w-8 text-amber-300" />
+          {(videoState === 'error' || preparingLegacyVideo) && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">
+            {preparingLegacyVideo ? <Loader2 className="h-8 w-8 animate-spin text-emerald-300" /> : <CircleAlert className="h-8 w-8 text-amber-300" />}
+            {preparingLegacyVideo ? <p className="mt-3 font-semibold">Making this video ready…</p> : <>
             <p className="mt-3 font-semibold">We couldn’t play this video</p>
             <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">{videoFailure === 'network'
               ? 'The video stream was interrupted by the connection. Try again when the signal is steadier; the rest of the feed remains available.'
               : videoFailure === 'decode' || videoFailure === 'unsupported'
-                ? 'This older video uses a format this device cannot play directly. UniEco can prepare a phone-friendly copy for playback.'
-                : 'The video could not be opened. Try again or prepare a compatible copy for this device.'}</p>
+                ? 'We’re adapting this older video for your device.'
+                : 'The video could not be opened. Check your connection and try again.'}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
-              {videoFailure !== 'network' && <Button type="button" variant="secondary" onClick={() => void prepareLegacyVideoForPlayback()} disabled={preparingLegacyVideo} className="min-h-10 rounded-full">{preparingLegacyVideo ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Preparing…</> : 'Prepare &amp; play'}</Button>}
-              {post.media_url && <Button asChild type="button" variant="outline" className="min-h-10 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"><a href={post.media_url} target="_blank" rel="noreferrer">Open original</a></Button>}
             </div>
+            </>}
           </div>}
         </div>
       ) : imageFailed ? (

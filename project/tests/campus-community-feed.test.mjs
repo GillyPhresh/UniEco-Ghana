@@ -47,7 +47,7 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.doesNotMatch(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[^;]+TO anon/);
 });
 
-test('private video attachments render inline in the feed from short-lived signed links', async () => {
+test('private video attachments autoplay inline without exposing file details', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   const admin = await read('app/admin/community-posts/page.tsx');
   const migration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
@@ -57,9 +57,10 @@ test('private video attachments render inline in the feed from short-lived signe
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /Your video is ready to play/);
-  assert.match(feed, /tap play to watch/);
-  assert.match(feed, /preload="metadata"/);
+  assert.match(feed, /autoPlay muted loop preload=\{active \? 'auto' : 'none'\}/);
+  assert.match(feed, /Making this video ready…/);
+  assert.doesNotMatch(feed, /fileInfo\.name/);
+  assert.doesNotMatch(feed, /readableSize\(fileInfo\.size\).*private video/);
   assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
   assert.match(feed, /VIDEO_FILE_EXTENSION = \/\\\.\(mp4\|m4v\|mov\|qt\|webm\|ogv\|ogg\|avi\|mkv\|3gp\|3g2\|3gpp\|3gpp2/);
   const privatePlayback = feed.slice(feed.indexOf('if (!active || post.media_type !== \'file\''), feed.indexOf('useEffect(() => {\n    const connection'));
@@ -89,7 +90,7 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(dockerfile, /libx264/);
 });
 
-test('campus feed uses readable social cards and exposes video recovery controls', async () => {
+test('campus feed has a quiet branded composer and automatic legacy video recovery', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(feed, /Share a campus moment/);
   assert.match(feed, /overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border/);
@@ -98,8 +99,11 @@ test('campus feed uses readable social cards and exposes video recovery controls
   assert.match(feed, /The video stream was interrupted by the connection/);
   assert.match(feed, /We couldn’t play this video/);
   assert.match(feed, /Try again/);
-  assert.match(feed, /Open original/);
-  assert.match(feed, /Prepare &amp; play video/);
+  assert.match(feed, /Making this video ready…/);
+  assert.match(feed, /legacyPrepareAttemptedRef/);
+  assert.match(feed, /autoPlay=\{active && !reducedData\}/);
+  assert.match(feed, /border border-emerald-200 bg-white/);
+  assert.doesNotMatch(feed, /Prepare &amp; play/);
   assert.match(feed, /prepareLegacyVideoForPlayback/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
 });
@@ -118,6 +122,11 @@ test('video preparation is authenticated, bounded, private-file authorized, and 
   assert.match(route, /'libx264'/);
   assert.match(route, /'yuv420p'/);
   assert.match(route, /'aac'/);
+  assert.match(route, /export async function GET\(request: NextRequest\)/);
+  assert.match(route, /convertToStreamingMp4/);
+  assert.match(route, /frag_keyframe\+empty_moov\+default_base_moof/);
+  assert.match(route, /Content-Disposition.*inline/);
+  assert.match(route, /loadAuthorizedPostVideo/);
   assert.match(route, /'video\/mp4'/);
   assert.match(route, /-map_metadata', '-1'/);
   assert.match(route, /rm\(directory, \{ recursive: true, force: true \}\)/);

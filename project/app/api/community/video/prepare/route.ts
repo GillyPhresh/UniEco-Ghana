@@ -111,6 +111,196 @@ async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
   }
 }
 
+async function convertToStreamingMp4(input: Buffer, inputExtension: string, releaseSlot: () => void) {
+  const directory = await mkdtemp(path.join(tmpdir(), 'unieco-video-stream-'));
+  const sourcePath = path.join(directory, `upload.${inputExtension || 'video'}`);
+  try {
+    await writeFile(sourcePath, input, { flag: 'wx', mode: 0o600 });
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
+  }
+
+  let child: ReturnType<typeof spawn>;
+  try {
+    child = spawn('ffmpeg', [
+      '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
+      '-protocol_whitelist', 'file,pipe,data',
+      '-max_alloc', '100000000', '-filter_threads', '1',
+      '-i', sourcePath,
+      '-map', '0:v:0', '-map', '0:a:0?',
+      '-map_metadata', '-1', '-map_chapters', '-1',
+      '-vf', "scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+      '-c:v', 'libx264', '-threads', '2', '-preset', 'ultrafast', '-crf', '26', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p', '-g', '48', '-keyint_min', '48', '-sc_threshold', '0',
+      '-c:a', 'aac', '-b:a', '96k', '-ac', '2',
+      '-movflags', '+frag_keyframe+empty_moov+default_base_moof', '-fs', String(MAX_OUTPUT_BYTES), '-f', 'mp4', 'pipe:1',
+    ], { stdio: ['ignore', 'pipe', 'pipe'] });
+  } catch (error) {
+    await rm(directory, { recursive: true, force: true });
+    throw error;
+  }
+
+  let firstChunkSettled = false;
+  let resolveFirst!: (chunk: Uint8Array) => void;
+  let rejectFirst!: (error: Error) => void;
+  const firstChunk = new Promise<Uint8Array>((resolve, reject) => { resolveFirst = resolve; rejectFirst = reject; });
+  const stdout = child.stdout;
+  const stderrStream = child.stderr;
+  if (!stdout || !stderrStream) {
+    child.kill('SIGKILL');
+    await rm(directory, { recursive: true, force: true });
+    throw new Error('Video streaming is unavailable.');
+  }
+  const queuedChunks: Uint8Array[] = [];
+  let wakeReader: (() => void) | null = null;
+  let closed = false;
+  let streamError: Error | null = null;
+  let totalBytes = 0;
+  let stderr = '';
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    clearTimeout(timeout);
+    void rm(directory, { recursive: true, force: true });
+  };
+  const timeout = setTimeout(() => {
+    streamError = new Error('Video conversion took too long.');
+    child.kill('SIGKILL');
+    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError); }
+    wakeReader?.();
+  }, MAX_TRANSCODE_MS);
+
+  stdout.on('data', (chunk: Buffer) => {
+    totalBytes += chunk.byteLength;
+    if (totalBytes > MAX_OUTPUT_BYTES) {
+      streamError = new Error('The prepared video is too large.');
+      child.kill('SIGKILL');
+      if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError); }
+      wakeReader?.();
+      return;
+    }
+    const bytes = new Uint8Array(chunk);
+    if (!firstChunkSettled) { firstChunkSettled = true; resolveFirst(bytes); }
+    else queuedChunks.push(bytes);
+    wakeReader?.();
+  });
+  stderrStream.on('data', (chunk: Buffer) => {
+    if (stderr.length < 8_000) stderr += chunk.toString('utf8').slice(0, 8_000 - stderr.length);
+  });
+  child.once('error', (error) => {
+    streamError = error;
+    closed = true;
+    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(error); }
+    wakeReader?.();
+    cleanup();
+    releaseSlot();
+  });
+  child.once('close', (code) => {
+    closed = true;
+    if (code !== 0 && !streamError) streamError = new Error(stderr || 'The video could not be converted.');
+    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError || new Error('The video could not be converted.')); }
+    wakeReader?.();
+    cleanup();
+    releaseSlot();
+  });
+
+  let first: Uint8Array;
+  try {
+    first = await firstChunk;
+  } catch (error) {
+    child.kill('SIGKILL');
+    cleanup();
+    throw error;
+  }
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) { controller.enqueue(first); },
+    async pull(controller) {
+      while (!queuedChunks.length && !closed && !streamError) {
+        await new Promise<void>((resolve) => { wakeReader = resolve; });
+        wakeReader = null;
+      }
+      if (queuedChunks.length) { controller.enqueue(queuedChunks.shift()!); return; }
+      if (streamError) controller.error(streamError);
+      else if (closed) controller.close();
+    },
+    cancel() { child.kill('SIGKILL'); cleanup(); releaseSlot(); },
+  });
+  if (closed) releaseSlot();
+  return stream;
+}
+
+async function loadAuthorizedPostVideo(supabase: Awaited<ReturnType<typeof createClient>>, postId: string) {
+  const { data: attachmentData } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId });
+  const attachment = (attachmentData || [])[0] as { file_path?: string; file_name?: string; file_size?: number } | undefined;
+  let bucket = 'campus-community-files';
+  let filePath = attachment?.file_path;
+  let extension = extensionOf(attachment?.file_name || '');
+  if (!attachment?.file_path || !attachment.file_name || !ALLOWED_VIDEO_EXTENSIONS.has(extension)
+    || !Number.isFinite(attachment.file_size) || Number(attachment.file_size) < 1 || Number(attachment.file_size) > MAX_VIDEO_BYTES) {
+    const { data: postData } = await supabase.rpc('get_campus_community_post', { p_post_id: postId });
+    const post = (postData || [])[0] as { author_id?: string; media_path?: string; media_type?: string } | undefined;
+    const publicPath = post?.media_path || '';
+    const validPath = post?.author_id && new RegExp(`^${post.author_id}/[0-9a-f-]{36}\\.([a-z0-9]+)$`, 'i').exec(publicPath);
+    extension = validPath?.[1]?.toLowerCase() || '';
+    if (post?.media_type !== 'video' || !validPath || !ALLOWED_VIDEO_EXTENSIONS.has(extension)) return null;
+    bucket = 'campus-community';
+    filePath = publicPath;
+  }
+  const { data: signed, error: signError } = await supabase.storage.from(bucket).createSignedUrl(filePath!, 90);
+  if (signError || !signed?.signedUrl) return null;
+  const download = await fetch(signed.signedUrl, { cache: 'no-store', signal: AbortSignal.timeout(60_000) });
+  if (!download.ok) return null;
+  const declaredSize = Number(download.headers.get('content-length') || 0);
+  if (declaredSize > MAX_VIDEO_BYTES) throw new Error('The video is larger than the playback limit.');
+  const input = Buffer.from(await download.arrayBuffer());
+  if (!input.byteLength || input.byteLength > MAX_VIDEO_BYTES) throw new Error('The video is larger than the playback limit.');
+  return { input, extension };
+}
+
+export async function GET(request: NextRequest) {
+  const fetchSite = request.headers.get('sec-fetch-site');
+  if (fetchSite && fetchSite !== 'same-origin' && fetchSite !== 'none') return jsonError('This video request is not allowed.', 403);
+  const postId = request.nextUrl.searchParams.get('postId') || '';
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(postId)) {
+    return jsonError('The video post could not be identified.', 400);
+  }
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return jsonError('Sign in to watch this campus video.', 401);
+  if (!takeRateLimit(user.id)) return jsonError('Video playback is busy. Please try again shortly.', 429);
+  if (activeTranscodes >= MAX_CONCURRENT_TRANSCODES) return jsonError('Video playback is busy. Please try again shortly.', 429);
+  activeTranscodes += 1;
+  let slotReleased = false;
+  const releaseSlot = () => {
+    if (slotReleased) return;
+    slotReleased = true;
+    activeTranscodes = Math.max(0, activeTranscodes - 1);
+  };
+  try {
+    const source = await loadAuthorizedPostVideo(supabase, postId);
+    if (!source) { releaseSlot(); return jsonError('This video is not available for playback.', 404); }
+    const stream = await convertToStreamingMp4(source.input, source.extension, releaseSlot);
+    return new Response(stream, {
+      status: 200,
+      headers: {
+        'Content-Type': 'video/mp4',
+        'Content-Disposition': 'inline; filename="unieco-video.mp4"',
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Accel-Buffering': 'no',
+      },
+    });
+  } catch (error) {
+    releaseSlot();
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('too large')) return jsonError('This video is larger than the playback limit.', 413);
+    if (message.includes('too long')) return jsonError('This video took too long to prepare. Please try again.', 422);
+    return jsonError('This video could not be opened. Please try again.', 422);
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!sameOrigin(request)) return jsonError('This video request is not allowed.', 403);
   const requestLength = Number(request.headers.get('content-length') || 0);
