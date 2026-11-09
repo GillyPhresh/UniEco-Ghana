@@ -22,17 +22,22 @@ test('social previews reference an existing image asset', () => {
   assert.doesNotMatch(metadata, /og-image\.png/);
 });
 
-test('search engines and installed apps use the current black-cap UniEco icon', async () => {
+test('search engines and installed apps use the official UniEco logo favicon', async () => {
   const metadata = read('app/layout.tsx');
   const manifest = read('app/manifest.ts');
-  const icon = read('public/unieco-search-icon.svg');
-  assert.match(metadata, /unieco-search-icon\.png/);
-  assert.match(metadata, /unieco-search-icon\.svg/);
-  assert.match(manifest, /unieco-search-icon\.png/);
-  assert.match(manifest, /unieco-search-icon\.svg/);
-  assert.match(icon, /<path d="M15 31[^>]+fill="#101820"\/>/);
-  assert.ok(fs.statSync(path.join(root, 'public/unieco-search-icon.svg')).size < 2_000);
-  assert.ok(fs.statSync(path.join(root, 'public/unieco-search-icon.png')).size > 1_000);
+  assert.match(metadata, /unieco-official-favicon\.png/);
+  assert.match(manifest, /unieco-official-favicon\.png/);
+  assert.doesNotMatch(metadata, /unieco-search-icon\.svg/);
+  assert.doesNotMatch(manifest, /unieco-search-icon\.svg/);
+  assert.match(metadata, /apple: '\/unieco-official-favicon\.png'/);
+  assert.match(manifest, /sizes: '512x512', type: 'image\/png'/);
+  const icon = fs.readFileSync(path.join(root, 'public/unieco-official-favicon.png'));
+  const official = fs.readFileSync(path.join(root, 'public/unieco-main-logo.png'));
+  assert.equal(icon.readUInt32BE(16), 512);
+  assert.equal(icon.readUInt32BE(20), 512);
+  assert.ok(icon.length > 1_000);
+  assert.equal(official.readUInt32BE(16), 1254);
+  assert.ok(fs.existsSync(path.join(root, 'public/unieco-main-logo.png')));
 });
 
 test('the sitemap advertises useful public pages and omits account/search URLs', () => {
