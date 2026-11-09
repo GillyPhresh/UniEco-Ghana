@@ -119,6 +119,20 @@ test('student retries reconcile timed-out initiated checkouts before safely reus
   assert.match(initiatedRecovery, /will not create a second charge/i);
 });
 
+test('legacy unpaid student registrations resume without bypassing unresolved-payment safeguards', async () => {
+  const migration = await read('supabase/migrations/20261109130000_0190_resume_legacy_unpaid_student_registration.sql');
+  const route = await read('app/api/payments/paystack/initialize/route.ts');
+  assert.match(migration, /SET search_path=pg_catalog, extensions, public/);
+  assert.match(migration, /Legacy active accounts without a registration row may resume only if no\s+-- successful or unresolved payment exists/is);
+  assert.match(migration, /status IN \('success','reconciliation_required'\)/);
+  assert.match(migration, /status IN \('initiated','pending'\)/);
+  assert.match(migration, /legacy_payment\.amount IS DISTINCT FROM fee/);
+  assert.match(migration, /INSERT INTO public\.student_registration_payment_attempts/);
+  assert.match(migration, /status NOT IN \('failed','cancelled'\)/);
+  assert.match(route, /Only explicit, payment-specific RPC outcomes require review/);
+  assert.doesNotMatch(route, /intentError\.code === '55000'/);
+});
+
 test('legacy reconciliation binds only missing environment metadata before retrying', async () => {
   const migration = await read('supabase/migrations/20261030130000_0162_legacy_paystack_reconciliation_retry.sql');
   assert.match(migration, /provider_environment IS NULL/);

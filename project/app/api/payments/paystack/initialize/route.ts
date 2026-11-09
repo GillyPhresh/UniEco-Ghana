@@ -218,8 +218,10 @@ export async function POST(request: NextRequest) {
     } else return NextResponse.json({ error: 'Unsupported payment purpose.' }, { status: 400 });
     if (intentError) {
       console.error('Payment intent RPC rejected', { code: intentError.code || 'unknown', message: intentError.message });
-      const supportReview = intentError.code === '55000'
-        || (intentError.code === '22023' && /support review|already locked|already complete/i.test(intentError.message));
+      // Do not turn generic database state errors into a false payment-review
+      // warning. Only explicit, payment-specific RPC outcomes require review.
+      const supportReview = intentError.code === '22023'
+        && /support review|already locked|already complete/i.test(intentError.message);
 
       // A previous Paystack success can be quarantined after legacy test/live
       // metadata drift. Verify that exact user's quarantined registration
