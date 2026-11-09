@@ -56,10 +56,11 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/unieco-search-icon.png', type: 'image/png', sizes: '512x512' },
       { url: '/unieco-search-icon.svg', type: 'image/svg+xml', sizes: 'any' },
       { url: '/unieco-main-logo.png', type: 'image/png', sizes: '1280x1280' },
     ],
-    shortcut: '/unieco-search-icon.svg',
+    shortcut: '/unieco-search-icon.png',
     apple: '/unieco-main-logo.png',
   },
   robots: {
