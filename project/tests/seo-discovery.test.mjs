@@ -22,6 +22,17 @@ test('social previews reference an existing image asset', () => {
   assert.doesNotMatch(metadata, /og-image\.png/);
 });
 
+test('search engines and installed apps use the current black-cap UniEco icon', async () => {
+  const metadata = read('app/layout.tsx');
+  const manifest = read('app/manifest.ts');
+  const icon = read('public/unieco-search-icon.svg');
+  assert.match(metadata, /unieco-search-icon\.svg/);
+  assert.match(metadata, /type: 'image\/svg\+xml', sizes: 'any'/);
+  assert.match(manifest, /unieco-search-icon\.svg/);
+  assert.match(icon, /<path d="M15 31[^>]+fill="#101820"\/>/);
+  assert.ok(fs.statSync(path.join(root, 'public/unieco-search-icon.svg')).size < 2_000);
+});
+
 test('the sitemap advertises useful public pages and omits account/search URLs', () => {
   const sitemap = read('app/sitemap.ts');
   for (const pathPart of ['/updates', '/universities', '/for-students', '/for-vendors', '/for-universities']) {

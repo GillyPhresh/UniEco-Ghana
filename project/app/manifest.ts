@@ -17,6 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-GH',
     dir: 'ltr',
     icons: [
+      { src: '/unieco-search-icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
       { src: '/unieco-main-logo.png', sizes: '1280x1280', type: 'image/png', purpose: 'any' },
     ],
     shortcuts: [

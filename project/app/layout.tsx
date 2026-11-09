@@ -55,8 +55,11 @@ export const metadata: Metadata = {
     images: ['/unieco-ghana-dark-logo.png'],
   },
   icons: {
-    icon: [{ url: '/unieco-main-logo.png', type: 'image/png', sizes: '1280x1280' }],
-    shortcut: '/unieco-main-logo.png',
+    icon: [
+      { url: '/unieco-search-icon.svg', type: 'image/svg+xml', sizes: 'any' },
+      { url: '/unieco-main-logo.png', type: 'image/png', sizes: '1280x1280' },
+    ],
+    shortcut: '/unieco-search-icon.svg',
     apple: '/unieco-main-logo.png',
   },
   robots: {
