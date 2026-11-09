@@ -241,7 +241,7 @@ export async function createUniversityAdminAppointmentAttachments(meta: Appointm
     { title: "Registration support", description: "Guide applicants through the official registration steps and help them use the administrator referral link." },
     { title: "Accurate information", description: "Share current, approved information and report incorrect university, business, or platform details." },
     { title: "Community support", description: "Direct payment, account, verification, safety, and technical issues to official UniEco Ghana support." },
-    { title: "Monthly reporting", description: "Review the administrator dashboard and raise concerns about missing or incorrect referral attribution promptly." },
+    { title: "Weekly earnings and reporting", description: "Review the administrator dashboard and weekly payout history; promptly raise concerns about missing or incorrect referral attribution." },
   ];
   const dutyItems = duties.length ? duties : defaultDuties;
   for (const item of dutyItems) {
@@ -260,7 +260,7 @@ export async function createUniversityAdminAppointmentAttachments(meta: Appointm
     "Use personal data only for the assigned work. Do not download, publish, or share applicants’ private documents or contact details.",
     "Do not spam, impersonate UniEco Ghana, make unapproved public statements, or use the administrator token outside its intended campus outreach.",
     "Report suspected fraud, account compromise, harassment, payment discrepancies, or data exposure to the Super Admin promptly.",
-    "Compensation is calculated from verified qualified registrations at the rate formally approved by UniEco Ghana. Monthly estimates are not a guarantee of payment; final amounts are reviewed and recorded by the Super Admin.",
+    "Compensation is GH₵2 for each qualified student or vendor registration. A dual student-vendor account counts once. Weekly earnings follow a seven-day review period and the shared weekly payout rules, including the minimum balance; displayed estimates are not a guarantee of payment.",
     "Administrator access is personal, limited to the assigned university, and may be suspended or withdrawn for misconduct or security reasons.",
   ];
   for (const rule of rules) dutyText(`• ${rule}`, 8.7, 8);

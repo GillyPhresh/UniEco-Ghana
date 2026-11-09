@@ -504,6 +504,7 @@ export const ADMIN_NAV_GROUPS = [
     items: [
       { label: 'Users', href: '/admin/users', icon: 'Users' },
       { label: 'Student Directory', href: '/admin/students', icon: 'GraduationCap' },
+      { label: 'Registration Follow-ups', href: '/admin/registration-alerts', icon: 'UserCheck' },
       { label: 'Businesses', href: '/admin/businesses', icon: 'Store' },
       { label: 'Universities', href: '/admin/universities', icon: 'GraduationCap' },
       { label: 'Events', href: '/admin/events', icon: 'CalendarDays' },

@@ -10,7 +10,8 @@ type Overview = { destination?: { name: string; provider: string; mobile_suffix:
 const networks = [{ id: 'mtn', label: 'MTN Mobile Money' }, { id: 'telecel', label: 'Telecel Cash' }, { id: 'airteltigo', label: 'AirtelTigo Money' }];
 const ghc = (n: number) => `GH₵${Number(n || 0).toFixed(2)}`;
 
-export function ReferralPayoutSettings() {
+export function ReferralPayoutSettings({ program = 'referrals' }: { program?: 'referrals' | 'university_admin' }) {
+  const administrator = program === 'university_admin';
   const [data, setData] = useState<Overview | null>(null);
   const [name, setName] = useState(''); const [mobile, setMobile] = useState(''); const [provider, setProvider] = useState('mtn');
   const [busy, setBusy] = useState(false); const [loading, setLoading] = useState(true); const [message, setMessage] = useState('');
@@ -32,9 +33,9 @@ export function ReferralPayoutSettings() {
   };
   const minimum = Number(data?.minimum_payout || 10);
   return <Card>
-    <CardHeader><CardTitle className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-primary"/>Reward payout setup</CardTitle></CardHeader>
+    <CardHeader><CardTitle className="flex items-center gap-2"><WalletCards className="h-5 w-5 text-primary"/>{administrator ? 'Weekly compensation payout setup' : 'Reward payout setup'}</CardTitle></CardHeader>
     <CardContent className="space-y-4">
-      <p className="text-sm text-muted-foreground">Add the Ghana Mobile Money account where eligible referral rewards may be paid. Weekly processing starts only when available rewards reach {ghc(minimum)} and production payouts have been enabled. A saved number does not guarantee a payout.</p>
+      <p className="text-sm text-muted-foreground">{administrator ? `Add the Ghana Mobile Money account for your university-admin earnings. Each qualified student or vendor registration earns GH₵2. Earnings enter the weekly payout process after the seven-day review period and are paid once the available balance reaches ${ghc(minimum)} and production payouts are enabled.` : `Add the Ghana Mobile Money account where eligible referral rewards may be paid. Weekly processing starts only when available rewards reach ${ghc(minimum)} and production payouts have been enabled. A saved number does not guarantee a payout.`}</p>
       {loading && <p className="text-sm text-muted-foreground">Loading payout setup…</p>}
       {data?.destination && <div className="rounded-lg bg-muted p-3 text-sm">Saved destination: <strong>{data.destination.name}</strong> · {networks.find((n) => n.id === data.destination?.provider)?.label || data.destination.provider} · •••• {data.destination.mobile_suffix}</div>}
       <form className="grid gap-3 sm:grid-cols-2" onSubmit={save}>
@@ -44,7 +45,7 @@ export function ReferralPayoutSettings() {
         <Button disabled={busy} className="min-h-11 sm:col-span-2">{busy ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Saving…</> : data?.destination ? 'Update payout destination' : 'Save payout destination'}</Button>
       </form>
       {message && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{message}</p>}
-      <div className="space-y-2"><h3 className="text-sm font-semibold">Recent payouts</h3>{(data?.payouts || []).length ? data!.payouts!.slice(0, 8).map((p) => <div key={p.reference} className="flex flex-wrap justify-between gap-2 border-t py-2 text-sm"><span>{new Date(p.created_at).toLocaleDateString()} · {ghc(p.amount)}</span><span className="capitalize text-muted-foreground">{p.status.replaceAll('_', ' ')}</span></div>) : <p className="text-sm text-muted-foreground">No payouts yet. Rewards below the minimum remain available in your reward balance.</p>}</div>
+      <div className="space-y-2"><h3 className="text-sm font-semibold">Recent {administrator ? 'weekly payouts' : 'payouts'}</h3>{(data?.payouts || []).length ? data!.payouts!.slice(0, 8).map((p) => <div key={p.reference} className="flex flex-wrap justify-between gap-2 border-t py-2 text-sm"><span>{new Date(p.created_at).toLocaleDateString()} · {ghc(p.amount)}</span><span className="capitalize text-muted-foreground">{p.status.replaceAll('_', ' ')}</span></div>) : <p className="text-sm text-muted-foreground">No payouts yet. Balances below the minimum remain available for a later weekly payout.</p>}</div>
     </CardContent>
   </Card>;
 }

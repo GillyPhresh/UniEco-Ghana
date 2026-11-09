@@ -16,7 +16,7 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return reply({ error: 'Sign in to manage your payout destination.' }, 401);
   const { data: role, error: roleError } = await supabase.rpc('current_app_role');
-  if (roleError || !['student', 'student_vendor', 'external_vendor'].includes(String(role))) return reply({ error: 'Payout settings are for registered students and vendors.' }, 403);
+  if (roleError || !['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(String(role))) return reply({ error: 'This account is not eligible for weekly payouts.' }, 403);
   const { data, error } = await supabase.rpc('get_my_referral_payout_overview');
   if (error) return reply({ error: 'Payout details are not available yet.' }, 503);
   return reply(data || {});
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return reply({ error: 'Sign in to save a payout destination.' }, 401);
   const { data: role, error: roleError } = await supabase.rpc('current_app_role');
-  if (roleError || !['student', 'student_vendor', 'external_vendor'].includes(String(role))) return reply({ error: 'Payout settings are for registered students and vendors.' }, 403);
+  if (roleError || !['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(String(role))) return reply({ error: 'This account is not eligible for weekly payouts.' }, 403);
   let input: unknown;
   try {
     const raw = await request.text();
