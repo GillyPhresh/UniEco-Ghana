@@ -40,7 +40,7 @@ export async function GET() {
   return privateJson({
     mode: 'provider-free',
     providerFree: true,
-    capabilities: ['trusted_source_scan', 'admin_chat', 'draft_broadcast', 'system_snapshot'],
+    capabilities: ['trusted_source_scan', 'admin_chat', 'draft_broadcast', 'queue_public_update_review', 'system_snapshot'],
     sources,
     schoolCoverage: {
       total: count ?? directory.length,
@@ -139,23 +139,30 @@ export async function POST(request: Request) {
       update: { title: sourceUpdate.title.slice(0, 220), summary: sourceUpdate.summary.slice(0, 500), url: sourceUpdate.url, sourceLabel: sourceUpdate.sourceLabel.slice(0, 160) },
       audience,
     });
-    const aiGenerated = false;
-    const { data: draftId, error } = await auth.supabase.rpc('create_admin_broadcast_draft', {
-      p_title: draft.title,
-      p_body: draft.body,
-      p_broadcast_type: 'update',
+    const { data: prepared, error } = await auth.supabase.rpc('prepare_admin_ai_update', {
+      p_title: sourceUpdate.title.slice(0, 220),
+      p_summary: sourceUpdate.summary.slice(0, 500),
+      p_source_url: sourceUpdate.url,
+      p_source_label: sourceUpdate.sourceLabel.slice(0, 160),
+      p_broadcast_title: draft.title,
+      p_broadcast_body: draft.body,
       p_target_audience: audience,
-      p_target_filters: {
-        ai_generated: aiGenerated,
-        draft_mode: aiGenerated ? 'ai_assisted' : 'source_fallback',
-        source_url: sourceUpdate.url,
-        source_label: sourceUpdate.sourceLabel,
-      },
-      p_channels: ['in_app'],
-      p_submit_for_approval: true,
     });
-    if (error) return privateJson({ error: 'The AI message was prepared but could not be submitted to Broadcasts for review.' }, 503);
-    return privateJson({ draftId, title: draft.title, mode: draft.mode, status: 'pending_approval' });
+    if (error) {
+      const message = error.message.includes('not enabled for the public Campus Updates feed')
+        ? 'This site is trusted for scanning but is not yet enabled as a public Campus Updates source.'
+        : 'The story could not be queued for review. No public post or broadcast was sent.';
+      return privateJson({ error: message }, 503);
+    }
+    const result = prepared && typeof prepared === 'object' ? prepared as Record<string, unknown> : {};
+    return privateJson({
+      feedItemId: result.feedItemId,
+      feedStatus: result.feedStatus,
+      broadcastId: result.broadcastId,
+      broadcastStatus: result.broadcastStatus,
+      title: draft.title,
+      mode: draft.mode,
+    });
   }
 
   return privateJson({ error: 'Unsupported AI action.' }, 400);
