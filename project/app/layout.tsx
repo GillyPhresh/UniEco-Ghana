@@ -41,9 +41,9 @@ export const metadata: Metadata = {
     description: siteConfig.description,
     images: [
       {
-        url: '/unieco-ghana-dark-logo.png',
-        width: 1280,
-        height: 1280,
+        url: '/unieco-official-logo.png',
+        width: 1254,
+        height: 1081,
         alt: siteConfig.name,
       },
     ],
@@ -52,12 +52,12 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    images: ['/unieco-ghana-dark-logo.png'],
+    images: ['/unieco-official-logo.png'],
   },
   icons: {
-    icon: [{ url: '/unieco-official-favicon.png', type: 'image/png', sizes: '512x512' }],
-    shortcut: '/unieco-official-favicon.png',
-    apple: '/unieco-official-favicon.png',
+    icon: [{ url: '/unieco-official-favicon-v2.png', type: 'image/png', sizes: '512x512' }],
+    shortcut: '/unieco-official-favicon-v2.png',
+    apple: '/unieco-official-favicon-v2.png',
   },
   robots: {
     index: true,
@@ -100,7 +100,7 @@ const jsonLd = {
       url: siteConfig.url,
       logo: {
         '@type': 'ImageObject',
-        url: `${siteConfig.url}/unieco-main-logo.png`,
+        url: `${siteConfig.url}/unieco-official-logo.png`,
       },
       slogan: siteConfig.tagline,
       areaServed: {
@@ -134,7 +134,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.variable} mobile-viewport-safe font-sans pb-[calc(3.75rem+env(safe-area-inset-bottom))] lg:pb-0`}
+        className={`${inter.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
         <AppProviders>

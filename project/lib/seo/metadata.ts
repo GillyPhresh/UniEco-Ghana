@@ -11,7 +11,7 @@ type PublicPageMetadata = {
 
 export function createPublicPageMetadata({ title, description, path, image, imageAlt }: PublicPageMetadata): Metadata {
   const canonical = new URL(path, siteConfig.url).toString();
-  const previewImage = image || '/unieco-ghana-dark-logo.png';
+  const previewImage = image || '/unieco-official-logo.png';
   const previewAlt = imageAlt || 'UniEco Ghana — campus marketplace and community';
 
   return {

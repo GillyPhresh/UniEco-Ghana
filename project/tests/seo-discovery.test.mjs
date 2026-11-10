@@ -17,26 +17,32 @@ test('root metadata does not apply the homepage canonical URL to every route', (
 
 test('social previews reference an existing image asset', () => {
   const metadata = read('app/layout.tsx');
-  assert.match(metadata, /unieco-ghana-dark-logo\.png/);
-  assert.ok(fs.existsSync(path.join(root, 'public/unieco-ghana-dark-logo.png')));
+  const publicMetadata = read('lib/seo/metadata.ts');
+  assert.match(metadata, /unieco-official-logo\.png/);
+  assert.ok(fs.existsSync(path.join(root, 'public/unieco-official-logo.png')));
+  assert.match(publicMetadata, /image \|\| '\/unieco-official-logo\.png'/);
   assert.doesNotMatch(metadata, /og-image\.png/);
 });
 
 test('search engines and installed apps use the official UniEco logo favicon', async () => {
   const metadata = read('app/layout.tsx');
   const manifest = read('app/manifest.ts');
-  assert.match(metadata, /unieco-official-favicon\.png/);
-  assert.match(manifest, /unieco-official-favicon\.png/);
+  assert.match(metadata, /unieco-official-favicon-v2\.png/);
+  assert.match(manifest, /unieco-official-favicon-v2\.png/);
   assert.doesNotMatch(metadata, /unieco-search-icon\.svg/);
   assert.doesNotMatch(manifest, /unieco-search-icon\.svg/);
-  assert.match(metadata, /apple: '\/unieco-official-favicon\.png'/);
+  assert.match(metadata, /apple: '\/unieco-official-favicon-v2\.png'/);
   assert.match(manifest, /sizes: '512x512', type: 'image\/png'/);
-  const icon = fs.readFileSync(path.join(root, 'public/unieco-official-favicon.png'));
-  const official = fs.readFileSync(path.join(root, 'public/unieco-main-logo.png'));
+  assert.match(metadata, /url: `\$\{siteConfig\.url\}\/unieco-official-logo\.png`/);
+  const icon = fs.readFileSync(path.join(root, 'public/unieco-official-favicon-v2.png'));
+  const official = fs.readFileSync(path.join(root, 'public/unieco-official-logo.png'));
+  const canonical = fs.readFileSync(path.join(root, 'public/unieco-main-logo.png'));
   assert.equal(icon.readUInt32BE(16), 512);
   assert.equal(icon.readUInt32BE(20), 512);
   assert.ok(icon.length > 1_000);
   assert.equal(official.readUInt32BE(16), 1254);
+  assert.equal(official.readUInt32BE(20), 1081);
+  assert.deepEqual(official, canonical);
   assert.ok(fs.existsSync(path.join(root, 'public/unieco-main-logo.png')));
 });
 

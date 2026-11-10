@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const title = `${university.name} (${university.short_name}) — Campus Guide`;
   const description = `Explore the ${university.name} campus profile, public businesses, services, events, and updates on UniEco Ghana. ${university.city ? `Located in ${university.city}, Ghana.` : ''}`.trim();
   const localBranding = getLocalUniversityBranding(university.slug);
-  const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/unieco-ghana-dark-logo.png';
+  const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/unieco-official-logo.png';
   const ogImageAlt = university.hero_alt_text || university.logo_alt_text || `${university.name} campus`;
 
   return createPublicPageMetadata({
