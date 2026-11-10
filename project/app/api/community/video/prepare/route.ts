@@ -9,7 +9,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
-const MAX_OUTPUT_BYTES = 50 * 1024 * 1024;
+// The public campus-community bucket has a 25 MiB object cap. Reserve 1 MiB
+// of headroom and reject longer output instead of publishing it privately.
+const MAX_OUTPUT_BYTES = 24 * 1024 * 1024;
 const MAX_TRANSCODE_MS = 210_000;
 const MAX_CONCURRENT_TRANSCODES = 1;
 const USER_TRANSCODE_LIMIT = 4;

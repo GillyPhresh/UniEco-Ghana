@@ -42,7 +42,9 @@ const PAGE_SIZE = 8;
 const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
-const MAX_PUBLIC_VIDEO_BYTES = 25 * 1024 * 1024;
+// Stay below the Storage bucket's 25 MiB hard limit so every published video
+// uses the same public, range-capable feed-media path as photos.
+const MAX_PUBLIC_VIDEO_BYTES = 24 * 1024 * 1024;
 const VIDEO_PREPARATION_TIMEOUT_MS = 240_000;
 const RESUMABLE_UPLOAD_CHUNK_BYTES = 6 * 1024 * 1024;
 const PREVIEW_MEDIA = new Map([
@@ -463,18 +465,17 @@ export function CampusCommunityFeed() {
         }
         const baseName = safeFileName(mediaFile.name).replace(/\.[^.]*$/, '') || 'campus-video';
         fileToUpload = new File([mp4], `unieco-${baseName}.mp4`, { type: 'video/mp4' });
-        if (mp4.size <= MAX_PUBLIC_VIDEO_BYTES) {
-          // Published campus posts are public media. Store prepared videos in
-          // the same public feed bucket as photos so playback does not depend
-          // on a second private-attachment lookup or signed-URL request.
-          mediaType = 'video';
-          publicPath = `${user.id}/${crypto.randomUUID()}.mp4`;
-          uploadPath = publicPath;
-          uploadBucket = 'campus-community';
-          publicVideoUpload = true;
-        } else {
-          attachmentName = fileToUpload.name;
+        if (mp4.size > MAX_PUBLIC_VIDEO_BYTES) {
+          throw new Error('VIDEO_PREPARE:This video is too long to publish reliably. Please choose a shorter clip and try again.');
         }
+        // A video post must use the same public, range-capable feed-media path
+        // as photos. Never silently turn a video into a private attachment:
+        // that makes a published post look broken to visitors and other users.
+        mediaType = 'video';
+        publicPath = `${user.id}/${crypto.randomUUID()}.mp4`;
+        uploadPath = publicPath;
+        uploadBucket = 'campus-community';
+        publicVideoUpload = true;
       } else if (mediaFile && !previewable) {
         attachmentName = safeFileName(mediaFile.name);
       }
