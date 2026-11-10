@@ -16,6 +16,9 @@ test('admin shell provides a mobile-first navigation and connectivity contract',
   assert.match(source, /pb-24/);
   assert.match(source, /safe-area-inset-bottom/);
   assert.match(source, /aria-current=\{isActive \? 'page' : undefined\}/);
+  assert.match(source, /aria-label="Refresh management page"/);
+  assert.match(source, /window\.location\.reload\(\)/);
+  assert.match(source, /RefreshCw className="h-4 w-4" \/> Refresh/);
 });
 
 test('high-traffic admin records have a mobile card view and a desktop table view', () => {

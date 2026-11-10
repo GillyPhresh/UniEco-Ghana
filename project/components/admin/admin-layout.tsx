@@ -29,6 +29,7 @@ import {
   Megaphone,
   Package,
   Receipt,
+  RefreshCw,
   Search,
   Shield,
   ShieldAlert,
@@ -110,6 +111,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState(true);
   const { user } = useAuth();
   const [moderatorPermissions, setModeratorPermissions] = useState<Set<string>>(new Set());
+
+  const refreshManagementPage = () => window.location.reload();
 
   useEffect(() => {
     setIsOnline(window.navigator.onLine);
@@ -258,6 +261,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               <span className="block truncate font-display text-sm font-bold text-slate-900">{activeItem?.label || 'Management console'}</span>
               <span className="block truncate text-[11px] capitalize text-muted-foreground">UniEco Ghana · {user?.role?.replaceAll('_', ' ') || 'admin'}</span>
             </div>
+            <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 rounded-xl" onClick={refreshManagementPage} aria-label="Refresh management page" title="Refresh page">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
             <div
               className={cn('h-2.5 w-2.5 shrink-0 rounded-full', isOnline ? 'bg-success' : 'bg-warning')}
               title={isOnline ? 'Device online' : 'Device offline'}
@@ -319,6 +325,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <p className="mt-0.5 truncate text-sm font-semibold text-slate-900">{activeItem?.label || 'Management console'}</p>
           </div>
           <div className="flex shrink-0 items-center gap-4">
+            <Button variant="outline" size="sm" className="min-h-11 gap-2" onClick={refreshManagementPage} aria-label="Refresh management page">
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
             <span className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium', isOnline ? 'border-emerald-100 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800')}>
               <span className={cn('h-1.5 w-1.5 rounded-full', isOnline ? 'bg-emerald-500' : 'bg-amber-500')} />
               {isOnline ? 'Online' : 'Offline'}
