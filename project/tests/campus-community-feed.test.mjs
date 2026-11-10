@@ -111,6 +111,20 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.doesNotMatch(feed, /await loadPage\(false\);/);
 });
 
+test('prepared videos publish through the same public feed-media path as photos', async () => {
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  const submit = feed.slice(feed.indexOf('const submitPost ='), feed.indexOf('const submitReport ='));
+  assert.match(feed, /MAX_PUBLIC_VIDEO_BYTES = 25 \* 1024 \* 1024/);
+  assert.match(feed, /uploadCommunityMediaResumably/);
+  assert.match(feed, /bucketName: bucket/);
+  assert.match(submit, /mp4\.size <= MAX_PUBLIC_VIDEO_BYTES/);
+  assert.match(submit, /mediaType = 'video'/);
+  assert.match(submit, /uploadBucket = 'campus-community'/);
+  assert.match(submit, /p_media_type: publicPath \? mediaType : null/);
+  assert.match(submit, /p_media_path: publicPath/);
+  assert.match(feed, /src=\{preparedLegacyVideoUrl \|\| post\.media_url \|\| undefined\}/);
+});
+
 test('campus feed has a quiet branded composer and automatic legacy video recovery', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   assert.match(feed, /Share a campus moment/);

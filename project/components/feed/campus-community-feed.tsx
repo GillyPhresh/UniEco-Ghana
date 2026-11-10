@@ -42,6 +42,7 @@ const PAGE_SIZE = 8;
 const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
+const MAX_PUBLIC_VIDEO_BYTES = 25 * 1024 * 1024;
 const VIDEO_PREPARATION_TIMEOUT_MS = 240_000;
 const RESUMABLE_UPLOAD_CHUNK_BYTES = 6 * 1024 * 1024;
 const PREVIEW_MEDIA = new Map([
@@ -49,7 +50,7 @@ const PREVIEW_MEDIA = new Map([
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
 // Accept common phone, camera, desktop-editor, and legacy video containers.
-// Every upload remains private; native playback depends on the viewer's browser/codec.
+// Prepared posts are H.264/AAC MP4 before they enter the public feed-media bucket.
 const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|qt|webm|ogv|ogg|avi|mkv|3gp|3g2|3gpp|3gpp2|mpeg|mpg|mpe|mpv|m2v|mts|m2ts|ts|vob|wmv|asf|flv|f4v|dv|mxf|divx|xvid|rm|rmvb|amv)$/i;
 
 function isVideoUploadCandidate(file: File) {
@@ -85,9 +86,10 @@ async function getCommunityFileInfo(postId: string): Promise<CommunityFileInfo> 
   };
 }
 
-async function uploadPrivateAttachmentResumably(
+async function uploadCommunityMediaResumably(
   file: File,
   path: string,
+  bucket: 'campus-community' | 'campus-community-files',
   onProgress: (percentage: number) => void,
 ) {
   const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
@@ -95,7 +97,7 @@ async function uploadPrivateAttachmentResumably(
   if (sessionError || !session?.access_token) throw new Error('Your sign-in expired. Sign in again and retry the post.');
 
   const { data: signedUpload, error: signingError } = await supabase.storage
-    .from('campus-community-files')
+    .from(bucket)
     .createSignedUploadUrl(path, { upsert: false });
   if (signingError || !signedUpload?.token) {
     throw signingError || new Error('UniEco could not securely prepare the video upload.');
@@ -115,7 +117,7 @@ async function uploadPrivateAttachmentResumably(
         'x-upsert': 'false',
       },
       metadata: {
-        bucketName: 'campus-community-files',
+        bucketName: bucket,
         objectName: path,
         contentType: file.type || 'application/octet-stream',
         cacheControl: '0',
@@ -431,8 +433,8 @@ export function CampusCommunityFeed() {
     const safePreviewExtension = mediaFile && !isVideo ? PREVIEW_MEDIA.get(mediaFile.type) : undefined;
     const previewable = Boolean(mediaFile && safePreviewExtension && canDisplayInline(mediaFile));
     if (trimmedCaption.length > 500) { toast.error('Keep the caption under 500 characters.'); return; }
-    const mediaType = previewable ? 'image' : mediaFile ? 'file' : 'text';
-    const publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
+    let mediaType: 'image' | 'video' | 'file' | 'text' = previewable ? 'image' : mediaFile ? 'file' : 'text';
+    let publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
     let attachmentPath: string | null = null;
     let attachmentName: string | null = null;
     setUploading(true);
@@ -441,6 +443,7 @@ export function CampusCommunityFeed() {
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
     let uploadPath: string | null = publicPath;
     let uploadBucket: 'campus-community' | 'campus-community-files' | null = publicPath ? 'campus-community' : null;
+    let publicVideoUpload = false;
     try {
       let fileToUpload = mediaFile;
       if (mediaFile && isVideo) {
@@ -460,21 +463,32 @@ export function CampusCommunityFeed() {
         }
         const baseName = safeFileName(mediaFile.name).replace(/\.[^.]*$/, '') || 'campus-video';
         fileToUpload = new File([mp4], `unieco-${baseName}.mp4`, { type: 'video/mp4' });
-        attachmentName = fileToUpload.name;
+        if (mp4.size <= MAX_PUBLIC_VIDEO_BYTES) {
+          // Published campus posts are public media. Store prepared videos in
+          // the same public feed bucket as photos so playback does not depend
+          // on a second private-attachment lookup or signed-URL request.
+          mediaType = 'video';
+          publicPath = `${user.id}/${crypto.randomUUID()}.mp4`;
+          uploadPath = publicPath;
+          uploadBucket = 'campus-community';
+          publicVideoUpload = true;
+        } else {
+          attachmentName = fileToUpload.name;
+        }
       } else if (mediaFile && !previewable) {
         attachmentName = safeFileName(mediaFile.name);
       }
-      if (fileToUpload && !previewable) {
+      if (fileToUpload && !previewable && !publicVideoUpload) {
         attachmentPath = `${user.id}/${crypto.randomUUID()}`;
         uploadPath = attachmentPath;
         uploadBucket = 'campus-community-files';
       }
       if (fileToUpload && uploadPath && uploadBucket) {
-        if (uploadBucket === 'campus-community-files') {
-          setUploadStage(isVideo ? 'Uploading video securely…' : 'Uploading attachment…');
+        if (uploadBucket === 'campus-community-files' || publicVideoUpload) {
+          setUploadStage(isVideo ? 'Uploading video…' : 'Uploading attachment…');
           setUploadProgress(0);
           try {
-            await uploadPrivateAttachmentResumably(fileToUpload, uploadPath, setUploadProgress);
+            await uploadCommunityMediaResumably(fileToUpload, uploadPath, uploadBucket, setUploadProgress);
           } catch {
             throw new Error('RESUMABLE_UPLOAD:Video upload was interrupted. Check your connection and retry; your post has not been published.');
           }
@@ -494,7 +508,7 @@ export function CampusCommunityFeed() {
       const { error: postError } = await supabase.rpc('create_campus_community_post_with_attachment', {
         p_caption: trimmedCaption,
         p_media_path: publicPath,
-        p_media_type: previewable ? mediaType : null,
+        p_media_type: publicPath ? mediaType : null,
         p_attachment_path: attachmentPath,
         p_attachment_name: attachmentName,
         p_attachment_size: fileToUpload && attachmentPath ? fileToUpload.size : null,
