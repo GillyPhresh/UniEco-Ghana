@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,7 @@ import type { Product } from '@/lib/types';
 import { ShoppingCart, Heart, Image as ImageIcon } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { addToCart } from '@/lib/data/marketplace-client';
+import { isOptimizablePublicImage } from '@/lib/utils/optimized-image';
 import { toast } from 'sonner';
 import { useState } from 'react';
 
@@ -23,6 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const image = product.image_url || (product.images && product.images[0]) || null;
   const displayPrice = product.discount_price ?? product.price;
   const hasDiscount = product.discount_price !== null && product.discount_price < product.price;
+  const canOptimizeImage = image ? isOptimizablePublicImage(image) : false;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,7 +49,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/marketplace/product/${product.id}`} className="block rounded-t-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary" aria-label={`View ${product.name}`}>
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
-            <img src={image} alt={product.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+            <Image src={image} alt={product.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" quality={75} loading="lazy" unoptimized={!canOptimizeImage} className="object-cover transition-transform group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground/40">
               <ImageIcon className="h-8 w-8" />
@@ -108,13 +111,14 @@ import { Clock, Wrench } from 'lucide-react';
 
 export function ServiceCard({ service }: ServiceCardProps) {
   const image = service.image_url || (service.images && service.images[0]) || null;
+  const canOptimizeImage = image ? isOptimizablePublicImage(image) : false;
 
   return (
     <Link href={`/marketplace/service/${service.id}`}>
       <Card className="group h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
         <div className="relative h-40 overflow-hidden bg-muted">
           {image ? (
-            <img src={image} alt={service.name} loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+            <Image src={image} alt={service.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" quality={75} loading="lazy" unoptimized={!canOptimizeImage} className="object-cover transition-transform group-hover:scale-105" />
           ) : (
             <div className="flex h-full items-center justify-center text-muted-foreground/40">
               <Wrench className="h-8 w-8" />

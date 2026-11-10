@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, Phone, MessageCircle, Navigation } from 'lucide-react';
 import { RatingStars } from '@/components/shared/rating-stars';
 import { VerificationBadge } from '@/components/shared/verification-badge';
 import { OpenStatus } from '@/components/shared/open-status';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
+import { isOptimizablePublicImage } from '@/lib/utils/optimized-image';
 import type { VendorWithRelations } from '@/lib/types/extended';
 
 interface BusinessCardProps {
@@ -25,18 +27,22 @@ export function BusinessCard({ vendor }: BusinessCardProps) {
     vendor.location?.latitude != null && vendor.location?.longitude != null
       ? `https://www.google.com/maps/dir/?api=1&destination=${vendor.location.latitude},${vendor.location.longitude}`
       : null;
+  const canOptimizeLogo = vendor.logo_url ? isOptimizablePublicImage(vendor.logo_url) : false;
 
   return (
     <div className="feed-card group flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
       {/* Cover / logo area */}
       <Link href={`/business/${vendor.business_slug}`} className="relative flex h-36 items-center justify-center bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10">
         {vendor.logo_url ? (
-          <img
+          <Image
             src={vendor.logo_url}
             alt={vendor.business_name}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            quality={75}
             loading="lazy"
-            decoding="async"
-            className="h-full w-full object-cover"
+            unoptimized={!canOptimizeLogo}
+            className="object-cover"
           />
         ) : (
           <span className="text-4xl opacity-80">{categoryIcon}</span>
