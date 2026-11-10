@@ -34,24 +34,21 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
 test('private AI UI is mounted only in the management area and drafts are not auto-published', () => {
   assert.match(page, /AdminRouteGuard/);
   assert.match(page, /\/api\/admin\/ai/);
-  assert.match(page, /Prepare for approval/);
-  assert.match(page, /review.*Broadcasts/i);
-  assert.match(route, /p_submit_for_approval: true/);
-  assert.match(route, /ai_generated: aiGenerated/);
-  assert.match(route, /draft_mode: aiGenerated \? 'ai_assisted' : 'source_fallback'/);
-  assert.match(route, /status: 'pending_approval'/);
-  assert.match(page, /Source-based draft saved for human review/);
+  assert.match(page, /Queue for review/);
+  assert.match(page, /Campus feed review/);
+  assert.match(route, /rpc\('prepare_admin_ai_update'/);
+  assert.match(route, /queue_public_update_review/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
 });
 
 test('built-in AI drafts are source-grounded and always submitted for human review', () => {
-  assert.match(route, /const aiGenerated = false/);
-  assert.match(route, /draft_mode: aiGenerated \? 'ai_assisted' : 'source_fallback'/);
+  assert.match(route, /rpc\('prepare_admin_ai_update'/);
+  assert.match(route, /queue_public_update_review/);
   assert.match(assistant, /For \$\{audienceLabel\}/);
   assert.match(assistant, /Source: \$\{url\.toString\(\)\}/);
   assert.match(assistant, /900 - prefix\.length - suffix\.length/);
   assert.match(assistant, /mode: 'safe-fallback'/);
-  assert.match(route, /p_submit_for_approval: true/);
+  assert.match(route, /rpc\('prepare_admin_ai_update'/);
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
 });
 
