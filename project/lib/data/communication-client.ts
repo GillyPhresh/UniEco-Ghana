@@ -113,37 +113,35 @@ export async function getConversations(
   const { data } = await query;
   if (!data) return [];
 
-  const conversations: ConversationWithDetails[] = [];
-  for (const conv of data) {
+  return Promise.all(data.map(async (conv) => {
     // Profile RLS intentionally prevents arbitrary profile joins. Resolve the
     // other participant through the participant-authorized messaging RPC.
-    const otherParticipant = await getConversationRecipient(conv.id);
+    const [otherParticipant, lastMessageResult, unreadResult] = await Promise.all([
+      getConversationRecipient(conv.id),
+      supabase
+        .from('messages')
+        .select('body, created_at, sender_id')
+        .eq('conversation_id', conv.id)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('messages')
+        .select('*', { count: 'exact', head: true })
+        .eq('conversation_id', conv.id)
+        .eq('recipient_id', user.id)
+        .eq('is_read', false)
+        .eq('is_deleted', false),
+    ]);
 
-    const { data: lastMsg } = await supabase
-      .from('messages')
-      .select('body, created_at, sender_id')
-      .eq('conversation_id', conv.id)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const { count } = await supabase
-      .from('messages')
-      .select('*', { count: 'exact', head: true })
-      .eq('conversation_id', conv.id)
-      .eq('recipient_id', user.id)
-      .eq('is_read', false)
-      .eq('is_deleted', false);
-
-    conversations.push({
+    return {
       ...conv,
       other_participant: otherParticipant,
-      last_message: lastMsg,
-      unread_count: count || 0,
-    });
-  }
-  return conversations;
+      last_message: lastMessageResult.data,
+      unread_count: unreadResult.count || 0,
+    } satisfies ConversationWithDetails;
+  }));
 }
 
 export async function searchConversations(searchTerm: string): Promise<ConversationWithDetails[]> {

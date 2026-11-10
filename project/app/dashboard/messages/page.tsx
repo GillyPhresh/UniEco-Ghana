@@ -30,10 +30,10 @@ import {
 import { supabase } from '@/lib/supabase/client';
 import {
   getConversations, getMessages, sendMessage, markMessagesRead,
-  getOrCreateConversation, getConversationRecipient, searchConversations,
+  getOrCreateConversation, getConversationRecipient,
   uploadMessageAttachment, validateAttachment, deleteMessage,
   deleteMessageAttachment, searchMessageContacts,
-  blockUser, reportMessage, isUserBlocked,
+  blockUser, unblockUser, reportMessage, isUserBlocked,
   resolveMessageAttachmentUrl,
 } from '@/lib/data/communication-client';
 import type { ConversationWithDetails } from '@/lib/types/communication';
@@ -124,6 +124,8 @@ function MessagesContent() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [inboxRealtimeConnected, setInboxRealtimeConnected] = useState(false);
+  const [activeRealtimeConnected, setActiveRealtimeConnected] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -143,12 +145,27 @@ function MessagesContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
+  const conversationRequestRef = useRef(0);
+  const recipientSearchRequestRef = useRef(0);
+  const conversationsRef = useRef<ConversationWithDetails[]>([]);
+  const activeConversationIdRef = useRef<string | null>(activeConvId);
+
+  useEffect(() => {
+    conversationsRef.current = conversations;
+  }, [conversations]);
+
+  useEffect(() => {
+    activeConversationIdRef.current = activeConvId;
+  }, [activeConvId]);
 
   const loadConversations = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true);
-    const data = await getConversations();
-    setConversations(data);
-    if (showLoading) setLoading(false);
+    try {
+      const data = await getConversations();
+      setConversations(data);
+    } finally {
+      if (showLoading) setLoading(false);
+    }
   }, []);
 
   const refreshMessages = useCallback(async (conversationId: string) => {
@@ -159,6 +176,53 @@ function MessagesContent() {
   useEffect(() => {
     loadConversations();
   }, [loadConversations]);
+
+  // Keep the inbox preview and unread badges live without repeatedly
+  // reloading every conversation while someone is reading a chat.
+  useEffect(() => {
+    if (!user?.id) return;
+    let active = true;
+    const channel = supabase
+      .channel(`inbox:${user.id}`)
+      .on('postgres_changes', {
+        event: 'INSERT', schema: 'public', table: 'messages',
+      }, (payload) => {
+        const message = payload.new as MessageWithMeta;
+        if (message.sender_id !== user.id && message.recipient_id !== user.id) return;
+
+        const alreadyInInbox = conversationsRef.current.some((conversation) => conversation.id === message.conversation_id);
+        setConversations((current) => {
+          const updated = current.map((conversation) => {
+            if (conversation.id !== message.conversation_id) return conversation;
+            return {
+              ...conversation,
+              updated_at: message.created_at,
+              last_message: {
+                body: message.body,
+                created_at: message.created_at,
+                sender_id: message.sender_id,
+              },
+              unread_count: message.recipient_id === user.id && message.conversation_id !== activeConversationIdRef.current
+                ? conversation.unread_count + 1
+                : conversation.unread_count,
+            };
+          });
+          return updated.sort((a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+          );
+        });
+        if (!alreadyInInbox) void loadConversations(false);
+      })
+      .subscribe((status) => {
+        if (active) setInboxRealtimeConnected(status === 'SUBSCRIBED');
+      });
+
+    return () => {
+      active = false;
+      setInboxRealtimeConnected(false);
+      void supabase.removeChannel(channel);
+    };
+  }, [loadConversations, user?.id]);
 
   // Auto-create conversation from query params
   useEffect(() => {
@@ -213,6 +277,17 @@ function MessagesContent() {
           const newMsg = payload.new as MessageWithMeta;
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
+            const pendingIndex = prev.findIndex((message) =>
+              message.id.startsWith('temp-')
+              && message.sender_id === newMsg.sender_id
+              && message.body === newMsg.body
+              && message.attachment_url === newMsg.attachment_url,
+            );
+            if (pendingIndex >= 0) {
+              const reconciled = [...prev];
+              reconciled[pendingIndex] = newMsg;
+              return reconciled;
+            }
             return [...prev, newMsg];
           });
           // Auto-mark as read if we're the recipient
@@ -236,30 +311,38 @@ function MessagesContent() {
           const updated = payload.new as MessageWithMeta;
           setMessages((prev) => prev.map((m) => m.id === updated.id ? updated : m));
         },
-      )
-      .subscribe();
+    )
+      .subscribe((status) => setActiveRealtimeConnected(status === 'SUBSCRIBED'));
 
     return () => {
-      supabase.removeChannel(channel);
+      setActiveRealtimeConnected(false);
+      void supabase.removeChannel(channel);
     };
   }, [activeConvId, user?.id]);
 
-  // Realtime remains the fast path. Polling is a read-only fallback for
-  // projects where the messages table is not enabled for Realtime yet.
+  // Realtime is the fast path. Poll only as a quiet fallback when realtime is
+  // unavailable; the previous five-second full-inbox polling caused excess
+  // database traffic and made the chat feel slower, not faster.
   useEffect(() => {
-    if (!activeConvId) return;
-
     let active = true;
     const refresh = async () => {
       if (!active || document.visibilityState === 'hidden') return;
-      await Promise.all([refreshMessages(activeConvId), loadConversations(false)]);
+      const pending: Promise<unknown>[] = [];
+      if (!inboxRealtimeConnected) pending.push(loadConversations(false));
+      if (activeConvId && !activeRealtimeConnected) pending.push(refreshMessages(activeConvId));
+      await Promise.all(pending);
     };
-    const interval = window.setInterval(refresh, 5000);
+    const onReturn = () => { void refresh(); };
+    const interval = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', onReturn);
+    document.addEventListener('visibilitychange', onReturn);
     return () => {
       active = false;
       window.clearInterval(interval);
+      window.removeEventListener('focus', onReturn);
+      document.removeEventListener('visibilitychange', onReturn);
     };
-  }, [activeConvId, loadConversations, refreshMessages]);
+  }, [activeConvId, activeRealtimeConnected, inboxRealtimeConnected, loadConversations, refreshMessages]);
 
   // Typing indicator via realtime presence
   useEffect(() => {
@@ -298,22 +381,23 @@ function MessagesContent() {
   };
 
   const openConversation = async (conv: ConversationWithDetails) => {
+    const requestId = ++conversationRequestRef.current;
     setActiveConvId(conv.id);
     setActiveOtherUser(conv.other_participant);
     setActiveConv(conv);
     setMobileShowChat(true);
     setLoadingMessages(true);
 
-    // Check if blocked
-    if (conv.other_participant) {
-      const isBlocked = await isUserBlocked(conv.other_participant.id);
-      setBlocked(isBlocked);
-    }
-
-    const msgs = await getMessages(conv.id);
+    const [isBlocked, msgs] = await Promise.all([
+      conv.other_participant ? isUserBlocked(conv.other_participant.id) : Promise.resolve(false),
+      getMessages(conv.id),
+    ]);
+    if (requestId !== conversationRequestRef.current) return;
+    setBlocked(isBlocked);
     setMessages(msgs);
     setLoadingMessages(false);
     await markMessagesRead(conv.id);
+    setConversations((current) => current.map((item) => item.id === conv.id ? { ...item, unread_count: 0 } : item));
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
@@ -345,6 +429,7 @@ function MessagesContent() {
 
     setSending(true);
     const msgText = newMessage.trim();
+    const tempId = `temp-${Date.now()}`;
     setNewMessage('');
     sendTypingEvent(false);
 
@@ -358,17 +443,16 @@ function MessagesContent() {
         msgType = attachment.type.startsWith('image/') ? 'image' : 'document';
       } else {
         toast({ title: 'Upload failed', description: uploadResult.error, variant: 'destructive' });
+        setNewMessage(msgText);
         setSending(false);
         return;
       }
-      setAttachment(null);
-      setAttachmentPreview(null);
     }
 
     // Keep the composer responsive while the secure RPC persists the message.
     if (user) {
       setMessages((prev) => [...prev, {
-        id: 'temp-' + Date.now(),
+        id: tempId,
         sender_id: user.id,
         recipient_id: activeOtherUser.id,
         body: msgText || null,
@@ -396,11 +480,27 @@ function MessagesContent() {
 
     if (result.error) {
       toast({ title: 'Failed to send', description: result.error, variant: 'destructive' });
-      setMessages((prev) => prev.filter((m) => !m.id.startsWith('temp-')));
+      setMessages((prev) => prev.filter((message) => message.id !== tempId));
+      setNewMessage((current) => current || msgText);
     } else {
-      // Reconcile the optimistic item with the server-authoritative message and
-      // refresh the conversation preview without showing a loading spinner.
-      await Promise.all([refreshMessages(activeConvId), loadConversations(false)]);
+      // The RPC acknowledgement is enough to reconcile the optimistic bubble;
+      // avoid a second message fetch and a full inbox reload after every send.
+      if (result.messageId) {
+        setMessages((prev) => prev.map((message) => message.id === tempId
+          ? { ...message, id: result.messageId! }
+          : message));
+      }
+      setAttachment(null);
+      setAttachmentPreview(null);
+      const preview = msgText || (msgType === 'image' ? 'Photo' : 'Attachment');
+      const sentAt = new Date().toISOString();
+      setConversations((current) => current
+        .map((conversation) => conversation.id === activeConvId ? {
+          ...conversation,
+          updated_at: sentAt,
+          last_message: { body: preview, created_at: sentAt, sender_id: user?.id || '' },
+        } : conversation)
+        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()));
     }
 
     setSending(false);
@@ -425,16 +525,25 @@ function MessagesContent() {
     setMessages((prev) => prev.map((item) => item.id === msg.id ? { ...item, attachment_url: null } : item));
   };
 
-  const handleRecipientSearch = async (query: string) => {
-    setRecipientQuery(query);
-    if (query.trim().length < 2) {
+  useEffect(() => {
+    const query = recipientQuery.trim();
+    const requestId = ++recipientSearchRequestRef.current;
+    if (query.length < 2) {
       setRecipientResults([]);
+      setRecipientSearching(false);
       return;
     }
-    setRecipientSearching(true);
-    setRecipientResults(await searchMessageContacts(query));
-    setRecipientSearching(false);
-  };
+
+    const timer = window.setTimeout(async () => {
+      setRecipientSearching(true);
+      const results = await searchMessageContacts(query);
+      if (requestId !== recipientSearchRequestRef.current) return;
+      setRecipientResults(results);
+      setRecipientSearching(false);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [recipientQuery]);
 
   const startConversation = (recipient: MessageRecipient) => {
     setShowNewMessage(false);
@@ -443,14 +552,19 @@ function MessagesContent() {
     router.push(`/dashboard/messages?to=${recipient.id}`);
   };
 
-  const handleBlock = async () => {
+  const handleBlockToggle = async () => {
     if (!activeOtherUser) return;
-    const result = await blockUser(activeOtherUser.id, 'Blocked from messaging');
+    const result = blocked
+      ? await unblockUser(activeOtherUser.id)
+      : await blockUser(activeOtherUser.id, 'Blocked from messaging');
     if (result.error) {
       toast({ title: 'Error', description: result.error, variant: 'destructive' });
     } else {
-      toast({ title: 'User blocked', description: 'You will no longer receive messages from this user.' });
-      setBlocked(true);
+      setBlocked(!blocked);
+      toast({
+        title: blocked ? 'User unblocked' : 'User blocked',
+        description: blocked ? 'You can message this person again.' : 'You will no longer receive messages from this user.',
+      });
     }
     setShowBlock(false);
   };
@@ -471,15 +585,6 @@ function MessagesContent() {
     setShowReport(false);
     setReportReason('');
     setReportDescription('');
-  };
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      await loadConversations();
-      return;
-    }
-    const results = await searchConversations(searchQuery);
-    setConversations(results);
   };
 
   const filteredConversations = searchQuery
@@ -720,7 +825,7 @@ function MessagesContent() {
             <DialogTitle>Start a new chat</DialogTitle>
             <DialogDescription>Search any registered student or business by name. Email addresses are never shown.</DialogDescription>
           </DialogHeader>
-          <Input value={recipientQuery} onChange={(event) => handleRecipientSearch(event.target.value)} placeholder="Search by name" autoFocus />
+          <Input value={recipientQuery} onChange={(event) => setRecipientQuery(event.target.value)} placeholder="Search by name" autoFocus />
           <div className="max-h-64 space-y-1 overflow-y-auto">
             {recipientSearching && <p className="p-2 text-sm text-muted-foreground">Searching…</p>}
             {!recipientSearching && recipientQuery.trim().length >= 2 && recipientResults.length === 0 && (
@@ -740,14 +845,14 @@ function MessagesContent() {
       <Dialog open={showBlock} onOpenChange={setShowBlock}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Block {activeOtherUser?.full_name}?</DialogTitle>
+          <DialogTitle>{blocked ? 'Unblock' : 'Block'} {activeOtherUser?.full_name}?</DialogTitle>
             <DialogDescription>
-              Blocked users cannot send you messages. You can unblock them at any time from your settings.
+            {blocked ? 'This person will be able to message you again.' : 'This person will not be able to send you messages.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowBlock(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleBlock}>Block user</Button>
+            <Button variant={blocked ? 'default' : 'destructive'} onClick={handleBlockToggle}>{blocked ? 'Unblock user' : 'Block user'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
