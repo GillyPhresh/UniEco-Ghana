@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -171,7 +170,6 @@ function PreferencesContent() {
           </p>
         </div>
       </main>
-      <SiteFooter />
     </>
   );
 }

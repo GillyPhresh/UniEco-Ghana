@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
 import { getVendorSettings, updateVendorSettings } from '@/lib/data/vendor-client';
@@ -26,7 +25,6 @@ export default function SettingsPage() {
     <VendorRouteGuard>
       <SiteHeader />
       <SettingsContent />
-      <SiteFooter />
     </VendorRouteGuard>
   );
 }

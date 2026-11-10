@@ -51,6 +51,47 @@ test('admin dialogs are safe for short mobile viewports and device insets', () =
   assert.match(source, /safe-area-inset-bottom/);
 });
 
+test('app-like feeds, inboxes, dashboards, and task flows omit the marketing footer', () => {
+  const appScreens = [
+    'app/page.tsx',
+    'app/dashboard/page.tsx',
+    'app/dashboard/messages/page.tsx',
+    'app/dashboard/notifications/page.tsx',
+    'app/dashboard/notifications/preferences/page.tsx',
+    'app/dashboard/saved/page.tsx',
+    'app/profile/page.tsx',
+    'app/campus-mate/page.tsx',
+    'app/cart/page.tsx',
+    'app/checkout/page.tsx',
+    'app/orders/page.tsx',
+    'app/orders/[id]/page.tsx',
+    'app/wishlist/page.tsx',
+    'app/university-admin/page.tsx',
+    'app/university-admin/apply/page.tsx',
+    'app/vendor-dashboard/page.tsx',
+    'app/vendor-dashboard/analytics/page.tsx',
+    'app/vendor-dashboard/gallery/page.tsx',
+    'app/vendor-dashboard/hours/page.tsx',
+    'app/vendor-dashboard/messages/page.tsx',
+    'app/vendor-dashboard/orders/page.tsx',
+    'app/vendor-dashboard/products/page.tsx',
+    'app/vendor-dashboard/profile/page.tsx',
+    'app/vendor-dashboard/promotions/page.tsx',
+    'app/vendor-dashboard/reviews/page.tsx',
+    'app/vendor-dashboard/services/page.tsx',
+    'app/vendor-dashboard/settings/page.tsx',
+    'app/vendor-dashboard/verification/page.tsx',
+  ];
+
+  for (const screen of appScreens) {
+    assert.doesNotMatch(read(screen), /SiteFooter/, `${screen} should not add the marketing footer to an app workflow`);
+  }
+
+  for (const contentPage of ['app/discover/page.tsx', 'app/marketplace/page.tsx', 'app/universities/page.tsx']) {
+    assert.match(read(contentPage), /SiteFooter/, `${contentPage} should retain useful public-site links`);
+  }
+});
+
 test('the document locks layout width to the device without disabling accessibility zoom', () => {
   const layout = read('app/layout.tsx');
   const styles = read('app/globals.css');

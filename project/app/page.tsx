@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { CampusCommunityFeed } from '@/components/feed/campus-community-feed';
 import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
@@ -20,7 +19,6 @@ export default function Home() {
           <CampusCommunityFeed />
         </section>
       </main>
-      <SiteFooter />
     </>
   );
 }

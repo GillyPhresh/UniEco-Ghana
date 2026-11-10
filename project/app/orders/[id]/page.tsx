@@ -3,7 +3,6 @@
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,7 +29,6 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
     <>
       <SiteHeader />
       <OrderDetailContent orderId={id} />
-      <SiteFooter />
     </>
   );
 }

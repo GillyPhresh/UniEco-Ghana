@@ -6,7 +6,6 @@ import { RouteGuard } from '@/lib/auth/route-guard';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -719,7 +718,6 @@ function ProfileContent() {
           </TabsContent>
         </Tabs>
       </main>
-      <SiteFooter />
     </>
   );
 }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
 import {
@@ -33,7 +32,6 @@ export default function VendorOrdersPage() {
     <VendorRouteGuard>
       <SiteHeader />
       <VendorOrdersContent />
-      <SiteFooter />
     </VendorRouteGuard>
   );
 }

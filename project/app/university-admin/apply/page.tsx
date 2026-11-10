@@ -7,7 +7,6 @@ import { RouteGuard } from '@/lib/auth/route-guard';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -184,6 +183,5 @@ function ApplyContent() {
         <p className="text-center text-xs text-muted-foreground">Already appointed? <Link href="/university-admin" className="font-semibold text-primary hover:underline">Open your administrator workspace</Link></p>
       </div>
     </main>
-    <SiteFooter />
   </>;
 }

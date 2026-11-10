@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,7 +32,6 @@ export default function WishlistPage() {
     <RouteGuard requireAuth>
       <SiteHeader />
       <WishlistContent />
-      <SiteFooter />
     </RouteGuard>
   );
 }

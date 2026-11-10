@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -753,7 +752,6 @@ function MessagesContent() {
         </DialogContent>
       </Dialog>
 
-      <SiteFooter />
     </>
   );
 }

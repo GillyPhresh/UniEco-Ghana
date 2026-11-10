@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { CampusMateExperience, type CampusMatePlace, type CampusMateUniversity } from '@/components/campus-mate/campus-mate-experience';
 import { getEventsByUniversity, getUniversities, getVendorsByUniversity } from '@/lib/data/public-queries';
 import { createClient } from '@/lib/supabase/server';
@@ -62,7 +61,6 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
           <h1 className="font-display text-2xl font-bold">Campus Mate is getting ready</h1>
           <p className="mt-2 text-sm text-muted-foreground">University locations will appear here as soon as the campus directory is available.</p>
         </main>
-        <SiteFooter />
       </>
     );
   }
@@ -147,7 +145,6 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
     <>
       <SiteHeader />
       <CampusMateExperience university={campusUniversity} universities={campusUniversities} places={places} />
-      <SiteFooter />
     </>
   );
 }

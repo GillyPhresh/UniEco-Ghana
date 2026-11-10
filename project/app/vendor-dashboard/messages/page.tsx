@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useVendor } from '@/hooks/use-vendor';
@@ -52,7 +51,6 @@ export default function MessagesPage() {
     <VendorRouteGuard>
       <SiteHeader />
       <MessagesContent />
-      <SiteFooter />
     </VendorRouteGuard>
   );
 }
