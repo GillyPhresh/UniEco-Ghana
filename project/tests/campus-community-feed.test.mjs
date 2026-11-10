@@ -54,6 +54,10 @@ test('private video attachments autoplay inline without exposing file details', 
   assert.match(feed, /type="file"/);
   assert.match(feed, /Secure attachment · private by default/);
   assert.match(feed, /get_campus_community_post_file_info/);
+  assert.match(feed, /status === 401/);
+  assert.match(feed, /supabase\.auth\.refreshSession\(\)/);
+  assert.match(feed, /Array\.isArray\(response\.data\)/);
+  assert.match(feed, /onClick=\{retryAttachmentLookup\}/);
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);

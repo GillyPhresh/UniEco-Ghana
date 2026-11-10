@@ -64,6 +64,27 @@ function canPlayPrivateVideoInline(file: { name: string; size: number }) {
   return file.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION.test(file.name);
 }
 
+type CommunityFileInfo = { path: string; name: string; size: number };
+
+async function getCommunityFileInfo(postId: string): Promise<CommunityFileInfo> {
+  const read = () => supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId });
+  let response = await read();
+  const status = (response.error as (typeof response.error & { status?: number }) | null)?.status;
+  if (status === 401) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) response = await read();
+  }
+  if (response.error) throw response.error;
+  const rows = Array.isArray(response.data) ? response.data : response.data ? [response.data] : [];
+  const result = rows[0] as { file_path?: string; file_name?: string; file_size?: number } | undefined;
+  if (!result?.file_path || !result.file_name) throw new Error('Attachment details are unavailable.');
+  return {
+    path: result.file_path,
+    name: safeFileName(result.file_name),
+    size: Number(result.file_size) || 0,
+  };
+}
+
 async function uploadPrivateAttachmentResumably(
   file: File,
   path: string,
@@ -665,6 +686,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [fileLoading, setFileLoading] = useState(false);
   const [fileError, setFileError] = useState(false);
   const [fileChecking, setFileChecking] = useState(false);
+  const [fileLookupAttempt, setFileLookupAttempt] = useState(0);
   const [privateVideoUrl, setPrivateVideoUrl] = useState<string | null>(null);
   const [privateVideoLoading, setPrivateVideoLoading] = useState(false);
   const [privateVideoAttempted, setPrivateVideoAttempted] = useState(false);
@@ -695,12 +717,11 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     setFileChecking(true);
     void (async () => {
       try {
-        const { data, error } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: post.id });
-        const result = (data || [])[0] as { file_path: string; file_name: string; file_size: number } | undefined;
-        if (!cancelled && !error && result?.file_path) {
-          setFileInfo({ path: result.file_path, name: safeFileName(result.file_name), size: Number(result.file_size) || 0 });
+        const info = await getCommunityFileInfo(post.id);
+        if (!cancelled) {
+          setFileInfo(info);
+          setFileError(false);
         }
-        if (!cancelled && error) setFileError(true);
       } catch {
         if (!cancelled) setFileError(true);
       } finally {
@@ -708,7 +729,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
       }
     })();
     return () => { cancelled = true; };
-  }, [active, post.id, post.media_type, fileInfo]);
+  }, [active, post.id, post.media_type, fileInfo, fileLookupAttempt]);
 
   useEffect(() => {
     const connection = (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
@@ -746,10 +767,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     try {
       let attachment = fileInfo;
       if (!attachment) {
-        const { data, error } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: post.id });
-        const result = (data || [])[0] as { file_path: string; file_name: string; file_size: number } | undefined;
-        if (error || !result?.file_path) throw error || new Error('Attachment unavailable');
-        attachment = { path: result.file_path, name: safeFileName(result.file_name), size: Number(result.file_size) || 0 };
+        attachment = await getCommunityFileInfo(post.id);
         setFileInfo(attachment);
       }
       const { data, error } = await supabase.storage.from('campus-community-files').createSignedUrl(attachment.path, 60, { download: attachment.name });
@@ -761,6 +779,15 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } finally {
       setFileLoading(false);
     }
+  };
+
+  const retryAttachmentLookup = () => {
+    setFileError(false);
+    setFileInfo(null);
+    setPrivateVideoUrl(null);
+    setPrivateVideoAttempted(false);
+    setFileChecking(true);
+    setFileLookupAttempt((attempt) => attempt + 1);
   };
 
   useEffect(() => {
@@ -842,7 +869,8 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
           ) : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'Tap to retry, or ask the author to share it again.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'The private attachment could not be reached.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
+              {fileError && <Button type="button" variant="outline" onClick={retryAttachmentLookup} disabled={fileChecking || fileLoading} className="min-h-11 shrink-0 touch-manipulation rounded-full">Try again</Button>}
               <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
             </div>
           )}
