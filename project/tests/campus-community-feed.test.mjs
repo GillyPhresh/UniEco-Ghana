@@ -57,6 +57,8 @@ test('private video attachments autoplay inline without exposing file details', 
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
+  assert.match(feed, /New uploads are normalized to H\.264\/AAC MP4/);
+  assert.match(feed, /!\/\\\.mp4\$\/i\.test\(fileInfo\?\.name \|\| ''\)/);
   assert.match(feed, /autoPlay muted loop preload=\{active \? 'auto' : 'none'\}/);
   assert.match(feed, /Making this video ready…/);
   assert.doesNotMatch(feed, /fileInfo\.name/);
@@ -90,6 +92,15 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(dockerfile, /libx264/);
   assert.match(feed, /VIDEO_PREPARATION_TIMEOUT_MS = 240_000/);
   assert.match(feed, /signal: AbortSignal\.timeout\(VIDEO_PREPARATION_TIMEOUT_MS\)/);
+  assert.match(feed, /createSignedUploadUrl\(path, \{ upsert: false \}\)/);
+  assert.match(feed, /storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
+  assert.match(feed, /'x-signature': signedUpload\.token/);
+  assert.match(feed, /chunkSize: RESUMABLE_UPLOAD_CHUNK_BYTES/);
+  assert.match(feed, /RESUMABLE_UPLOAD_CHUNK_BYTES = 6 \* 1024 \* 1024/);
+  assert.match(feed, /onProgress\(bytesUploaded, bytesTotal\)/);
+  assert.match(feed, /storeFingerprintForResuming: false/);
+  assert.match(feed, /Upload resumes automatically after brief connection interruptions/);
+  assert.match(feed, /Video upload was interrupted\. Check your connection and retry/);
   assert.match(feed, /Uploading your post…/);
   assert.match(feed, /Publishing to the campus feed…/);
   assert.match(feed, /void loadPage\(false\)/);

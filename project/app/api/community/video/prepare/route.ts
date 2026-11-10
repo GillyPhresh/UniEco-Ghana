@@ -440,7 +440,7 @@ export async function POST(request: NextRequest) {
       status: 200,
       headers: {
         'Content-Type': 'video/mp4',
-        'Content-Disposition': 'attachment; filename="unieco-video.mp4"',
+        'Content-Disposition': 'inline; filename="unieco-video.mp4"',
         'Content-Length': String(mp4.byteLength),
         'Cache-Control': 'no-store, private',
         'X-Content-Type-Options': 'nosniff',

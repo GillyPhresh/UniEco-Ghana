@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { Upload } from 'tus-js-client';
 import { supabase } from '@/lib/supabase/client';
+import { getSupabaseConfig } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
@@ -41,6 +43,7 @@ const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
 const VIDEO_PREPARATION_TIMEOUT_MS = 240_000;
+const RESUMABLE_UPLOAD_CHUNK_BYTES = 6 * 1024 * 1024;
 const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
@@ -59,6 +62,56 @@ function canDisplayInline(file: File) {
 
 function canPlayPrivateVideoInline(file: { name: string; size: number }) {
   return file.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION.test(file.name);
+}
+
+async function uploadPrivateAttachmentResumably(
+  file: File,
+  path: string,
+  onProgress: (percentage: number) => void,
+) {
+  const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
+  const session = sessionResult.session;
+  if (sessionError || !session?.access_token) throw new Error('Your sign-in expired. Sign in again and retry the post.');
+
+  const { data: signedUpload, error: signingError } = await supabase.storage
+    .from('campus-community-files')
+    .createSignedUploadUrl(path, { upsert: false });
+  if (signingError || !signedUpload?.token) {
+    throw signingError || new Error('UniEco could not securely prepare the video upload.');
+  }
+
+  const { url } = getSupabaseConfig();
+  const projectRef = new URL(url).hostname.split('.')[0];
+  if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('The secure upload service is not configured correctly.');
+
+  await new Promise<void>((resolve, reject) => {
+    const upload = new Upload(file, {
+      endpoint: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        apikey: getSupabaseConfig().anonKey,
+        'x-signature': signedUpload.token,
+        'x-upsert': 'false',
+      },
+      metadata: {
+        bucketName: 'campus-community-files',
+        objectName: path,
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '0',
+      },
+      chunkSize: RESUMABLE_UPLOAD_CHUNK_BYTES,
+      retryDelays: [0, 3_000, 5_000, 10_000, 20_000],
+      uploadDataDuringCreation: true,
+      storeFingerprintForResuming: false,
+      removeFingerprintOnSuccess: true,
+      onError: reject,
+      onProgress(bytesUploaded, bytesTotal) {
+        onProgress(Math.min(100, Math.floor((bytesUploaded / Math.max(1, bytesTotal)) * 100)));
+      },
+      onSuccess: () => resolve(),
+    });
+    upload.start();
+  });
 }
 
 type NetworkInformationLike = {
@@ -136,7 +189,7 @@ function formatFeedTimestamp(value: string) {
 }
 
 export function CampusCommunityFeed() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [socialByPost, setSocialByPost] = useState<Record<string, CommunitySocialState>>({});
   const [loading, setLoading] = useState(true);
@@ -153,6 +206,7 @@ export function CampusCommunityFeed() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [reporting, setReporting] = useState(false);
@@ -178,6 +232,21 @@ export function CampusCommunityFeed() {
     setPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [mediaFile]);
+
+  useEffect(() => {
+    const openComposer = () => {
+      if (canPost) setPostOpen(true);
+      else if (user) toast.info('Your account cannot publish campus posts.');
+      else window.location.assign('/signin?next=%2F');
+    };
+    window.addEventListener('unieco:open-post-composer', openComposer);
+
+    if (!authLoading && new URLSearchParams(window.location.search).get('createPost') === '1') {
+      openComposer();
+      window.history.replaceState(window.history.state, '', window.location.pathname);
+    }
+    return () => window.removeEventListener('unieco:open-post-composer', openComposer);
+  }, [authLoading, canPost, user]);
 
   const loadPage = useCallback(async (append = false) => {
     if (append && (loadingMoreRef.current || !hasMoreRef.current)) return;
@@ -325,7 +394,7 @@ export function CampusCommunityFeed() {
     setPullDistance(0);
   };
 
-  const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); setUploadStage(''); };
+  const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); setUploadStage(''); setUploadProgress(null); };
   const closePostDialog = (open: boolean) => { setPostOpen(open); if (!open && !uploading) resetPostForm(); };
 
   const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -347,6 +416,7 @@ export function CampusCommunityFeed() {
     let attachmentName: string | null = null;
     setUploading(true);
     setUploadStage(isVideo ? 'Preparing video for playback…' : 'Uploading your post…');
+    setUploadProgress(isVideo ? null : 0);
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
     let uploadPath: string | null = publicPath;
     let uploadBucket: 'campus-community' | 'campus-community-files' | null = publicPath ? 'campus-community' : null;
@@ -379,16 +449,27 @@ export function CampusCommunityFeed() {
         uploadBucket = 'campus-community-files';
       }
       if (fileToUpload && uploadPath && uploadBucket) {
-        setUploadStage('Uploading your post…');
-        const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, fileToUpload, {
-          contentType: fileToUpload.type || 'application/octet-stream',
-          cacheControl: publicPath ? '31536000' : '0',
-          upsert: false,
-        });
-        if (uploadError) throw uploadError;
+        if (uploadBucket === 'campus-community-files') {
+          setUploadStage(isVideo ? 'Uploading video securely…' : 'Uploading attachment…');
+          setUploadProgress(0);
+          try {
+            await uploadPrivateAttachmentResumably(fileToUpload, uploadPath, setUploadProgress);
+          } catch {
+            throw new Error('RESUMABLE_UPLOAD:Video upload was interrupted. Check your connection and retry; your post has not been published.');
+          }
+        } else {
+          setUploadStage('Uploading your post…');
+          const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, fileToUpload, {
+            contentType: fileToUpload.type || 'application/octet-stream',
+            cacheControl: '31536000',
+            upsert: false,
+          });
+          if (uploadError) throw uploadError;
+        }
         uploadedBucket = uploadBucket;
       }
       setUploadStage('Publishing to the campus feed…');
+      setUploadProgress(null);
       const { error: postError } = await supabase.rpc('create_campus_community_post_with_attachment', {
         p_caption: trimmedCaption,
         p_media_path: publicPath,
@@ -408,18 +489,21 @@ export function CampusCommunityFeed() {
       // tempt the user to submit it a second time.
       setUploading(false);
       setUploadStage('');
+      setUploadProgress(null);
       void loadPage(false);
     } catch (error) {
       if (uploadedBucket && uploadPath) await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
       const message = error instanceof Error ? error.message : '';
       if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
       else if (message.startsWith('VIDEO_PREPARE:')) toast.error(message.slice('VIDEO_PREPARE:'.length));
+      else if (message.startsWith('RESUMABLE_UPLOAD:')) toast.error(message.slice('RESUMABLE_UPLOAD:'.length));
       else if (message === 'TimeoutError' || message === 'AbortError') toast.error('Video preparation took too long. Please try a shorter video or a stronger connection.');
       else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
       else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
     } finally {
       setUploading(false);
       setUploadStage('');
+      setUploadProgress(null);
     }
   };
 
@@ -538,7 +622,9 @@ export function CampusCommunityFeed() {
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
             <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
-            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadStage || 'Publishing…'}</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
+            {uploading && uploadProgress !== null && <div className="space-y-1.5" role="status" aria-live="polite"><div className="flex justify-between text-xs text-muted-foreground"><span>{uploadStage || 'Uploading securely…'}</span><span>{uploadProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-emerald-600 transition-[width] duration-300" style={{ width: `${uploadProgress}%` }} /></div><p className="text-xs text-muted-foreground">Upload resumes automatically after brief connection interruptions.</p></div>}
+            {uploading && uploadProgress === null && <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{uploadStage || 'Working…'}</p>}
+            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadStage || 'Publishing…'}{uploadProgress !== null ? ` ${uploadProgress}%` : ''}</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -739,7 +825,10 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
                   if (preparedLegacyVideoUrl) { setPreparingLegacyVideo(false); setPreparedLegacyVideoUrl(null); setFileError(true); return; }
                   setPrivateVideoUrl(null);
                   const code = event.currentTarget.error?.code;
-                  if (code === 3 || code === 4 || !code) void prepareLegacyVideoForPlayback();
+                  // New uploads are normalized to H.264/AAC MP4 before they
+                  // enter Storage. Do not run another server-side transcode
+                  // when a healthy prepared MP4 hits a temporary playback error.
+                  if (!/\.mp4$/i.test(fileInfo?.name || '') && (code === 3 || code === 4)) void prepareLegacyVideoForPlayback();
                   else setFileError(true);
                 }} /> : (
                   <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
