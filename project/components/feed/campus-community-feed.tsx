@@ -867,11 +867,12 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
                   if (preparedLegacyVideoUrl) { setPreparingLegacyVideo(false); setPreparedLegacyVideoUrl(null); setFileError(true); return; }
                   setPrivateVideoUrl(null);
                   const code = event.currentTarget.error?.code;
-                  // New uploads are normalized to H.264/AAC MP4 before they
-                  // enter Storage. Do not run another server-side transcode
-                  // when a healthy prepared MP4 hits a temporary playback error.
-                  if (!/\.mp4$/i.test(fileInfo?.name || '') && (code === 3 || code === 4)) void prepareLegacyVideoForPlayback();
-                  else setFileError(true);
+                  // A failed private stream can be caused by a browser-incompatible
+                  // container or a storage/CDN stream error. Try the authorized
+                  // recovery stream once, including for MP4s that fail to load.
+                  if ([2, 3, 4].includes(code || 0) && !legacyPrepareAttemptedRef.current) {
+                    void prepareLegacyVideoForPlayback();
+                  } else setFileError(true);
                 }} /> : (
                   <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
                     {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
@@ -908,7 +909,13 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             onError={(event) => {
               const code = event.currentTarget.error?.code;
               setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
-              if ((code === 3 || code === 4) && !preparedLegacyVideoUrl) void prepareLegacyVideoForPlayback();
+              // Do not stop at the browser's direct-storage error screen. A
+              // one-time same-origin recovery stream also handles interrupted
+              // storage delivery and malformed legacy MP4s.
+              if ([2, 3, 4].includes(code || 0) && !preparedLegacyVideoUrl && !legacyPrepareAttemptedRef.current) {
+                void prepareLegacyVideoForPlayback();
+                return;
+              }
               setVideoState('error');
             }}
             aria-label={`Video shared by ${post.author_name}`}

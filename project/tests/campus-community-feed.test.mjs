@@ -61,8 +61,8 @@ test('private video attachments autoplay inline without exposing file details', 
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /New uploads are normalized to H\.264\/AAC MP4/);
-  assert.match(feed, /!\/\\\.mp4\$\/i\.test\(fileInfo\?\.name \|\| ''\)/);
+  assert.match(feed, /A failed private stream can be caused by a browser-incompatible/);
+  assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
   assert.match(feed, /autoPlay muted loop preload=\{active \? 'auto' : 'none'\}/);
   assert.match(feed, /Making this video ready…/);
   assert.doesNotMatch(feed, /fileInfo\.name/);
@@ -137,6 +137,8 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /Try again/);
   assert.match(feed, /Making this video ready…/);
   assert.match(feed, /legacyPrepareAttemptedRef/);
+  assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
+  assert.match(feed, /one-time same-origin recovery stream also handles interrupted/);
   assert.match(feed, /autoPlay=\{active && !reducedData\}/);
   assert.match(feed, /border border-emerald-200 bg-white/);
   assert.doesNotMatch(feed, /Prepare &amp; play/);
