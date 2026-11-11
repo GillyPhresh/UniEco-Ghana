@@ -29,8 +29,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const university = await getUniversityBySlug(slug);
   if (!university) return { title: 'University not found', robots: { index: false, follow: false } };
 
-  const title = `${university.name} (${university.short_name}) — Campus Guide`;
-  const description = `Explore the ${university.name} campus profile, public businesses, services, events, and updates on UniEco Ghana. ${university.city ? `Located in ${university.city}, Ghana.` : ''}`.trim();
+  const title = `${university.name} (${university.short_name}) — Institution Profile`;
+  const description = `Explore the ${university.name} profile, campus businesses, services, events, and updates on UniEco Ghana. ${university.city ? `Located in ${university.city}, Ghana.` : ''}`.trim();
   const localBranding = getLocalUniversityBranding(university.slug);
   const ogImage = university.hero_image_url || university.landmark_image_url || localBranding.campusUrl || university.logo_url || localBranding.logoUrl || '/unieco-official-logo.png';
   const ogImageAlt = university.hero_alt_text || university.logo_alt_text || `${university.name} campus`;
@@ -170,6 +170,8 @@ export default async function UniversityPage({ params }: PageProps) {
                   <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{events.length} events</span>
                 </div>
                 {university.description && <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{university.description}</p>}
+                {university.institution_type && <div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">{university.institution_type}</span>{university.ownership_type && <span className="rounded-full border px-3 py-1 text-xs font-medium capitalize text-muted-foreground">{university.ownership_type} institution</span>}</div>}
+                {university.accreditation_source_url && <div className="mt-4 rounded-xl border border-emerald-700/15 bg-emerald-700/5 p-4"><p className="text-sm font-semibold text-foreground">GTEC accreditation record</p><p className="mt-1 text-sm text-muted-foreground">Listed as {university.accreditation_status || 'unknown'} when checked {university.accreditation_checked_at ? new Date(`${university.accreditation_checked_at}T12:00:00Z`).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'by UniEco'}{university.accreditation_valid_until ? ` · validity date shown by GTEC through ${new Date(`${university.accreditation_valid_until}T12:00:00Z`).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}` : ''}. Check the regulator’s record for current details.</p><a href={university.accreditation_source_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center font-semibold text-primary underline underline-offset-4">View institution record at GTEC</a></div>}
                 {university.image_credit && <p className="mt-4 text-xs text-muted-foreground/70">Image credit: {university.image_credit}</p>}
               </div>
               <CampusShowcase

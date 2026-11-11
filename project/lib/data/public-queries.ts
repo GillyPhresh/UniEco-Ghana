@@ -111,10 +111,10 @@ export async function getUniversityDirectory() {
   const supabase = createPublicServerClient();
   const { data } = await supabase
     .from('universities')
-    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, landmark_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, university_aliases(alias)')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, landmark_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, accreditation_status, accreditation_valid_until, accreditation_source_url, accreditation_checked_at, university_aliases(alias)')
     .eq('is_enabled', true)
     .order('name');
-  return (data || []) as Array<Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'landmark_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'institution_type' | 'ownership_type' | 'campus_launch_status' | 'is_verified'> & { university_aliases: Array<{ alias: string }> }>;
+    return (data || []) as Array<Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'landmark_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'institution_type' | 'ownership_type' | 'campus_launch_status' | 'is_verified' | 'accreditation_status' | 'accreditation_valid_until' | 'accreditation_source_url' | 'accreditation_checked_at'> & { university_aliases: Array<{ alias: string }> }>;
 }
 
 export async function getTotalUniversityCount() {

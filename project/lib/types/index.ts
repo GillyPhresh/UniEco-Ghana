@@ -62,8 +62,13 @@ export interface University {
   landmark_image_url: string | null;
   website_url: string | null;
   description: string | null;
-  institution_type: 'Public University' | 'Public Technical University' | 'Private Chartered University' | 'Private University' | 'Other recognized university-level institution' | null;
+  institution_type: 'Public University' | 'Public Technical University' | 'Private Chartered University' | 'Private University' | 'Other recognized university-level institution' | 'Public College of Education' | 'Private College of Education' | 'Public Nurses/Health Training College' | 'Private Nurses/Health Training College' | null;
   ownership_type: 'public' | 'private' | 'other' | null;
+  accreditation_status: 'active' | 'expired' | 'unknown' | null;
+  accreditation_valid_from: string | null;
+  accreditation_valid_until: string | null;
+  accreditation_source_url: string | null;
+  accreditation_checked_at: string | null;
   campus_launch_status: 'planned' | 'onboarding' | 'active' | 'suspended';
   is_enabled: boolean;
   is_verified: boolean;

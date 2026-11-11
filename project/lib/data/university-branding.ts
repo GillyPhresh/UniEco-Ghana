@@ -66,6 +66,9 @@ const wideLogoPositions: Record<string, 'left' | 'center' | 'right'> = {
 // manifest-friendly logo file. Keep those verified local copies as a fallback
 // until the institution supplies a higher-resolution brand upload.
 const officialLogoOverrides: Record<string, string> = {
+  'accra-college-of-education-accra': '/assets/universities/accra-college-of-education/logo.jpg',
+  'akrokerri-college-of-education-akrokerri': '/assets/universities/akrokerri-college-of-education/logo.jpg',
+  'presbyterian-college-of-education-akropong-akuapem': '/assets/universities/presbyterian-college-of-education-akropong-akuapem/logo.png',
   'anglican-university-college-of-technology': '/assets/universities/anglican-university-college-of-technology/logo-official.jpg',
   'marshalls-university-college': '/assets/universities/marshalls-university-college/logo-official.png',
   'mountcrest-university-college': '/assets/universities/mountcrest-university-college/logo-official.png',
@@ -74,6 +77,8 @@ const officialLogoOverrides: Record<string, string> = {
 };
 
 const officialCampusOverrides: Record<string, string> = {
+  'akrokerri-college-of-education-akrokerri': '/assets/universities/akrokerri-college-of-education/campus.jpg',
+  'presbyterian-college-of-education-akropong-akuapem': '/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus.jpg',
   ait: '/assets/universities/ait/campus-official.jpg',
   'anglican-university-college-of-technology': '/assets/universities/anglican-university-college-of-technology/campus-official.jpg',
   'marshalls-university-college': '/assets/universities/marshalls-university-college/campus-official.jpg',
@@ -83,6 +88,9 @@ const officialCampusOverrides: Record<string, string> = {
 };
 
 const officialSourcePages: Record<string, string> = {
+  'accra-college-of-education-accra': 'https://acce.edu.gh/',
+  'akrokerri-college-of-education-akrokerri': 'https://www.arce.edu.gh/',
+  'presbyterian-college-of-education-akropong-akuapem': 'https://pce.edu.gh/',
   ait: 'https://ait.edu.gh/',
   'anglican-university-college-of-technology': 'https://angutech.edu.gh/',
   'marshalls-university-college': 'https://marshalls.edu.gh/test/',

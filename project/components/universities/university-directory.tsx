@@ -12,6 +12,8 @@ type DirectoryUniversity = {
   city: string | null; region: string | null; logo_url: string | null; hero_image_url: string | null; landmark_image_url: string | null;
   logo_alt_text: string | null; hero_alt_text: string | null; institution_type: string | null;
   ownership_type: string | null; campus_launch_status: string; is_verified: boolean;
+  accreditation_status: string | null; accreditation_valid_until: string | null;
+  accreditation_source_url: string | null; accreditation_checked_at: string | null;
   university_aliases: Array<{ alias: string }>;
 };
 
@@ -64,9 +66,9 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
   const clearFilters = () => { setType(allTypes); setRegion('All regions'); setOwnership('All ownership'); setStatus('All campus status'); setBranding('All branding'); setVerifiedOnly(false); };
 
   return (
-    <section aria-label="University directory">
+    <section aria-label="Ghana tertiary institution directory">
       <div className="mb-6 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
-        <label className="relative block"><span className="sr-only">Search universities</span><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search name, abbreviation, city, region, or alias" /></label>
+        <label className="relative block"><span className="sr-only">Search tertiary institutions</span><Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" /><Input value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" placeholder="Search institution, type, abbreviation, city, region, or alias" /></label>
         <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-sm text-muted-foreground"><span className="font-semibold text-foreground">{filtered.length}</span> of {universities.length} institution{universities.length === 1 ? '' : 's'} shown</p><button type="button" onClick={() => setShowFilters((value) => !value)} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-input px-3 text-sm font-semibold hover:border-primary hover:text-primary"><SlidersHorizontal className="mr-2 h-4 w-4" /> Filters {activeFilters > 0 && <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">{activeFilters}</span>}</button></div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px] sm:max-w-xl sm:grid-cols-3 sm:text-xs">
           <div className="rounded-xl border border-primary/15 bg-primary/5 px-2 py-2"><p className="font-bold text-primary">{brandingStats.complete}</p><p className="text-muted-foreground">Full profiles</p></div>
@@ -90,11 +92,11 @@ export function UniversityDirectory({ universities }: { universities: DirectoryU
           <div className="relative"><UniversityMedia src={landmarkImage} fallbackSrc={localBranding.campusUrl} alt={university.hero_alt_text || `${university.name} campus landmark`} name={university.name} shortName={university.short_name} kind="campus" className="h-44 w-full object-cover sm:h-48" /><span className={`absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold shadow-sm backdrop-blur-sm ${hasOfficialBranding ? 'bg-white/90 text-primary' : 'bg-slate-950/70 text-white'}`}>{hasOfficialBranding ? 'Campus profile' : 'Profile being completed'}</span></div>
             <div className="p-4">
             <div className="flex gap-3"><div className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border/70 bg-white p-0.5 text-xs font-bold text-primary shadow-sm"><UniversityLogo src={logoUrl} fallbackSrc={localBranding.logoUrl} logoObjectPosition={getUniversityLogoObjectPosition(university.slug)} alt={university.logo_alt_text || `Official logo of ${university.name}`} name={university.name} shortName={university.short_name} /></div><div className="min-w-0"><h2 className="truncate font-semibold group-hover:text-primary">{university.short_name}</h2><p className="line-clamp-2 text-sm text-muted-foreground">{university.official_name}</p></div></div>
-            <div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{university.institution_type || 'Tertiary institution'}</span><span className="rounded-full bg-success/10 px-2 py-1 text-success">{statusLabel(university.campus_launch_status)}</span></div>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs"><span className="rounded-full bg-primary/10 px-2 py-1 text-primary">{university.institution_type || 'Tertiary institution'}</span><span className="rounded-full bg-success/10 px-2 py-1 text-success">{statusLabel(university.campus_launch_status)}</span>{university.accreditation_status === 'active' && <span className="rounded-full bg-emerald-500/10 px-2 py-1 font-semibold text-emerald-700">GTEC listed</span>}</div>
             <p className="mt-3 flex items-center gap-1 text-sm text-muted-foreground"><MapPin className="h-3.5 w-3.5" />{[university.city, university.region].filter(Boolean).join(', ') || 'Ghana'}</p>
           </div>
         </Link>; })}</div>
-      {filtered.length === 0 && <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No recognised institution matches that search.</p>}
+      {filtered.length === 0 && <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">No tertiary institution matches that search.</p>}
     </section>
   );
 }
