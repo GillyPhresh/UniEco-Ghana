@@ -149,6 +149,9 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /border border-emerald-200 bg-white/);
   assert.doesNotMatch(feed, /Prepare &amp; play/);
   assert.match(feed, /prepareLegacyVideoForPlayback/);
+  assert.match(feed, /credentials: 'same-origin'[\s\S]*cache: 'no-store'[\s\S]*response\.blob\(\)/);
+  assert.match(feed, /URL\.createObjectURL\(mp4\)/);
+  assert.match(feed, /setVideoState\('ready'\); setPreparingLegacyVideo\(false\)/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
 });
 

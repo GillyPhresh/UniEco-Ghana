@@ -741,8 +741,28 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     setPreparingLegacyVideo(true);
     setFileError(false);
     setVideoState('loading');
-    setPreparedLegacyVideoUrl(`/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`);
-  }, [post.id]);
+    const url = `/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`;
+    void fetch(url, {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      signal: AbortSignal.timeout(VIDEO_PREPARATION_TIMEOUT_MS),
+    }).then(async (response) => {
+      if (!response.ok) throw new Error('The video could not be prepared for this device.');
+      const mp4 = await response.blob();
+      if (!mp4.size || mp4.type !== 'video/mp4') throw new Error('The prepared video was invalid.');
+      // iOS Safari is unreliable with an on-demand, chunked MP4 response that
+      // has no byte-range metadata. Buffer the bounded prepared file and hand
+      // the player a local URL so it can seek and decode it like a normal post.
+      setPreparedLegacyVideoUrl(URL.createObjectURL(mp4));
+    }).catch(() => {
+      setPreparingLegacyVideo(false);
+      if (post.media_type === 'file') setFileError(true);
+      else {
+        setVideoFailure('network');
+        setVideoState('error');
+      }
+    });
+  }, [post.id, post.media_type]);
 
   useEffect(() => {
     if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
@@ -937,8 +957,8 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             autoPlay={active && !reducedData}
             preload={active && !reducedData ? 'metadata' : 'none'}
             onLoadedMetadata={() => setVideoState('loading')}
-            onLoadedData={() => setVideoState('ready')}
-            onPlaying={() => setVideoState('ready')}
+            onLoadedData={() => { setVideoState('ready'); setPreparingLegacyVideo(false); }}
+            onPlaying={() => { setVideoState('ready'); setPreparingLegacyVideo(false); }}
             onWaiting={() => setVideoState('loading')}
             onError={(event) => {
               const code = event.currentTarget.error?.code;
