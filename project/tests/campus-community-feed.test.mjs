@@ -173,8 +173,10 @@ test('video preparation is authenticated, bounded, private-file authorized, and 
   assert.match(route, /'yuv420p'/);
   assert.match(route, /'aac'/);
   assert.match(route, /export async function GET\(request: NextRequest\)/);
-  assert.match(route, /convertToStreamingMp4/);
-  assert.match(route, /frag_keyframe\+empty_moov\+default_base_moof/);
+  assert.match(route, /convertToBrowserMp4\(source\.input, source\.extension\)/);
+  assert.match(route, /new Response\(new Uint8Array\(mp4\)/);
+  assert.match(route, /Content-Length.*mp4\.byteLength/);
+  assert.match(route, /movflags', '\+faststart'/);
   assert.match(route, /Content-Disposition.*inline/);
   assert.match(route, /loadAuthorizedPostVideo/);
   assert.match(route, /'video\/mp4'/);

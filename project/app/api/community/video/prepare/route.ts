@@ -163,126 +163,6 @@ async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
   }
 }
 
-async function convertToStreamingMp4(input: Buffer, inputExtension: string, releaseSlot: () => void) {
-  const directory = await mkdtemp(path.join(tmpdir(), 'unieco-video-stream-'));
-  const sourcePath = path.join(directory, `upload.${inputExtension || 'video'}`);
-  try {
-    await writeFile(sourcePath, input, { flag: 'wx', mode: 0o600 });
-  } catch (error) {
-    await rm(directory, { recursive: true, force: true });
-    throw error;
-  }
-
-  let child: ReturnType<typeof spawn>;
-  try {
-    child = spawn('ffmpeg', [
-      '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',
-      '-protocol_whitelist', 'file,pipe,data',
-      '-max_alloc', '100000000', '-filter_threads', '1',
-      '-i', sourcePath,
-      '-map', '0:v:0', '-map', '0:a:0?',
-      '-map_metadata', '-1', '-map_chapters', '-1',
-      '-vf', "scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
-      '-c:v', 'libx264', '-threads', '2', '-preset', 'ultrafast', '-crf', '26', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p', '-g', '48', '-keyint_min', '48', '-sc_threshold', '0',
-      '-c:a', 'aac', '-b:a', '96k', '-ac', '2',
-      '-movflags', '+frag_keyframe+empty_moov+default_base_moof', '-fs', String(MAX_OUTPUT_BYTES), '-f', 'mp4', 'pipe:1',
-    ], { stdio: ['ignore', 'pipe', 'pipe'] });
-  } catch (error) {
-    await rm(directory, { recursive: true, force: true });
-    throw error;
-  }
-
-  let firstChunkSettled = false;
-  let resolveFirst!: (chunk: Uint8Array) => void;
-  let rejectFirst!: (error: Error) => void;
-  const firstChunk = new Promise<Uint8Array>((resolve, reject) => { resolveFirst = resolve; rejectFirst = reject; });
-  const stdout = child.stdout;
-  const stderrStream = child.stderr;
-  if (!stdout || !stderrStream) {
-    child.kill('SIGKILL');
-    await rm(directory, { recursive: true, force: true });
-    throw new Error('Video streaming is unavailable.');
-  }
-  const queuedChunks: Uint8Array[] = [];
-  let wakeReader: (() => void) | null = null;
-  let closed = false;
-  let streamError: Error | null = null;
-  let totalBytes = 0;
-  let stderr = '';
-  let cleaned = false;
-  const cleanup = () => {
-    if (cleaned) return;
-    cleaned = true;
-    clearTimeout(timeout);
-    void rm(directory, { recursive: true, force: true });
-  };
-  const timeout = setTimeout(() => {
-    streamError = new Error('Video conversion took too long.');
-    child.kill('SIGKILL');
-    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError); }
-    wakeReader?.();
-  }, MAX_TRANSCODE_MS);
-
-  stdout.on('data', (chunk: Buffer) => {
-    totalBytes += chunk.byteLength;
-    if (totalBytes > MAX_OUTPUT_BYTES) {
-      streamError = new Error('The prepared video is too large.');
-      child.kill('SIGKILL');
-      if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError); }
-      wakeReader?.();
-      return;
-    }
-    const bytes = new Uint8Array(chunk);
-    if (!firstChunkSettled) { firstChunkSettled = true; resolveFirst(bytes); }
-    else queuedChunks.push(bytes);
-    wakeReader?.();
-  });
-  stderrStream.on('data', (chunk: Buffer) => {
-    if (stderr.length < 8_000) stderr += chunk.toString('utf8').slice(0, 8_000 - stderr.length);
-  });
-  child.once('error', (error) => {
-    streamError = error;
-    closed = true;
-    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(error); }
-    wakeReader?.();
-    cleanup();
-    releaseSlot();
-  });
-  child.once('close', (code) => {
-    closed = true;
-    if (code !== 0 && !streamError) streamError = new Error(stderr || 'The video could not be converted.');
-    if (!firstChunkSettled) { firstChunkSettled = true; rejectFirst(streamError || new Error('The video could not be converted.')); }
-    wakeReader?.();
-    cleanup();
-    releaseSlot();
-  });
-
-  let first: Uint8Array;
-  try {
-    first = await firstChunk;
-  } catch (error) {
-    child.kill('SIGKILL');
-    cleanup();
-    throw error;
-  }
-
-  const stream = new ReadableStream<Uint8Array>({
-    start(controller) { controller.enqueue(first); },
-    async pull(controller) {
-      while (!queuedChunks.length && !closed && !streamError) {
-        await new Promise<void>((resolve) => { wakeReader = resolve; });
-        wakeReader = null;
-      }
-      if (queuedChunks.length) { controller.enqueue(queuedChunks.shift()!); return; }
-      if (streamError) controller.error(streamError);
-      else if (closed) controller.close();
-    },
-    cancel() { child.kill('SIGKILL'); cleanup(); releaseSlot(); },
-  });
-  if (closed) releaseSlot();
-  return stream;
-}
-
 async function loadAuthorizedPostVideo(supabase: Awaited<ReturnType<typeof createClient>>, postId: string) {
   const { data: attachmentData } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId });
   const attachment = (attachmentData || [])[0] as { file_path?: string; file_name?: string; file_size?: number } | undefined;
@@ -333,15 +213,18 @@ export async function GET(request: NextRequest) {
   try {
     const source = await loadAuthorizedPostVideo(supabase, postId);
     if (!source) { releaseSlot(); return jsonError('This video is not available for playback.', 404); }
-    const stream = await convertToStreamingMp4(source.input, source.extension, releaseSlot);
-    return new Response(stream, {
+    // Return a conventional fast-start MP4. iOS Safari can stall indefinitely
+    // when a fragmented MP4 response is buffered into a Blob for legacy posts.
+    const mp4 = await convertToBrowserMp4(source.input, source.extension);
+    releaseSlot();
+    return new Response(new Uint8Array(mp4), {
       status: 200,
       headers: {
         'Content-Type': 'video/mp4',
         'Content-Disposition': 'inline; filename="unieco-video.mp4"',
+        'Content-Length': String(mp4.byteLength),
         'Cache-Control': 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
-        'X-Accel-Buffering': 'no',
       },
     });
   } catch (error) {
