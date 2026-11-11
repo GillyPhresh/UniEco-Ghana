@@ -165,5 +165,63 @@ export async function POST(request: Request) {
     });
   }
 
+  if (action === 'queue_existing_broadcast') {
+    const broadcastId = typeof body.broadcastId === 'string' ? body.broadcastId : '';
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(broadcastId)) {
+      return privateJson({ error: 'Select a valid source-linked broadcast.' }, 400);
+    }
+    const { data: broadcast, error: broadcastError } = await auth.supabase
+      .from('admin_broadcasts')
+      .select('id, title, body, broadcast_type, target_audience, target_filters, status')
+      .eq('id', broadcastId)
+      .maybeSingle();
+    if (broadcastError) return privateJson({ error: 'Unable to load this broadcast.' }, 503);
+    if (!broadcast || broadcast.broadcast_type !== 'update' || broadcast.status === 'cancelled') {
+      return privateJson({ error: 'Only an active source-linked update can enter Campus Updates review.' }, 400);
+    }
+    const filters = broadcast.target_filters && typeof broadcast.target_filters === 'object'
+      ? broadcast.target_filters as Record<string, unknown> : {};
+    const sourceUrl = typeof filters.source_url === 'string' ? filters.source_url : '';
+    let parsedSource: URL;
+    try {
+      parsedSource = new URL(sourceUrl);
+      if (sourceUrl.length > 650 || parsedSource.protocol !== 'https:' || parsedSource.username || parsedSource.password || (parsedSource.port && parsedSource.port !== '443')) {
+        return privateJson({ error: 'This broadcast does not contain a secure public source link.' }, 400);
+      }
+    } catch {
+      return privateJson({ error: 'This broadcast has no valid trusted source link.' }, 400);
+    }
+    const { data: universities, error: directoryError } = await auth.supabase
+      .from('universities')
+      .select('name, slug, website_url')
+      .eq('is_enabled', true)
+      .order('name')
+      .limit(200);
+    if (directoryError) return privateJson({ error: 'Unable to verify this trusted source.' }, 503);
+    const trustedSource = getTrustedUniEcoAiSources((universities || []) as UniEcoAiUniversity[]).find((source) => {
+      try {
+        const trustedHost = new URL(source.url).hostname.toLowerCase();
+        const candidateHost = parsedSource.hostname.toLowerCase();
+        return candidateHost === trustedHost || candidateHost.endsWith(`.${trustedHost}`);
+      } catch { return false; }
+    });
+    if (!trustedSource) return privateJson({ error: 'This link is not from an enabled trusted source.' }, 400);
+    const title = typeof broadcast.title === 'string' ? broadcast.title.trim().slice(0, 220) : '';
+    const summary = typeof broadcast.body === 'string' ? broadcast.body.trim().slice(0, 500) : '';
+    const audience = broadcast.target_audience === 'students' || broadcast.target_audience === 'vendors' ? broadcast.target_audience : 'all';
+    const { data: prepared, error } = await auth.supabase.rpc('prepare_admin_ai_update', {
+      p_title: title,
+      p_summary: summary,
+      p_source_url: sourceUrl,
+      p_source_label: trustedSource.label.slice(0, 160),
+      p_broadcast_title: title.slice(0, 200),
+      p_broadcast_body: summary,
+      p_target_audience: audience,
+    });
+    if (error) return privateJson({ error: 'The story could not be queued for review. No public post or additional broadcast was sent.' }, 503);
+    const result = prepared && typeof prepared === 'object' ? prepared as Record<string, unknown> : {};
+    return privateJson({ feedItemId: result.feedItemId, feedStatus: result.feedStatus, broadcastId: result.broadcastId });
+  }
+
   return privateJson({ error: 'Unsupported AI action.' }, 400);
 }

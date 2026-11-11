@@ -41,6 +41,22 @@ test('private AI UI is mounted only in the management area and drafts are not au
   assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
 });
 
+test('existing source-linked broadcasts can enter public review without creating or sending a duplicate', () => {
+  assert.match(route, /action === 'queue_existing_broadcast'/);
+  assert.match(route, /broadcast\.broadcast_type !== 'update'/);
+  assert.match(route, /broadcast\.status === 'cancelled'/);
+  assert.match(route, /Only an active source-linked update/);
+  assert.match(route, /getTrustedUniEcoAiSources/);
+  assert.match(route, /rpc\('prepare_admin_ai_update'/);
+  assert.match(route, /No public post or additional broadcast was sent/);
+  assert.doesNotMatch(route, /begin_admin_broadcast_delivery/);
+  const broadcasts = fs.readFileSync(path.join(root, 'app/admin/broadcasts/page.tsx'), 'utf8');
+  assert.match(broadcasts, /Queue public review/);
+  assert.match(broadcasts, /action: 'queue_existing_broadcast'/);
+  assert.match(broadcasts, /label: 'Queued'/);
+  assert.match(broadcasts, /Recipients queued:/);
+});
+
 test('built-in AI drafts are source-grounded and always submitted for human review', () => {
   assert.match(route, /rpc\('prepare_admin_ai_update'/);
   assert.match(route, /queue_public_update_review/);

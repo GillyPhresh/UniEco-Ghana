@@ -18,7 +18,7 @@ import {
 } from '@/lib/data/communication-client';
 import type { AdminBroadcast, BroadcastStatus } from '@/lib/types/communication';
 import { BROADCAST_STATUS_LABELS, CHANNEL_LABELS } from '@/lib/types/communication';
-import { Megaphone, Plus, Send, Eye, Check, X, Clock } from 'lucide-react';
+import { Megaphone, Plus, Send, Eye, Check, X, Clock, Newspaper } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ALL_CHANNELS = ['in_app', 'email', 'push'] as const;
@@ -50,6 +50,8 @@ function Content() {
   const [pendingAction, setPendingAction] = useState<{ broadcast: AdminBroadcast; kind: 'approve' | 'send' | 'cancel' } | null>(null);
   const [actionReason, setActionReason] = useState('');
   const [actionSaving, setActionSaving] = useState(false);
+  const [queueingReview, setQueueingReview] = useState<string | null>(null);
+  const [queuedForReview, setQueuedForReview] = useState<Set<string>>(() => new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,6 +118,34 @@ function Content() {
     void load();
   };
 
+  const queuePublicReview = async (broadcast: AdminBroadcast) => {
+    setQueueingReview(broadcast.id);
+    try {
+      const response = await fetch('/api/admin/ai', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action: 'queue_existing_broadcast', broadcastId: broadcast.id }),
+      });
+      const result = await response.json() as { feedStatus?: string; error?: string };
+      if (!response.ok) throw new Error(result.error || 'Unable to queue this story for review.');
+      const sourceUrl = broadcast.target_filters?.source_url;
+      if (typeof sourceUrl === 'string') {
+        setQueuedForReview((current) => {
+          const next = new Set(current);
+          next.add(sourceUrl);
+          return next;
+        });
+      }
+      toast.success(result.feedStatus === 'approved'
+        ? 'This story is already public on Campus Updates.'
+        : 'Queued for Campus Updates review. It will appear publicly after approval. No extra notification was sent.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to queue this story for review.');
+    } finally {
+      setQueueingReview(null);
+    }
+  };
+
   const STATUS_ICONS: Record<BroadcastStatus, typeof Clock> = {
     draft: Clock, scheduled: Clock, pending_approval: Eye,
     approved: Check, sending: Send, sent: Check, cancelled: X,
@@ -146,7 +176,10 @@ function Content() {
         <div className="space-y-2">
           {broadcasts.map((b) => {
             const StatusIcon = STATUS_ICONS[b.status] || Clock;
-            const statusInfo = BROADCAST_STATUS_LABELS[b.status] || { label: b.status, color: 'muted' };
+            const baseStatusInfo = BROADCAST_STATUS_LABELS[b.status] || { label: b.status, color: 'muted' };
+            const statusInfo = b.status === 'sending' ? { ...baseStatusInfo, label: 'Queued' } : baseStatusInfo;
+            const sourceUrl = typeof b.target_filters?.source_url === 'string' ? b.target_filters.source_url : '';
+            const canQueuePublicReview = b.broadcast_type === 'update' && /^https:\/\//i.test(sourceUrl) && b.status !== 'cancelled' && !queuedForReview.has(sourceUrl);
             return (
               <Card key={b.id}>
                 <CardContent className="p-4">
@@ -170,12 +203,18 @@ function Content() {
                       <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground">
                         <span>Channels: {b.channels.map((ch) => CHANNEL_LABELS[ch as keyof typeof CHANNEL_LABELS] || ch).join(', ')}</span>
                         {typeof b.target_filters?.action_url === 'string' && <span className="max-w-[18rem] truncate">Destination: {b.target_filters.action_url}</span>}
-                        {b.sent_count > 0 && <span>Delivered: {b.sent_count}</span>}
+                        {b.sent_count > 0 && <span>{b.status === 'sending' ? 'Recipients queued:' : 'Delivered:'} {b.sent_count}</span>}
                         {b.failed_count > 0 && <span className="text-destructive">Failed: {b.failed_count}</span>}
                         <span>{new Date(b.created_at).toLocaleDateString('en-GH')}</span>
                       </div>
                     </div>
                     <div className="flex flex-col gap-1">
+                      {canQueuePublicReview && (
+                        <Button size="sm" variant="outline" onClick={() => void queuePublicReview(b)} disabled={queueingReview !== null}>
+                          {queueingReview === b.id ? <Clock className="mr-1 h-3 w-3 animate-spin" /> : <Newspaper className="mr-1 h-3 w-3" />}
+                          Queue public review
+                        </Button>
+                      )}
                       {b.status === 'pending_approval' && (
                         <Button size="sm" variant="outline" onClick={() => { setActionReason(''); setPendingAction({ broadcast: b, kind: 'approve' }); }}><Check className="mr-1 h-3 w-3" /> Approve</Button>
                       )}
