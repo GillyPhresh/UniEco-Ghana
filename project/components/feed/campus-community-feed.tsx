@@ -709,6 +709,15 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
   const legacyPrepareAttemptedRef = useRef(false);
 
+  const prepareLegacyVideoForPlayback = useCallback(() => {
+    if (legacyPrepareAttemptedRef.current) return;
+    legacyPrepareAttemptedRef.current = true;
+    setPreparingLegacyVideo(true);
+    setFileError(false);
+    setVideoState('loading');
+    setPreparedLegacyVideoUrl(`/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`);
+  }, [post.id]);
+
   useEffect(() => {
     if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
       || privateVideoUrl || privateVideoLoading || privateVideoAttempted) return;
@@ -717,14 +726,22 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     void supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60)
       .then(({ data, error }) => {
         if (error || !data?.signedUrl) {
-          setFileError(true);
+          // If Storage cannot mint a direct playback URL, retry through the
+          // authenticated same-origin converter. This is a video attachment
+          // (not an arbitrary download) and remains protected by the post's
+          // normal community-access checks.
+          if (!legacyPrepareAttemptedRef.current) void prepareLegacyVideoForPlayback();
+          else setFileError(true);
           return;
         }
         setPrivateVideoUrl(data.signedUrl);
       })
-      .catch(() => setFileError(true))
+      .catch(() => {
+        if (!legacyPrepareAttemptedRef.current) void prepareLegacyVideoForPlayback();
+        else setFileError(true);
+      })
       .finally(() => setPrivateVideoLoading(false));
-  }, [active, post.media_type, fileInfo, privateVideoUrl, privateVideoLoading, privateVideoAttempted]);
+  }, [active, post.media_type, fileInfo, privateVideoUrl, privateVideoLoading, privateVideoAttempted, prepareLegacyVideoForPlayback]);
 
   useEffect(() => {
     if (!active || post.media_type !== 'file' || fileInfo) return;
@@ -765,15 +782,6 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     video.load();
     void video.play().catch(() => undefined);
   }, [preparedLegacyVideoUrl, post.media_type]);
-
-  const prepareLegacyVideoForPlayback = () => {
-    if (preparingLegacyVideo || legacyPrepareAttemptedRef.current) return;
-    legacyPrepareAttemptedRef.current = true;
-    setPreparingLegacyVideo(true);
-    setFileError(false);
-    setVideoState('loading');
-    setPreparedLegacyVideoUrl(`/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`);
-  };
 
   const downloadAttachment = async () => {
     if (fileLoading) return;

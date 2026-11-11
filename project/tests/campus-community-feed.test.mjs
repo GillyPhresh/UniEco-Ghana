@@ -61,6 +61,8 @@ test('private video attachments autoplay inline without exposing file details', 
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
+  assert.match(feed, /If Storage cannot mint a direct playback URL[\s\S]*prepareLegacyVideoForPlayback/);
+  assert.match(feed, /\.catch\(\(\) => \{[\s\S]*prepareLegacyVideoForPlayback/);
   assert.match(feed, /A failed private stream can be caused by a browser-incompatible/);
   assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
   assert.match(feed, /autoPlay muted loop preload=\{active \? 'auto' : 'none'\}/);
