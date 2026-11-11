@@ -93,6 +93,7 @@ async function uploadCommunityMediaResumably(
   path: string,
   bucket: 'campus-community' | 'campus-community-files',
   onProgress: (percentage: number) => void,
+  allowSignedUploadFallback = false,
 ) {
   const { data: sessionResult, error: sessionError } = await supabase.auth.getSession();
   const session = sessionResult.session;
@@ -109,34 +110,59 @@ async function uploadCommunityMediaResumably(
   const projectRef = new URL(url).hostname.split('.')[0];
   if (!/^[a-z0-9-]+$/i.test(projectRef)) throw new Error('The secure upload service is not configured correctly.');
 
-  await new Promise<void>((resolve, reject) => {
-    const upload = new Upload(file, {
-      endpoint: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
-      headers: {
-        authorization: `Bearer ${session.access_token}`,
-        apikey: getSupabaseConfig().anonKey,
-        'x-signature': signedUpload.token,
-        'x-upsert': 'false',
-      },
-      metadata: {
-        bucketName: bucket,
-        objectName: path,
-        contentType: file.type || 'application/octet-stream',
-        cacheControl: '0',
-      },
-      chunkSize: RESUMABLE_UPLOAD_CHUNK_BYTES,
-      retryDelays: [0, 3_000, 5_000, 10_000, 20_000],
-      uploadDataDuringCreation: true,
-      storeFingerprintForResuming: false,
-      removeFingerprintOnSuccess: true,
-      onError: reject,
-      onProgress(bytesUploaded, bytesTotal) {
-        onProgress(Math.min(100, Math.floor((bytesUploaded / Math.max(1, bytesTotal)) * 100)));
-      },
-      onSuccess: () => resolve(),
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const upload = new Upload(file, {
+        endpoint: `https://${projectRef}.storage.supabase.co/storage/v1/upload/resumable`,
+        headers: {
+          authorization: `Bearer ${session.access_token}`,
+          apikey: getSupabaseConfig().anonKey,
+          'x-signature': signedUpload.token,
+          'x-upsert': 'false',
+        },
+        metadata: {
+          bucketName: bucket,
+          objectName: path,
+          contentType: file.type || 'application/octet-stream',
+          cacheControl: '0',
+        },
+        chunkSize: RESUMABLE_UPLOAD_CHUNK_BYTES,
+        retryDelays: [0, 3_000, 5_000, 10_000, 20_000],
+        uploadDataDuringCreation: true,
+        storeFingerprintForResuming: false,
+        removeFingerprintOnSuccess: true,
+        onError: reject,
+        onProgress(bytesUploaded, bytesTotal) {
+          onProgress(Math.min(100, Math.floor((bytesUploaded / Math.max(1, bytesTotal)) * 100)));
+        },
+        onSuccess: () => resolve(),
+      });
+      upload.start();
     });
-    upload.start();
-  });
+  } catch (resumableError) {
+    if (!allowSignedUploadFallback) throw resumableError;
+
+    // Some mobile browsers or carrier networks interrupt TUS creation/PATCH
+    // requests even though a normal authenticated Storage upload works. If
+    // TUS finalized the object but its response was lost, don't upload it a
+    // second time; otherwise retry once using Supabase's supported signed
+    // upload SDK method for this already-normalized, <=24 MiB MP4.
+    const storage = supabase.storage.from(bucket);
+    const { data: exists, error: existsError } = await storage.exists(path);
+    if (!existsError && exists) return;
+
+    const { data: fallbackToken, error: fallbackTokenError } = await storage.createSignedUploadUrl(path, { upsert: false });
+    if (fallbackTokenError || !fallbackToken?.token) {
+      throw fallbackTokenError || resumableError;
+    }
+    const { error: fallbackError } = await storage.uploadToSignedUrl(path, fallbackToken.token, file, {
+      contentType: 'video/mp4',
+      cacheControl: '0',
+      upsert: false,
+    });
+    if (fallbackError) throw fallbackError;
+    onProgress(100);
+  }
 }
 
 type NetworkInformationLike = {
@@ -489,7 +515,7 @@ export function CampusCommunityFeed() {
           setUploadStage(isVideo ? 'Uploading video…' : 'Uploading attachment…');
           setUploadProgress(0);
           try {
-            await uploadCommunityMediaResumably(fileToUpload, uploadPath, uploadBucket, setUploadProgress);
+            await uploadCommunityMediaResumably(fileToUpload, uploadPath, uploadBucket, setUploadProgress, publicVideoUpload);
           } catch {
             throw new Error('RESUMABLE_UPLOAD:Video upload was interrupted. Check your connection and retry; your post has not been published.');
           }

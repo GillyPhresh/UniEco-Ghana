@@ -118,11 +118,15 @@ test('prepared videos publish through the same public feed-media path as photos'
   const submit = feed.slice(feed.indexOf('const submitPost ='), feed.indexOf('const submitReport ='));
   assert.match(feed, /MAX_PUBLIC_VIDEO_BYTES = 24 \* 1024 \* 1024/);
   assert.match(feed, /uploadCommunityMediaResumably/);
+  assert.match(feed, /allowSignedUploadFallback = false/);
+  assert.match(feed, /storage\.uploadToSignedUrl\(path, fallbackToken\.token, file/);
+  assert.match(feed, /if \(!existsError && exists\) return/);
   assert.match(feed, /bucketName: bucket/);
   assert.match(submit, /mp4\.size > MAX_PUBLIC_VIDEO_BYTES/);
   assert.match(submit, /Never silently turn a video into a private attachment/);
   assert.match(submit, /mediaType = 'video'/);
   assert.match(submit, /uploadBucket = 'campus-community'/);
+  assert.match(submit, /setUploadProgress, publicVideoUpload/);
   assert.match(submit, /p_media_type: publicPath \? mediaType : null/);
   assert.match(submit, /p_media_path: publicPath/);
   assert.match(feed, /src=\{preparedLegacyVideoUrl \|\| post\.media_url \|\| undefined\}/);
