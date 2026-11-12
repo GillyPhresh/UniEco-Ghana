@@ -489,11 +489,18 @@ export function CampusCommunityFeed() {
     try {
       let fileToUpload = mediaFile;
       if (mediaFile && isVideo) {
-        const form = new FormData();
-        form.append('video', mediaFile);
         const mp4 = await withRequestTimeout(VIDEO_PREPARATION_TIMEOUT_MS, async (signal) => {
           const response = await fetch('/api/community/video/prepare', {
-            method: 'POST', body: form, credentials: 'same-origin', signal,
+            // Send the file bytes directly. iOS Safari can fail to parse large
+            // multipart video bodies through Request.formData(), even when the
+            // selected QuickTime file itself is valid.
+            method: 'POST',
+            body: mediaFile,
+            headers: {
+              'Content-Type': 'application/octet-stream',
+              'X-UniEco-Video-Name': encodeURIComponent(mediaFile.name),
+            },
+            credentials: 'same-origin', signal,
           });
           if (!response.ok) {
             const result = await response.json().catch(() => null) as { error?: string } | null;

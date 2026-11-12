@@ -293,6 +293,25 @@ export async function POST(request: NextRequest) {
     const declaredSize = Number(download.headers.get('content-length') || 0);
     if (declaredSize > MAX_VIDEO_BYTES) return jsonError('This video is larger than the playback limit.', 413);
     input = Buffer.from(await download.arrayBuffer());
+  } else if (contentType.includes('application/octet-stream')) {
+    const { data: allowed, error: permissionError } = await supabase.rpc('can_upload_campus_community_media');
+    if (permissionError || allowed !== true) return jsonError('Your account is not eligible to post campus videos.', 403);
+    const encodedName = request.headers.get('x-unieco-video-name') || '';
+    let fileName = '';
+    try {
+      fileName = decodeURIComponent(encodedName);
+    } catch {
+      return jsonError('The selected video filename is invalid.', 400);
+    }
+    extension = extensionOf(fileName);
+    if (!fileName || !ALLOWED_VIDEO_EXTENSIONS.has(extension)) {
+      return jsonError('Choose a recognized video file.', 415);
+    }
+    try {
+      input = Buffer.from(await request.arrayBuffer());
+    } catch {
+      return jsonError('The video upload could not be read. Please select it again and retry.', 400);
+    }
   } else if (contentType.includes('multipart/form-data')) {
     const { data: allowed, error: permissionError } = await supabase.rpc('can_upload_campus_community_media');
     if (permissionError || allowed !== true) return jsonError('Your account is not eligible to post campus videos.', 403);

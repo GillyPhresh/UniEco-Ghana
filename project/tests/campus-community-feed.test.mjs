@@ -89,6 +89,13 @@ test('post composer prepares accepted video containers for phone-friendly inline
   const dockerfile = await read('Dockerfile');
   assert.match(feed, /VIDEO_FILE_EXTENSION/);
   assert.match(feed, /api\/community\/video\/prepare/);
+  assert.match(feed, /body: mediaFile/);
+  assert.match(feed, /X-UniEco-Video-Name/);
+  assert.doesNotMatch(feed, /form\.append\('video', mediaFile\)/);
+  const prepareRoute = await read('app/api/community/video/prepare/route.ts');
+  assert.match(prepareRoute, /contentType\.includes\('application\/octet-stream'\)/);
+  assert.match(prepareRoute, /request\.arrayBuffer\(\)/);
+  assert.match(prepareRoute, /x-unieco-video-name/);
   assert.match(feed, /UniEco will prepare this video as a phone-friendly MP4 before posting/);
   assert.match(feed, /video\/mp4/);
   assert.match(feed, /\.mov/);
