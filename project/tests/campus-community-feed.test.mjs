@@ -61,12 +61,10 @@ test('private video attachments autoplay inline without exposing file details', 
   assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
   assert.match(feed, /canPlayPrivateVideoInline/);
   assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /If Storage cannot mint a direct playback URL[\s\S]*prepareLegacyVideoForPlayback/);
-  assert.match(feed, /\.catch\(\(\) => \{[\s\S]*prepareLegacyVideoForPlayback/);
-  assert.match(feed, /A failed private stream can be caused by a browser-incompatible/);
-  assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
-  assert.match(feed, /autoPlay muted loop preload=\{active \? 'auto' : 'none'\}/);
-  assert.match(feed, /Making this video ready…/);
+  assert.match(feed, /Play compatible originals directly[\s\S]*\[3, 4\]\.includes\(code \|\| 0\)/);
+  assert.match(feed, /controls playsInline autoPlay muted loop preload=\{active \? 'auto' : 'metadata'\}/);
+  assert.match(feed, /aspect-\[9\/16\] max-h-\[72dvh\]/);
+  assert.match(feed, /Loading campus video…/);
   assert.doesNotMatch(feed, /fileInfo\.name/);
   assert.doesNotMatch(feed, /readableSize\(fileInfo\.size\).*private video/);
   assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
@@ -145,6 +143,7 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /We couldn’t play this video/);
   assert.match(feed, /Try again/);
   assert.match(feed, /Making this video ready…/);
+  assert.match(feed, /Adapting this older video for your device…/);
   assert.match(feed, /legacyPrepareAttemptedRef/);
   assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
   assert.match(feed, /one-time same-origin recovery stream also handles interrupted/);

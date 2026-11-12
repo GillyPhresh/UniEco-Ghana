@@ -789,20 +789,12 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     void supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60)
       .then(({ data, error }) => {
         if (error || !data?.signedUrl) {
-          // If Storage cannot mint a direct playback URL, retry through the
-          // authenticated same-origin converter. This is a video attachment
-          // (not an arbitrary download) and remains protected by the post's
-          // normal community-access checks.
-          if (!legacyPrepareAttemptedRef.current) void prepareLegacyVideoForPlayback();
-          else setFileError(true);
+          setFileError(true);
           return;
         }
         setPrivateVideoUrl(data.signedUrl);
       })
-      .catch(() => {
-        if (!legacyPrepareAttemptedRef.current) void prepareLegacyVideoForPlayback();
-        else setFileError(true);
-      })
+      .catch(() => setFileError(true))
       .finally(() => setPrivateVideoLoading(false));
   }, [active, post.media_type, fileInfo, privateVideoUrl, privateVideoLoading, privateVideoAttempted, prepareLegacyVideoForPlayback]);
 
@@ -876,6 +868,8 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     setFileLookupAttempt((attempt) => attempt + 1);
   };
 
+  const resolvingPrivateAttachment = active && !fileInfo && !fileError;
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -888,7 +882,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } else {
       video.pause();
     }
-  }, [active, reducedData]);
+  }, [active, reducedData, privateVideoUrl, preparedLegacyVideoUrl]);
 
   const retryVideo = () => {
     const video = videoRef.current;
@@ -932,28 +926,34 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
         <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
       ) : post.media_type === 'file' ? (
         <div className="border-t border-slate-200/70 bg-black">
+          {(fileChecking || resolvingPrivateAttachment) && (
+            <div className="mx-auto flex aspect-[9/16] max-h-[72dvh] w-full max-w-xl flex-col items-center justify-center gap-3 bg-black px-5 text-center text-white" role="status">
+              <Loader2 className="h-8 w-8 animate-spin text-emerald-300" />
+              <p className="text-sm font-medium">Loading campus video…</p>
+            </div>
+          )}
           {fileInfo && canPlayPrivateVideoInline(fileInfo) ? (
-            <div className="relative flex min-h-56 w-full items-center justify-center bg-black sm:min-h-72">
-                {preparedLegacyVideoUrl || privateVideoUrl ? <video ref={videoRef} src={preparedLegacyVideoUrl || privateVideoUrl || undefined} controls playsInline autoPlay muted loop preload={active ? 'auto' : 'none'} aria-label={`Video shared by ${post.author_name}`} className="block max-h-[min(78dvh,52rem)] w-full object-contain" onLoadedData={() => setPreparingLegacyVideo(false)} onPlaying={() => setPreparingLegacyVideo(false)} onError={(event) => {
+            <div className="relative mx-auto flex aspect-[9/16] max-h-[72dvh] w-full max-w-xl items-center justify-center bg-black">
+                {preparedLegacyVideoUrl || privateVideoUrl ? <video ref={videoRef} src={preparedLegacyVideoUrl || privateVideoUrl || undefined} controls playsInline autoPlay muted loop preload={active ? 'auto' : 'metadata'} aria-label={`Video shared by ${post.author_name}`} className="block h-full max-h-[72dvh] w-full object-contain" onLoadedData={() => { setPreparingLegacyVideo(false); setFileError(false); }} onPlaying={() => { setPreparingLegacyVideo(false); setFileError(false); }} onError={(event) => {
                   if (preparedLegacyVideoUrl) { setPreparingLegacyVideo(false); setPreparedLegacyVideoUrl(null); setFileError(true); return; }
                   setPrivateVideoUrl(null);
                   const code = event.currentTarget.error?.code;
-                  // A failed private stream can be caused by a browser-incompatible
-                  // container or a storage/CDN stream error. Try the authorized
-                  // recovery stream once, including for MP4s that fail to load.
-                  if ([2, 3, 4].includes(code || 0) && !legacyPrepareAttemptedRef.current) {
+                  // Play compatible originals directly. Transcode only when the
+                  // browser confirms it cannot decode the source; network errors
+                  // should be retried, not turned into a slow conversion job.
+                  if ([3, 4].includes(code || 0) && !legacyPrepareAttemptedRef.current) {
                     void prepareLegacyVideoForPlayback();
                   } else setFileError(true);
                 }} /> : (
                   <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
                     {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
-                    <p className="text-sm font-medium">{preparingLegacyVideo ? 'Making this video ready…' : privateVideoLoading ? 'Loading campus video…' : fileError ? 'This video could not load. Tap to retry.' : 'Loading campus video…'}</p>
+                    <p className="text-sm font-medium">{preparingLegacyVideo ? 'Adapting this older video for your device…' : privateVideoLoading ? 'Loading campus video…' : fileError ? 'This video could not load. Tap to retry.' : 'Loading campus video…'}</p>
                     {fileError && <Button type="button" variant="outline" onClick={() => { legacyPrepareAttemptedRef.current = false; setFileError(false); setPreparedLegacyVideoUrl(null); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading || preparingLegacyVideo} className="min-h-10 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
                   </div>
                 )}
-                {preparingLegacyVideo && (preparedLegacyVideoUrl || privateVideoUrl) && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-sm font-medium text-white" role="status"><Loader2 className="h-7 w-7 animate-spin text-emerald-300" />Making this video ready…</div>}
+                {preparingLegacyVideo && (preparedLegacyVideoUrl || privateVideoUrl) && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-sm font-medium text-white" role="status"><Loader2 className="h-7 w-7 animate-spin text-emerald-300" />Adapting this older video…</div>}
             </div>
-          ) : (
+          ) : fileChecking || resolvingPrivateAttachment ? null : (
             <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'The private attachment could not be reached.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
