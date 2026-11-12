@@ -97,7 +97,7 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(dockerfile, /apk add --no-cache ffmpeg/);
   assert.match(dockerfile, /libx264/);
   assert.match(feed, /VIDEO_PREPARATION_TIMEOUT_MS = 240_000/);
-  assert.match(feed, /signal: AbortSignal\.timeout\(VIDEO_PREPARATION_TIMEOUT_MS\)/);
+  assert.match(feed, /withRequestTimeout\(VIDEO_PREPARATION_TIMEOUT_MS, async \(signal\) =>/);
   assert.match(feed, /createSignedUploadUrl\(path, \{ upsert: false \}\)/);
   assert.match(feed, /storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
   assert.match(feed, /'x-signature': signedUpload\.token/);
@@ -134,6 +134,9 @@ test('prepared videos publish through the same public feed-media path as photos'
 
 test('campus feed has a quiet branded composer and automatic legacy video recovery', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
+  assert.match(feed, /function withRequestTimeout<T>\(timeoutMs: number, request: \(signal: AbortSignal\) => Promise<T>\)/);
+  assert.match(feed, /new AbortController\(\)[\s\S]*window\.setTimeout[\s\S]*controller\.abort/);
+  assert.doesNotMatch(feed, /AbortSignal\.timeout/);
   assert.match(feed, /Share a campus moment/);
   assert.match(feed, /overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border/);
   assert.match(feed, /controls/);

@@ -55,6 +55,20 @@ const PREVIEW_MEDIA = new Map([
 // Prepared posts are H.264/AAC MP4 before they enter the public feed-media bucket.
 const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|qt|webm|ogv|ogg|avi|mkv|3gp|3g2|3gpp|3gpp2|mpeg|mpg|mpe|mpv|m2v|mts|m2ts|ts|vob|wmv|asf|flv|f4v|dv|mxf|divx|xvid|rm|rmvb|amv)$/i;
 
+async function withRequestTimeout<T>(timeoutMs: number, request: (signal: AbortSignal) => Promise<T>) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => {
+    const timeoutError = new Error('The request timed out.');
+    timeoutError.name = 'TimeoutError';
+    controller.abort(timeoutError);
+  }, timeoutMs);
+  try {
+    return await request(controller.signal);
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
 function isVideoUploadCandidate(file: File) {
   return file.type.startsWith('video/') || VIDEO_FILE_EXTENSION.test(file.name);
 }
@@ -477,15 +491,16 @@ export function CampusCommunityFeed() {
       if (mediaFile && isVideo) {
         const form = new FormData();
         form.append('video', mediaFile);
-        const response = await fetch('/api/community/video/prepare', {
-          method: 'POST', body: form, credentials: 'same-origin',
-          signal: AbortSignal.timeout(VIDEO_PREPARATION_TIMEOUT_MS),
+        const mp4 = await withRequestTimeout(VIDEO_PREPARATION_TIMEOUT_MS, async (signal) => {
+          const response = await fetch('/api/community/video/prepare', {
+            method: 'POST', body: form, credentials: 'same-origin', signal,
+          });
+          if (!response.ok) {
+            const result = await response.json().catch(() => null) as { error?: string } | null;
+            throw new Error(`VIDEO_PREPARE:${result?.error || 'UniEco could not prepare this video for playback.'}`);
+          }
+          return response.blob();
         });
-        if (!response.ok) {
-          const result = await response.json().catch(() => null) as { error?: string } | null;
-          throw new Error(`VIDEO_PREPARE:${result?.error || 'UniEco could not prepare this video for playback.'}`);
-        }
-        const mp4 = await response.blob();
         if (!mp4.size || mp4.size > MAX_ATTACHMENT_BYTES || mp4.type !== 'video/mp4') {
           throw new Error('VIDEO_PREPARE:This video could not be safely prepared. Try a shorter video.');
         }
@@ -742,13 +757,15 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     setFileError(false);
     setVideoState('loading');
     const url = `/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`;
-    void fetch(url, {
-      credentials: 'same-origin',
-      cache: 'no-store',
-      signal: AbortSignal.timeout(VIDEO_PREPARATION_TIMEOUT_MS),
-    }).then(async (response) => {
+    void withRequestTimeout(VIDEO_PREPARATION_TIMEOUT_MS, async (signal) => {
+      const response = await fetch(url, {
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal,
+      });
       if (!response.ok) throw new Error('The video could not be prepared for this device.');
-      const mp4 = await response.blob();
+      return response.blob();
+    }).then((mp4) => {
       if (!mp4.size || mp4.type !== 'video/mp4') throw new Error('The prepared video was invalid.');
       // iOS Safari is unreliable with an on-demand, chunked MP4 response that
       // has no byte-range metadata. Buffer the bounded prepared file and hand
