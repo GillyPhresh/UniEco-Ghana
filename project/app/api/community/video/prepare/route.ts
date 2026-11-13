@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readFile, rm, writeFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -163,11 +164,18 @@ async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
   }
 }
 
-async function loadAuthorizedPostVideo(supabase: Awaited<ReturnType<typeof createClient>>, postId: string) {
-  const { data: attachmentData } = await supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId });
+async function loadAuthorizedPostVideo(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  postId: string,
+  allowPrivateAttachment: boolean,
+) {
+  const { data: attachmentData } = allowPrivateAttachment
+    ? await supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId })
+    : { data: null };
   const attachment = (attachmentData || [])[0] as { file_path?: string; file_name?: string; file_size?: number } | undefined;
   let bucket = 'campus-community-files';
   let filePath = attachment?.file_path;
+  let isPublicPost = false;
   let extension = extensionOf(attachment?.file_name || '');
   if (!attachment?.file_path || !attachment.file_name || !ALLOWED_VIDEO_EXTENSIONS.has(extension)
     || !Number.isFinite(attachment.file_size) || Number(attachment.file_size) < 1 || Number(attachment.file_size) > MAX_VIDEO_BYTES) {
@@ -179,10 +187,18 @@ async function loadAuthorizedPostVideo(supabase: Awaited<ReturnType<typeof creat
     if (post?.media_type !== 'video' || !validPath || !ALLOWED_VIDEO_EXTENSIONS.has(extension)) return null;
     bucket = 'campus-community';
     filePath = publicPath;
+    isPublicPost = true;
   }
-  const { data: signed, error: signError } = await supabase.storage.from(bucket).createSignedUrl(filePath!, 90);
-  if (signError || !signed?.signedUrl) return null;
-  const download = await fetch(signed.signedUrl, { cache: 'no-store', signal: AbortSignal.timeout(60_000) });
+  const storage = supabase.storage.from(bucket);
+  let videoUrl: string;
+  if (isPublicPost) {
+    videoUrl = storage.getPublicUrl(filePath!).data.publicUrl;
+  } else {
+    const { data: signed, error: signError } = await storage.createSignedUrl(filePath!, 90);
+    if (signError || !signed?.signedUrl) return null;
+    videoUrl = signed.signedUrl;
+  }
+  const download = await fetch(videoUrl, { cache: 'no-store', signal: AbortSignal.timeout(60_000) });
   if (!download.ok) return null;
   const declaredSize = Number(download.headers.get('content-length') || 0);
   if (declaredSize > MAX_VIDEO_BYTES) throw new Error('The video is larger than the playback limit.');
@@ -200,8 +216,17 @@ export async function GET(request: NextRequest) {
   }
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return jsonError('Sign in to watch this campus video.', 401);
-  if (!takeRateLimit(user.id)) return jsonError('Video playback is busy. Please try again shortly.', 429);
+  // Public campus posts are viewable without an account. When a guest's direct
+  // Storage stream is interrupted, allow only the published-post RPC fallback;
+  // private attachment lookup remains strictly authenticated below.
+  const forwardedIp = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+    || request.headers.get('x-real-ip')?.trim()
+    || 'shared';
+  const anonymousRateKey = `anonymous:${createHash('sha256').update(forwardedIp).digest('hex')}`;
+  if (!user && authError && authError.name !== 'AuthSessionMissingError') {
+    return jsonError('Your viewing session could not be verified. Refresh and try again.', 401);
+  }
+  if (!takeRateLimit(user?.id || anonymousRateKey)) return jsonError('Video playback is busy. Please try again shortly.', 429);
   if (activeTranscodes >= MAX_CONCURRENT_TRANSCODES) return jsonError('Video playback is busy. Please try again shortly.', 429);
   activeTranscodes += 1;
   let slotReleased = false;
@@ -211,7 +236,7 @@ export async function GET(request: NextRequest) {
     activeTranscodes = Math.max(0, activeTranscodes - 1);
   };
   try {
-    const source = await loadAuthorizedPostVideo(supabase, postId);
+    const source = await loadAuthorizedPostVideo(supabase, postId, Boolean(user));
     if (!source) { releaseSlot(); return jsonError('This video is not available for playback.', 404); }
     // Return a conventional fast-start MP4. iOS Safari can stall indefinitely
     // when a fragmented MP4 response is buffered into a Blob for legacy posts.

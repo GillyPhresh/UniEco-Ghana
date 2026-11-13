@@ -164,10 +164,21 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
 });
 
-test('video preparation is authenticated, bounded, private-file authorized, and emits mobile-compatible MP4', async () => {
+test('video recovery serves public posts to guests but keeps private attachments authenticated', async () => {
   const route = await read('app/api/community/video/prepare/route.ts');
+  const publicPostRpc = await read('supabase/migrations/20261102100000_0176_community_social_graph.sql');
   assert.match(route, /export const runtime = 'nodejs'/);
   assert.match(route, /supabase\.auth\.getUser\(\)/);
+  assert.match(route, /Public campus posts are viewable without an account/);
+  assert.match(route, /anonymousRateKey/);
+  assert.match(route, /loadAuthorizedPostVideo\(supabase, postId, Boolean\(user\)\)/);
+  assert.match(route, /allowPrivateAttachment\s*\?\s*await supabase\.rpc\('get_campus_community_post_file_info'/);
+  assert.match(route, /supabase\.rpc\('get_campus_community_post'/);
+  assert.match(route, /post\?\.media_type !== 'video'/);
+  assert.match(publicPostRpc, /post\.status = 'published'/);
+  assert.match(route, /storage\.getPublicUrl\(filePath!\)/);
+  assert.match(route, /isPublicPost/);
+  assert.match(route, /AuthSessionMissingError/);
   assert.match(route, /sameOrigin\(request\)/);
   assert.match(route, /can_upload_campus_community_media/);
   assert.match(route, /get_campus_community_post_file_info/);
