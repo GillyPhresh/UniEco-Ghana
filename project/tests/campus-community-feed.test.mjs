@@ -152,8 +152,9 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /Making this video ready…/);
   assert.match(feed, /Adapting this older video for your device…/);
   assert.match(feed, /legacyPrepareAttemptedRef/);
-  assert.match(feed, /code === 2 && !networkRetryAttemptedRef\.current/);
-  assert.match(feed, /reserve conversion for genuine codec\/container failures/);
+  assert.match(feed, /code === 2 && active && networkRetryCountRef\.current < 3/);
+  assert.match(feed, /\[700, 1600, 3200\]\[retryNumber - 1\]/);
+  assert.match(feed, /transient network failure through the slower transcode path/);
   assert.match(feed, /\[3, 4\]\.includes\(code \|\| 0\)/);
   assert.match(feed, /preload=\{active && !reducedData \? 'auto' : 'none'\}/);
   assert.match(feed, /aria-label=\{videoMuted \? 'Unmute video' : 'Mute video'\}/);
@@ -164,7 +165,7 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /border border-emerald-200 bg-white/);
   assert.doesNotMatch(feed, /Prepare &amp; play/);
   assert.match(feed, /prepareLegacyVideoForPlayback/);
-  assert.match(feed, /credentials: 'same-origin'[\s\S]*cache: 'no-store'[\s\S]*response\.blob\(\)/);
+  assert.match(feed, /credentials: 'same-origin'[\s\S]*cache: 'force-cache'[\s\S]*response\.blob\(\)/);
   assert.match(feed, /URL\.createObjectURL\(mp4\)/);
   assert.match(feed, /setVideoState\('ready'\); setPreparingLegacyVideo\(false\)/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
@@ -194,6 +195,8 @@ test('video recovery serves public posts to guests but keeps private attachments
   assert.match(route, /-protocol_whitelist', 'file,pipe,data'/);
   assert.match(route, /'libx264'/);
   assert.match(route, /isFastBrowserMp4/);
+  assert.match(route, /source\.isPublicPost \? 'private, max-age=86400' : 'private, no-store'/);
+  assert.match(route, /'-maxrate', '1500k'/);
   assert.match(route, /'ffprobe'/);
   assert.match(route, /copyCompatibleStreams[\s\S]*\['-c:v', 'copy', '-c:a', 'copy'\]/);
   assert.match(route, /'yuv420p'/);

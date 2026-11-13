@@ -757,7 +757,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [preparedLegacyVideoUrl, setPreparedLegacyVideoUrl] = useState<string | null>(null);
   const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
   const legacyPrepareAttemptedRef = useRef(false);
-  const networkRetryAttemptedRef = useRef(false);
+  const networkRetryCountRef = useRef(0);
 
   const prepareLegacyVideoForPlayback = useCallback(() => {
     if (legacyPrepareAttemptedRef.current) return;
@@ -765,11 +765,13 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     setPreparingLegacyVideo(true);
     setFileError(false);
     setVideoState('loading');
-    const url = `/api/community/video/prepare?postId=${encodeURIComponent(post.id)}&retry=${Date.now()}`;
+    const url = `/api/community/video/prepare?postId=${encodeURIComponent(post.id)}`;
     void withRequestTimeout(VIDEO_PREPARATION_TIMEOUT_MS, async (signal) => {
       const response = await fetch(url, {
         credentials: 'same-origin',
-        cache: 'no-store',
+        // Reuse a successfully prepared legacy video on this device when the
+        // viewer revisits it. Private attachments remain no-store at the route.
+        cache: 'force-cache',
         signal,
       });
       if (!response.ok) throw new Error('The video could not be prepared for this device.');
@@ -903,6 +905,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     const video = videoRef.current;
     if (!video) return;
     legacyPrepareAttemptedRef.current = false;
+    networkRetryCountRef.current = 0;
     setVideoState('loading');
     setVideoFailure(null);
     if (preparedLegacyVideoUrl) {
@@ -989,24 +992,24 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             autoPlay={active && !reducedData}
             preload={active && !reducedData ? 'auto' : 'none'}
             onLoadedMetadata={() => setVideoState('loading')}
-            onLoadedData={() => { networkRetryAttemptedRef.current = false; setVideoState('ready'); setPreparingLegacyVideo(false); }}
-            onPlaying={() => { networkRetryAttemptedRef.current = false; setVideoState('ready'); setPreparingLegacyVideo(false); }}
+            onLoadedData={() => { networkRetryCountRef.current = 0; setVideoState('ready'); setPreparingLegacyVideo(false); }}
+            onPlaying={() => { networkRetryCountRef.current = 0; setVideoState('ready'); setPreparingLegacyVideo(false); }}
             onWaiting={() => setVideoState('loading')}
             onError={(event) => {
               const code = event.currentTarget.error?.code;
               setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
-              // A connection hiccup should not trigger a full server-side
-              // download/transcode. Retry the range-capable original once;
-              // reserve conversion for genuine codec/container failures.
-              if (code === 2 && !networkRetryAttemptedRef.current && !preparedLegacyVideoUrl) {
-                networkRetryAttemptedRef.current = true;
+              // Mobile networks can briefly interrupt media requests. Retry
+              // the range-capable source with bounded backoff; do not send a
+              // transient network failure through the slower transcode path.
+              if (code === 2 && active && networkRetryCountRef.current < 3 && !preparedLegacyVideoUrl) {
+                const retryNumber = ++networkRetryCountRef.current;
                 setVideoState('loading');
                 const video = event.currentTarget;
                 window.setTimeout(() => {
                   if (videoRef.current !== video || !video.isConnected) return;
                   video.load();
                   if (active && !reducedData) void video.play().catch(() => undefined);
-                }, 500);
+                }, [700, 1600, 3200][retryNumber - 1]);
                 return;
               }
               if ([3, 4].includes(code || 0) && !preparedLegacyVideoUrl && !legacyPrepareAttemptedRef.current) {

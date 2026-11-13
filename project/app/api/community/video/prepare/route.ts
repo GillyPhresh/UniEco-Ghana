@@ -127,9 +127,9 @@ async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
       const mediaArgs = copyCompatibleStreams
         ? ['-c:v', 'copy', '-c:a', 'copy']
         : [
-          '-filter_threads', '1', '-vf', "scale=w='min(1280,iw)':h='min(1280,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
-          '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '25', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p',
-          '-c:a', 'aac', '-b:a', '96k', '-ac', '2',
+          '-filter_threads', '1', '-vf', "scale=w='min(960,iw)':h='min(960,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+          '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '27', '-maxrate', '1500k', '-bufsize', '3000k', '-profile:v', 'baseline', '-level', '3.1', '-pix_fmt', 'yuv420p',
+          '-c:a', 'aac', '-b:a', '64k', '-ac', '2',
         ];
       const process = spawn('ffmpeg', [
         ...commonArgs, ...mediaArgs, '-fs', String(MAX_OUTPUT_BYTES), '-movflags', '+faststart', '-f', 'mp4', outputPath,
@@ -204,7 +204,7 @@ async function loadAuthorizedPostVideo(
   if (declaredSize > MAX_VIDEO_BYTES) throw new Error('The video is larger than the playback limit.');
   const input = Buffer.from(await download.arrayBuffer());
   if (!input.byteLength || input.byteLength > MAX_VIDEO_BYTES) throw new Error('The video is larger than the playback limit.');
-  return { input, extension };
+  return { input, extension, isPublicPost };
 }
 
 export async function GET(request: NextRequest) {
@@ -248,7 +248,9 @@ export async function GET(request: NextRequest) {
         'Content-Type': 'video/mp4',
         'Content-Disposition': 'inline; filename="unieco-video.mp4"',
         'Content-Length': String(mp4.byteLength),
-        'Cache-Control': 'private, no-store',
+        // Cache successful public legacy conversions only in this viewer's
+        // browser. Never allow private attachments or shared-CDN caching.
+        'Cache-Control': source.isPublicPost ? 'private, max-age=86400' : 'private, no-store',
         'X-Content-Type-Options': 'nosniff',
       },
     });
