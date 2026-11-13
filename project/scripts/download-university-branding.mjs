@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url';
 const projectRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const outputRoot = path.join(projectRoot, 'public', 'assets', 'universities');
 const manifestPath = path.join(projectRoot, 'data', 'university-branding.json');
+const galleryOnly = process.argv.includes('--gallery-only');
+const includeGallery = galleryOnly || process.argv.includes('--include-gallery');
 
 // These are official institutional homepages or official institutional portals.
 // The script never uses search-result thumbnails, social-media copies, or third-party CDNs
@@ -95,9 +97,9 @@ const institutions = [
   ['zenith-university-college', 'ZUC', 'Zenith University College', 'https://zuc.edu.gh/'],
 ];
 
-const pageSuffixes = ['', 'about', 'campus', 'gallery'];
+const pageSuffixes = ['', 'about', 'campus', 'gallery', 'news', 'events', 'student-life', 'facilities'];
 const blockedPathParts = ['favicon', 'icon', 'avatar', 'gravatar', 'sprite', 'captcha', 'pdf', 'brochure', 'admission', 'certificate', 'poster', 'flyer', 'wp-includes'];
-const campusWords = ['campus', 'building', 'entrance', 'facility', 'facilities', 'grounds', 'library', 'hall', 'hostel', 'landmark', 'aerial', 'hero', 'slider', 'banner', 'gallery', 'photo'];
+const campusWords = ['campus', 'building', 'entrance', 'facility', 'facilities', 'grounds', 'library', 'hall', 'hostel', 'landmark', 'aerial', 'hero', 'slider', 'banner', 'gallery', 'photo', 'student', 'graduation', 'orientation', 'matriculation', 'research', 'sports', 'ceremony', 'lecture', 'classroom', 'laboratory', 'convocation'];
 const logoWords = ['logo', 'crest', 'emblem', 'brand', 'seal'];
 
 function assetFolderFor(slug) {
@@ -269,7 +271,15 @@ async function main() {
   const manifest = { ...previous };
 
   async function processInstitution([slug, shortName, name, sourceUrl]) {
-    const record = { slug, shortName, name, sourceUrl, logo: null, campus: null, status: sourceUrl ? 'pending' : 'no_official_site_published', reviewNote: reviewNotes[slug] || null, checkedAt: new Date().toISOString() };
+    const record = {
+      slug, shortName, name, sourceUrl,
+      logo: previous[slug]?.logo || null,
+      campus: previous[slug]?.campus || null,
+      campusGallery: Array.isArray(previous[slug]?.campusGallery) ? previous[slug].campusGallery : [],
+      status: sourceUrl ? 'pending' : 'no_official_site_published',
+      reviewNote: reviewNotes[slug] || null,
+      checkedAt: new Date().toISOString(),
+    };
     if (!sourceUrl) return record;
 
     const pages = (await Promise.all(pageSuffixes.map(async (suffix) => {
@@ -282,48 +292,50 @@ async function main() {
     const candidates = pages.flatMap((page) => imageCandidates(page.html, page.pageUrl).map((candidate) => ({ ...candidate, pageUrl: page.pageUrl })));
     const unique = [...new Map(candidates.map((candidate) => [candidate.url, candidate])).values()];
 
-    for (const role of ['logo', 'campus']) {
-      if (manualAssets[slug]?.skipAutomatic) break;
-      const ranked = unique
-        .map((candidate) => ({ candidate, score: candidateScore(candidate, role) }))
-        .filter((item) => item.score > 0)
-        .sort((a, b) => b.score - a.score);
-      let saved = false;
-      for (const { candidate, score } of ranked.slice(0, 8)) {
-        try {
-          const downloaded = await downloadImage(candidate.url);
-          const ext = extensionFor(downloaded.contentType, downloaded.finalUrl);
-          const sha256 = createHash('sha256').update(downloaded.bytes).digest('hex');
-          if (role === 'campus' && record.logo?.sha256 === sha256) continue;
-          const assetFolder = assetFolderFor(slug);
-          const assetDir = path.join(outputRoot, assetFolder);
-          await mkdir(assetDir, { recursive: true });
-          const localName = `${role}${ext}`;
-          const localPath = path.join(assetDir, localName);
-          await writeFile(localPath, downloaded.bytes);
-          record[role] = {
-            path: `/assets/universities/${assetFolder}/${localName}`,
-            sourcePage: candidate.pageUrl,
-            sourceUrl: downloaded.finalUrl,
-            contentType: downloaded.contentType,
-            bytes: downloaded.bytes.length,
-            sha256,
-            score,
-          };
-          saved = true;
-          break;
-        } catch { /* Try the next official candidate. */ }
-      }
-      if (!saved) {
-        const prior = previous[slug]?.[role];
-        record[role] = prior
-          ? { ...prior, path: prior.path.replace('/assets/universities/uenr/', '/assets/universities/UENR/') }
-          : null;
+    if (!galleryOnly) {
+      for (const role of ['logo', 'campus']) {
+        if (manualAssets[slug]?.skipAutomatic) break;
+        const ranked = unique
+          .map((candidate) => ({ candidate, score: candidateScore(candidate, role) }))
+          .filter((item) => item.score > 0)
+          .sort((a, b) => b.score - a.score);
+        let saved = false;
+        for (const { candidate, score } of ranked.slice(0, 8)) {
+          try {
+            const downloaded = await downloadImage(candidate.url);
+            const ext = extensionFor(downloaded.contentType, downloaded.finalUrl);
+            const sha256 = createHash('sha256').update(downloaded.bytes).digest('hex');
+            if (role === 'campus' && record.logo?.sha256 === sha256) continue;
+            const assetFolder = assetFolderFor(slug);
+            const assetDir = path.join(outputRoot, assetFolder);
+            await mkdir(assetDir, { recursive: true });
+            const localName = `${role}${ext}`;
+            const localPath = path.join(assetDir, localName);
+            await writeFile(localPath, downloaded.bytes);
+            record[role] = {
+              path: `/assets/universities/${assetFolder}/${localName}`,
+              sourcePage: candidate.pageUrl,
+              sourceUrl: downloaded.finalUrl,
+              contentType: downloaded.contentType,
+              bytes: downloaded.bytes.length,
+              sha256,
+              score,
+            };
+            saved = true;
+            break;
+          } catch { /* Try the next official candidate. */ }
+        }
+        if (!saved) {
+          const prior = previous[slug]?.[role];
+          record[role] = prior
+            ? { ...prior, path: prior.path.replace('/assets/universities/uenr/', '/assets/universities/UENR/') }
+            : null;
+        }
       }
     }
 
     const explicit = manualAssets[slug] || {};
-    for (const role of ['logo', 'campus']) {
+    for (const role of galleryOnly ? [] : ['logo', 'campus']) {
       const spec = explicit[role];
       if (!spec) continue;
       try {
@@ -350,6 +362,45 @@ async function main() {
         console.warn(`${shortName}: explicit ${role} asset unavailable (${error instanceof Error ? error.message : String(error)})`);
       }
     }
+
+    if (includeGallery && sourceUrl) {
+      const gallery = [...record.campusGallery];
+      const usedHashes = new Set([record.logo?.sha256, record.campus?.sha256, ...gallery.map((asset) => asset.sha256)].filter(Boolean));
+      const usedUrls = new Set([record.campus?.sourceUrl, ...gallery.map((asset) => asset.sourceUrl)].filter(Boolean));
+      const ranked = unique
+        .map((candidate) => ({ candidate, score: candidateScore(candidate, 'campus') + (/\/(?:gallery|news|events|student-life|facilities)(?:\/|$)/i.test(new URL(candidate.pageUrl).pathname) ? 18 : 0) }))
+        .filter((item) => item.score > 0 && !usedUrls.has(item.candidate.url))
+        .sort((a, b) => b.score - a.score);
+
+      for (const { candidate, score } of ranked) {
+        if (gallery.length >= 4) break;
+        try {
+          const downloaded = await downloadImage(candidate.url);
+          const sha256 = createHash('sha256').update(downloaded.bytes).digest('hex');
+          if (usedHashes.has(sha256)) continue;
+          const assetFolder = assetFolderFor(slug);
+          const assetDir = path.join(outputRoot, assetFolder);
+          await mkdir(assetDir, { recursive: true });
+          const ext = extensionFor(downloaded.contentType, downloaded.finalUrl);
+          const localName = `campus-gallery-${gallery.length + 1}${ext}`;
+          await writeFile(path.join(assetDir, localName), downloaded.bytes);
+          const asset = {
+            path: `/assets/universities/${assetFolder}/${localName}`,
+            sourcePage: candidate.pageUrl,
+            sourceUrl: downloaded.finalUrl,
+            contentType: downloaded.contentType,
+            bytes: downloaded.bytes.length,
+            sha256,
+            score,
+            selection: 'official_site_gallery',
+          };
+          gallery.push(asset);
+          usedHashes.add(sha256);
+          usedUrls.add(candidate.url);
+        } catch { /* Ignore unusable assets and continue to the next official photo. */ }
+      }
+      record.campusGallery = gallery;
+    }
     if (explicit.skipAutomatic) {
       record.logo = manualAssets[slug]?.logo ? record.logo : null;
       record.campus = manualAssets[slug]?.campus ? record.campus : null;
@@ -371,7 +422,7 @@ async function main() {
         console.log(`${record.shortName}: ${record.status}`);
       } catch (error) {
         const [slug, shortName, name, sourceUrl] = tuple;
-        const record = { slug, shortName, name, sourceUrl, logo: previous[slug]?.logo || null, campus: previous[slug]?.campus || null, status: 'ingestion_error', reviewNote: reviewNotes[slug] || null, checkedAt: new Date().toISOString(), error: error instanceof Error ? error.message : String(error) };
+        const record = { slug, shortName, name, sourceUrl, logo: previous[slug]?.logo || null, campus: previous[slug]?.campus || null, campusGallery: previous[slug]?.campusGallery || [], status: 'ingestion_error', reviewNote: reviewNotes[slug] || null, checkedAt: new Date().toISOString(), error: error instanceof Error ? error.message : String(error) };
         manifest[slug] = record;
         await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
         console.log(`${shortName}: ingestion_error`);

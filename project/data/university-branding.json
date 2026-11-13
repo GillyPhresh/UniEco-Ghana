@@ -24,9 +24,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:41.458Z"
+    "checkedAt": "2026-11-13T22:44:42.583Z"
   },
   "gimpa": {
     "slug": "gimpa",
@@ -35,9 +36,10 @@
     "sourceUrl": "https://gimpa.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": "Official homepage and assets currently fail certificate validation in the downloader; no insecure copy was imported.",
-    "checkedAt": "2026-10-28T16:14:41.449Z"
+    "checkedAt": "2026-11-13T22:44:42.546Z"
   },
   "knust": {
     "slug": "knust",
@@ -63,9 +65,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/knust/campus-gallery-1.jpg",
+        "sourcePage": "https://www.knust.edu.gh/events",
+        "sourceUrl": "https://www.knust.edu.gh/themes/custom/adepts/images/researchimg.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 26228,
+        "sha256": "ab69bb054fd2c6fde5b3d08470d15f3ae0efde1bd7ce978fa8271480799f0e4d",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knust/campus-gallery-2.jpg",
+        "sourcePage": "https://www.knust.edu.gh/events",
+        "sourceUrl": "https://www.knust.edu.gh/themes/custom/adepts/images/studentssimg.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 41969,
+        "sha256": "05107b033a9e97c315cfc7885b3bca9e839cc7fc1a18ce3bf08090808cef775d",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knust/campus-gallery-3.jpg",
+        "sourcePage": "https://www.knust.edu.gh/news",
+        "sourceUrl": "https://www.knust.edu.gh/sites/default/files/styles/page_article_thumbnail_image/public/2026-11/istockphoto-483232645-612x612.jpg?itok=IpqNbRoz",
+        "contentType": "image/jpeg",
+        "bytes": 83602,
+        "sha256": "5c368781a3e031ac21f8811531d583409702d430270e95fc9a385094c9be1c1d",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knust/campus-gallery-4.jpg",
+        "sourcePage": "https://www.knust.edu.gh/events",
+        "sourceUrl": "https://www.knust.edu.gh/themes/custom/adepts/images/academicsimg.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 26281,
+        "sha256": "efc121be353bd04bbdbb9d1766c0319eca810446626d84eb6093df69ed7637ae",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:41.452Z"
+    "checkedAt": "2026-11-13T22:44:42.568Z"
   },
   "uew": {
     "slug": "uew",
@@ -92,9 +136,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:44.543Z"
+    "checkedAt": "2026-11-13T22:44:47.623Z"
   },
   "ucc": {
     "slug": "ucc",
@@ -120,9 +165,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ucc/campus-gallery-1.jpg",
+        "sourcePage": "https://ucc.edu.gh/",
+        "sourceUrl": "https://ucc.edu.gh/img/masters-graduation.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 454691,
+        "sha256": "cdee7319d2e1ca71cf46254b3af92d5775f70e973869891c4329e072f4aed346",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ucc/campus-gallery-2.jpg",
+        "sourcePage": "https://ucc.edu.gh/",
+        "sourceUrl": "https://ucc.edu.gh/img/placeholder.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 8044,
+        "sha256": "7093df567f68ecf19c286cd0d933aca1499409e90986552444d4a1977aa7a295",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ucc/campus-gallery-3.png",
+        "sourcePage": "https://ucc.edu.gh/",
+        "sourceUrl": "https://ucc.edu.gh/img/undergraduate.png",
+        "contentType": "image/png",
+        "bytes": 506632,
+        "sha256": "c581a056c72fe208948c08d758b7987d1afc6948779a44afec30664067ecea51",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ucc/campus-gallery-4.png",
+        "sourcePage": "https://ucc.edu.gh/",
+        "sourceUrl": "https://ucc.edu.gh/img/distance.png",
+        "contentType": "image/png",
+        "bytes": 671978,
+        "sha256": "a7a450c6702d31916e5dbacf5b55f85a29f5c7e66ecfafc9ef7a67f7e712ec77",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:43.761Z"
+    "checkedAt": "2026-11-13T22:44:46.073Z"
   },
   "uds": {
     "slug": "uds",
@@ -149,9 +236,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/uds/campus-gallery-1.jpg",
+        "sourcePage": "https://uds.edu.gh/news/",
+        "sourceUrl": "http://uds.edu.gh/logmein/uploads/posts/fe12d85810a950c80a688a710ea045d6.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 80466,
+        "sha256": "aa0486cfa5c0062bc75dc8d6d3cf0eeff430343f2193f2a5ab9630e91c4d1a72",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uds/campus-gallery-2.jpg",
+        "sourcePage": "https://uds.edu.gh/",
+        "sourceUrl": "https://uds.edu.gh/logmein/uploads/gallery/udsgallery0n0540.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 926391,
+        "sha256": "9095d4687941d04d45f9ed27df3475cae87417a354ab24ddd249ac4e8802d597",
+        "score": 36,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uds/campus-gallery-3.jpg",
+        "sourcePage": "https://uds.edu.gh/",
+        "sourceUrl": "https://uds.edu.gh/logmein/uploads/gallery/udsgallery0n0541.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 933447,
+        "sha256": "eb55ce4ecbfe8e0c8d610b0a4c160fa51a25d1a57cb9d5b05ae32d01d97fc997",
+        "score": 36,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uds/campus-gallery-4.jpg",
+        "sourcePage": "https://uds.edu.gh/",
+        "sourceUrl": "https://uds.edu.gh/logmein/uploads/gallery/udsgallery0n0542.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 378081,
+        "sha256": "6e3ec4baa8930a6cb82a56a9b3b2e23e65679e7d171a1882c568f88cafdb92f5",
+        "score": 36,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:43.547Z"
+    "checkedAt": "2026-11-13T22:44:44.813Z"
   },
   "aamusted": {
     "slug": "aamusted",
@@ -177,9 +306,51 @@
       "sha256": "ba23e76c98d27ded944c92318ea992dc751cc0ac16e044b9e996e96aa2d3ddad",
       "score": 24
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/aamusted/campus-gallery-1.jpg",
+        "sourcePage": "https://usted.edu.gh/news/",
+        "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2026/11/A-group-photograph-of-the-participants-at-the-Conference.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 621755,
+        "sha256": "f66bb5bb58cc602fbd875ee109ed9316a0c2fb2624709d0addbd7396d30839e1",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/aamusted/campus-gallery-2.jpg",
+        "sourcePage": "https://usted.edu.gh/gallery/",
+        "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2024/08/pgrc-lecturers-1024x401.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 99691,
+        "sha256": "270ca3c414d6b234836ee4844df0028290107230407bcee74baea58195e25f69",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/aamusted/campus-gallery-3.jpg",
+        "sourcePage": "https://usted.edu.gh/gallery/",
+        "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2024/08/photo_2024-08-20-16.35.17-1024x682.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 61956,
+        "sha256": "ddf7076455e9f140d82cf50a4ade2a682604788a57d7ee851cc7c7f0ac8e9ea1",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/aamusted/campus-gallery-4.jpg",
+        "sourcePage": "https://usted.edu.gh/news/",
+        "sourceUrl": "https://usted.edu.gh/wp-content/uploads/2026/11/UEWCCUV-Office_web-banner.jpg-scaled.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 251329,
+        "sha256": "c88687d8b5d27c2460a40823bbd00149add06642e5489e5d18afb25983228e7a",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:41.314Z"
+    "checkedAt": "2026-11-13T22:44:42.214Z"
   },
   "uenr": {
     "slug": "uenr",
@@ -204,9 +375,51 @@
       "sha256": "2518930f67d493a5444ae585ddc0288174344b9b79073e3ff8639f2a6287a86b",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/UENR/campus-gallery-1.png",
+        "sourcePage": "https://uenr.edu.gh/news/",
+        "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/2021/01/Artboard-1.png",
+        "contentType": "image/png",
+        "bytes": 5264,
+        "sha256": "f27c14ce929c2046d78e560c7bcf8c863f811c43ce85c8ba2145c0f41b8edbff",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/UENR/campus-gallery-2.jpg",
+        "sourcePage": "https://uenr.edu.gh/news/",
+        "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/elementor/thumbs/Notices-rlapukll84a5brkkauqsh525plsu3x2zvi9oawyun4.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 49872,
+        "sha256": "2ec4fa3d2a827c175181b1965e14e734475b9e1071208af8eab271bcb4abd102",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/UENR/campus-gallery-3.jpg",
+        "sourcePage": "https://uenr.edu.gh/news/",
+        "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/elementor/thumbs/Patrick-Nkansa-Kyerematen-Pankword-Campuzconnect-rm3npn05tommvigpdhn0id2b5a8qphjdy92kpwv6ow.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 51034,
+        "sha256": "d16f9bf58e0209e5384964997da8c7a07f79483dced440d82c71f584e106d6a5",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/UENR/campus-gallery-4.jpg",
+        "sourcePage": "https://uenr.edu.gh/news/",
+        "sourceUrl": "https://uenr.edu.gh/wp-content/uploads/elementor/thumbs/w2-rlaplyeukshiwg34m4nwmbc1og9pjsvkouzfxlqrog.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 41935,
+        "sha256": "c778dd192c11076ee444bac15265b5dd831849e9bc85d65f5a5ae4d7cfded6bc",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:45.199Z"
+    "checkedAt": "2026-11-13T22:44:48.521Z"
   },
   "gctu": {
     "slug": "gctu",
@@ -231,9 +444,51 @@
       "sha256": "d4a91dd656f0cecf79ca3ea57735f257e0da50063f1e4f393dba84a5a251927f",
       "score": 36
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/gctu/campus-gallery-1.jpg",
+        "sourcePage": "https://site.gctu.edu.gh/news",
+        "sourceUrl": "https://site.gctu.edu.gh/wp-content/uploads/gtuc/photogallery/Woyeje_Media_Academy_Graduation/590A2802.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 189661,
+        "sha256": "bd5216c41fd503ffa989762448d3119cf03f2b53e3c1325ea1d52645f4101c35",
+        "score": 66,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gctu/campus-gallery-2.png",
+        "sourcePage": "https://site.gctu.edu.gh/news",
+        "sourceUrl": "https://site.gctu.edu.gh/wp-content/uploads/2026/11/7.png",
+        "contentType": "image/png",
+        "bytes": 1273392,
+        "sha256": "fc0bc603e248b5c04ba514e18455bbe2f63f4653f8e19d9c4bda132476f200c6",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gctu/campus-gallery-3.png",
+        "sourcePage": "https://site.gctu.edu.gh/news",
+        "sourceUrl": "https://site.gctu.edu.gh/wp-content/uploads/2026/11/1111-1.png",
+        "contentType": "image/png",
+        "bytes": 1105470,
+        "sha256": "4d18fce27b4d895dd7db1b7ace49e1a546f7dcc346f46102435499e11cc41377",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gctu/campus-gallery-4.jpg",
+        "sourcePage": "https://site.gctu.edu.gh/news",
+        "sourceUrl": "https://site.gctu.edu.gh/wp-content/uploads/2026/10/breast-cancer1.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 318951,
+        "sha256": "4ed02363691da66706d27b6ccf99cbef10f39b300e40a2c8438edbc0ebb264e4",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:41.443Z"
+    "checkedAt": "2026-11-13T22:44:42.528Z"
   },
   "uhas": {
     "slug": "uhas",
@@ -258,9 +513,51 @@
       "sha256": "586640ca8d270be5eb339ddd6c11e971bbeba1f3620409c98f8be0111a966e90",
       "score": 24
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/uhas/campus-gallery-1.jpg",
+        "sourcePage": "https://www.uhas.edu.gh/uhas/",
+        "sourceUrl": "https://www.uhas.edu.gh/uhas/sites/default/files/2026-07/UHAS%20RESEARCH%20CONF%202026_WEB%20BANNER.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 940426,
+        "sha256": "cad2a5a91c0a8905875de744d9c47ab15cd02e90a3a4e7c668837678481c54ba",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uhas/campus-gallery-2.jpg",
+        "sourcePage": "https://www.uhas.edu.gh/uhas/",
+        "sourceUrl": "https://www.uhas.edu.gh/uhas/sites/default/files/2026-09/leadership%20slider.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 1182663,
+        "sha256": "7c43acb706e9d8a531f16127c07e616f5688f0797cbf964bdf456ea6e06538c4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uhas/campus-gallery-3.jpg",
+        "sourcePage": "https://www.uhas.edu.gh/uhas/",
+        "sourceUrl": "https://www.uhas.edu.gh/uhas/sites/default/files/2026-07/slider%20web.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 496727,
+        "sha256": "ff0253496474582368126162861861873f8c7e13177d24e46c283c0153d43da5",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uhas/campus-gallery-4.jpg",
+        "sourcePage": "https://www.uhas.edu.gh/uhas/",
+        "sourceUrl": "https://www.uhas.edu.gh/uhas/sites/default/files/2026-07/workshop%20slider%20%282%29.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 1151739,
+        "sha256": "07d420e023ca58c0ae9bf6fc418978340670d582522c615922d8e5edd1942e5f",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:45.429Z"
+    "checkedAt": "2026-11-13T22:44:49.181Z"
   },
   "utas": {
     "slug": "utas",
@@ -286,9 +583,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/utas/campus-gallery-1.jpg",
+        "sourcePage": "https://utas.edu.gh/news/",
+        "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2026/11/UTAS-2026-MATRICULATION-1-768x440.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 56588,
+        "sha256": "85d86dd0fdbf43776be63e8d82531fb0681712bf4f9afe438a8735f3b6225ff3",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/utas/campus-gallery-2.png",
+        "sourcePage": "https://utas.edu.gh/news/",
+        "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2026/04/UTAS-og.png",
+        "contentType": "image/png",
+        "bytes": 110389,
+        "sha256": "35146835d001540804326b98bdd1220c73ec66d272f080d6a21ec8ef83e7a904",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/utas/campus-gallery-3.png",
+        "sourcePage": "https://utas.edu.gh/news/",
+        "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2023/05/CK-LOGO-symbol.png",
+        "contentType": "image/png",
+        "bytes": 90064,
+        "sha256": "243fd134c9dc9a96f5d8ca7e74e87166c96b839ed1b7d874e349bb5f3f927658",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/utas/campus-gallery-4.png",
+        "sourcePage": "https://utas.edu.gh/news/",
+        "sourceUrl": "https://utas.edu.gh/wp-content/uploads/2026/11/UTAS-FC-MOU-768x939.png",
+        "contentType": "image/png",
+        "bytes": 192552,
+        "sha256": "d937269114e51060bd3439a7dc12456970f5e94a0451244eecae6a686d608940",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:41.434Z"
+    "checkedAt": "2026-11-13T22:44:42.490Z"
   },
   "umat": {
     "slug": "umat",
@@ -314,9 +653,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:48.779Z"
+    "checkedAt": "2026-11-13T22:44:55.139Z"
   },
   "ug": {
     "slug": "ug",
@@ -342,9 +682,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ug/campus-gallery-1.jpg",
+        "sourcePage": "https://ug.edu.gh/student-life",
+        "sourceUrl": "https://ug.edu.gh/sites/default/files/2022-10/library.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 688975,
+        "sha256": "f606b633f31689f2ce02f3cb92651dae9c79f4b6556fbf81f6c8e73241b82361",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ug/campus-gallery-2.jpg",
+        "sourcePage": "https://ug.edu.gh/news",
+        "sourceUrl": "https://ug.edu.gh/sites/default/files/2026-11/IMG_1743.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 895394,
+        "sha256": "b4a0d786a8b53dcd560d790958ba8041d83fae04feab8f6fa1d57c176b6b9d4e",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ug/campus-gallery-3.png",
+        "sourcePage": "https://ug.edu.gh/student-life",
+        "sourceUrl": "https://ug.edu.gh/sites/default/files/inline-images/UG-white-logo.png",
+        "contentType": "image/png",
+        "bytes": 173419,
+        "sha256": "1545b3e36874668d5e4fe3c22a33fd27bf4af0ba6be19b776904b9a53a0ae6ee",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ug/campus-gallery-4.jpg",
+        "sourcePage": "https://ug.edu.gh/news",
+        "sourceUrl": "https://ug.edu.gh/sites/default/files/2026-11/261A1040.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 810258,
+        "sha256": "d0bb92b0c8ac644f0677060c7baa683d6e042f3434a1918026571ceea061c838",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:46.277Z"
+    "checkedAt": "2026-11-13T22:44:50.093Z"
   },
   "uesd": {
     "slug": "uesd",
@@ -369,9 +751,10 @@
       "sha256": "eabb390e4c31e4124eacd26bb6da77e038a80db80702cec12c61bf8146326a93",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:46.004Z"
+    "checkedAt": "2026-11-13T22:44:49.279Z"
   },
   "dhltu": {
     "slug": "dhltu",
@@ -398,9 +781,21 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/dhltu/campus-gallery-1.jpg",
+        "sourcePage": "https://www.dhltu.edu.gh/",
+        "sourceUrl": "https://www.dhltu.edu.gh/_next/image?url=%2Fassets%2Fimages%2Fgraduation%2Fcongregation.jpeg&w=3840&q=75",
+        "contentType": "image/jpeg",
+        "bytes": 105406,
+        "sha256": "4ea30fefffa4f0b09db59de20bdab5defa31e9d5ce97710266bf1d30d96f974e",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:52.620Z"
+    "checkedAt": "2026-11-13T22:45:00.164Z"
   },
   "atu": {
     "slug": "atu",
@@ -427,9 +822,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:49.879Z"
+    "checkedAt": "2026-11-13T22:44:57.691Z"
   },
   "unimac": {
     "slug": "unimac",
@@ -454,9 +850,10 @@
       "sha256": "aa75789e87e62e61df3da0add5779a0d5269c8c4efcb3496b9cf4d9e8b9307b6",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:47.745Z"
+    "checkedAt": "2026-11-13T22:44:52.661Z"
   },
   "upsa": {
     "slug": "upsa",
@@ -481,9 +878,10 @@
       "sha256": "d0ec844c72edf758dccad9d523822bb8acbd7deb84b54ac7197512ac9dcbad86",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:49.772Z"
+    "checkedAt": "2026-11-13T22:44:57.561Z"
   },
   "btu": {
     "slug": "btu",
@@ -508,9 +906,10 @@
       "sha256": "ec0a424a66d34774c7949de001d451a6d642a3c437ad8ae52903253758c89b46",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:51.377Z"
+    "checkedAt": "2026-11-13T22:44:57.936Z"
   },
   "kstu": {
     "slug": "kstu",
@@ -537,9 +936,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/kstu/campus-gallery-1.jpg",
+        "sourcePage": "https://kstu.edu.gh/",
+        "sourceUrl": "https://kstu.edu.gh/sites/default/files/styles/medium/public/2026-10/IMG-20261030-WA0016_0.jpg?itok=LX8pao9H",
+        "contentType": "image/jpeg",
+        "bytes": 54453,
+        "sha256": "e13c9ca301e50c3e679decac4476ba48affb03c53cb66c03708bca355c0590fc",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kstu/campus-gallery-2.jpg",
+        "sourcePage": "https://kstu.edu.gh/",
+        "sourceUrl": "https://kstu.edu.gh/sites/default/files/styles/medium/public/2026-10/PhotoGrid_Plus_1793170756128_0.jpg?itok=oYlyKdhU",
+        "contentType": "image/jpeg",
+        "bytes": 74608,
+        "sha256": "7ca48fcae0e93b4ab8581bbeeff559dc53345f30325fe3dcb07a727a161be212",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kstu/campus-gallery-3.jpg",
+        "sourcePage": "https://kstu.edu.gh/",
+        "sourceUrl": "https://kstu.edu.gh/sites/default/files/styles/medium/public/2026-10/PhotoGrid_Site_1793378646617.jpg?itok=NlBo6OfJ",
+        "contentType": "image/jpeg",
+        "bytes": 81973,
+        "sha256": "42aa6c313c7d4caf16aae9b2dabe471a7173d7f6dd5e99cebb01731ec88600df",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kstu/campus-gallery-4.jpg",
+        "sourcePage": "https://kstu.edu.gh/",
+        "sourceUrl": "https://kstu.edu.gh/sites/default/files/styles/medium/public/2026-10/FB_IMG_1791364625528.jpg?itok=2SrIdH-f",
+        "contentType": "image/jpeg",
+        "bytes": 65732,
+        "sha256": "7a8a4931b40bbd5d69500560b253f3c8cd11b13e6f580ba0e369cf552cfdbff4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:55.625Z"
+    "checkedAt": "2026-11-13T22:45:06.730Z"
   },
   "ktu": {
     "slug": "ktu",
@@ -564,9 +1005,10 @@
       "sha256": "4b125b67cc1ec25c1e4f0b47c33194b629cce90e247799279fc9cb5890764d0a",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:54.766Z"
+    "checkedAt": "2026-11-13T22:45:02.764Z"
   },
   "cctu": {
     "slug": "cctu",
@@ -591,9 +1033,10 @@
       "sha256": "aaa658984b0fbd802b8a264d7a87198fc0ded79127fc5e2ffb3b356be60c20b9",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:52.504Z"
+    "checkedAt": "2026-11-13T22:44:59.731Z"
   },
   "stu": {
     "slug": "stu",
@@ -619,9 +1062,41 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/stu/campus-gallery-1.png",
+        "sourcePage": "https://stu.edu.gh/",
+        "sourceUrl": "https://stu.edu.gh/images/news/russia%205th.png",
+        "contentType": "image/png",
+        "bytes": 635252,
+        "sha256": "8d75c0bf3cf15029d8044ee6a9fb93ddb1b08397aa237ad878d12d9f9d15a8d0",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/stu/campus-gallery-2.jpg",
+        "sourcePage": "https://stu.edu.gh/",
+        "sourceUrl": "https://stu.edu.gh/images/news/bui%20power%20web.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 44032,
+        "sha256": "d7a83ca1708f4d31df98b003c71a16a74f237b24f1f998d0168ee77c0e70aaa4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/stu/campus-gallery-3.jpg",
+        "sourcePage": "https://stu.edu.gh/",
+        "sourceUrl": "https://stu.edu.gh/images/news/BACCSOD.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 123222,
+        "sha256": "44e23aa44fb65b19eb23fa2aac21f9398c8ff8e69008f38bdfd47c0ce75c5fe9",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:55.756Z"
+    "checkedAt": "2026-11-13T22:45:07.472Z"
   },
   "htu": {
     "slug": "htu",
@@ -647,9 +1122,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:52.765Z"
+    "checkedAt": "2026-11-13T22:45:02.636Z"
   },
   "accra-metropolitan-university": {
     "slug": "accra-metropolitan-university",
@@ -675,9 +1151,51 @@
       "sha256": "c0d843ff0ecdc66be95a456eb6cb7aaad2ecb0f420b67d3a1b5516f8946b716d",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/accra-metropolitan-university/campus-gallery-1.png",
+        "sourcePage": "https://web.accramet.edu.gh/news/",
+        "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2024/12/cropped-ACCRA-MET-LOGO-3-e1734601385892.png",
+        "contentType": "image/png",
+        "bytes": 9861,
+        "sha256": "6fca2486ccd9d419cfa976e780ae46874adf987c63ca56084d5241a272ca2da5",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-metropolitan-university/campus-gallery-2.jpg",
+        "sourcePage": "https://web.accramet.edu.gh/news/",
+        "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2026/04/615A3577.jpg-636x424-1.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 70127,
+        "sha256": "9841b5b4cc7861faf4c067ae3ee8675afbb847257884b11552b7f8087ee84791",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-metropolitan-university/campus-gallery-3.jpg",
+        "sourcePage": "https://web.accramet.edu.gh/news/",
+        "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2025/07/admin-ajax-1024x768.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 120847,
+        "sha256": "f7d53ad1d97a7b7285467dcceb36675be4bf49880b492c4ae7e8ed09c7fb6842",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-metropolitan-university/campus-gallery-4.jpg",
+        "sourcePage": "https://web.accramet.edu.gh/news/",
+        "sourceUrl": "https://web.accramet.edu.gh/wp-content/uploads/2026/03/lawboard-1024x768.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 143832,
+        "sha256": "3e40c503c23bfdbe36d3077c00668977913f6079a3b22fd1a001cdf01a6aae0d",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:00.173Z"
+    "checkedAt": "2026-11-13T22:45:13.034Z"
   },
   "academic-city-university": {
     "slug": "academic-city-university",
@@ -703,9 +1221,51 @@
       "sha256": "03a167dc7730bed5b10c27e126c9209bcda3caecef2d937915bfed6c51eee2e0",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/academic-city-university/campus-gallery-1.jpg",
+        "sourcePage": "https://acity.edu.gh/student-life/",
+        "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2024/10/Life-At-ACity-1.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 92895,
+        "sha256": "551b37be7bae54c04e23b5b1d11e33633a25a3d8d2ee5dc1a0f634bd05aea2b8",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/academic-city-university/campus-gallery-2.jpg",
+        "sourcePage": "https://acity.edu.gh/student-life/",
+        "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2024/10/club1.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 185081,
+        "sha256": "9b122929a00e500228a97e3e73eac19dbc3a94655398eddd135fe97e8f768114",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/academic-city-university/campus-gallery-3.jpg",
+        "sourcePage": "https://acity.edu.gh/student-life/",
+        "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2024/10/sports-1.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 223266,
+        "sha256": "81413fcb668c91dfb37a67303ac72c5c861ae3e6d9f8ee775f87267f581cc83f",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/academic-city-university/campus-gallery-4.jpg",
+        "sourcePage": "https://acity.edu.gh/student-life/",
+        "sourceUrl": "https://acity.edu.gh/wp-content/uploads/2024/11/sports-2.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 53405,
+        "sha256": "c2181f8837a21660f168b03a77f6bbd2b3cd7baf021d6d6527f0d8fe8c18f272",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:58.260Z"
+    "checkedAt": "2026-11-13T22:45:11.945Z"
   },
   "akrofi-christaller-institute": {
     "slug": "akrofi-christaller-institute",
@@ -714,9 +1274,10 @@
     "sourceUrl": "https://www.aci.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": "Official domain currently serves a suspended-page response; no third-party logo copy was imported.",
-    "checkedAt": "2026-10-28T16:15:01.435Z"
+    "checkedAt": "2026-11-13T22:45:17.837Z"
   },
   "all-nations-university": {
     "slug": "all-nations-university",
@@ -741,9 +1302,51 @@
       "sha256": "038505007b7c812524ee55a2d9ce59f98b43846bb66b7a2fac7f38d1d6b34ff8",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/all-nations-university/campus-gallery-1.png",
+        "sourcePage": "https://anu.edu.gh/news",
+        "sourceUrl": "https://anu.edu.gh/_next/image?url=https%3A%2F%2Fanu-media.s3.eu-north-1.amazonaws.com%2Fcontent%2Fnews_item%2F2026%2F08%2Fa4e7569b-2e16-45b0-9752-09722836105d.png&w=2560&q=75",
+        "contentType": "image/png",
+        "bytes": 83047,
+        "sha256": "cbc5a97f4d887a3beb71fcb56dbd76985dcd0979d7702a8216396f9da179102f",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/all-nations-university/campus-gallery-2.png",
+        "sourcePage": "https://anu.edu.gh/",
+        "sourceUrl": "https://anu.edu.gh/_next/image?url=https%3A%2F%2Fanu-media.s3.eu-north-1.amazonaws.com%2Fmedia%2Fproduction%2Fimage%2F2026%2F11%2F02a370ef-4e47-4c5b-a375-a09eafe02450%2Fanu-brief-issue-10-banner.png&w=2560&q=75",
+        "contentType": "image/png",
+        "bytes": 604594,
+        "sha256": "3c43d434e44c8bfee65becc2ae794e931b0748d47554cf2a26927003c1042640",
+        "score": 36,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/all-nations-university/campus-gallery-3.png",
+        "sourcePage": "https://anu.edu.gh/events",
+        "sourceUrl": "https://anu.edu.gh/_next/image?url=https%3A%2F%2Fanu-media.s3.eu-north-1.amazonaws.com%2Fmedia%2Fproduction%2Fimage%2F2026%2F11%2F8a562112-3761-4ae8-9c1c-5c02775496f4%2F16.png&w=2560&q=75",
+        "contentType": "image/png",
+        "bytes": 961444,
+        "sha256": "cb65ef303dc3d694ff2f977114c3aa3fbf12c608aec045f511a50469d8b47732",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/all-nations-university/campus-gallery-4.png",
+        "sourcePage": "https://anu.edu.gh/events",
+        "sourceUrl": "https://anu.edu.gh/_next/image?url=https%3A%2F%2Fanu-media.s3.eu-north-1.amazonaws.com%2Fcontent%2Fmisc%2F2026%2F07%2F9b41eaee-7c5b-4ca3-9597-b10ecfc09e8b.png&w=2560&q=75",
+        "contentType": "image/png",
+        "bytes": 360518,
+        "sha256": "449071a0899b6012124c241041d7fe9c4ad5f6f9fa8129b6b08ee81e7755264b",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:03.159Z"
+    "checkedAt": "2026-11-13T22:45:19.202Z"
   },
   "tatu": {
     "slug": "tatu",
@@ -768,9 +1371,51 @@
       "sha256": "20116af8314de67328879d72774e432242c3fa9a3ff3352555ca0e0c18d0a976",
       "score": 24
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/tatu/campus-gallery-1.jpg",
+        "sourcePage": "https://tatu.edu.gh/gallery/",
+        "sourceUrl": "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=80",
+        "contentType": "image/jpeg",
+        "bytes": 83195,
+        "sha256": "81f9272db373a6b52046f6cd964e08f2dfd3493a7d09932d55d6db335bf2c460",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tatu/campus-gallery-2.jpg",
+        "sourcePage": "https://tatu.edu.gh/events/",
+        "sourceUrl": "https://tatu.edu.gh/wp-content/uploads/2026/07/GETfund-Hostel-1-1024x685.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 115964,
+        "sha256": "ec1800b1a98a60aa810558b67fbb20b5c261a534ad7bc86768d5d8416892ab09",
+        "score": 36,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tatu/campus-gallery-3.png",
+        "sourcePage": "https://tatu.edu.gh/news/",
+        "sourceUrl": "https://tatu.edu.gh/wp-content/uploads/2026/08/arctug_conference_banner-768x329.png",
+        "contentType": "image/png",
+        "bytes": 264861,
+        "sha256": "a7ae7e6daaf33a2c6158898b21f66c45ec60eefbb9edf8d13fca06c33b70a3c7",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tatu/campus-gallery-4.jpg",
+        "sourcePage": "https://tatu.edu.gh/news/",
+        "sourceUrl": "https://tatu.edu.gh/wp-content/uploads/2026/10/WhatsApp-Image-2026-10-29-at-3.40.44-PM1-768x512.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 88194,
+        "sha256": "84708c55fe6347d370926bd517f548f002f31250d7a1e203441a6db83076930e",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:57.955Z"
+    "checkedAt": "2026-11-13T22:45:08.890Z"
   },
   "central-university": {
     "slug": "central-university",
@@ -797,9 +1442,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:04.768Z"
+    "checkedAt": "2026-11-13T22:45:20.064Z"
   },
   "catholic-university": {
     "slug": "catholic-university",
@@ -825,9 +1471,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/catholic-university/campus-gallery-1.jpg",
+        "sourcePage": "https://cug.edu.gh/gallery",
+        "sourceUrl": "https://cug.edu.gh/uploads/gallery/1765546145.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 85080,
+        "sha256": "d89be377a01ab0e9489a1b6c10932ca8dbb1f499ba510e301d2bfd86d92a8c78",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/catholic-university/campus-gallery-2.jpg",
+        "sourcePage": "https://cug.edu.gh/gallery",
+        "sourceUrl": "https://cug.edu.gh/uploads/gallery/1765546106.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 72616,
+        "sha256": "008485cb84c294c72f0ff82ffe61c9c7cdc4b9c392708c883c2cc03cbb5332a0",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/catholic-university/campus-gallery-3.jpg",
+        "sourcePage": "https://cug.edu.gh/gallery",
+        "sourceUrl": "https://cug.edu.gh/uploads/gallery/1731346596.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 168057,
+        "sha256": "fd3942a5430999b14247795160ec3d79ccfa5107f3d8127650b3c1f459d3b6a8",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/catholic-university/campus-gallery-4.jpg",
+        "sourcePage": "https://cug.edu.gh/gallery",
+        "sourceUrl": "https://cug.edu.gh/uploads/gallery/1729942271.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 209670,
+        "sha256": "a489059fa355ba886996f1690996fd55f929457da0f9a8f4d3a1d3ef866fea43",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:04.626Z"
+    "checkedAt": "2026-11-13T22:45:19.439Z"
   },
   "ttu": {
     "slug": "ttu",
@@ -853,9 +1541,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:14:57.598Z"
+    "checkedAt": "2026-11-13T22:45:08.800Z"
   },
   "ashesi": {
     "slug": "ashesi",
@@ -881,9 +1570,31 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ashesi/campus-gallery-1.webp",
+        "sourcePage": "https://ashesi.edu.gh/",
+        "sourceUrl": "https://ashesi.edu.gh/wp-content/uploads/2018/06/Ashesi_Graduation_2-min.webp",
+        "contentType": "image/webp",
+        "bytes": 67302,
+        "sha256": "93d14209ffea7eec23b595ea54a4194dd6d0472c2e213a29e51392393dca2301",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ashesi/campus-gallery-2.png",
+        "sourcePage": "https://ashesi.edu.gh/events/",
+        "sourceUrl": "https://ashesi.edu.gh/wp-content/uploads/2023/06/Ashesi-Logo_h.Colored_website-300x248.png",
+        "contentType": "image/png",
+        "bytes": 6458,
+        "sha256": "86773879f88c69efe4f6a2f03e3a3e0fdc3ceffde5d165fd19cac2df221b1ea7",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:04.565Z"
+    "checkedAt": "2026-11-13T22:45:19.228Z"
   },
   "garden-city-university": {
     "slug": "garden-city-university",
@@ -910,9 +1621,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:13.395Z"
+    "checkedAt": "2026-11-13T22:45:29.064Z"
   },
   "african-university-of-communication-and-business": {
     "slug": "african-university-of-communication-and-business",
@@ -939,9 +1651,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:00.757Z"
+    "checkedAt": "2026-11-13T22:45:13.886Z"
   },
   "ensign-global-university": {
     "slug": "ensign-global-university",
@@ -967,9 +1680,51 @@
       "sha256": "d83fbce1024fbbf48944079af6ff7c22e550a5436fab9e7d37dd66ab95db0b4d",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ensign-global-university/campus-gallery-1.png",
+        "sourcePage": "https://ensign.edu.gh/gallery",
+        "sourceUrl": "https://ensign.edu.gh/uploads/40eb2b76881cece0560f8181e3e885fdd2a93d89.png",
+        "contentType": "image/png",
+        "bytes": 1860092,
+        "sha256": "32b7b5829787419762a32d209b60de4ffbb31c91b4e2d58ea45f6d05d18cae45",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ensign-global-university/campus-gallery-2.png",
+        "sourcePage": "https://ensign.edu.gh/gallery",
+        "sourceUrl": "https://ensign.edu.gh/uploads/4c839e8745480227d7b9a611b722dee38afef34d.png",
+        "contentType": "image/png",
+        "bytes": 2332847,
+        "sha256": "4f9a307842c1b73524809918f23d282c0190ee01d63d4f8014bffa4605b02974",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ensign-global-university/campus-gallery-3.png",
+        "sourcePage": "https://ensign.edu.gh/gallery",
+        "sourceUrl": "https://ensign.edu.gh/uploads/88a394e52ddc17254fcec96159f8ef171c8eae8b.png",
+        "contentType": "image/png",
+        "bytes": 2574285,
+        "sha256": "286170873a2c5d18ec8f2a567a3944e33d71d2b7cfd504aae558bcd43bd05e80",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ensign-global-university/campus-gallery-4.png",
+        "sourcePage": "https://ensign.edu.gh/gallery",
+        "sourceUrl": "https://ensign.edu.gh/uploads/116f4ec85af42a9d6e85183b8404f08a9f459046.png",
+        "contentType": "image/png",
+        "bytes": 1734280,
+        "sha256": "bc011e82be577b3ffa4db44056b95946acf2ef6d19258e39e6ad4c6ed87613d0",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:09.669Z"
+    "checkedAt": "2026-11-13T22:45:22.925Z"
   },
   "entrance-university-of-health-sciences": {
     "slug": "entrance-university-of-health-sciences",
@@ -987,9 +1742,10 @@
       "selection": "explicit_official_source"
     },
     "campus": null,
+    "campusGallery": [],
     "status": "logo_only",
     "reviewNote": "Official site publishes a logo but no campus photograph was exposed in its public page assets.",
-    "checkedAt": "2026-10-28T16:15:10.996Z"
+    "checkedAt": "2026-11-13T22:45:25.507Z"
   },
   "family-health-university": {
     "slug": "family-health-university",
@@ -1016,9 +1772,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:11.042Z"
+    "checkedAt": "2026-11-13T22:45:26.174Z"
   },
   "christian-service-university": {
     "slug": "christian-service-university",
@@ -1045,9 +1802,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/christian-service-university/campus-gallery-1.png",
+        "sourcePage": "https://www.csuc.edu.gh/",
+        "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2026/10/University-Graduation-Ceremony-Speech-225x300.png",
+        "contentType": "image/png",
+        "bytes": 119832,
+        "sha256": "e63d7e930247f4a660aaf98bfc472bb5c42536bc16a311bcf026a5f43d02dd93",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/christian-service-university/campus-gallery-2.png",
+        "sourcePage": "https://www.csuc.edu.gh/student-life/",
+        "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2025/05/WhatsApp-Image-2025-05-02-at-2.16.20-PM.png",
+        "contentType": "image/png",
+        "bytes": 587867,
+        "sha256": "39c97d220a5b1f209adb6bcfedd922db81641fd20c5894e26e7b54fe8e1a911f",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/christian-service-university/campus-gallery-3.jpg",
+        "sourcePage": "https://www.csuc.edu.gh/student-life/",
+        "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2025/05/IMG_20191016_105723-768x576-1.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 128657,
+        "sha256": "d41231b1406b659c3b00d9a20c8355b296cce1516a1e9859fcd3bd582d474127",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/christian-service-university/campus-gallery-4.jpg",
+        "sourcePage": "https://www.csuc.edu.gh/student-life/",
+        "sourceUrl": "https://www.csuc.edu.gh/wp-content/uploads/2023/09/IMG_3896-1024x683.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 196023,
+        "sha256": "910e4efa68c71baa7f891dfe03515f5f1fb94ca83ec08e1fe3838c2c932574e4",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:08.453Z"
+    "checkedAt": "2026-11-13T22:45:20.750Z"
   },
   "heritage-christian-university": {
     "slug": "heritage-christian-university",
@@ -1072,9 +1871,10 @@
       "sha256": "150d1cd58318ecc8adcc029970b1fda983c1c8856c347c27403111ea835de9fb",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:13.520Z"
+    "checkedAt": "2026-11-13T22:45:30.243Z"
   },
   "kaaf-university": {
     "slug": "kaaf-university",
@@ -1099,9 +1899,10 @@
       "sha256": "22b06bb36e81dbf2da27f9bfdebefb33b8e2d45040031f6154ac27b7a51f1d5e",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:15.643Z"
+    "checkedAt": "2026-11-13T22:45:31.114Z"
   },
   "knutsford-university": {
     "slug": "knutsford-university",
@@ -1127,9 +1928,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/knutsford-university/campus-gallery-1.png",
+        "sourcePage": "https://knutsford.edu.gh/events/",
+        "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2026/11/KU-Logo_H1-scaled.png",
+        "contentType": "image/png",
+        "bytes": 401033,
+        "sha256": "4e6b366a9de09843e332c63e6f82a5b6d5aedd3d4b3956dfb726bba5e1e79178",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knutsford-university/campus-gallery-2.png",
+        "sourcePage": "https://knutsford.edu.gh/events/",
+        "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2025/04/Knutsford-Universitys-Logo_Final.png",
+        "contentType": "image/png",
+        "bytes": 329775,
+        "sha256": "98227e73f3531a5f53fea60eaba551c901f8c7bf3de337bf499b76909e5d09ac",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knutsford-university/campus-gallery-3.png",
+        "sourcePage": "https://knutsford.edu.gh/events/",
+        "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2025/04/Knutsford-Universitys-Logo_white-300x83.png",
+        "contentType": "image/png",
+        "bytes": 10924,
+        "sha256": "a8605ba0bb441022c25a278c4a5442e99fce4c71a4433b82e04ae974ded4d059",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/knutsford-university/campus-gallery-4.jpg",
+        "sourcePage": "https://knutsford.edu.gh/gallery/",
+        "sourceUrl": "https://knutsford.edu.gh/wp-content/uploads/2016/06/KNUTSGRADmatric-Iv-29-of-148-scaled.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 599477,
+        "sha256": "d52911c6bec5cab9b6688d8969bf1d4813d208c6b766aa0628b30fae65c33362",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:20.676Z"
+    "checkedAt": "2026-11-13T22:45:31.210Z"
   },
   "pentecost-university": {
     "slug": "pentecost-university",
@@ -1154,9 +1997,10 @@
       "sha256": "c4024d63250b14ba411d34e50aa793853cbf63d12f4a6a01373c092613e380de",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:23.981Z"
+    "checkedAt": "2026-11-13T22:45:39.689Z"
   },
   "thrivus-university": {
     "slug": "thrivus-university",
@@ -1183,9 +2027,31 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/thrivus-university/campus-gallery-1.jpg",
+        "sourcePage": "https://thrivusinstitute.edu.gh/",
+        "sourceUrl": "https://thrivusinstitute.edu.gh/wp-content/uploads/2021/08/male-researcher-laboratory_23-2148776157.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 68723,
+        "sha256": "7213113026c506c974e19032300a536b60f24738f43fe937a91a192c12cd61a0",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/thrivus-university/campus-gallery-2.png",
+        "sourcePage": "https://thrivusinstitute.edu.gh/",
+        "sourceUrl": "https://thrivusinstitute.edu.gh/wp-content/uploads/2021/08/graduation-hat.png",
+        "contentType": "image/png",
+        "bytes": 8791,
+        "sha256": "93d2231669dbacf341c055f76a3b3b3c5d16abcf09d5c624557d562c4cb7ac9a",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:28.470Z"
+    "checkedAt": "2026-11-13T22:45:41.239Z"
   },
   "trinity-theological-seminary": {
     "slug": "trinity-theological-seminary",
@@ -1210,9 +2076,21 @@
       "sha256": "efe8411f0b8b9eadecd94dda5ed1f8d1b1fd353c102e5f70e381abe3f1765a95",
       "score": 12
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/trinity-theological-seminary/campus-gallery-1.webp",
+        "sourcePage": "https://trinity.edu.gh/",
+        "sourceUrl": "https://trinity.edu.gh/main/img/trinity-theological-seminary.webp",
+        "contentType": "image/webp",
+        "bytes": 44080,
+        "sha256": "fadf2df74206616fb7a54124008f4c91ab192a66eb1697a691df7e13648c53b0",
+        "score": 6,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:29.998Z"
+    "checkedAt": "2026-11-13T22:45:45.468Z"
   },
   "senes-professional-college-accra": {
     "slug": "senes-professional-college-accra",
@@ -1221,9 +2099,10 @@
     "sourceUrl": null,
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_official_site_published",
     "reviewNote": "No official website was published in the directory source, so no asset was fabricated.",
-    "checkedAt": "2026-10-28T16:15:35.071Z"
+    "checkedAt": "2026-11-13T22:45:52.628Z"
   },
   "methodist-university": {
     "slug": "methodist-university",
@@ -1248,9 +2127,51 @@
       "sha256": "3c4a5f04dc493ea3485c34f7b44a9b3e7185f178bef676473a846aeea2c92c24",
       "score": 6
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/methodist-university/campus-gallery-1.jpg",
+        "sourcePage": "https://mug.edu.gh/news/",
+        "sourceUrl": "https://mug.edu.gh/wp-content/uploads/2026/06/MUG-CALL-FOR-ABSTRACTS-WEB-BANNER-FINAL-1.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 305878,
+        "sha256": "3f6677c711cc78d18dd25f81b0a68e427e0230b2c4ff25c6102d155e74b306f8",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/methodist-university/campus-gallery-2.png",
+        "sourcePage": "https://mug.edu.gh/student-life/",
+        "sourceUrl": "https://mug.edu.gh/wp-content/uploads/2020/11/MUG-LOGO-2026.png",
+        "contentType": "image/png",
+        "bytes": 64333,
+        "sha256": "5e41aae398ffc08ba4210478b86f6be74114ea48a5448bceb4a48786ced81df3",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/methodist-university/campus-gallery-3.jpg",
+        "sourcePage": "https://mug.edu.gh/news/",
+        "sourceUrl": "https://mug.edu.gh/wp-content/uploads/2026/10/855217696_987096253699161_8315301655618508835_n.jpg",
+        "contentType": "image/jpeg",
+        "bytes": 172463,
+        "sha256": "da3c3f0d5615d276ce08c9957f8181f4ac7651c52731d7c2d463ba02d04c3114",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/methodist-university/campus-gallery-4.jpg",
+        "sourcePage": "https://mug.edu.gh/news/",
+        "sourceUrl": "https://mug.edu.gh/wp-content/uploads/2026/08/WhatsApp-Image-2026-08-27-at-2.21.55-PM.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 85711,
+        "sha256": "c365763b25d6f0a729c5aa585d38bdb7e808cd42561783afe6a5398c6e3598e1",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:21.794Z"
+    "checkedAt": "2026-11-13T22:45:34.093Z"
   },
   "nibs-university": {
     "slug": "nibs-university",
@@ -1275,9 +2196,10 @@
       "sha256": "84c3c7bc59fb3a260a20f09328251908551be45c633ed7135e827e54b4b70e7e",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:23.205Z"
+    "checkedAt": "2026-11-13T22:45:36.189Z"
   },
   "valley-view-university": {
     "slug": "valley-view-university",
@@ -1304,9 +2226,51 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/valley-view-university/campus-gallery-1.webp",
+        "sourcePage": "https://www.vvu.edu.gh/facilities",
+        "sourceUrl": "https://www.vvu.edu.gh/uploads/gallery/thumbs/gallery_1786574895_3896_800x800.webp",
+        "contentType": "image/webp",
+        "bytes": 102094,
+        "sha256": "3684fe140e16061f584d466b67ac700301e031d423f905b4eb4ba75caa0c8755",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/valley-view-university/campus-gallery-2.jpg",
+        "sourcePage": "https://www.vvu.edu.gh/facilities",
+        "sourceUrl": "https://lh3.googleusercontent.com/pw/AP1GczO2Pq6HRDkMWpr88OWtRpFkbdYot7zF47tcqXmsmRIaOGYXyDiloVk0jYSp-3NJfVNn_bWREDQg6r_fDo9nE15h0O39zW6G-1xFvf00AIL8locOJh0mPzgZAfM96qdp1daBaWyca_f0XwyV7DlydmpHJg=w500-h500-c",
+        "contentType": "image/jpeg",
+        "bytes": 64288,
+        "sha256": "444d63aa9293e1d97ba4327be49df09be5997078cc9a0c6467de36ab70604c2a",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/valley-view-university/campus-gallery-3.webp",
+        "sourcePage": "https://www.vvu.edu.gh/facilities",
+        "sourceUrl": "https://www.vvu.edu.gh/uploads/gallery/thumbs/gallery_1790604708_5534_500x500.webp",
+        "contentType": "image/webp",
+        "bytes": 56520,
+        "sha256": "db6d4fabefa85d5acdde1a0de8ffcc0b68ee7735ec9ef7bd4b7808677c2ea86f",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/valley-view-university/campus-gallery-4.jpg",
+        "sourcePage": "https://www.vvu.edu.gh/facilities",
+        "sourceUrl": "https://www.vvu.edu.gh/Education-Website-and-AdminPanel/images/slider/38dddae305fe63800b52635dbff31741.jpeg",
+        "contentType": "image/jpeg",
+        "bytes": 797869,
+        "sha256": "dd84bd3fe20fd8067e1b9da10e10d586a07fd5ec9e3a5fe7282933827a1e9768",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:31.923Z"
+    "checkedAt": "2026-11-13T22:45:48.582Z"
   },
   "ghana-armed-forces-command-and-staff-college": {
     "slug": "ghana-armed-forces-command-and-staff-college",
@@ -1332,9 +2296,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:35.074Z"
+    "checkedAt": "2026-11-13T22:45:52.659Z"
   },
   "university-of-gold-coast": {
     "slug": "university-of-gold-coast",
@@ -1361,9 +2326,10 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:30.164Z"
+    "checkedAt": "2026-11-13T22:45:47.744Z"
   },
   "presbyterian-university": {
     "slug": "presbyterian-university",
@@ -1389,9 +2355,10 @@
       "sha256": "e1b7e19f8474b63a3b110c892fc3de6c6459e29bd94c19960b0e842bcf0e5c84",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:26.876Z"
+    "checkedAt": "2026-11-13T22:45:40.430Z"
   },
   "regional-maritime-university": {
     "slug": "regional-maritime-university",
@@ -1416,9 +2383,10 @@
       "sha256": "726b91be199702dfbdbd8aa85ac4cd2d4c9adbd876271f5833744d90e972ee4d",
       "score": 24
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:35.959Z"
+    "checkedAt": "2026-11-13T22:45:53.613Z"
   },
   "national-defence-university": {
     "slug": "national-defence-university",
@@ -1443,9 +2411,10 @@
       "sha256": "9f53b990ad09a05e124a955deaa9b2cf0a4ac43cc2dd274b118cb5a9f6361daa",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:36.402Z"
+    "checkedAt": "2026-11-13T22:45:54.681Z"
   },
   "anglican-university-college-of-technology": {
     "slug": "anglican-university-college-of-technology",
@@ -1454,9 +2423,10 @@
     "sourceUrl": "https://aut.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:37.787Z"
+    "checkedAt": "2026-11-13T22:45:58.699Z"
   },
   "accra-institute-of-technology": {
     "slug": "accra-institute-of-technology",
@@ -1474,9 +2444,10 @@
       "selection": "explicit_official_source"
     },
     "campus": null,
+    "campusGallery": [],
     "status": "logo_only",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:36.775Z"
+    "checkedAt": "2026-11-13T22:45:58.229Z"
   },
   "bluecrest-college": {
     "slug": "bluecrest-college",
@@ -1501,9 +2472,10 @@
       "sha256": "312de0509315e99c0bc35c495f316d1f2b45a058bdb9d9b6907c3cb03cb41a43",
       "score": 24
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:38.529Z"
+    "checkedAt": "2026-11-13T22:45:59.754Z"
   },
   "christ-apostolic-university-college": {
     "slug": "christ-apostolic-university-college",
@@ -1512,9 +2484,10 @@
     "sourceUrl": "https://cauc.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:41.424Z"
+    "checkedAt": "2026-11-13T22:46:03.720Z"
   },
   "catholic-institute-of-business-and-technology": {
     "slug": "catholic-institute-of-business-and-technology",
@@ -1539,9 +2512,10 @@
       "sha256": "93b455360d00f7a69b078361c4abf2b16a538ca2c07b10c964af8d0827872be5",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:40.116Z"
+    "checkedAt": "2026-11-13T22:46:03.245Z"
   },
   "evangelical-presbyterian-university-college": {
     "slug": "evangelical-presbyterian-university-college",
@@ -1558,9 +2532,10 @@
       "score": 30
     },
     "campus": null,
+    "campusGallery": [],
     "status": "logo_only",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:42.451Z"
+    "checkedAt": "2026-11-13T22:46:08.743Z"
   },
   "data-link-institute-of-business-and-technology": {
     "slug": "data-link-institute-of-business-and-technology",
@@ -1585,9 +2560,10 @@
       "sha256": "86fd432500864471bf72a33f1098da7cf88a780c93abfcbdfa644e98bfee4593",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:41.644Z"
+    "checkedAt": "2026-11-13T22:46:04.777Z"
   },
   "islamic-university-college-ghana": {
     "slug": "islamic-university-college-ghana",
@@ -1596,9 +2572,10 @@
     "sourceUrl": "https://iuc.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:45.396Z"
+    "checkedAt": "2026-11-13T22:46:13.006Z"
   },
   "jayee-university-college": {
     "slug": "jayee-university-college",
@@ -1607,9 +2584,10 @@
     "sourceUrl": "https://jayeeuniversity.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:45.519Z"
+    "checkedAt": "2026-11-13T22:46:13.320Z"
   },
   "kessben-university-college": {
     "slug": "kessben-university-college",
@@ -1618,9 +2596,10 @@
     "sourceUrl": "https://kessben.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:45.681Z"
+    "checkedAt": "2026-11-13T22:46:13.410Z"
   },
   "dominion-university-college": {
     "slug": "dominion-university-college",
@@ -1629,9 +2608,10 @@
     "sourceUrl": "https://duc.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:41.822Z"
+    "checkedAt": "2026-11-13T22:46:08.273Z"
   },
   "ghana-christian-university-college": {
     "slug": "ghana-christian-university-college",
@@ -1640,9 +2620,10 @@
     "sourceUrl": "https://www.ghanacu.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:44.821Z"
+    "checkedAt": "2026-11-13T22:46:12.357Z"
   },
   "ghana-baptist-university-college": {
     "slug": "ghana-baptist-university-college",
@@ -1667,9 +2648,10 @@
       "sha256": "af3a0bcea78103e66f91edf714b2295fed674f961fcdc8fd2e263e157ea792ba",
       "score": 6
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:43.691Z"
+    "checkedAt": "2026-11-13T22:46:09.802Z"
   },
   "kings-university-college": {
     "slug": "kings-university-college",
@@ -1678,9 +2660,10 @@
     "sourceUrl": "https://kuc.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:45.788Z"
+    "checkedAt": "2026-11-13T22:46:13.763Z"
   },
   "lancaster-university-ghana": {
     "slug": "lancaster-university-ghana",
@@ -1705,9 +2688,10 @@
       "sha256": "ac75b55250c7baaa13c4613155cb49263dd4b14d4acb73aa74d9f5a48ea3defd",
       "score": 6
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:45.970Z"
+    "checkedAt": "2026-11-13T22:46:13.813Z"
   },
   "maranatha-university-college": {
     "slug": "maranatha-university-college",
@@ -1716,9 +2700,10 @@
     "sourceUrl": "https://maranatha.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:46.085Z"
+    "checkedAt": "2026-11-13T22:46:18.061Z"
   },
   "marshalls-university-college": {
     "slug": "marshalls-university-college",
@@ -1727,9 +2712,10 @@
     "sourceUrl": "https://marshalls.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:46.385Z"
+    "checkedAt": "2026-11-13T22:46:18.355Z"
   },
   "mountcrest-university-college": {
     "slug": "mountcrest-university-college",
@@ -1738,9 +2724,10 @@
     "sourceUrl": "https://mountcrest.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:46.831Z"
+    "checkedAt": "2026-11-13T22:46:18.440Z"
   },
   "palm-university-college": {
     "slug": "palm-university-college",
@@ -1749,9 +2736,10 @@
     "sourceUrl": "https://palm.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:50.714Z"
+    "checkedAt": "2026-11-13T22:46:18.827Z"
   },
   "perez-university-college": {
     "slug": "perez-university-college",
@@ -1768,9 +2756,10 @@
       "score": 30
     },
     "campus": null,
+    "campusGallery": [],
     "status": "logo_only",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:50.798Z"
+    "checkedAt": "2026-11-13T22:46:18.862Z"
   },
   "radford-university-college": {
     "slug": "radford-university-college",
@@ -1779,9 +2768,10 @@
     "sourceUrl": "https://radford.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:51.097Z"
+    "checkedAt": "2026-11-13T22:46:23.097Z"
   },
   "regent-university-college": {
     "slug": "regent-university-college",
@@ -1806,9 +2796,10 @@
       "sha256": "bb74cf83b863ec91f189a616327a77a9daa35e6ad973c7fdeee1b2291e32895e",
       "score": 24
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:51.397Z"
+    "checkedAt": "2026-11-13T22:46:23.382Z"
   },
   "spiritan-university-college": {
     "slug": "spiritan-university-college",
@@ -1817,9 +2808,10 @@
     "sourceUrl": "https://spiritan.edu.gh/",
     "logo": null,
     "campus": null,
+    "campusGallery": [],
     "status": "no_verified_assets",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:51.851Z"
+    "checkedAt": "2026-11-13T22:46:23.526Z"
   },
   "university-college-agriculture-environmental-studies": {
     "slug": "university-college-agriculture-environmental-studies",
@@ -1844,9 +2836,10 @@
       "sha256": "5acf94b127715dbd9c70072ddfbf3fed4c6e586c0f61abce8c8837d192cbb1b3",
       "score": 12
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:53.889Z"
+    "checkedAt": "2026-11-13T22:46:23.907Z"
   },
   "west-end-university-college": {
     "slug": "west-end-university-college",
@@ -1863,9 +2856,10 @@
       "score": 30
     },
     "campus": null,
+    "campusGallery": [],
     "status": "logo_only",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:53.963Z"
+    "checkedAt": "2026-11-13T22:46:24.004Z"
   },
   "wisconsin-international-university-college": {
     "slug": "wisconsin-international-university-college",
@@ -1890,9 +2884,10 @@
       "sha256": "ae7aff7f9debaa00899401a3c1c61f1c7f4cb0dcce6cdf6e1c713eeaf3c3072a",
       "score": 24
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:55.735Z"
+    "checkedAt": "2026-11-13T22:46:28.155Z"
   },
   "zenith-university-college": {
     "slug": "zenith-university-college",
@@ -1917,8 +2912,9 @@
       "sha256": "35c4b09119bf0eb32bc0b4208db71ccaae968a06e6f15e3f16ee3d0e9c684e61",
       "score": 24
     },
+    "campusGallery": [],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
-    "checkedAt": "2026-10-28T16:15:56.315Z"
+    "checkedAt": "2026-11-13T22:46:28.406Z"
   }
 }

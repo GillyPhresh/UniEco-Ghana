@@ -95,6 +95,58 @@ export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, classNa
   return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" logoObjectPosition={logoObjectPosition} className={`block h-full w-full ${className}`} />;
 }
 
+export function CampusCardCarousel({ images, name, shortName }: { images: Array<{ src: string; alt: string }>; name: string; shortName: string }) {
+  const slides = useMemo(() => Array.from(new Map(images.filter((image) => image.src).map((image) => [image.src, image])).values()), [images]);
+  const [active, setActive] = useState(0);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setReducedMotion(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  useEffect(() => {
+    const update = () => setIsPageVisible(!document.hidden);
+    update();
+    document.addEventListener('visibilitychange', update);
+    return () => document.removeEventListener('visibilitychange', update);
+  }, []);
+
+  useEffect(() => {
+    const element = carouselRef.current;
+    if (!element || !('IntersectionObserver' in window)) {
+      setIsVisible(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { rootMargin: '120px' });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (slides.length < 2 || reducedMotion || !isVisible || isPaused || !isPageVisible) return;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 5200);
+    return () => window.clearInterval(timer);
+  }, [isPageVisible, isPaused, isVisible, reducedMotion, slides.length]);
+
+  useEffect(() => { setActive(0); }, [slides]);
+  const current = slides[active];
+  if (!current) return <UniversityMedia alt={`${name} campus`} name={name} shortName={shortName} kind="campus" className="h-44 w-full object-cover sm:h-48" />;
+
+  return <div ref={carouselRef} className="relative" aria-roledescription="carousel" aria-label={`${shortName} campus photos`} onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)} onFocus={() => setIsPaused(true)} onBlur={() => setIsPaused(false)}>
+    <UniversityMedia key={current.src} src={current.src} alt={current.alt} name={name} shortName={shortName} kind="campus" loading="lazy" className="h-44 w-full object-cover sm:h-48" />
+    {slides.length > 1 && <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden="true">{slides.map((slide, index) => <span key={slide.src} className={`h-1.5 rounded-full shadow ${active === index ? 'w-5 bg-white' : 'w-1.5 bg-white/65'}`} />)}</div>}
+    {slides.length > 1 && <span className="sr-only" aria-live="polite">Photo {active + 1} of {slides.length}: {current.alt}</span>}
+  </div>;
+}
+
 export type CampusStory = {
   id: string;
   kind: 'campus' | 'event' | 'news';

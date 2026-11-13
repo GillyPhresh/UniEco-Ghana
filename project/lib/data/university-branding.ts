@@ -18,6 +18,7 @@ type UniversityBrandingRecord = {
   sourceUrl: string | null;
   logo: UniversityBrandingAsset | null;
   campus: UniversityBrandingAsset | null;
+  campusGallery?: UniversityBrandingAsset[];
   status: string;
 };
 
@@ -111,6 +112,7 @@ export function getLocalUniversityBranding(slug: string) {
     logoSourcePage: officialSourcePages[slug] || (record?.logo?.sourcePage ?? null),
     campusUrl: officialCampusOverrides[slug] || record?.campus?.path || null,
     campusSourcePage: officialSourcePages[slug] || (record?.campus?.sourcePage ?? null),
+    campusGallery: (record?.campusGallery || []).filter((asset) => Boolean(asset?.path)).map((asset) => ({ ...asset })),
     status: record?.status ?? null,
   };
 }
