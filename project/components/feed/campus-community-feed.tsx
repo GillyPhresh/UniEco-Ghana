@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ArrowDownToLine, ArrowUpRight, Bookmark, Building2, CircleAlert, FileText,
   Flag, ImagePlus, Loader2, MapPin, Paperclip, Play, Plus, RefreshCw, Send,
-  ShieldCheck,
+  ShieldCheck, Volume2, VolumeX,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -743,6 +743,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const videoRef = useRef<HTMLVideoElement>(null);
   const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [videoFailure, setVideoFailure] = useState<'network' | 'decode' | 'unsupported' | 'unknown' | null>(null);
+  const [videoMuted, setVideoMuted] = useState(true);
   const [reducedData, setReducedData] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const [fileInfo, setFileInfo] = useState<{ path: string; name: string; size: number } | null>(null);
@@ -756,6 +757,7 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   const [preparedLegacyVideoUrl, setPreparedLegacyVideoUrl] = useState<string | null>(null);
   const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
   const legacyPrepareAttemptedRef = useRef(false);
+  const networkRetryAttemptedRef = useRef(false);
 
   const prepareLegacyVideoForPlayback = useCallback(() => {
     if (legacyPrepareAttemptedRef.current) return;
@@ -880,8 +882,8 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    video.muted = videoMuted;
     if (active && !reducedData) {
-      video.muted = true;
       void video.play().catch(() => {
         // Autoplay can be blocked by device policy even when the file is healthy.
         if (!video.error) setVideoState('ready');
@@ -889,7 +891,13 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
     } else {
       video.pause();
     }
-  }, [active, reducedData, privateVideoUrl, preparedLegacyVideoUrl]);
+  }, [active, reducedData, privateVideoUrl, preparedLegacyVideoUrl, videoMuted]);
+
+  const toggleVideoMuted = () => {
+    const nextMuted = !videoMuted;
+    setVideoMuted(nextMuted);
+    if (videoRef.current) videoRef.current.muted = nextMuted;
+  };
 
   const retryVideo = () => {
     const video = videoRef.current;
@@ -975,22 +983,33 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             ref={videoRef}
             src={preparedLegacyVideoUrl || post.media_url || undefined}
             playsInline
-            muted
+            muted={videoMuted}
             loop
             controls
             autoPlay={active && !reducedData}
-            preload={active && !reducedData ? 'metadata' : 'none'}
+            preload={active && !reducedData ? 'auto' : 'none'}
             onLoadedMetadata={() => setVideoState('loading')}
-            onLoadedData={() => { setVideoState('ready'); setPreparingLegacyVideo(false); }}
-            onPlaying={() => { setVideoState('ready'); setPreparingLegacyVideo(false); }}
+            onLoadedData={() => { networkRetryAttemptedRef.current = false; setVideoState('ready'); setPreparingLegacyVideo(false); }}
+            onPlaying={() => { networkRetryAttemptedRef.current = false; setVideoState('ready'); setPreparingLegacyVideo(false); }}
             onWaiting={() => setVideoState('loading')}
             onError={(event) => {
               const code = event.currentTarget.error?.code;
               setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
-              // Do not stop at the browser's direct-storage error screen. A
-              // one-time same-origin recovery stream also handles interrupted
-              // storage delivery and malformed legacy MP4s.
-              if ([2, 3, 4].includes(code || 0) && !preparedLegacyVideoUrl && !legacyPrepareAttemptedRef.current) {
+              // A connection hiccup should not trigger a full server-side
+              // download/transcode. Retry the range-capable original once;
+              // reserve conversion for genuine codec/container failures.
+              if (code === 2 && !networkRetryAttemptedRef.current && !preparedLegacyVideoUrl) {
+                networkRetryAttemptedRef.current = true;
+                setVideoState('loading');
+                const video = event.currentTarget;
+                window.setTimeout(() => {
+                  if (videoRef.current !== video || !video.isConnected) return;
+                  video.load();
+                  if (active && !reducedData) void video.play().catch(() => undefined);
+                }, 500);
+                return;
+              }
+              if ([3, 4].includes(code || 0) && !preparedLegacyVideoUrl && !legacyPrepareAttemptedRef.current) {
                 void prepareLegacyVideoForPlayback();
                 return;
               }
@@ -999,6 +1018,15 @@ export function CommunityPostCard({ post, active = false, socialState = emptyCom
             aria-label={`Video shared by ${post.author_name}`}
             className="block max-h-[min(68dvh,44rem)] w-full object-contain"
           />
+          <button
+            type="button"
+            onClick={toggleVideoMuted}
+            aria-label={videoMuted ? 'Unmute video' : 'Mute video'}
+            aria-pressed={!videoMuted}
+            className="absolute bottom-3 right-3 z-10 inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/25 bg-black/70 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+          >
+            {videoMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+          </button>
           {active && reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto w-fit rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status">Data saver is on · tap play to load this video</div>}
           {active && !reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
           {(videoState === 'error' || preparingLegacyVideo) && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">

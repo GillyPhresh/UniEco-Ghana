@@ -152,8 +152,14 @@ test('campus feed has a quiet branded composer and automatic legacy video recove
   assert.match(feed, /Making this video ready…/);
   assert.match(feed, /Adapting this older video for your device…/);
   assert.match(feed, /legacyPrepareAttemptedRef/);
-  assert.match(feed, /\[2, 3, 4\]\.includes\(code \|\| 0\)/);
-  assert.match(feed, /one-time same-origin recovery stream also handles interrupted/);
+  assert.match(feed, /code === 2 && !networkRetryAttemptedRef\.current/);
+  assert.match(feed, /reserve conversion for genuine codec\/container failures/);
+  assert.match(feed, /\[3, 4\]\.includes\(code \|\| 0\)/);
+  assert.match(feed, /preload=\{active && !reducedData \? 'auto' : 'none'\}/);
+  assert.match(feed, /aria-label=\{videoMuted \? 'Unmute video' : 'Mute video'\}/);
+  assert.match(feed, /absolute bottom-3 right-3/);
+  assert.match(feed, /VolumeX/);
+  assert.match(feed, /Volume2/);
   assert.match(feed, /autoPlay=\{active && !reducedData\}/);
   assert.match(feed, /border border-emerald-200 bg-white/);
   assert.doesNotMatch(feed, /Prepare &amp; play/);
@@ -210,7 +216,7 @@ test('slow connections can use cached feed content and media remains lazy', asyn
   assert.match(feed, /sessionStorage\.getItem\(cacheKey\)/);
   assert.match(feed, /FEED_CACHE_TTL_MS/);
   assert.match(feed, /Showing recent posts saved on this device/);
-  assert.match(feed, /preload=\{active && !reducedData \? 'metadata' : 'none'\}/);
+  assert.match(feed, /preload=\{active && !reducedData \? 'auto' : 'none'\}/);
   assert.match(feed, /connection\?\.saveData/);
   assert.match(feed, /Social counts are secondary: don't hold the actual feed hostage/);
   assert.match(auth, /Promise\.all\(\[/);
