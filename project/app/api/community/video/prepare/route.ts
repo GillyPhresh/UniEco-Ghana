@@ -66,7 +66,7 @@ function takeRateLimit(userId: string) {
   return true;
 }
 
-async function isFastBrowserMp4(sourcePath: string) {
+async function hasFastBrowserCompatibleStreams(sourcePath: string) {
   return await new Promise<boolean>((resolve) => {
     let settled = false;
     let output = '';
@@ -117,7 +117,11 @@ async function convertToBrowserMp4(input: Buffer, inputExtension: string) {
   const outputPath = path.join(directory, 'prepared.mp4');
   try {
     await writeFile(sourcePath, input, { flag: 'wx', mode: 0o600 });
-    const copyCompatibleStreams = inputExtension === 'mp4' && await isFastBrowserMp4(sourcePath);
+    // Phone-recorded QuickTime files commonly contain H.264/AAC already.
+    // Remux those instead of re-encoding; this keeps the browser-friendly MP4
+    // output while avoiding a costly transcode for the most common uploads.
+    const remuxableContainer = ['mp4', 'm4v', 'mov', 'qt'].includes(inputExtension);
+    const copyCompatibleStreams = remuxableContainer && await hasFastBrowserCompatibleStreams(sourcePath);
     await new Promise<void>((resolve, reject) => {
       const commonArgs = [
         '-nostdin', '-hide_banner', '-loglevel', 'error', '-y',

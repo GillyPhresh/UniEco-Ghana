@@ -96,7 +96,9 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(prepareRoute, /contentType\.includes\('application\/octet-stream'\)/);
   assert.match(prepareRoute, /request\.arrayBuffer\(\)/);
   assert.match(prepareRoute, /x-unieco-video-name/);
-  assert.match(feed, /UniEco will prepare this video as a phone-friendly MP4 before posting/);
+  assert.match(feed, /Getting video ready…/);
+  assert.match(feed, /Please wait…/);
+  assert.doesNotMatch(feed, /Your post is public and linked to your account and campus|phone-friendly MP4 before posting/);
   assert.match(feed, /video\/mp4/);
   assert.match(feed, /\.mov/);
   assert.match(dockerfile, /apk add --no-cache ffmpeg/);
@@ -194,7 +196,9 @@ test('video recovery serves public posts to guests but keeps private attachments
   assert.match(route, /USER_TRANSCODE_LIMIT = 4/);
   assert.match(route, /-protocol_whitelist', 'file,pipe,data'/);
   assert.match(route, /'libx264'/);
-  assert.match(route, /isFastBrowserMp4/);
+  assert.match(route, /hasFastBrowserCompatibleStreams/);
+  assert.match(route, /\['mp4', 'm4v', 'mov', 'qt'\]\.includes\(inputExtension\)/);
+  assert.match(route, /'-c:v', 'copy', '-c:a', 'copy'/);
   assert.match(route, /source\.isPublicPost \? 'private, max-age=86400' : 'private, no-store'/);
   assert.match(route, /'-maxrate', '1500k'/);
   assert.match(route, /'ffprobe'/);

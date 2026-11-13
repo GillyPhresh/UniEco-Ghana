@@ -480,7 +480,7 @@ export function CampusCommunityFeed() {
     let attachmentPath: string | null = null;
     let attachmentName: string | null = null;
     setUploading(true);
-    setUploadStage(isVideo ? 'Preparing video for playback…' : 'Uploading your post…');
+    setUploadStage(isVideo ? 'Getting video ready…' : 'Uploading your post…');
     setUploadProgress(isVideo ? null : 0);
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
     let uploadPath: string | null = publicPath;
@@ -581,7 +581,7 @@ export function CampusCommunityFeed() {
       if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
       else if (message.startsWith('VIDEO_PREPARE:')) toast.error(message.slice('VIDEO_PREPARE:'.length));
       else if (message.startsWith('RESUMABLE_UPLOAD:')) toast.error(message.slice('RESUMABLE_UPLOAD:'.length));
-      else if (message === 'TimeoutError' || message === 'AbortError') toast.error('Video preparation took too long. Please try a shorter video or a stronger connection.');
+      else if (message === 'TimeoutError' || message === 'AbortError') toast.error('Couldn’t get the video ready. Try a shorter clip or retry on a stronger connection.');
       else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
       else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
     } finally {
@@ -690,17 +690,13 @@ export function CampusCommunityFeed() {
 
       <Dialog open={postOpen} onOpenChange={closePostDialog}>
         <DialogContent className="max-h-[min(90dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-xl sm:p-6">
-          <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Post a photo or short video for the UniEco Ghana community. Your post is public and linked to your account and campus.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Share a moment with your campus community.</DialogDescription></DialogHeader>
           <form onSubmit={submitPost} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="community-media">Add a photo or video <span className="font-normal text-muted-foreground">(videos in common camera and editor formats up to 50 MB are prepared for smooth phone and browser playback)</span></label>
+            <label className="block text-sm font-semibold" htmlFor="community-media">Photo or video <span className="font-normal text-muted-foreground">(up to 50 MB)</span></label>
             <input id="community-media" type="file" accept="image/*,video/*,.mov,.m4v,.qt,.ogv,.ogg,.avi,.mkv,.3gp,.3g2,.mpeg,.mpg,.mts,.m2ts,.ts,.vob,.wmv,.asf,.flv,.f4v,.mxf,.rm,.rmvb,.amv" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
-            {mediaFile && <p className="-mt-2 flex items-center gap-2 break-all text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{safeFileName(mediaFile.name)} · {readableSize(mediaFile.size)}</p>}
-            {mediaFile && <p role="status" className={`rounded-xl border px-3 py-2 text-xs leading-5 ${selectedVideo || (PREVIEW_MEDIA.has(mediaFile.type) && canDisplayInline(mediaFile)) ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-950'}`}>
-              {selectedVideo
-                ? 'UniEco will prepare this video as a phone-friendly MP4 before posting, so the feed can play it inline instead of showing a download.'
-                : !PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES
-                  ? 'This attachment will be available to download. JPG, PNG, and WebP photos up to 25 MB display inline.'
-                  : 'This photo will display inline in the feed.'}
+            {mediaFile && <p className="-mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{selectedVideo ? 'Video selected' : mediaFile.type.startsWith('image/') ? 'Photo selected' : 'File selected'} · {readableSize(mediaFile.size)}</p>}
+            {mediaFile && !selectedVideo && (!PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES) && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
+              This file will be downloadable in your post.
             </p>}
             {previewUrl && mediaFile && !selectedVideo && mediaFile.type.startsWith('image/') && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />}
             <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
@@ -708,7 +704,7 @@ export function CampusCommunityFeed() {
             <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
             {uploading && uploadProgress !== null && <div className="space-y-1.5" role="status" aria-live="polite"><div className="flex justify-between text-xs text-muted-foreground"><span>{uploadStage || 'Uploading securely…'}</span><span>{uploadProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-emerald-600 transition-[width] duration-300" style={{ width: `${uploadProgress}%` }} /></div><p className="text-xs text-muted-foreground">Upload resumes automatically after brief connection interruptions.</p></div>}
             {uploading && uploadProgress === null && <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{uploadStage || 'Working…'}</p>}
-            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{uploadStage || 'Publishing…'}{uploadProgress !== null ? ` ${uploadProgress}%` : ''}</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
+            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait…</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
