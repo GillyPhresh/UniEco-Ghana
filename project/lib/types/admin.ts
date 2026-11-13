@@ -539,6 +539,7 @@ export const ADMIN_NAV_GROUPS = [
       { label: 'Trust & Safety Cases', href: '/admin/trust-safety', icon: 'ShieldAlert' },
       { label: 'Support Tickets', href: '/admin/support', icon: 'LifeBuoy' },
       { label: 'Communication Hub', href: '/admin/communication', icon: 'Bell' },
+      { label: 'Campus Discovery', href: '/admin/campus-discovery', icon: 'Building2' },
       { label: 'Broadcasts', href: '/admin/broadcasts', icon: 'Megaphone' },
       { label: 'Announcements', href: '/admin/announcements', icon: 'Bell' },
       { label: 'CMS', href: '/admin/cms', icon: 'FileText' },

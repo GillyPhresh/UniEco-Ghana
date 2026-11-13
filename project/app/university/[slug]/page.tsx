@@ -11,12 +11,14 @@ import {
   getVendorsByUniversity,
   getEventsByUniversity,
   getUniversityAnnouncementsByUniversity,
+  getPublishedCampusDiscoveries,
 } from '@/lib/data/public-queries';
 import { CATEGORY_ICONS } from '@/lib/constants/categories';
 import { siteConfig } from '@/lib/constants/site';
 import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
 import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
+import { CampusNearbyDiscovery } from '@/components/universities/campus-nearby-discovery';
 import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap, ExternalLink } from 'lucide-react';
 import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
@@ -57,10 +59,11 @@ export default async function UniversityPage({ params }: PageProps) {
   const university = await getUniversityBySlug(slug);
   if (!university) notFound();
 
-  const [vendors, events, announcements] = await Promise.all([
+  const [vendors, events, announcements, discoveries] = await Promise.all([
     getVendorsByUniversity(university.id, 20),
     getEventsByUniversity(university.id, 6),
     getUniversityAnnouncementsByUniversity(university.id, 6),
+    getPublishedCampusDiscoveries(university.id, 12),
   ]);
 
   const universityCategoryCounts: Record<string, number> = {};
@@ -211,6 +214,16 @@ export default async function UniversityPage({ params }: PageProps) {
           )}
         </Section>
 
+        {/* Public-source discoveries are attributed and separate from verified vendor and event records. */}
+        {discoveries.length > 0 && <Section id="public-campus-discoveries" className="bg-muted/20">
+          <SectionHeading eyebrow="From official school sources" title={`More around ${university.short_name}`} description="Public information reported by the institution’s own website. These entries are not verified by UniEco; check the original source before relying on details." align="left" />
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{discoveries.map((item) => <article key={item.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between gap-2"><span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{item.listing_type === 'event' ? 'School event' : 'Business mentioned by school'}</span>{item.listing_type === 'event' && item.starts_at && <span className="text-xs text-muted-foreground">{formatDate(item.starts_at)}</span>}</div>
+            <h3 className="mt-3 font-semibold text-foreground">{item.title}</h3>{item.summary && <p className="mt-2 line-clamp-4 text-sm leading-5 text-muted-foreground">{item.summary}</p>}{item.location && <p className="mt-2 text-xs text-muted-foreground">{item.location}</p>}
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm"><a href={item.source_url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-4">Source: {item.source_label}</a>{item.external_url && item.external_url !== item.source_url && <a href={item.external_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-muted-foreground underline underline-offset-4">More info <ExternalLink className="h-3.5 w-3.5" /></a>}</div>
+          </article>)}</div>
+        </Section>}
+
         {/* Categories at this university */}
         {Object.keys(universityCategoryCounts).length > 0 && (
           <Section id="campus-categories" className="bg-muted/30">
@@ -311,6 +324,10 @@ export default async function UniversityPage({ params }: PageProps) {
               </Link>
             </div>
           </div>
+        </Section>
+
+        <Section id="nearby-campus-places" className="bg-muted/20">
+          <CampusNearbyDiscovery campus={[university.name, university.city, university.region, university.country || 'Ghana'].filter(Boolean).join(', ')} />
         </Section>
 
         {/* Events */}

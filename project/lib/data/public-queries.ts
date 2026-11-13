@@ -291,6 +291,34 @@ export async function getEventsByUniversity(universityId: string, limit = 6) {
   return (data || []) as unknown as (EventItem & { university: Pick<University, 'id' | 'name' | 'short_name' | 'slug'> | null })[];
 }
 
+export type CampusDiscoveryListing = {
+  id: string;
+  university_id: string;
+  listing_type: 'business' | 'event';
+  title: string;
+  summary: string | null;
+  location: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  source_url: string;
+  source_label: string;
+  external_url: string | null;
+  expires_at: string;
+};
+
+export async function getPublishedCampusDiscoveries(universityId: string, limit = 12): Promise<CampusDiscoveryListing[]> {
+  const supabase = createPublicServerClient();
+  const { data, error } = await supabase
+    .from('campus_discovery_listings')
+    .select('id, university_id, listing_type, title, summary, location, starts_at, ends_at, source_url, source_label, external_url, expires_at')
+    .eq('university_id', universityId)
+    .eq('status', 'published')
+    .gt('expires_at', new Date().toISOString())
+    .order('starts_at', { ascending: true, nullsFirst: false })
+    .limit(limit);
+  return error ? [] : (data || []) as CampusDiscoveryListing[];
+}
+
 export async function getUniversityAnnouncementsByUniversity(universityId: string, limit = 6) {
   const supabase = await createClient();
   const { data } = await supabase
