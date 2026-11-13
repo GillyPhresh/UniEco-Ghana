@@ -42,11 +42,12 @@ function DiscoverContent() {
   const searchParams = useSearchParams();
   const initialCategory = searchParams.get('category') || '';
   const initialQuery = searchParams.get('q') || '';
+  const initialUniversity = searchParams.get('university') || searchParams.get('university_id') || '';
 
   const [vendors, setVendors] = useState<VendorWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState(initialCategory);
-  const [universityFilter, setUniversityFilter] = useState('');
+  const [universityFilter, setUniversityFilter] = useState(initialUniversity);
   const [region, setRegion] = useState('');
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [deliveryOnly, setDeliveryOnly] = useState(false);

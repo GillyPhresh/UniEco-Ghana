@@ -17,7 +17,7 @@ import { siteConfig } from '@/lib/constants/site';
 import { getLocalUniversityBranding, getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
 import { createPublicPageMetadata, serializeJsonLd } from '@/lib/seo/metadata';
 import { UniversityLogo, CampusShowcase, UniversityMedia, type CampusStory } from '@/components/universities/university-media';
-import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap } from 'lucide-react';
+import { MapPin, Store, Calendar, ArrowRight, Briefcase, Users, GraduationCap, ExternalLink } from 'lucide-react';
 import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
 interface PageProps {
@@ -76,6 +76,9 @@ export default async function UniversityPage({ params }: PageProps) {
   const localBranding = getLocalUniversityBranding(university.slug);
   const logoUrl = localBranding.logoUrl || university.logo_url;
   const heroImageUrl = university.landmark_image_url || university.hero_image_url;
+  const officialWebsite = university.website_url && /^https?:\/\//i.test(university.website_url)
+    ? university.website_url
+    : null;
 
   const logoAlt = university.logo_alt_text || `${university.name} official logo`;
   const campusStories: CampusStory[] = [
@@ -169,6 +172,7 @@ export default async function UniversityPage({ params }: PageProps) {
                   <span className="flex items-center gap-1.5"><Store className="h-4 w-4 text-primary" />{vendors.length} businesses</span>
                   <span className="flex items-center gap-1.5"><Calendar className="h-4 w-4 text-primary" />{events.length} events</span>
                 </div>
+                {officialWebsite && <a href={officialWebsite} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-primary underline underline-offset-4">Official institution website <ExternalLink className="h-4 w-4" /></a>}
                 {university.description && <p className="mt-5 max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">{university.description}</p>}
                 {university.institution_type && <div className="mt-4 flex flex-wrap gap-2"><span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">{university.institution_type}</span>{university.ownership_type && <span className="rounded-full border px-3 py-1 text-xs font-medium capitalize text-muted-foreground">{university.ownership_type} institution</span>}</div>}
                 {university.accreditation_source_url && <div className="mt-4 rounded-xl border border-emerald-700/15 bg-emerald-700/5 p-4"><p className="text-sm font-semibold text-foreground">GTEC accreditation record</p><p className="mt-1 text-sm text-muted-foreground">Listed as {university.accreditation_status || 'unknown'} when checked {university.accreditation_checked_at ? new Date(`${university.accreditation_checked_at}T12:00:00Z`).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : 'by UniEco'}{university.accreditation_valid_until ? ` · validity date shown by GTEC through ${new Date(`${university.accreditation_valid_until}T12:00:00Z`).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}` : ''}. Check the regulator’s record for current details.</p><a href={university.accreditation_source_url} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center font-semibold text-primary underline underline-offset-4">View institution record at GTEC</a></div>}
@@ -187,10 +191,10 @@ export default async function UniversityPage({ params }: PageProps) {
 
         {/* Popular businesses */}
         <Section id="featured">
-          <SectionHeading
+            <SectionHeading
             eyebrow="Businesses"
             title={`Businesses at ${university.short_name}`}
-            description="Food, services, and shops serving students on this campus."
+              description="Student-run businesses and local vendors listed for this campus. Listings appear when a provider joins and is approved."
             align="left"
           />
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -202,7 +206,7 @@ export default async function UniversityPage({ params }: PageProps) {
             <EmptyState
               icon={Store}
               title="No businesses yet"
-              description={`Be the first to register a business at ${university.short_name}.`}
+              description={`No active business listings are available for ${university.short_name} yet. Invite a local business or student entrepreneur to join UniEco and list their services.`}
             />
           )}
         </Section>
@@ -259,7 +263,7 @@ export default async function UniversityPage({ params }: PageProps) {
                 freelance services. Support a mate, get a good deal.
               </p>
               <Link
-                href="/discover"
+                href={`/discover?university=${encodeURIComponent(university.id)}`}
                 className="mt-3 inline-flex items-center text-sm font-medium text-primary hover:gap-2 transition-all"
               >
                 Browse student businesses
@@ -279,7 +283,7 @@ export default async function UniversityPage({ params }: PageProps) {
                 repair centres, and service providers you can trust.
               </p>
               <Link
-                href="/discover"
+                href={`/discover?university=${encodeURIComponent(university.id)}`}
                 className="mt-3 inline-flex items-center text-sm font-medium text-primary hover:gap-2 transition-all"
               >
                 Browse verified vendors
@@ -299,7 +303,7 @@ export default async function UniversityPage({ params }: PageProps) {
                 See what is happening and show up.
               </p>
               <Link
-                href="/events"
+                href={`/events?university=${encodeURIComponent(university.slug)}`}
                 className="mt-3 inline-flex items-center text-sm font-medium text-primary hover:gap-2 transition-all"
               >
                 View campus events
@@ -314,7 +318,7 @@ export default async function UniversityPage({ params }: PageProps) {
           <SectionHeading
             eyebrow="Events"
             title={`Events at ${university.short_name}`}
-            description="What is coming up on campus."
+            description={`Upcoming events published for ${university.name}. Only events with a confirmed listing and date appear here.`}
             align="left"
           />
           {events.length > 0 ? (

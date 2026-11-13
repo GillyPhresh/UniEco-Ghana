@@ -262,17 +262,17 @@ export async function getRelatedVendors(vendor: Vendor, limit = 4) {
   return (data || []) as unknown as VendorWithRelations[];
 }
 
-export async function getPublishedEvents(limit = 6) {
+export async function getPublishedEvents(limit = 6, universityId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('events')
     .select(`
       *,
       university:universities(id, name, short_name, slug)
     `)
-    .eq('is_published', true)
-    .order('start_time', { ascending: true })
-    .limit(limit);
+    .eq('is_published', true);
+  if (universityId) query = query.eq('university_id', universityId);
+  const { data } = await query.order('start_time', { ascending: true }).limit(limit);
   return (data || []) as unknown as (EventItem & { university: Pick<University, 'id' | 'name' | 'short_name' | 'slug'> | null })[];
 }
 

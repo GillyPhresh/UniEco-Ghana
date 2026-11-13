@@ -1,6 +1,6 @@
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
-import { getPublishedEvents } from '@/lib/data/public-queries';
+import { getPublishedEvents, getUniversityBySlug } from '@/lib/data/public-queries';
 import { EventsBrowser } from '@/components/events/events-browser';
 import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
@@ -18,8 +18,14 @@ export async function generateMetadata() {
   };
 }
 
-export default async function EventsPage() {
-  const events = await getPublishedEvents(50);
+interface EventsPageProps {
+  searchParams: Promise<{ university?: string }>;
+}
+
+export default async function EventsPage({ searchParams }: EventsPageProps) {
+  const { university: universitySlug } = await searchParams;
+  const campus = universitySlug ? await getUniversityBySlug(universitySlug) : null;
+  const events = await getPublishedEvents(campus ? 100 : 50, campus?.id);
 
   return (
     <>
@@ -27,15 +33,15 @@ export default async function EventsPage() {
       <main className="container py-8 sm:py-10">
         <div className="mb-8">
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Campus events
+            {campus ? `Events at ${campus.short_name}` : 'Campus events'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Tech fairs, food festivals, career fairs, sports galas — see what is
-            happening at universities across Ghana.
+            {campus ? `Verified upcoming events published for ${campus.name}.` : 'happening at universities across Ghana.'}
           </p>
         </div>
 
-        <EventsBrowser events={events} />
+        <EventsBrowser events={events} campusName={campus?.short_name} />
       </main>
       <SiteFooter />
     </>
