@@ -8576,5 +8576,67 @@
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T12:15:00.000Z"
+  },
+  "ola-college-of-education": {
+    "slug": "ola-college-of-education",
+    "shortName": "OLACoE",
+    "name": "OLA College of Education",
+    "sourceUrl": "https://olacoe.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/ola-college-of-education/logo.png",
+      "sourcePage": "https://olacoe.edu.gh/",
+      "sourceUrl": "https://olacoe.edu.gh/uploads/0a468bb07b21b25970405ef9b106dbb46715dab041140ee1.png",
+      "contentType": "image/png",
+      "bytes": 421264,
+      "sha256": "d9635f3c5c5e419fbc772e00e04be18541b54dd96d4371d926517da8262b19c5",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ola-college-of-education/campus-gallery-1.webp",
+        "sourcePage": "https://olacoe.edu.gh/",
+        "sourceUrl": "https://olacoe.edu.gh/uploads/f07047cff6181849efe0707ea7e29ba494cf51a1eb618333.jpg",
+        "contentType": "image/webp",
+        "bytes": 131920,
+        "sha256": "0696d456dffd5f0d58f6b6e765b4d54a763bdb572ea042c47c342d65355ab93c",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ola-college-of-education/campus-gallery-2.webp",
+        "sourcePage": "https://olacoe.edu.gh/",
+        "sourceUrl": "https://olacoe.edu.gh/uploads/a595aa4aadfb76ada37caf1f802b3203dde0d1923f50bf01.jpg",
+        "contentType": "image/webp",
+        "bytes": 304226,
+        "sha256": "66649a446108e136511f3430132f547ee02f9dcf43bff5977787c58f8a18523b",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ola-college-of-education/campus-gallery-3.webp",
+        "sourcePage": "https://olacoe.edu.gh/",
+        "sourceUrl": "https://olacoe.edu.gh/uploads/770728f2b2251adb35758fb12f2a473e2d363c2d2fa510d1.jpg",
+        "contentType": "image/webp",
+        "bytes": 141520,
+        "sha256": "0550736817ca6fcf4330c9ba0bbde779edbd9b561299b0ba5a6bf87f32a77e16",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ola-college-of-education/campus-gallery-4.webp",
+        "sourcePage": "https://olacoe.edu.gh/",
+        "sourceUrl": "https://olacoe.edu.gh/uploads/bb7f8d0c9f185f0d84054da89bf9513acc9ba80960cadd51.jpg",
+        "contentType": "image/webp",
+        "bytes": 104056,
+        "sha256": "e5a3ff93b97e6a1974c750eba0ac713af6058bb4a9622325d5b804754c42617c",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T18:35:00.000Z"
   }
 }
