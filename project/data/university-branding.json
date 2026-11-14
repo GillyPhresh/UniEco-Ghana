@@ -6358,5 +6358,185 @@
     "status": "verified_gallery_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T02:44:11.905Z"
+  },
+  "college-of-health-yamfo": {
+    "slug": "college-of-health-yamfo",
+    "shortName": "CoHY",
+    "name": "College of Health, Yamfo",
+    "sourceUrl": "https://www.cohy.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/college-of-health-yamfo/logo.png",
+      "sourcePage": "https://www.cohy.edu.gh/news/",
+      "sourceUrl": "https://www.cohy.edu.gh/images/logo3.png",
+      "contentType": "image/png",
+      "bytes": 93810,
+      "sha256": "45b4313838528f159ae5e7da4668ef7fc26858471e39b73d1ae7e7c569495e82",
+      "score": 60
+    },
+    "campus": {
+      "path": "/assets/universities/college-of-health-yamfo/campus.jpg",
+      "sourcePage": "https://www.cohy.edu.gh/news/",
+      "sourceUrl": "http://www.cohy.edu.gh/uploads/posts/9512168c805e32b93496c3ec8db279d2.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 168377,
+      "sha256": "7236847f268bbdd133295b4304c993ec1620ea5806256ec10816394454a8c9c0",
+      "score": 24
+    },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/news/",
+        "sourceUrl": "http://cohy.edu.gh/uploads/posts/be0cfd618549237dbca8a41e35b85488.jpeg",
+        "contentType": "image/webp",
+        "bytes": 119360,
+        "sha256": "f6606faef0339fad6d9220d9f52c78c8786f1f8110a3844dbecb849d137363eb",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/news/",
+        "sourceUrl": "http://www.cohy.edu.gh/uploads/posts/be7fbd76e9f8ecccd442dfd9b4ff11ad.jpg",
+        "contentType": "image/webp",
+        "bytes": 26644,
+        "sha256": "a618db52ed19cfc5c8e7c2258783e01740cee7d67d512381aa2850bcc46bb65c",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/news/",
+        "sourceUrl": "http://cohy.edu.gh/uploads/posts/a0fc107312ac5b7a5c1549e382e9eb53.jpg",
+        "contentType": "image/webp",
+        "bytes": 12968,
+        "sha256": "67bcf242d3f0ee48b0132c1bf5006992286365f0d555885837dcaa24431e9f16",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/",
+        "sourceUrl": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8443.jpg",
+        "contentType": "image/webp",
+        "bytes": 79286,
+        "sha256": "36c1ae643d75ca1bd5e279bfbe283270a81754b7230fa67a052bccd59ae3b7ec",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/",
+        "sourceUrl": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8445.jpg",
+        "contentType": "image/webp",
+        "bytes": 107496,
+        "sha256": "9fdd92d32c450a828249a63894217efd1ffe440d7d7355e5bbe5ad6d9b0d69ba",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-yamfo/campus-gallery-7.optimized.webp",
+        "sourcePage": "https://www.cohy.edu.gh/",
+        "sourceUrl": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8467.jpg",
+        "contentType": "image/webp",
+        "bytes": 100926,
+        "sha256": "5dded6b08451da6a75105e4e30217c514659df7dfbf551c411a9e8d391d624a4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T03:12:03.212Z"
+  },
+  "college-of-health-and-well-being": {
+    "slug": "college-of-health-and-well-being",
+    "shortName": "CoHK",
+    "name": "College of Health and Well-Being, Kintampo",
+    "sourceUrl": "https://cohk.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/college-of-health-and-well-being/logo.png",
+      "sourcePage": "https://cohk.edu.gh/",
+      "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2022/04/cropped-Web-Logo-New-1.png",
+      "contentType": "image/png",
+      "bytes": 14826,
+      "sha256": "d69e62593253c60fae5005ced8ba66f06c82288b6d21faf0ff9733b70cbde383",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": {
+      "path": "/assets/universities/college-of-health-and-well-being/campus.jpg",
+      "sourcePage": "https://cohk.edu.gh/",
+      "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2021/04/IMG_8260-1980x800.jpg",
+      "contentType": "image/jpeg",
+      "bytes": 295794,
+      "sha256": "d6af91132e7b3c0c8054fb6f27cd19822e59c66347510e12f373639ff60633bd",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campusGallery": [
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/index.php/gallery/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2020/02/DSC00238-1024x576.jpg",
+        "contentType": "image/webp",
+        "bytes": 61068,
+        "sha256": "99b8196b5cf6a4c755735429f4d3bc2f2098673de38b2a6dcaa5624dc972b722",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/index.php/gallery/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2020/02/DSC00259-1024x576.jpg",
+        "contentType": "image/webp",
+        "bytes": 46522,
+        "sha256": "5b5bed7211b20cf42da8cd136ceefff9d30c2bd65a9733e8c9bfeed1b98c3b6a",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/index.php/gallery/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2020/03/WhatsApp-Image-2020-03-03-at-1.14.26-PM-300x225.jpeg",
+        "contentType": "image/webp",
+        "bytes": 9436,
+        "sha256": "87969818aef1adb85dad11e25ba90d939ac4b9693c43af6d7e12ba851eb44cec",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2021/04/IMG_8254-1980x800.jpg",
+        "contentType": "image/webp",
+        "bytes": 96004,
+        "sha256": "4b029d8035deddf5c0cc0e22c15e679d692ecea237e33e23940a0127acc00c83",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2021/04/IMG_8261-1980x800.jpg",
+        "contentType": "image/webp",
+        "bytes": 85624,
+        "sha256": "546d2276e44c499337d7454cb61de954300b909aec4b1f73ec0059fc49d21004",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/college-of-health-and-well-being/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://cohk.edu.gh/",
+        "sourceUrl": "https://cohk.edu.gh/wp-content/uploads/2021/08/55-1412x800.png",
+        "contentType": "image/webp",
+        "bytes": 128906,
+        "sha256": "5c8867114e02511569c99bc616d2bfd08058ab89c8727d01f244304cb730750f",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T03:45:03.624Z"
   }
 }

@@ -95,7 +95,7 @@ export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, classNa
   return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" logoObjectPosition={logoObjectPosition} className={`block h-full w-full ${className}`} />;
 }
 
-export function CampusCardCarousel({ images, name, shortName }: { images: Array<{ src: string; alt: string }>; name: string; shortName: string }) {
+export function CampusCardCarousel({ images, name, shortName }: { images: Array<{ src: string; alt: string; fallbackSrc?: string | null }>; name: string; shortName: string }) {
   const slides = useMemo(() => Array.from(new Map(images.filter((image) => image.src).map((image) => [image.src, image])).values()), [images]);
   const slideKey = slides.map((slide) => slide.src).join('|');
   const [active, setActive] = useState(0);
@@ -138,7 +138,7 @@ export function CampusCardCarousel({ images, name, shortName }: { images: Array<
   if (!current) return <UniversityMedia alt={`${name} campus`} name={name} shortName={shortName} kind="campus" className="h-44 w-full object-cover sm:h-48" />;
 
   return <div ref={carouselRef} className="relative" role="group" aria-roledescription="carousel" aria-label={`${shortName} campus photos`}>
-    <UniversityMedia key={current.src} src={current.src} alt={current.alt} name={name} shortName={shortName} kind="campus" loading="lazy" className="h-44 w-full object-cover sm:h-48" />
+    <UniversityMedia key={current.src} src={current.src} fallbackSrc={current.fallbackSrc} alt={current.alt} name={name} shortName={shortName} kind="campus" loading="lazy" className="h-44 w-full object-cover sm:h-48" />
     {slides.length > 1 && <div className="absolute inset-x-2 bottom-2 flex items-center justify-between rounded-full bg-slate-950/65 p-1 text-white backdrop-blur-sm sm:inset-x-3 sm:bottom-3">
       <button type="button" onClick={() => setActive((index) => (index - 1 + slides.length) % slides.length)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={`Previous ${shortName} photo`}><ArrowLeft className="h-4 w-4" /></button>
       <div className="flex min-w-0 items-center justify-center gap-1" aria-label="Choose campus photo">{slides.map((slide, index) => <button key={slide.src} type="button" onClick={() => setActive(index)} className={`h-1.5 rounded-full transition-[width,background-color] motion-reduce:transition-none ${active === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'}`} aria-label={`Show ${shortName} photo ${index + 1} of ${slides.length}`} aria-current={active === index ? 'true' : undefined} />)}</div>

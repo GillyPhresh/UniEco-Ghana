@@ -84,6 +84,8 @@ const institutions = [
   ['e-p-college-of-education-bimbilla', 'BIMBICO', 'E.P College of Education, Bimbilla', 'https://www.epcoebimbilla.edu.gh/'],
   ['mampong-technical-college-of-education-ashanti-mampong', 'MAMTECH', 'Mampong Technical College of Education, Ashanti Mampong', 'https://mtce.edu.gh/'],
   ['nurses-and-midwives-training-college-tamale', 'NMTC Tamale', 'Nurses and Midwives Training College, Tamale', 'https://www.nmtctamale.edu.gh/'],
+  ['college-of-health-yamfo', 'CoHY', 'College of Health, Yamfo', 'https://www.cohy.edu.gh/'],
+  ['college-of-health-and-well-being', 'CoHK', 'College of Health and Well-Being, Kintampo', 'https://cohk.edu.gh/'],
   ['ada-college-of-education-ada', 'AdaCoE', 'Ada College of Education, Ada', 'https://adacoe.edu.gh/'],
   ['akrokerri-college-of-education-akrokerri', 'ARCE', 'Akrokerri College of Education, Akrokerri', 'https://www.arce.edu.gh/'],
   ['komenda-college-of-education-komenda', 'Komenda CoE', 'Komenda College of Education, Komenda', 'https://www.komendacollege.edu.gh/'],
@@ -129,7 +131,7 @@ const institutions = [
   ['zenith-university-college', 'ZUC', 'Zenith University College', 'https://zuc.edu.gh/'],
 ];
 
-const pageSuffixes = ['', 'about', 'campus', 'gallery', 'news', 'events', 'student-life', 'facilities'];
+const pageSuffixes = ['', 'about', 'campus', 'gallery', 'news', 'events', 'student-life', 'facilities', 'index.php/gallery/'];
 const blockedPathParts = ['favicon', 'icon', 'avatar', 'gravatar', 'sprite', 'captcha', 'pdf', 'brochure', 'admission', 'certificate', 'poster', 'flyer', 'wp-includes'];
 const campusWords = ['campus', 'building', 'entrance', 'facility', 'facilities', 'grounds', 'library', 'hall', 'hostel', 'landmark', 'aerial', 'hero', 'slider', 'banner', 'gallery', 'photo', 'student', 'graduation', 'orientation', 'matriculation', 'research', 'sports', 'ceremony', 'lecture', 'classroom', 'laboratory', 'convocation'];
 const logoWords = ['logo', 'crest', 'emblem', 'brand', 'seal'];
@@ -220,6 +222,10 @@ const manualAssets = {
   ashesi: { campus: { url: 'https://ashesi.edu.gh/wp-content/uploads/2026/10/Ashesi-MTN-MOU-e1791307361895-768x402.jpg', page: 'https://ashesi.edu.gh/' } },
   'knutsford-university': { campus: { url: 'https://knutsford.edu.gh/wp-content/uploads/2026/08/New-Knutsford-Campus-view.jpeg', page: 'https://knutsford.edu.gh/' } },
   'presbyterian-university': { logo: { url: 'https://www.presbyuniversity.edu.gh/site/wp-content/uploads/2022/09/University-Logo-New-02.jpg', page: 'https://www.presbyuniversity.edu.gh/site/' } },
+  'college-of-health-and-well-being': {
+    logo: { url: 'https://cohk.edu.gh/wp-content/uploads/2022/04/cropped-Web-Logo-New-1.png', page: 'https://cohk.edu.gh/' },
+    campus: { url: 'https://cohk.edu.gh/wp-content/uploads/2021/04/IMG_8260-1980x800.jpg', page: 'https://cohk.edu.gh/' },
+  },
   'akrofi-christaller-institute': { skipAutomatic: true },
 };
 
@@ -254,8 +260,11 @@ function imageCandidates(html, pageUrl) {
     };
     const src = attr('src') || attr('data-src') || attr('data-lazy-src');
     const srcset = attr('srcset') || attr('data-srcset');
-    const firstSrcset = srcset.split(',').map((v) => v.trim().split(/\s+/)[0]).find(Boolean);
-    results.push({ url: absoluteUrl(cleanUrl(src || firstSrcset), pageUrl), alt: attr('alt'), kind: 'img' });
+    const largestSrcset = srcset.split(',').map((entry) => {
+      const [url, descriptor = '0w'] = entry.trim().split(/\s+/);
+      return { url, size: Number.parseFloat(descriptor) || 0 };
+    }).filter((entry) => entry.url).sort((a, b) => b.size - a.size)[0]?.url;
+    results.push({ url: absoluteUrl(cleanUrl(largestSrcset || src), pageUrl), alt: attr('alt'), kind: 'img' });
   }
   return results.filter((item) => item.url && /^https?:\/\//i.test(item.url));
 }
@@ -283,7 +292,8 @@ function extensionFor(contentType, sourceUrl) {
 }
 
 async function fetchText(url) {
-  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(5000), headers: { 'user-agent': 'UniEco Ghana university asset verifier/1.0' } });
+  // Official college sites can be slow, especially legacy WordPress gallery pages.
+  const response = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(15000), headers: { 'user-agent': 'UniEco Ghana university asset verifier/1.0' } });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return { html: await response.text(), finalUrl: response.url };
 }
@@ -401,10 +411,14 @@ async function main() {
 
     if (includeGallery && sourceUrl) {
       const gallery = [...record.campusGallery];
+      let nextGalleryNumber = gallery.reduce((highest, asset) => {
+        const match = asset.path.match(/campus-gallery-(\d+)/);
+        return Math.max(highest, match ? Number(match[1]) : 0);
+      }, 0) + 1;
       const usedHashes = new Set([record.logo?.sha256, record.campus?.sha256, ...gallery.map((asset) => asset.sha256)].filter(Boolean));
       const usedUrls = new Set([record.campus?.sourceUrl, ...gallery.map((asset) => asset.sourceUrl)].filter(Boolean));
       const ranked = unique
-        .map((candidate) => ({ candidate, score: candidateScore(candidate, 'campus') + (/\/(?:gallery|news|events|student-life|facilities)(?:\/|$)/i.test(new URL(candidate.pageUrl).pathname) ? 18 : 0) }))
+        .map((candidate) => ({ candidate, score: candidateScore(candidate, 'campus') + (/(?:^|\/)(?:gallery|news|events|student-life|facilities)(?:\/|$)/i.test(new URL(candidate.pageUrl).pathname) ? 18 : 0) }))
         .filter((item) => item.score >= 0 && !usedUrls.has(item.candidate.url))
         .sort((a, b) => b.score - a.score);
 
@@ -414,11 +428,13 @@ async function main() {
           const downloaded = await downloadImage(candidate.url);
           const sha256 = createHash('sha256').update(downloaded.bytes).digest('hex');
           if (usedHashes.has(sha256)) continue;
+          const dimensions = await sharp(downloaded.bytes, { limitInputPixels: 40_000_000, failOn: 'none' }).metadata();
+          if (!dimensions.width || !dimensions.height || dimensions.width < 240 || dimensions.height < 180) continue;
           const assetFolder = assetFolderFor(slug);
           const assetDir = path.join(outputRoot, assetFolder);
           await mkdir(assetDir, { recursive: true });
           const ext = extensionFor(downloaded.contentType, downloaded.finalUrl);
-          const localName = `campus-gallery-${gallery.length + 1}${ext}`;
+          const localName = `campus-gallery-${nextGalleryNumber++}${ext}`;
           await writeFile(path.join(assetDir, localName), downloaded.bytes);
           const asset = {
             path: `/assets/universities/${assetFolder}/${localName}`,
