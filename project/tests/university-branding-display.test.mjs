@@ -49,6 +49,19 @@ test('GIMPA uses its verified official crest without implying an unverified camp
   }
 });
 
+test('new college profiles use verified school-branded logos and real campus images', () => {
+  for (const slug of ['christ-the-teacher-college-of-education-kumasi', 'enchi-college-of-education-enchi']) {
+    const school = manifest[slug];
+    assert.equal(school.status, 'verified_assets_downloaded');
+    assert.equal(school.campusGallery.length, 3);
+    assert.equal(school.logo.selection, 'explicit_official_source');
+    assert.match(school.logo.sourcePage, new RegExp(`^https://${slug.startsWith('christ') ? 'ctce\\.edu\\.gh' : 'enchicoe\\.edu\\.gh'}/`));
+    for (const asset of [school.logo, ...school.campusGallery]) {
+      assert.ok(fs.existsSync(path.join(root, 'public', asset.path)), `missing ${slug} asset ${asset.path}`);
+    }
+  }
+});
+
 test('school profile carousel receives and rotates verified official gallery photos', () => {
   assert.match(detail, /campusGallery=\{localBranding\.campusGallery\.map/);
   assert.match(showcase, /campusGallery = \[\]/);

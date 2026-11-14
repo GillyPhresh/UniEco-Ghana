@@ -8276,5 +8276,109 @@
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T04:57:53.519Z"
+  },
+  "christ-the-teacher-college-of-education-kumasi": {
+    "slug": "christ-the-teacher-college-of-education-kumasi",
+    "shortName": "CTCE",
+    "name": "Christ The Teacher College of Education, Kumasi",
+    "sourceUrl": "https://ctce.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/christ-the-teacher-college-of-education-kumasi/ctce-logo.png",
+      "sourcePage": "https://ctce.edu.gh/",
+      "sourceUrl": "https://ctce.edu.gh/wp-content/uploads/2024/10/logoN.png",
+      "contentType": "image/png",
+      "bytes": 17856,
+      "sha256": "0ad1c1ce0614c44b25a8b9a21b3f446147c4dee57af348f0e3f302a4dcd7572f",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/christ-the-teacher-college-of-education-kumasi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://ctce.edu.gh/",
+        "sourceUrl": "https://ctce.edu.gh/wp-content/uploads/2025/02/12f0b2a2-0eb1-420b-84c5-8c2ea4596712-2.jpg",
+        "contentType": "image/webp",
+        "bytes": 62416,
+        "sha256": "340e2414fbd720b18f21e6f997c9cad3bef14512ed48fe55c247514f08da9cc3",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/christ-the-teacher-college-of-education-kumasi/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://ctce.edu.gh/",
+        "sourceUrl": "https://ctce.edu.gh/wp-content/uploads/2024/11/e1908c8a-1bc9-458e-a426-488767ac4df8.jpg",
+        "contentType": "image/webp",
+        "bytes": 72178,
+        "sha256": "df291f6663a108e4bece9502b2d86780a098a609678fe2e9bbe274e27db0d30f",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/christ-the-teacher-college-of-education-kumasi/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://ctce.edu.gh/",
+        "sourceUrl": "https://ctce.edu.gh/wp-content/uploads/2024/11/8fa7ed72-8706-4973-aa2d-10ae72066f07.jpg",
+        "contentType": "image/webp",
+        "bytes": 88128,
+        "sha256": "7dcb41ab2a7c36214d4855fa297993c2ea104f59530b1832795143ca4eeb4f1c",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T12:00:00.000Z"
+  },
+  "enchi-college-of-education-enchi": {
+    "slug": "enchi-college-of-education-enchi",
+    "shortName": "ENCHICOE",
+    "name": "Enchi College of Education, Enchi",
+    "sourceUrl": "https://enchicoe.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/enchi-college-of-education-enchi/enchi-logo.png",
+      "sourcePage": "https://enchicoe.edu.gh/",
+      "sourceUrl": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/A85eN5Q0Ebu1Pwnj/untitled-1-removebg-preview-1-mP4O9lPk2BHLXJ6P.png",
+      "contentType": "image/png",
+      "bytes": 24594,
+      "sha256": "780db52abd23234f63f30a763ade8a5609a3db9e96b9d12a16b9750b30f5295a",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/enchi-college-of-education-enchi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://enchicoe.edu.gh/",
+        "sourceUrl": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=1920,fit=crop/A85eN5Q0Ebu1Pwnj/bannar3-YKb3bKOpR3f6Zg9v.jpg",
+        "contentType": "image/webp",
+        "bytes": 69066,
+        "sha256": "e517c3cefab898e879bba8ffcbf73251493d3d1aee242c6dc85cc6044547aa5f",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/enchi-college-of-education-enchi/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://enchicoe.edu.gh/",
+        "sourceUrl": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=1920,fit=crop/A85eN5Q0Ebu1Pwnj/barna2-Aq2W26VRz9ilL4Ep.jpg",
+        "contentType": "image/webp",
+        "bytes": 17716,
+        "sha256": "4ffdd0dcb5e6af3ef43ec37a43849156979c0773753cdb1e9ec6d9ced357cd4a",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/enchi-college-of-education-enchi/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://enchicoe.edu.gh/",
+        "sourceUrl": "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=1920,fit=crop/A85eN5Q0Ebu1Pwnj/dji_0018-m5KM75bg6yH2L4vB.jpg",
+        "contentType": "image/webp",
+        "bytes": 196710,
+        "sha256": "fb1b9a877854d802ecb98ff15a1e768a4754979195bcdb728d95708a5258ce47",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T12:00:00.000Z"
   }
 }
