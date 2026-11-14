@@ -3,12 +3,15 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import sharp from 'sharp';
 
 const projectRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const outputRoot = path.join(projectRoot, 'public', 'assets', 'universities');
 const manifestPath = path.join(projectRoot, 'data', 'university-branding.json');
 const galleryOnly = process.argv.includes('--gallery-only');
 const includeGallery = galleryOnly || process.argv.includes('--include-gallery');
+const optimizeGallery = process.argv.includes('--optimize-gallery');
+const maxGalleryImages = 6;
 
 // These are official institutional homepages or official institutional portals.
 // The script never uses search-result thumbnails, social-media copies, or third-party CDNs
@@ -231,6 +234,7 @@ function imageCandidates(html, pageUrl) {
 function candidateScore(candidate, role) {
   const haystack = `${candidate.url} ${candidate.alt}`.toLowerCase();
   if (blockedPathParts.some((word) => haystack.includes(word))) return -1000;
+  if (role === 'campus' && logoWords.some((word) => haystack.includes(word))) return -1000;
   const logoScore = logoWords.reduce((score, word) => score + (haystack.includes(word) ? 30 : 0), 0);
   const campusScore = campusWords.reduce((score, word) => score + (haystack.includes(word) ? 12 : 0), 0);
   const metadataBonus = candidate.kind === 'metadata' ? 6 : 0;
@@ -369,11 +373,11 @@ async function main() {
       const usedUrls = new Set([record.campus?.sourceUrl, ...gallery.map((asset) => asset.sourceUrl)].filter(Boolean));
       const ranked = unique
         .map((candidate) => ({ candidate, score: candidateScore(candidate, 'campus') + (/\/(?:gallery|news|events|student-life|facilities)(?:\/|$)/i.test(new URL(candidate.pageUrl).pathname) ? 18 : 0) }))
-        .filter((item) => item.score > 0 && !usedUrls.has(item.candidate.url))
+        .filter((item) => item.score >= 0 && !usedUrls.has(item.candidate.url))
         .sort((a, b) => b.score - a.score);
 
       for (const { candidate, score } of ranked) {
-        if (gallery.length >= 4) break;
+        if (gallery.length >= maxGalleryImages) break;
         try {
           const downloaded = await downloadImage(candidate.url);
           const sha256 = createHash('sha256').update(downloaded.bytes).digest('hex');
@@ -437,4 +441,39 @@ async function main() {
   console.log(JSON.stringify({ institutions: institutions.length, counts }, null, 2));
 }
 
-main().catch((error) => { console.error(error); process.exitCode = 1; });
+async function optimizeExistingGallery() {
+  const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
+  const assets = Object.values(manifest).flatMap((record) => (record.campusGallery || []).map((asset) => ({ record, asset })));
+  let optimized = 0;
+  let savedBytes = 0;
+  for (const { record, asset } of assets) {
+    const inputPath = path.join(projectRoot, 'public', asset.path.replace(/^\//, ''));
+    const stem = path.basename(asset.path, path.extname(asset.path)).replace(/(?:\.optimized)+$/, '');
+    const outputName = `${stem}.optimized.webp`;
+    const outputPath = path.join(path.dirname(inputPath), outputName);
+    try {
+      const output = await sharp(inputPath, { limitInputPixels: 40_000_000, failOn: 'none' })
+        .rotate()
+        .resize({ width: 1440, height: 1440, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 76, effort: 4 })
+        .toBuffer();
+      const sha256 = createHash('sha256').update(output).digest('hex');
+      await writeFile(outputPath, output);
+      savedBytes += Math.max(0, asset.bytes - output.length);
+      Object.assign(asset, {
+        path: `/assets/universities/${path.relative(outputRoot, outputPath).replaceAll(path.sep, '/')}`,
+        contentType: 'image/webp',
+        bytes: output.length,
+        sha256,
+      });
+      optimized += 1;
+    } catch (error) {
+      console.warn(`${record.shortName}: gallery image optimization skipped (${error instanceof Error ? error.message : String(error)})`);
+    }
+  }
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  console.log(JSON.stringify({ images: assets.length, optimized, savedMB: Number((savedBytes / 1024 / 1024).toFixed(1)) }, null, 2));
+}
+
+if (optimizeGallery) optimizeExistingGallery().catch((error) => { console.error(error); process.exitCode = 1; });
+else main().catch((error) => { console.error(error); process.exitCode = 1; });

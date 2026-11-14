@@ -31,6 +31,7 @@ HERE = Path(__file__).resolve().parent
 MAX_FEED_BYTES = 2 * 1024 * 1024
 MAX_ITEMS_PER_SOURCE = 25
 MAX_BATCH_ITEMS = 80
+MAX_CONFIGURED_SOURCES = 250
 MAX_AGE_DAYS = 365
 REQUEST_TIMEOUT = 6
 USER_AGENT = "UniEcoGhanaCampusFeed/1.0 (+https://www.uniecoghana.com/updates)"
@@ -44,6 +45,17 @@ CATEGORY_RULES = (
 TRACKING_KEYS = {"fbclid", "gclid", "dclid", "mc_cid", "mc_eid"}
 
 
+def has_unsafe_xml_declarations(data: bytes) -> bool:
+    """Permit ordinary HTML doctypes while rejecting XML DTD/entity payloads."""
+    if re.search(br"<!\s*ENTITY\b", data, re.I):
+        return True
+    if not re.search(br"<!\s*DOCTYPE\b", data, re.I):
+        return False
+    # A standard <!doctype html> is common on official news pages. Any other
+    # doctype remains blocked before XML parsing to prevent external entities.
+    return not bool(re.search(br"<!\s*DOCTYPE\s+html(?:\s|>)", data[:8192], re.I))
+
+
 def load_sources() -> list[dict[str, str]]:
     token = os.environ.get("UNIECO_FEED_INGEST_TOKEN", "").strip()
     if token:
@@ -52,7 +64,7 @@ def load_sources() -> list[dict[str, str]]:
         # Local development without credentials stays limited to the checked-in
         # sample list; production uses the authenticated database allowlist.
         sources = json.loads((HERE / "sources.json").read_text(encoding="utf-8"))
-    if not isinstance(sources, list) or not sources or len(sources) > 120:
+    if not isinstance(sources, list) or not sources or len(sources) > MAX_CONFIGURED_SOURCES:
         raise ValueError("No trusted feed sources are configured")
     for source in sources:
         if not isinstance(source, dict) or any(not isinstance(source.get(key), str) or not source[key].strip()
@@ -88,7 +100,7 @@ def fetch_configured_sources(token: str) -> list[dict[str, str]]:
         raise ValueError("Trusted source directory exceeded the size limit")
     parsed = json.loads(payload.decode("utf-8"))
     sources = parsed.get("sources") if isinstance(parsed, dict) else None
-    if not isinstance(sources, list) or not sources or len(sources) > 120:
+    if not isinstance(sources, list) or not sources or len(sources) > MAX_CONFIGURED_SOURCES:
         raise ValueError("Trusted source directory returned an invalid source list")
     return sources
 
@@ -115,7 +127,7 @@ class SameSourceRedirect(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(request, response, code, message, headers, new_url)
 
 
-def fetch_feed(source: dict[str, str]) -> bytes:
+def fetch_feed(source: dict[str, str]) -> tuple[bytes, str]:
     def fetch_url(value: str) -> bytes:
         url = urllib.parse.urlsplit(value)
         if url.scheme != "https" or url.username or url.password or url.port not in (None, 443) or not host_allowed(url.hostname or "", source["source_domain"]):
@@ -129,29 +141,40 @@ def fetch_feed(source: dict[str, str]) -> bytes:
             final = urllib.parse.urlsplit(response.geturl())
             if final.scheme != "https" or not host_allowed(final.hostname or "", source["source_domain"]):
                 raise ValueError("Feed response left the trusted HTTPS source")
+            final_url = response.geturl()
             data = response.read(MAX_FEED_BYTES + 1)
         if len(data) > MAX_FEED_BYTES:
             raise ValueError("Feed exceeded the 2 MiB safety limit")
-        if re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
+        if has_unsafe_xml_declarations(data):
             raise ValueError("DTD and entity declarations are not accepted")
-        return data
+        return data, final_url
 
-    initial = fetch_url(source["feed_url"])
+    initial, initial_url = fetch_url(source["feed_url"])
     if is_feed_document(initial):
-        return initial
+        return initial, initial_url
 
     parser = AdvertisedFeedParser()
     parser.feed(initial[:600_000].decode("utf-8", errors="replace"))
     for candidate in parser.urls[:3]:
         try:
-            data = fetch_url(urllib.parse.urljoin(source["feed_url"], candidate))
+            data, final_url = fetch_url(urllib.parse.urljoin(initial_url, candidate))
             if is_feed_document(data):
-                return data
+                return data, final_url
         except (OSError, ValueError, urllib.error.URLError):
             continue
     if source.get("source_kind") == "opportunities":
-        return initial
-    raise ValueError("No same-domain RSS or Atom feed was advertised by this official website")
+        return initial, initial_url
+
+    sections = NewsSectionParser()
+    sections.feed(initial[:600_000].decode("utf-8", errors="replace"))
+    for candidate in sections.urls[:3]:
+        try:
+            data, final_url = fetch_url(urllib.parse.urljoin(initial_url, candidate))
+            if not is_feed_document(data) and NewsArticleParser.has_articles(data):
+                return data, final_url
+        except (OSError, ValueError, urllib.error.URLError):
+            continue
+    return initial, initial_url
 
 
 class AdvertisedFeedParser(HTMLParser):
@@ -171,6 +194,129 @@ class AdvertisedFeedParser(HTMLParser):
         if any(token in content_type for token in ("rss", "atom", "xml")) or re.search(r"/(feed|rss|atom)(\.xml)?/?(?:\?|$)", href, re.I):
             if href not in self.urls:
                 self.urls.append(href)
+
+
+class NewsSectionParser(HTMLParser):
+    """Find only same-site navigation links that look like news or event sections."""
+
+    SECTION_PATH = re.compile(r"/(news|events?|updates|announcements|notices|research|campus[-/]life|student[-/]life)(?:/|$)", re.I)
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.urls: list[str] = []
+        self.href: str | None = None
+        self.parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        values = dict(attrs)
+        if tag.lower() == "a" and values.get("href"):
+            self.href = values["href"] or ""
+            self.parts = []
+
+    def handle_data(self, data: str) -> None:
+        if self.href is not None:
+            self.parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag.lower() != "a" or self.href is None:
+            return
+        title = " ".join(" ".join(self.parts).split()).lower()
+        if self.SECTION_PATH.search(urllib.parse.urlsplit(self.href).path) or re.search(r"\b(news|events|updates|announcements|notices|research|campus life)\b", title):
+            if self.href not in self.urls:
+                self.urls.append(self.href)
+        self.href = None
+        self.parts = []
+
+
+class NewsArticleParser(HTMLParser):
+    """Extract brief candidate headlines and same-site media from official listings."""
+
+    ARTICLE_PATH = re.compile(r"/(news|events?|updates|announcements|notices|research|campus[-/]life|student[-/]life)/", re.I)
+    GENERIC_HEADLINE = re.compile(r"^(?:view|explore|read|learn|apply|contact|student lounge|application info|opportunities|news|events|fees|forms|payments|admissions)\b", re.I)
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.articles: list[dict[str, str | None]] = []
+        self.article_depth = 0
+        self.current: dict[str, str | None] | None = None
+        self.active_href: str | None = None
+        self.active_text: list[str] = []
+        self.active_heading = False
+        self.heading_depth = 0
+        self.active_time: str | None = None
+        self.active_image: str | None = None
+        self.text_parts: list[str] = []
+        self.fallback_links: list[dict[str, str | None]] = []
+
+    @classmethod
+    def has_articles(cls, data: bytes) -> bool:
+        parser = cls()
+        parser.feed(data[:600_000].decode("utf-8", errors="replace"))
+        return bool(parser.results())
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.lower()
+        values = dict(attrs)
+        if tag == "article":
+            if self.article_depth == 0:
+                self.current = {"title": "", "href": None, "excerpt": "", "date": None, "image": None}
+            self.article_depth += 1
+        if self.article_depth and self.current is not None:
+            if tag in {"h1", "h2", "h3", "h4"}:
+                self.heading_depth += 1
+            if tag == "a" and values.get("href"):
+                self.active_href = values["href"] or ""
+                self.active_text = []
+                self.active_heading = self.heading_depth > 0
+            if tag == "time":
+                self.active_time = values.get("datetime") or values.get("date")
+                if self.active_time:
+                    self.current["date"] = self.active_time
+            if tag == "img" and not self.current.get("image"):
+                self.current["image"] = values.get("src") or values.get("data-src")
+        elif tag == "a" and values.get("href"):
+            self.active_href = values["href"] or ""
+            self.active_text = []
+            self.active_heading = False
+
+    def handle_data(self, data: str) -> None:
+        if self.active_href is not None:
+            self.active_text.append(data)
+        if self.article_depth and self.current is not None:
+            self.text_parts.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.lower()
+        if tag == "a" and self.active_href is not None:
+            title = " ".join(" ".join(self.active_text).split())
+            item = {"title": title, "href": self.active_href, "date": (self.current.get("date") if self.current else None) or self.active_time, "image": self.current.get("image") if self.current else None}
+            if self.article_depth and self.current is not None:
+                if title and (self.active_heading or not self.current.get("href")):
+                    self.current["title"] = title
+                    self.current["href"] = self.active_href
+            elif title:
+                self.fallback_links.append(item)
+            self.active_href = None
+            self.active_text = []
+            self.active_heading = False
+        if tag in {"h1", "h2", "h3", "h4"} and self.heading_depth:
+            self.heading_depth -= 1
+        if tag == "article" and self.article_depth:
+            self.article_depth -= 1
+            if self.article_depth == 0 and self.current is not None:
+                self.current["excerpt"] = " ".join(" ".join(self.text_parts).split())
+                self.articles.append(self.current)
+                self.current = None
+                self.text_parts = []
+
+    def results(self) -> list[dict[str, str | None]]:
+        values = [item for item in self.articles if item.get("title") and item.get("href")]
+        if not values:
+            values = [item for item in self.fallback_links
+                      if self.ARTICLE_PATH.search(urllib.parse.urlsplit(item["href"] or "").path)
+                      and len(item.get("title") or "") >= 24
+                      and not self.GENERIC_HEADLINE.search(item.get("title") or "")]
+        return values
 
 
 class OpportunityLinkParser(HTMLParser):
@@ -220,15 +366,15 @@ class OpportunityLinkParser(HTMLParser):
             self._parts.append(data)
 
 
-def parse_official_opportunities(source: dict[str, str], data: bytes) -> list[dict[str, Any]]:
-    if len(data) > MAX_FEED_BYTES or re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
+def parse_official_opportunities(source: dict[str, str], data: bytes, page_url: str | None = None) -> list[dict[str, Any]]:
+    if len(data) > MAX_FEED_BYTES or has_unsafe_xml_declarations(data):
         raise ValueError("Unsafe or oversized opportunity page")
     parser = OpportunityLinkParser()
     parser.feed(data.decode("utf-8", errors="replace"))
     results: list[dict[str, Any]] = []
     seen: set[str] = set()
     for href, title in parser.links:
-        link = safe_source_url(href, source["feed_url"], source["source_domain"])
+        link = safe_source_url(href, page_url or source["feed_url"], source["source_domain"])
         if not link or link in seen:
             continue
         seen.add(link)
@@ -246,7 +392,7 @@ def parse_official_opportunities(source: dict[str, str], data: bytes) -> list[di
 
 def is_feed_document(data: bytes) -> bool:
     sample = data[:4096].lstrip(b"\xef\xbb\xbf\x00\t\r\n ").lower()
-    return not re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I) and bool(
+    return not has_unsafe_xml_declarations(data) and bool(
         re.search(br"<(rss|feed|rdf:rdf)(?:\s|>)", sample)
     )
 
@@ -384,11 +530,49 @@ def categorize(title: str, excerpt: str) -> str:
     return "news"
 
 
-def parse_feed(source: dict[str, str], data: bytes, now: datetime | None = None) -> list[dict[str, Any]]:
-    if len(data) > MAX_FEED_BYTES or re.search(br"<!\s*(DOCTYPE|ENTITY)\b", data, re.I):
+def parse_official_news_page(source: dict[str, str], data: bytes, page_url: str, now: datetime | None = None) -> list[dict[str, Any]]:
+    if len(data) > MAX_FEED_BYTES or has_unsafe_xml_declarations(data):
+        raise ValueError("Unsafe or oversized official news page")
+    parser = NewsArticleParser()
+    parser.feed(data[:600_000].decode("utf-8", errors="replace"))
+    now = now or datetime.now(timezone.utc)
+    results: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for entry in parser.results()[:MAX_ITEMS_PER_SOURCE]:
+        title = clean_excerpt(entry.get("title") or "", 220)
+        link = safe_source_url(entry.get("href") or "", page_url, source["source_domain"])
+        if (len(title) < 24 or NewsArticleParser.GENERIC_HEADLINE.search(title)
+                or not link or link == page_url or link in seen):
+            continue
+        published_at = parse_date(entry.get("date") or "")
+        if published_at:
+            age_days = (now - datetime.fromisoformat(published_at.replace("Z", "+00:00"))).total_seconds() / 86400
+            if age_days > MAX_AGE_DAYS or age_days < -2:
+                continue
+        excerpt = clean_excerpt(entry.get("excerpt") or "", 600)
+        media_url = safe_source_url(entry.get("image") or "", page_url, source["source_domain"])
+        seen.add(link)
+        results.append({
+            "source_id": source["id"],
+            "source_item_key": hashlib.sha256((source["id"] + "\0" + link + "\n" + title).encode("utf-8")).hexdigest(),
+            "title": title,
+            "excerpt": excerpt,
+            "canonical_url": link,
+            "published_at": published_at,
+            "media_url": media_url,
+            "media_type": "image" if media_url else None,
+            "category": categorize(title, excerpt),
+        })
+    return results
+
+
+def parse_feed(source: dict[str, str], data: bytes, now: datetime | None = None, content_url: str | None = None) -> list[dict[str, Any]]:
+    if len(data) > MAX_FEED_BYTES or has_unsafe_xml_declarations(data):
         raise ValueError("Unsafe or oversized XML feed")
-    if source.get("source_kind") == "opportunities" and not is_feed_document(data):
-        return parse_official_opportunities(source, data)
+    if not is_feed_document(data):
+        if source.get("source_kind") == "opportunities":
+            return parse_official_opportunities(source, data, content_url)
+        return parse_official_news_page(source, data, content_url or source["feed_url"], now)
     root = ET.fromstring(data)
     entries = [node for node in root.iter() if tag_local_name(node.tag) in {"item", "entry"}]
     now = now or datetime.now(timezone.utc)
@@ -396,7 +580,8 @@ def parse_feed(source: dict[str, str], data: bytes, now: datetime | None = None)
     seen: set[str] = set()
     for entry in entries[:MAX_ITEMS_PER_SOURCE]:
         title = clean_excerpt(child_text(entry, {"title"}), 220)
-        link = article_link(entry, source["feed_url"], source["source_domain"])
+        base_url = content_url or source["feed_url"]
+        link = article_link(entry, base_url, source["source_domain"])
         if len(title) < 8 or not link:
             continue
         raw_date = child_text(entry, {"published", "pubdate", "date", "updated", "issued"})
@@ -412,7 +597,7 @@ def parse_feed(source: dict[str, str], data: bytes, now: datetime | None = None)
         if key in seen:
             continue
         seen.add(key)
-        media_url, media_type = media_candidate(entry, description, source["feed_url"], source["source_domain"])
+        media_url, media_type = media_candidate(entry, description, base_url, source["source_domain"])
         results.append({
             "source_id": source["id"], "source_item_key": key, "title": title,
             "excerpt": excerpt, "canonical_url": link, "published_at": published_at,
@@ -474,7 +659,8 @@ def main() -> int:
                 raise ValueError("Unknown source id")
         def collect(source: dict[str, str]) -> tuple[dict[str, str], list[dict[str, Any]], Exception | None]:
             try:
-                return source, parse_feed(source, fetch_feed(source)), None
+                page, content_url = fetch_feed(source)
+                return source, parse_feed(source, page, content_url=content_url), None
             except (OSError, ValueError, ET.ParseError, urllib.error.URLError) as error:
                 return source, [], error
 

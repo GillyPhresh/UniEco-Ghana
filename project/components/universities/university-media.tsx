@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Building2, CalendarDays, ChevronRight, Megaphone } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Building2, CalendarDays, ChevronRight, Megaphone, Pause, Play } from 'lucide-react';
 
 type MediaKind = 'logo' | 'campus';
 
@@ -97,20 +97,12 @@ export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, classNa
 
 export function CampusCardCarousel({ images, name, shortName }: { images: Array<{ src: string; alt: string }>; name: string; shortName: string }) {
   const slides = useMemo(() => Array.from(new Map(images.filter((image) => image.src).map((image) => [image.src, image])).values()), [images]);
+  const slideKey = slides.map((slide) => slide.src).join('|');
   const [active, setActive] = useState(0);
-  const [reducedMotion, setReducedMotion] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isPageVisible, setIsPageVisible] = useState(true);
   const carouselRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const update = () => setReducedMotion(query.matches);
-    update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
-  }, []);
 
   useEffect(() => {
     const update = () => setIsPageVisible(!document.hidden);
@@ -131,18 +123,28 @@ export function CampusCardCarousel({ images, name, shortName }: { images: Array<
   }, []);
 
   useEffect(() => {
-    if (slides.length < 2 || reducedMotion || !isVisible || isPaused || !isPageVisible) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 5200);
+    if (slides.length < 2 || !isVisible || isPaused || !isPageVisible) return;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 4800);
     return () => window.clearInterval(timer);
-  }, [isPageVisible, isPaused, isVisible, reducedMotion, slides.length]);
+  }, [isPageVisible, isPaused, isVisible, slides.length]);
 
-  useEffect(() => { setActive(0); }, [slides]);
+  useEffect(() => { setActive(0); }, [slideKey]);
+  useEffect(() => {
+    if (!isVisible || slides.length < 2) return;
+    const next = new window.Image();
+    next.src = slides[(active + 1) % slides.length].src;
+  }, [active, isVisible, slides]);
   const current = slides[active];
   if (!current) return <UniversityMedia alt={`${name} campus`} name={name} shortName={shortName} kind="campus" className="h-44 w-full object-cover sm:h-48" />;
 
-  return <div ref={carouselRef} className="relative" aria-roledescription="carousel" aria-label={`${shortName} campus photos`} onMouseEnter={() => setIsPaused(true)} onMouseLeave={() => setIsPaused(false)} onFocus={() => setIsPaused(true)} onBlur={() => setIsPaused(false)}>
+  return <div ref={carouselRef} className="relative" role="group" aria-roledescription="carousel" aria-label={`${shortName} campus photos`}>
     <UniversityMedia key={current.src} src={current.src} alt={current.alt} name={name} shortName={shortName} kind="campus" loading="lazy" className="h-44 w-full object-cover sm:h-48" />
-    {slides.length > 1 && <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5" aria-hidden="true">{slides.map((slide, index) => <span key={slide.src} className={`h-1.5 rounded-full shadow ${active === index ? 'w-5 bg-white' : 'w-1.5 bg-white/65'}`} />)}</div>}
+    {slides.length > 1 && <div className="absolute inset-x-2 bottom-2 flex items-center justify-between rounded-full bg-slate-950/65 p-1 text-white backdrop-blur-sm sm:inset-x-3 sm:bottom-3">
+      <button type="button" onClick={() => setActive((index) => (index - 1 + slides.length) % slides.length)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={`Previous ${shortName} photo`}><ArrowLeft className="h-4 w-4" /></button>
+      <div className="flex min-w-0 items-center justify-center gap-1" aria-label="Choose campus photo">{slides.map((slide, index) => <button key={slide.src} type="button" onClick={() => setActive(index)} className={`h-1.5 rounded-full transition-[width,background-color] motion-reduce:transition-none ${active === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'}`} aria-label={`Show ${shortName} photo ${index + 1} of ${slides.length}`} aria-current={active === index ? 'true' : undefined} />)}</div>
+      <button type="button" onClick={() => setIsPaused((paused) => !paused)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={isPaused ? 'Play campus photo rotation' : 'Pause campus photo rotation'}>{isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button>
+      <button type="button" onClick={() => setActive((index) => (index + 1) % slides.length)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={`Next ${shortName} photo`}><ArrowRight className="h-4 w-4" /></button>
+    </div>}
     {slides.length > 1 && <span className="sr-only" aria-live="polite">Photo {active + 1} of {slides.length}: {current.alt}</span>}
   </div>;
 }

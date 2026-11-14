@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -82,8 +83,48 @@ class FeedParserTests(unittest.TestCase):
         self.assertTrue(ingest.is_feed_document(b"<?xml version='1.0'?><rss><channel/></rss>"))
         self.assertFalse(ingest.is_feed_document(b"<!DOCTYPE rss><rss/>"))
 
+    def test_official_school_news_page_extracts_attributed_headline_date_and_image(self):
+        page = b'''<html><body><article><h2><a href="/news/student-research-day">School hosts student research day</a></h2>
+          <time datetime="2026-10-31T12:00:00Z"></time><img src="/media/research-day.jpg">
+          <p>Students presented new projects at the annual campus research day.</p></article></body></html>'''
+        [item] = ingest.parse_feed(self.source, page, self.now, "https://www.knust.edu.gh/news/")
+        self.assertEqual(item["title"], "School hosts student research day")
+        self.assertEqual(item["canonical_url"], "https://www.knust.edu.gh/news/student-research-day")
+        self.assertEqual(item["published_at"], "2026-10-31T12:00:00Z")
+        self.assertEqual(item["media_url"], "https://www.knust.edu.gh/media/research-day.jpg")
+        self.assertEqual(item["media_type"], "image")
+
+    def test_standard_html_doctype_is_allowed_for_official_news(self):
+        page = b'''<!DOCTYPE html><html><body><article>
+          <h2><a href="/news/campus-fair">University announces annual campus fair event</a></h2>
+          <time datetime="2026-10-31"></time><p>Registration opens for the annual campus fair.</p>
+        </article></body></html>'''
+        [item] = ingest.parse_feed(self.source, page, self.now, "https://www.knust.edu.gh/news/")
+        self.assertEqual(item["canonical_url"], "https://www.knust.edu.gh/news/campus-fair")
+        self.assertEqual(item["category"], "events")
+        self.assertFalse(ingest.has_unsafe_xml_declarations(page))
+
+    def test_school_news_fallback_rejects_external_article_and_recognizes_section_links(self):
+        links = ingest.NewsSectionParser()
+        links.feed('<a href="/news">News and events</a><a href="https://evil.example/news">News</a>')
+        self.assertEqual(links.urls, ["/news", "https://evil.example/news"])
+        page = b'<a href="https://evil.example/news/fake">A valid-looking university announcement</a>'
+        self.assertEqual(ingest.parse_feed(self.source, page, self.now, "https://www.knust.edu.gh/"), [])
+
+    def test_school_news_fallback_filters_navigation_labels(self):
+        parser = ingest.NewsArticleParser()
+        parser.feed('<a href="/research">Explore research &amp; policy →</a>'
+                    '<a href="/news/campus-day">University students celebrate annual campus day</a>')
+        results = parser.results()
+        self.assertEqual([item["title"] for item in results], ["University students celebrate annual campus day"])
+
     def test_feed_worker_restricts_remote_source_directory_to_unieco(self):
         self.assertTrue(ingest.sources_url().startswith("https://www.uniecoghana.com/api/internal/campus-feed/ingest"))
+
+    def test_source_directory_accepts_all_207_school_records(self):
+        sources = [dict(self.source, id=f"school-{index}") for index in range(207)]
+        with patch.object(ingest, "fetch_configured_sources", return_value=sources), patch.dict(ingest.os.environ, {"UNIECO_FEED_INGEST_TOKEN": "x" * 40}):
+            self.assertEqual(len(ingest.load_sources()), 207)
 
     def test_feed_batch_round_robins_instead_of_filling_from_one_school(self):
         schools = [[{"source": "one", "item": index} for index in range(25)],

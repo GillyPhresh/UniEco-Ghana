@@ -21,6 +21,8 @@ test('feed ingestion has a long secret, constant-time auth and bounded request',
   assert.match(ingest, /source_id.*\[a-z0-9-\]/);
   assert.match(ingest, /export async function GET\(request: Request\)/);
   assert.match(ingest, /\.from\('campus_feed_sources'\)/);
+  assert.match(ingest, /maxConfiguredSources = 250/);
+  assert.equal((ingest.match(/\.limit\(maxConfiguredSources\)/g) || []).length, 2);
   assert.match(ingest, /supabase\.rpc\('ingest_campus_feed_items'/);
   assert.doesNotMatch(ingest, /NEXT_PUBLIC_.*SERVICE_ROLE/);
   assert.match(expansion, /university\.is_enabled/);

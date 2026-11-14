@@ -8,6 +8,7 @@ export const dynamic = 'force-dynamic';
 const noStore = { 'Cache-Control': 'no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' };
 const categories = new Set(['news', 'events', 'opportunities', 'research', 'notices', 'campus_life']);
 const maxBodyBytes = 160 * 1024;
+const maxConfiguredSources = 250;
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: noStore });
@@ -110,7 +111,7 @@ export async function GET(request: Request) {
     .select('id, label, university_name, website_url, feed_url, source_domain, source_kind')
     .eq('enabled', true)
     .order('label')
-    .limit(120);
+    .limit(maxConfiguredSources);
   // Keep the existing campus worker online during the short window before
   // migration 0186 is applied. The opportunity sources appear after migration.
   if (error) {
@@ -119,7 +120,7 @@ export async function GET(request: Request) {
       .select('id, label, university_name, website_url, feed_url, source_domain')
       .eq('enabled', true)
       .order('label')
-      .limit(120);
+      .limit(maxConfiguredSources);
     data = (legacy.data || []).map((source) => ({ ...source, source_kind: 'campus' }));
     error = legacy.error;
   }
