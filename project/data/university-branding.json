@@ -8380,5 +8380,139 @@
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T12:00:00.000Z"
+  },
+  "kibi-college-of-education-kibi": {
+    "slug": "kibi-college-of-education-kibi",
+    "shortName": "KPCE",
+    "name": "Kibi College of Education, Kibi",
+    "sourceUrl": "https://kpce.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/kibi-college-of-education-kibi/logo.png",
+      "sourcePage": "https://kpce.edu.gh/",
+      "sourceUrl": "https://kpce.edu.gh/storage/2023/12/1.png",
+      "contentType": "image/png",
+      "bytes": 21509,
+      "sha256": "a8cdcdc2f68ff8c85a8510540329df8fb192fc93850b6d113fd561f32867cfed",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/kibi-college-of-education-kibi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://kpce.edu.gh/gallery/",
+        "sourceUrl": "https://kpce.edu.gh/storage/2024/01/IMG_4659-copy-1500x1000.jpg",
+        "contentType": "image/webp",
+        "bytes": 121188,
+        "sha256": "938a2fdf8699a3e272e671a03e143acf27f8affa5f6f372f68879f937dc85c04",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kibi-college-of-education-kibi/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://kpce.edu.gh/gallery/",
+        "sourceUrl": "https://kpce.edu.gh/storage/2023/12/IMG_04ws57-copy-1500x1000.jpg",
+        "contentType": "image/webp",
+        "bytes": 69746,
+        "sha256": "0032f622c7afad186b698b125f7982b2d4dc9b06cd998b41f4e6ddfcbc20e610",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kibi-college-of-education-kibi/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://kpce.edu.gh/gallery/",
+        "sourceUrl": "https://kpce.edu.gh/storage/2023/12/IMG_5075-1500x1000.jpg",
+        "contentType": "image/webp",
+        "bytes": 161898,
+        "sha256": "3cc43c9e69e55f01043393b39ad39a285da23842bb0bb3ac11d4904d09bfc346",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kibi-college-of-education-kibi/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://kpce.edu.gh/gallery/",
+        "sourceUrl": "https://kpce.edu.gh/storage/2023/12/IMG_20210629_180002-1500x1000.jpg",
+        "contentType": "image/webp",
+        "bytes": 127650,
+        "sha256": "19b66040da7bc52e0132e7c31a881dab40af5a2d1a240fa2fb5a2dc3f7a92f34",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/kibi-college-of-education-kibi/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://kpce.edu.gh/gallery/",
+        "sourceUrl": "https://kpce.edu.gh/storage/2024/09/IMG_2323-copy-1500x1000.jpg",
+        "contentType": "image/webp",
+        "bytes": 133778,
+        "sha256": "23c020384d7d3330739e87c6dea4401dc9a04c7317419f79e381d04dd7620882",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T12:10:00.000Z"
+  },
+  "peki-college-of-education": {
+    "slug": "peki-college-of-education",
+    "shortName": "PCE",
+    "name": "Peki College of Education",
+    "sourceUrl": "https://pekicoe.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/peki-college-of-education/logo.png",
+      "sourcePage": "https://pekicoe.edu.gh/about/",
+      "sourceUrl": "https://pekicoe.edu.gh/wp-content/uploads/2024/07/PCOE-LOGO-round.png",
+      "contentType": "image/png",
+      "bytes": 96590,
+      "sha256": "182a96e467b4ea61eeafc5661eb124d22392cb8c67bc28bda568b811ddec79bb",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/peki-college-of-education/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://pekicoe.edu.gh/about/",
+        "sourceUrl": "https://pekicoe.edu.gh/wp-content/uploads/2024/04/20240220104518_IMG_6625.jpg",
+        "contentType": "image/webp",
+        "bytes": 131698,
+        "sha256": "65c0583ba9df4aedfa9389a9f56edd7cdac87c0198c769fdddf947b1ddb4bea9",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/peki-college-of-education/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://pekicoe.edu.gh/about/",
+        "sourceUrl": "https://pekicoe.edu.gh/wp-content/uploads/2024/04/20240220102235_IMG_6574-e1720156236930.jpg",
+        "contentType": "image/webp",
+        "bytes": 50940,
+        "sha256": "deff658936ce58c841a0631dea661057a7ba9211d0b96de756b7f7aa72465821",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/peki-college-of-education/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://pekicoe.edu.gh/about/",
+        "sourceUrl": "https://pekicoe.edu.gh/wp-content/uploads/2024/04/IMG_7397-scaled-e1721135392611.jpg",
+        "contentType": "image/webp",
+        "bytes": 117062,
+        "sha256": "a5dea22ce76b9783a8ef941c232e18f956ae88f5e9b29680048be764796d212e",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/peki-college-of-education/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://pekicoe.edu.gh/about/",
+        "sourceUrl": "https://pekicoe.edu.gh/wp-content/uploads/2024/04/20240220103500_IMG_6592-rotated-e1721134888479.jpg",
+        "contentType": "image/webp",
+        "bytes": 46454,
+        "sha256": "9dcc2465c439a21645e374c0ae3480afd8a94b675b73b7fde48da4dc81f1aec4",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T12:10:00.000Z"
   }
 }
