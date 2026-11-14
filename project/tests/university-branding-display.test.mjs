@@ -69,6 +69,21 @@ test('new college profiles use verified school-branded logos and real campus ima
   }
 });
 
+test('UEW and Central University use images from their official campus galleries', () => {
+  for (const [slug, count, officialHost] of [
+    ['uew', 6, 'uew\\.edu\\.gh'],
+    ['central-university', 4, 'central\\.edu\\.gh'],
+  ]) {
+    const school = manifest[slug];
+    assert.equal(school.campusGallery.length, count);
+    for (const image of school.campusGallery) {
+      assert.match(image.sourceUrl, new RegExp(`^https://${officialHost}/`));
+      assert.ok(image.path.endsWith('.webp'));
+      assert.ok(fs.existsSync(path.join(root, 'public', image.path)));
+    }
+  }
+});
+
 test('school profile carousel receives and rotates verified official gallery photos', () => {
   assert.match(detail, /campusGallery=\{localBranding\.campusGallery\.map/);
   assert.match(showcase, /campusGallery = \[\]/);

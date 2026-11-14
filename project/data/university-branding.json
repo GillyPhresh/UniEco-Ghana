@@ -287,7 +287,68 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
-    "campusGallery": [],
+    "campusGallery": [
+      {
+        "path": "/assets/universities/uew/campus-gallery-1.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/nc_uew_commissions_several_projects.jpg",
+        "contentType": "image/webp",
+        "bytes": 68482,
+        "sha256": "7681545eca784e2daf65b80b1d2e795e491503a4dd4dca6250fed11034ef735d",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uew/campus-gallery-2.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/jlui.jpg",
+        "contentType": "image/webp",
+        "bytes": 70594,
+        "sha256": "9a47cfad8fc6ccd48bc6f271109c1951d2b187a59d7296adac41bd8da126c8cb",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uew/campus-gallery-3.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/img_1.jpg",
+        "contentType": "image/webp",
+        "bytes": 82854,
+        "sha256": "8bdb20df926c7c56b9386f91b9f9587e36440a9894b4582d8fc3937521d9e784",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uew/campus-gallery-4.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/dji_0354_2.jpg",
+        "contentType": "image/webp",
+        "bytes": 62816,
+        "sha256": "8f7f450bd2d9d4d44f5636bd48dc432eaebaf30d3b7cce8410d66689c8d433aa",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uew/campus-gallery-5.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/530a2442.555555psd.jpg",
+        "contentType": "image/webp",
+        "bytes": 66784,
+        "sha256": "4d8eec0b14dc863b44cd7408432817d05f578e5682d02b62082f58bbe4157213",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/uew/campus-gallery-6.webp",
+        "sourcePage": "https://www.uew.edu.gh/news/uew-commissions-several-projects-benefit-students",
+        "sourceUrl": "https://uew.edu.gh/sites/default/files/2021-06/530a4023_2.jpg",
+        "contentType": "image/webp",
+        "bytes": 70238,
+        "sha256": "080255d1f59ffa8eea653ea8bfe30c7fda19f5a763a03b446155c2ea7be5d548",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T04:56:01.005Z"
@@ -2462,7 +2523,48 @@
       "score": 100,
       "selection": "explicit_official_source"
     },
-    "campusGallery": [],
+    "campusGallery": [
+      {
+        "path": "/assets/universities/central-university/campus-gallery-1.webp",
+        "sourcePage": "https://central.edu.gh/gallery",
+        "sourceUrl": "https://central.edu.gh/static/img/carosel/1.png",
+        "contentType": "image/webp",
+        "bytes": 62024,
+        "sha256": "c9c3919104f9c2ead87a5c0a1bb75a2b5003e89c4c4686b5dc1256cd9d467cae",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/central-university/campus-gallery-2.webp",
+        "sourcePage": "https://central.edu.gh/gallery",
+        "sourceUrl": "https://central.edu.gh/static/img/carosel/2.png",
+        "contentType": "image/webp",
+        "bytes": 133662,
+        "sha256": "109ca915ab348efcaebc7d0d5071a6b6d99a367a10e69bf41f54bd6584c53464",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/central-university/campus-gallery-3.webp",
+        "sourcePage": "https://central.edu.gh/gallery",
+        "sourceUrl": "https://central.edu.gh/static/img/carosel/3.png",
+        "contentType": "image/webp",
+        "bytes": 74130,
+        "sha256": "714f2fcc158188a983be4ae0cd8896ad234e21c522b2cfefc41fbb735132e99d",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/central-university/campus-gallery-4.webp",
+        "sourcePage": "https://central.edu.gh/gallery",
+        "sourceUrl": "https://central.edu.gh/static/img/carosel/4.png",
+        "contentType": "image/webp",
+        "bytes": 115498,
+        "sha256": "9daec6dfb3f4e2a3843ea35dae5dfc319679cd1e2b43d2a891f9d4c976b841cd",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T04:56:51.418Z"
