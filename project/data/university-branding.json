@@ -8514,5 +8514,67 @@
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T12:10:00.000Z"
+  },
+  "savannah-college-of-education": {
+    "slug": "savannah-college-of-education",
+    "shortName": "SavCoE",
+    "name": "Savannah College of Education",
+    "sourceUrl": "https://savce.edu.gh/",
+    "logo": {
+      "path": "/assets/universities/savannah-college-of-education/logo.png",
+      "sourcePage": "https://savce.edu.gh/",
+      "sourceUrl": "https://savce.edu.gh/uploads/setting/logo_1733190301.png",
+      "contentType": "image/png",
+      "bytes": 7352,
+      "sha256": "cc549fcda9776073d85969ad44e1c2a07e23299d1e59dad07381feadedd32253",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/savannah-college-of-education/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://savce.edu.gh/",
+        "sourceUrl": "https://savce.edu.gh/uploads/about-us/IMG_7104_1737891826.jpg",
+        "contentType": "image/webp",
+        "bytes": 123792,
+        "sha256": "1956a54a0551e99ebe79817eae27b037a222241204af8229f5e2e2997f379211",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/savannah-college-of-education/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://savce.edu.gh/news",
+        "sourceUrl": "https://savce.edu.gh/uploads/news/WhatsApp_Image_2025_05_17_at_20.43.55_1747602245.jpeg",
+        "contentType": "image/webp",
+        "bytes": 45278,
+        "sha256": "68a88caa4ece5021b4174b26656b17006299a03ca7443e56d4201c07a9917166",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/savannah-college-of-education/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://savce.edu.gh/news",
+        "sourceUrl": "https://savce.edu.gh/uploads/news/IMG_2788_1741369707.jpg",
+        "contentType": "image/webp",
+        "bytes": 34702,
+        "sha256": "c079db71b258fd28ad990a91f70a24680d4d11424fce675d5541525099e55269",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/savannah-college-of-education/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://savce.edu.gh/news",
+        "sourceUrl": "https://savce.edu.gh/uploads/news/IMG_7131_1737971866.jpg",
+        "contentType": "image/webp",
+        "bytes": 32932,
+        "sha256": "375bd0c902708abec9ba1058f621b6f5e40c5dc32c95b6827ed2a332c3a80636",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T12:15:00.000Z"
   }
 }

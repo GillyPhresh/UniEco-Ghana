@@ -55,6 +55,7 @@ test('new college profiles use verified school-branded logos and real campus ima
     ['enchi-college-of-education-enchi', 3, 'enchicoe\\.edu\\.gh'],
     ['kibi-college-of-education-kibi', 5, 'kpce\\.edu\\.gh'],
     ['peki-college-of-education', 4, 'pekicoe\\.edu\\.gh'],
+    ['savannah-college-of-education', 4, 'savce\\.edu\\.gh'],
   ]) {
     const school = manifest[slug];
     assert.equal(school.status, 'verified_assets_downloaded');
