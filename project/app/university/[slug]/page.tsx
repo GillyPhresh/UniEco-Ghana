@@ -186,6 +186,11 @@ export default async function UniversityPage({ params }: PageProps) {
                 universityShortName={university.short_name}
                 campusImageUrl={heroImageUrl}
                 localCampusImageUrl={localBranding.campusUrl}
+                campusGallery={localBranding.campusGallery.map((image) => ({
+                  src: image.path,
+                  alt: `${university.name} campus gallery photo`,
+                  sourcePage: image.sourcePage,
+                }))}
                 stories={campusStories}
               />
             </div>

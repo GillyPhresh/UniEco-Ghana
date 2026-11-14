@@ -20,7 +20,7 @@ const institutions = [
   ['aamusted', 'AAMUSTED', 'Akenten Appiah-Menka University of Skills Training and Entrepreneurial Development', 'https://usted.edu.gh/'],
   ['utas', 'UTAS', 'University of Technology and Applied Sciences', 'https://utas.edu.gh/'],
   ['gctu', 'GCTU', 'Ghana Communication Technology University', 'https://site.gctu.edu.gh/'],
-  ['gimpa', 'GIMPA', 'Ghana Institute of Management and Public Administration', 'https://gimpa.edu.gh/'],
+  ['gimpa', 'GIMPA', 'Ghana Institute of Management and Public Administration', 'https://www.gimpa.edu.gh/'],
   ['knust', 'KNUST', 'Kwame Nkrumah University of Science and Technology', 'https://www.knust.edu.gh/'],
   ['sdd-ubids', 'SDD-UBIDS', 'Simon Diedong Dombo University of Business and Integrated Development Studies', 'https://ubids.edu.gh/'],
   ['uds', 'UDS', 'University for Development Studies', 'https://uds.edu.gh/'],
@@ -103,35 +103,35 @@ const institutions = [
   ['st-monica-s-college-of-education-ashanti-mampong', 'MONICO', 'St. Monica’s College of Education, Ashanti Mampong', 'https://monico.edu.gh/'],
   ['st-teresa-s-college-of-education-hohoe', 'TERESCO', 'St. Teresa’s College of Education, Hohoe', 'https://teresco.edu.gh/'],
   ['offinso-college-of-education', 'OFCE', 'Offinso College of Education', 'https://www.ofce.edu.gh/'],
-  ['anglican-university-college-of-technology', 'AUCT', 'Anglican University College of Technology', 'https://aut.edu.gh/'],
+  ['anglican-university-college-of-technology', 'AUCT', 'Anglican University College of Technology', 'https://angutech.edu.gh/'],
   ['bluecrest-college', 'BlueCrest', 'BlueCrest College', 'https://bluecrest.edu.gh/'],
   ['catholic-institute-of-business-and-technology', 'CIBT', 'Catholic Institute of Business and Technology', 'https://cibt.edu.gh/'],
   ['christ-apostolic-university-college', 'CAUC', 'Christ Apostolic University College', 'https://cauc.edu.gh/'],
   ['data-link-institute-of-business-and-technology', 'DLIBT', 'Data Link Institute of Business and Technology', 'https://datalink.edu.gh/'],
-  ['dominion-university-college', 'DUC', 'Dominion University College', 'https://duc.edu.gh/'],
+  ['dominion-university-college', 'DUC', 'Dominion University College', 'https://southshore.edu.gh/'],
   ['evangelical-presbyterian-university-college', 'EPUC', 'Evangelical Presbyterian University College', 'https://epuc.edu.gh/'],
   ['ghana-baptist-university-college', 'GBUC', 'Ghana Baptist University College', 'https://gbuc.edu.gh/'],
-  ['ghana-christian-university-college', 'GCUC', 'Ghana Christian University College', 'https://www.ghanacu.edu.gh/'],
-  ['islamic-university-college-ghana', 'IUCG', 'Islamic University College, Ghana', 'https://iuc.edu.gh/'],
-  ['jayee-university-college', 'JUC', 'Jayee University College', 'https://jayeeuniversity.edu.gh/'],
-  ['kessben-university-college', 'KUC', 'Kessben University College', 'https://kessben.edu.gh/'],
+  ['ghana-christian-university-college', 'GCUC', 'Ghana Christian University College', 'https://ghanacu.edu.gh/'],
+  ['islamic-university-college-ghana', 'IUCG', 'Islamic University College, Ghana', 'https://iug.edu.gh/'],
+  ['jayee-university-college', 'JUC', 'Jayee University College', 'https://juc.edu.gh/'],
+  ['kessben-university-college', 'KUC', 'Kessben University College', 'https://kc.edu.gh/'],
   ['kings-university-college', 'KUC', 'Kings University College', 'https://kuc.edu.gh/'],
   ['lancaster-university-ghana', 'LUG', 'Lancaster University, Ghana', 'https://lancaster.edu.gh/'],
   ['maranatha-university-college', 'MUC', 'Maranatha University College', 'https://maranatha.edu.gh/'],
   ['marshalls-university-college', 'MUC', 'Marshalls University College', 'https://marshalls.edu.gh/'],
-  ['mountcrest-university-college', 'Mountcrest', 'Mountcrest University College', 'https://mountcrest.edu.gh/'],
+  ['mountcrest-university-college', 'Mountcrest', 'Mountcrest University College', 'https://mountcrestuniversity.edu.gh/'],
   ['palm-university-college', 'PUC', 'Palm University College', 'https://palm.edu.gh/'],
   ['perez-university-college', 'Pérez', 'Perez University College', 'https://perez.edu.gh/'],
   ['radford-university-college', 'RUC', 'Radford University College', 'https://radford.edu.gh/'],
   ['regent-university-college', 'Regent', 'Regent University College of Science and Technology', 'https://regent.edu.gh/'],
-  ['spiritan-university-college', 'SUC', 'Spiritan University College', 'https://spiritan.edu.gh/'],
+  ['spiritan-university-college', 'SUC', 'Spiritan University College', 'https://suc.edu.gh/'],
   ['university-college-agriculture-environmental-studies', 'UCAES', 'University College of Agriculture and Environmental Studies', 'https://ucaes.edu.gh/'],
   ['west-end-university-college', 'WEUC', 'West End University College', 'https://weuc.edu.gh/'],
   ['wisconsin-international-university-college', 'WIUC', 'Wisconsin International University College', 'https://wiuc-ghana.edu.gh/'],
   ['zenith-university-college', 'ZUC', 'Zenith University College', 'https://zuc.edu.gh/'],
 ];
 
-const pageSuffixes = ['', 'about', 'campus', 'gallery', 'news', 'events', 'student-life', 'facilities', 'index.php/gallery/'];
+const pageSuffixes = ['', 'about', 'campus', 'gallery', 'news', 'events', 'student-life', 'facilities', 'index.php/gallery/', 'campus-life', 'life-at-gimpa', 'news-events', 'events-calendar', 'latest-news', 'media-gallery', 'web/home-christ-apostolic-university-college/'];
 const blockedPathParts = ['favicon', 'icon', 'avatar', 'gravatar', 'sprite', 'captcha', 'pdf', 'brochure', 'admission', 'certificate', 'poster', 'flyer', 'wp-includes'];
 const campusWords = ['campus', 'building', 'entrance', 'facility', 'facilities', 'grounds', 'library', 'hall', 'hostel', 'landmark', 'aerial', 'hero', 'slider', 'banner', 'gallery', 'photo', 'student', 'graduation', 'orientation', 'matriculation', 'research', 'sports', 'ceremony', 'lecture', 'classroom', 'laboratory', 'convocation'];
 const logoWords = ['logo', 'crest', 'emblem', 'brand', 'seal'];
@@ -145,6 +145,18 @@ function assetFolderFor(slug) {
 // and for replacing an automatically selected logo that was incorrectly reused as a campus image.
 // Every URL below is hosted by the institution's own website.
 const manualAssets = {
+  'academic-city-university': {
+    logo: { url: 'https://acity.edu.gh/wp-content/uploads/2024/08/cropped-logo-icon-192x192.png', page: 'https://acity.edu.gh/' },
+  },
+  'accra-metropolitan-university': {
+    logo: { url: 'https://web.accramet.edu.gh/wp-content/uploads/2024/11/cropped-amu-270x270.png', page: 'https://web.accramet.edu.gh/' },
+  },
+  aamusted: {
+    logo: { url: 'https://itdirectorate.aamusted.edu.gh/wp-content/uploads/2024/07/aamusted-300x300.jpeg', page: 'https://usted.edu.gh/' },
+  },
+  'accra-institute-of-technology': {
+    logo: { url: 'https://ait.edu.gh/wp-content/uploads/2024/02/ait-logo-png-e1709804120348.png', page: 'https://ait.edu.gh/about/' },
+  },
   'sdd-ubids': {
     logo: { url: 'https://ubids.edu.gh/wp-content/uploads/2026/01/ubids_logo_new.png', page: 'https://ubids.edu.gh/' },
     campus: { url: 'https://ubids.edu.gh/wp-content/uploads/2024/01/ubids_bsc_construction.jpg', page: 'https://ubids.edu.gh/' },
@@ -208,7 +220,10 @@ const manualAssets = {
     logo: { url: 'https://kstu.edu.gh/sites/default/files/kstu-new_0.png', page: 'https://kstu.edu.gh/' },
     campus: { url: 'https://kstu.edu.gh/sites/default/files/2026-10/Hostel.jpg', page: 'https://kstu.edu.gh/' },
   },
-  atu: { campus: { url: 'https://atu.edu.gh/wp-content/uploads/2024/08/580A0873-1024x683.jpg', page: 'https://atu.edu.gh/' } },
+  atu: {
+    logo: { url: 'https://atu.edu.gh/wp-content/uploads/2024/07/ATU-LOGO-AUTHENTIC-edit-1024x980.png', page: 'https://atu.edu.gh/the-emblem/' },
+    campus: { url: 'https://atu.edu.gh/wp-content/uploads/2024/08/580A0873-1024x683.jpg', page: 'https://atu.edu.gh/' },
+  },
   htu: { campus: { url: 'https://htu.edu.gh/wp-content/uploads/2022/06/MG_0153.jpg', page: 'https://htu.edu.gh/' } },
   ug: { campus: { url: 'https://ug.edu.gh/sites/default/files/2026-10/UBS%20Awards%20Winning%20Team.jpeg', page: 'https://ug.edu.gh/' } },
   'ghana-armed-forces-command-and-staff-college': { campus: { url: 'https://gafcscmil.edu.gh/uploads/noticeboard/7a04ca7e4920d64ea50226a9f2f2a23f.jpg', page: 'https://www.gafcscmil.edu.gh/' } },
@@ -339,8 +354,11 @@ async function main() {
     const unique = [...new Map(candidates.map((candidate) => [candidate.url, candidate])).values()];
 
     if (!galleryOnly) {
+      const explicit = manualAssets[slug] || {};
       for (const role of ['logo', 'campus']) {
         if (manualAssets[slug]?.skipAutomatic) break;
+        // Never replace a curated explicit source with a lower-confidence page heuristic.
+        if (explicit[role] || previous[slug]?.[role]?.selection === 'explicit_official_source') continue;
         const ranked = unique
           .map((candidate) => ({ candidate, score: candidateScore(candidate, role) }))
           .filter((item) => item.score > 0)

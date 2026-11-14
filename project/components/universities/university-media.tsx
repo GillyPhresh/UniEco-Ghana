@@ -156,6 +156,7 @@ export type CampusStory = {
   description?: string | null;
   imageUrl?: string | null;
   href?: string | null;
+  sourceUrl?: string | null;
   label?: string;
   dateLabel?: string | null;
 };
@@ -165,6 +166,7 @@ interface CampusShowcaseProps {
   universityShortName: string;
   campusImageUrl?: string | null;
   localCampusImageUrl?: string | null;
+  campusGallery?: Array<{ src: string; alt: string; sourcePage?: string | null }>;
   stories: CampusStory[];
 }
 
@@ -175,21 +177,34 @@ function storyLabel(story: CampusStory) {
   return 'Campus spotlight';
 }
 
-export function CampusShowcase({ universityName, universityShortName, campusImageUrl, localCampusImageUrl, stories }: CampusShowcaseProps) {
+export function CampusShowcase({ universityName, universityShortName, campusImageUrl, localCampusImageUrl, campusGallery = [], stories }: CampusShowcaseProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const campusStory: CampusStory = {
-    id: 'campus-spotlight',
-    kind: 'campus',
-    title: `${universityShortName} campus life`,
-    description: `Explore what is happening around ${universityName}.`,
-    imageUrl: campusImageUrl || localCampusImageUrl,
-    label: 'Campus spotlight',
-  };
-  const slides = [campusStory, ...stories].slice(0, 7);
+  const campusStories: CampusStory[] = campusGallery
+    .filter((image) => Boolean(image.src))
+    .map((image, index) => ({
+      id: `official-campus-${index + 1}`,
+      kind: 'campus',
+      title: `${universityShortName} campus life`,
+      description: `A photo from ${universityName}'s official campus gallery.`,
+      imageUrl: image.src,
+      label: 'Official campus gallery',
+      sourceUrl: image.sourcePage || null,
+    }));
+  if (campusImageUrl || localCampusImageUrl || campusStories.length === 0) {
+    campusStories.unshift({
+      id: 'campus-spotlight',
+      kind: 'campus',
+      title: `${universityShortName} campus life`,
+      description: `Explore what is happening around ${universityName}.`,
+      imageUrl: campusImageUrl || localCampusImageUrl,
+      label: 'Campus spotlight',
+    });
+  }
+  const slides = [...campusStories, ...stories].slice(0, 12);
   const activeStory = slides[activeIndex] || slides[0];
   const hasMultipleSlides = slides.length > 1;
 
@@ -268,6 +283,11 @@ export function CampusShowcase({ universityName, universityShortName, campusImag
             <Link href={activeStory.href} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-white underline-offset-4 hover:underline">
               View details <ChevronRight className="h-4 w-4" />
             </Link>
+          )}
+          {activeStory.sourceUrl && (
+            <a href={activeStory.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-white underline-offset-4 hover:underline">
+              View source <ChevronRight className="h-4 w-4" />
+            </a>
           )}
           {hasMultipleSlides && (
             <div className="mt-4 flex items-center gap-1.5" role="tablist" aria-label="Campus stories">
