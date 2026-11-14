@@ -35,12 +35,18 @@ test('visible problematic universities use square official asset records', () =>
 
 test('GIMPA uses its verified official crest without implying an unverified campus image', () => {
   const gimpa = manifest.gimpa;
-  assert.equal(gimpa.status, 'logo_only');
+  assert.equal(gimpa.status, 'verified_assets_downloaded');
   assert.equal(gimpa.logo.selection, 'explicit_official_source');
   assert.match(gimpa.logo.sourceUrl, /^https:\/\/gimpa\.edu\.gh\//);
   assert.equal(gimpa.campus, null);
-  assert.deepEqual(gimpa.campusGallery, []);
+  assert.equal(gimpa.campusGallery.length, 6);
   assert.ok(fs.existsSync(path.join(root, 'public', gimpa.logo.path)));
+  for (const image of gimpa.campusGallery) {
+    assert.match(image.sourcePage, /^https:\/\/gimpa\.edu\.gh\/2026\/11\/13\//);
+    assert.match(image.sourceUrl, /^https:\/\/gimpa\.edu\.gh\//);
+    assert.ok(image.path.endsWith('.webp'));
+    assert.ok(fs.existsSync(path.join(root, 'public', image.path)));
+  }
 });
 
 test('school profile carousel receives and rotates verified official gallery photos', () => {

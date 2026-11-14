@@ -106,9 +106,70 @@
       "selection": "explicit_official_source"
     },
     "campus": null,
-    "campusGallery": [],
-    "status": "logo_only",
-    "reviewNote": "Official site image verified and downloaded over HTTPS; campus imagery remains unverified.",
+    "campusGallery": [
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/248A0259-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 110410,
+        "sha256": "b52e489849f59a4470c94397bb91589dff7dcfeb9c9b899470f6d0c3596cd129",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/248A0275-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 86052,
+        "sha256": "21689acaf1b482905721831ecb78c94e4c39f17bd913b3e5155b61eb53a0c4a9",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/248A0283-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 93494,
+        "sha256": "c73487391c991a5555a8fb91ce239d7a106f1941cfdfc7c1de273b0d34383ddb",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/248A0290-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 116126,
+        "sha256": "84a2b06de85ec18a8f59ea6478bd6bc30492abf76ec15e1bd4b493a91c8e5d9a",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/248A0332-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 32802,
+        "sha256": "b92ca469469d26a774b16ce650763c01a5576786dcb2079030e41b0d28738d9c",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/gimpa/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://gimpa.edu.gh/2026/11/13/gimpa-celebrates-65-years-with-otumfuo-osei-tutu-ii/",
+        "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2026/11/DSC02069-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 100022,
+        "sha256": "3d8261c9451124c212e24c9bf5f9e7660df0b010370200b6a5b83029b81cd86c",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_assets_downloaded",
+    "reviewNote": null,
     "checkedAt": "2026-11-14T05:10:01.509Z"
   },
   "knust": {
