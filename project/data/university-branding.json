@@ -5922,5 +5922,441 @@
     "status": "verified_gallery_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T02:12:01.967Z"
+  },
+  "holy-child-college-of-education-takoradi": {
+    "slug": "holy-child-college-of-education-takoradi",
+    "shortName": "HCCE",
+    "name": "Holy Child College of Education, Takoradi",
+    "sourceUrl": "https://hcce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/holy-child-college-of-education-takoradi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://hcce.edu.gh/facilities",
+        "sourceUrl": "https://hcce.edu.gh/wp-content/uploads/2020/10/gate-fb1-1024x532.jpg",
+        "contentType": "image/webp",
+        "bytes": 54268,
+        "sha256": "36a0d5362f7c8cd6c2f6b1ed6ea84c2ee4a1205dde17610888e6848c3413e908",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:38:45.061Z"
+  },
+  "tamale-college-of-education": {
+    "slug": "tamale-college-of-education",
+    "shortName": "Tamale CoE",
+    "name": "Tamale College of Education",
+    "sourceUrl": "https://www.tace.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/tace/Sports2.png",
+        "contentType": "image/webp",
+        "bytes": 51410,
+        "sha256": "5720a097669eca2a2916e194c53f753bc79938cdfb4a37f3dd3a8c35c498c716",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/tace/ProfSuleIddrisu.jpeg",
+        "contentType": "image/webp",
+        "bytes": 78016,
+        "sha256": "c3aca49a7880f8df0b9e3df20aff5c9059499cb667ea06f384caf623f3efe19b",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/tace/Academic2.png",
+        "contentType": "image/webp",
+        "bytes": 80000,
+        "sha256": "1705163b93603e8568af764719d23a67aed7556f616cc5bf616e7cbe85d3eadb",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/tace/CULTUREandENTERTAINMENT.jpg",
+        "contentType": "image/webp",
+        "bytes": 100212,
+        "sha256": "37411041de08ec7d68afdac7b6bef0118481347cffdb425fa8fa4d0e8f714bec",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/sandabbi/Conference.png",
+        "contentType": "image/webp",
+        "bytes": 10168,
+        "sha256": "0a2fc1714915edd9dabe539be8eae10e1f7f97af5b9c2a9918428077eb49925f",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/tamale-college-of-education/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.tace.edu.gh/about",
+        "sourceUrl": "https://www.tace.edu.gh/assets/img/tace/ProfSuleIddrisu.png",
+        "contentType": "image/webp",
+        "bytes": 15326,
+        "sha256": "98bb215b62b35a421800ef70085119648ace840b9ce69cdb5905763fb08805ca",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:38:45.050Z"
+  },
+  "mount-mary-college-of-education-somanya": {
+    "slug": "mount-mary-college-of-education-somanya",
+    "shortName": "Mount Mary CoE",
+    "name": "Mount Mary College of Education, Somanya",
+    "sourceUrl": "https://mmce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/11/final-banner-new-150x150.jpg",
+        "contentType": "image/webp",
+        "bytes": 7742,
+        "sha256": "9b6f51fce034afaebd9483e33bd88cece5063ca8a2064ac769b7184a22fc42f4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/10/ORIENTATION.jpg-150x150.jpeg",
+        "contentType": "image/webp",
+        "bytes": 4666,
+        "sha256": "639bdd1073b5a8f382ddec53323b32e04f9c7938490cf8b2ceb57e41b3975c3d",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/03/mmce-test-3-scaled.png",
+        "contentType": "image/webp",
+        "bytes": 63100,
+        "sha256": "70040e8faaeee6baa54bdeb14f7e9991e0fadb6100afcfae5a3eb22d1d006a60",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/03/mmce-test-6-scaled.png",
+        "contentType": "image/webp",
+        "bytes": 124144,
+        "sha256": "8388717829a95f7558f10fd6ca18b6e57a0a6de737595e4cb16d06c3a539543f",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/03/mmce-test-71-scaled.png",
+        "contentType": "image/webp",
+        "bytes": 59292,
+        "sha256": "f4af8702f2a6d593ed4ead03e20067c4dea7eb5010c2abb434f22452371415dd",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mount-mary-college-of-education-somanya/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://mmce.edu.gh/",
+        "sourceUrl": "https://mmce.edu.gh/wp-content/uploads/2026/03/WhatsApp-Image-2026-03-16-at-18.22.55-1.jpeg",
+        "contentType": "image/webp",
+        "bytes": 36960,
+        "sha256": "64fb679414164a40f27171275bdae5ed0663fee0d528379e027fa101f318835a",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:38:44.832Z"
+  },
+  "agogo-presbyterian-college-of-education-agogo": {
+    "slug": "agogo-presbyterian-college-of-education-agogo",
+    "shortName": "APWCE",
+    "name": "Agogo Presbyterian College of Education, Agogo",
+    "sourceUrl": "https://apwce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:41:21.885Z"
+  },
+  "abetifi-college-of-education-abetifi": {
+    "slug": "abetifi-college-of-education-abetifi",
+    "shortName": "Abetifi CoE",
+    "name": "Abetifi College of Education, Abetifi",
+    "sourceUrl": "https://abeticoe.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/news/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/cropped-ABCE.jpg",
+        "contentType": "image/webp",
+        "bytes": 23086,
+        "sha256": "82a294ddcf3d69f8a9384e2901c685b28ecac1e84f87745d6d339340f57fdd16",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/news/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/NEWS.jpg",
+        "contentType": "image/webp",
+        "bytes": 63510,
+        "sha256": "a93197d28f6baada817a583b324666087ae9dd06600e7d30d41f1818270b5d32",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/news/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/05/WhatsApp-Image-2022-05-18-at-11.21.52-AM.jpeg",
+        "contentType": "image/webp",
+        "bytes": 31394,
+        "sha256": "3bbae3f17e05de3d57c456f3bbb160a4f987c3f3288ac123485ef3ca20b94ca8",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/PHOTO-2022-06-03-17-59-01-2.jpg",
+        "contentType": "image/webp",
+        "bytes": 155702,
+        "sha256": "f9794a6127aa4acbc9fa6e80800428f87bb39fa813808b3231bbdc51ccc22054",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/PHOTO-2022-06-03-17-59-00-4.jpg",
+        "contentType": "image/webp",
+        "bytes": 133446,
+        "sha256": "4c90bffa1f5ca3082acec3da48084d09479802fbc144da06af12dd717da06a0d",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/abetifi-college-of-education-abetifi/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://abeticoe.edu.gh/",
+        "sourceUrl": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/PHOTO-2022-06-03-17-59-01.jpg",
+        "contentType": "image/webp",
+        "bytes": 140582,
+        "sha256": "18fbbba9dbd462903fcdd14d81d9ad481c1c1af76509896cd3487bab8e852d99",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:41:21.791Z"
+  },
+  "wesley-college-of-education": {
+    "slug": "wesley-college-of-education",
+    "shortName": "WESCO",
+    "name": "Wesley College of Education, Kumasi",
+    "sourceUrl": "https://www.wesco.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2026/10/stud-3.jpg?resize=840%2C420&",
+        "contentType": "image/webp",
+        "bytes": 20310,
+        "sha256": "beaf1011ac3cb04046e777d721f1e15c200451f78387c10af29295682e65554c",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2026/10/WhatsApp-Image-2026-10-01-at-1.50.31-PM-1.jpeg?resize=840%2C420&",
+        "contentType": "image/webp",
+        "bytes": 45470,
+        "sha256": "5ccd8603e1be9187ef76fd7c14f52cfc36ea5d678622ff8619a2b96160458eab",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2026/07/WhatsApp-Image-2026-07-13-at-2.07.58-PM-3.jpeg?resize=840%2C420&",
+        "contentType": "image/webp",
+        "bytes": 61298,
+        "sha256": "8658534a8a0edf21c832b95e8c194198c6ce8a49a7a13320f4a9b9d3a78c4b44",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2026/06/IMG_3981-3-scaled.jpg?resize=840%2C420&",
+        "contentType": "image/webp",
+        "bytes": 34426,
+        "sha256": "8fd9d9aa298d6f6dd7f98707dbfa82bd8e322f303658fda1713bea9babf4e743",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2024/10/cropped-Fav-2024.jpg?fit=512%2C512&",
+        "contentType": "image/webp",
+        "bytes": 19056,
+        "sha256": "e05b4d79eb1b1810a4f5841ee76f28539aeaedf307e59e5d760b2bdc7f8b89da",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/wesley-college-of-education/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.wesco.edu.gh/news/",
+        "sourceUrl": "https://i0.wp.com/www.wesco.edu.gh/wp-content/uploads/2026/11/944.png?resize=840%2C420&",
+        "contentType": "image/webp",
+        "bytes": 50552,
+        "sha256": "9d99b4dcac30cf09faabac5ad9150fe83358fb82b33f7ca25c01755f6bdcb9a8",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:41:21.899Z"
+  },
+  "st-monica-s-college-of-education-ashanti-mampong": {
+    "slug": "st-monica-s-college-of-education-ashanti-mampong",
+    "shortName": "MONICO",
+    "name": "St. Monica’s College of Education, Ashanti Mampong",
+    "sourceUrl": "https://monico.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:44:12.056Z"
+  },
+  "st-teresa-s-college-of-education-hohoe": {
+    "slug": "st-teresa-s-college-of-education-hohoe",
+    "shortName": "TERESCO",
+    "name": "St. Teresa’s College of Education, Hohoe",
+    "sourceUrl": "https://teresco.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:44:12.067Z"
+  },
+  "st-louis-college-of-education-kumasi": {
+    "slug": "st-louis-college-of-education-kumasi",
+    "shortName": "St. Louis CoE",
+    "name": "St. Louis College of Education, Kumasi",
+    "sourceUrl": "https://slce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:44:12.047Z"
+  },
+  "st-joseph-s-college-of-education-bechem": {
+    "slug": "st-joseph-s-college-of-education-bechem",
+    "shortName": "JOSCO",
+    "name": "St. Joseph’s College of Education, Bechem",
+    "sourceUrl": "https://joscobechem.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/facilities/library/1.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 40756,
+        "sha256": "b670a269709b569ec8eb46433d3c1afdf136e41415304e84d325747465ef4996",
+        "score": 48,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/facilities/library/3.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 69052,
+        "sha256": "bb4ddd75c00131de52ad6f686d07eaf12893305ab8b0c75111a9d061c8edecc6",
+        "score": 48,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/environment/1.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 47338,
+        "sha256": "2de8aa649d799d297c561fa175cae5501da97de06c88e1f5a28aee7117fc4a45",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/environment/2.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 66692,
+        "sha256": "a8384a954406eae70393bbda102a41fd1c2d799a99b7ee11d3223543c4afffd9",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/environment/3.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 99206,
+        "sha256": "38207dc12a7d46d8fa19fd0911b1bc107f91aab2fd40cfd5c31853e4b51d6312",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-joseph-s-college-of-education-bechem/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://joscobechem.edu.gh/",
+        "sourceUrl": "https://joscobechem.edu.gh/_filx/_visualx/img/gallery/campus/environment/5.jpg?v=2506201",
+        "contentType": "image/webp",
+        "bytes": 34632,
+        "sha256": "b3ac3b944d31ec0bfab991e2d3b3bad0927184ee64829148f6a78b878bb01d7a",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:44:11.905Z"
   }
 }
