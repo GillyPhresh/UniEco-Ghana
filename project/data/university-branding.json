@@ -95,11 +95,20 @@
     "shortName": "GIMPA",
     "name": "Ghana Institute of Management and Public Administration",
     "sourceUrl": "https://www.gimpa.edu.gh/",
-    "logo": null,
+    "logo": {
+      "path": "/assets/universities/gimpa/logo.png",
+      "sourcePage": "https://gimpa.edu.gh/",
+      "sourceUrl": "https://gimpa.edu.gh/wp-content/uploads/2022/08/logo_GIMPS2.png",
+      "contentType": "image/png",
+      "bytes": 5871,
+      "sha256": "6b3284c441baddab58bd82421de240d43e51e0f88bc797380f55061d52dbd731",
+      "score": 100,
+      "selection": "explicit_official_source"
+    },
     "campus": null,
     "campusGallery": [],
-    "status": "no_verified_assets",
-    "reviewNote": "Official homepage and assets currently fail certificate validation in the downloader; no insecure copy was imported.",
+    "status": "logo_only",
+    "reviewNote": "Official site image verified and downloaded over HTTPS; campus imagery remains unverified.",
     "checkedAt": "2026-11-14T05:10:01.509Z"
   },
   "knust": {
