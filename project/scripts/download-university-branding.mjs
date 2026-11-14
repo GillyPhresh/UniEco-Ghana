@@ -72,6 +72,25 @@ const institutions = [
   ['regional-maritime-university', 'RMU', 'Regional Maritime University', 'https://rmu.edu.gh/'],
   ['national-defence-university', 'NDU', 'National Defence University, Ghana', 'https://ndu.edu.gh/'],
   ['accra-institute-of-technology', 'AIT', 'Accra Institute of Technology', 'https://ait.edu.gh/'],
+  ['accra-college-of-education-accra', 'AcCE', 'Accra College of Education, Accra', 'https://acce.edu.gh/'],
+  ['akatsi-college-of-education-akatsi', 'AKATSICO', 'Akatsi College of Education, Akatsi', 'https://akatsico.edu.gh/'],
+  ['al-faruq-college-of-education', 'AFCoE', 'Al-Faruq College of Education', 'https://afcoe.edu.gh/'],
+  ['atebubu-college-of-education-atebubu', 'ATECOE', 'Atebubu College of Education, Atebubu', 'https://atecoe.edu.gh/'],
+  ['bagabaga-college-of-education-bagabaga', 'BACE', 'Bagabaga College of Education, Bagabaga', 'https://bace.edu.gh/'],
+  ['bia-lamplighter-college-of-education', 'BLCoE', 'BIA Lamplighter College of Education', 'https://blce.edu.gh/'],
+  ['berekum-college-of-education-berekum', 'BECOLED', 'Berekum College of Education, Berekum', 'https://becoled.edu.gh/'],
+  ['dambai-college-of-education-dambai', 'DACE', 'Dambai College of Education, Dambai', 'https://www.dace.edu.gh/'],
+  ['fosu-college-of-education-assin-fosu', 'FOSCO', 'Foso College of Education, Assin Fosu', 'https://fosco.edu.gh/'],
+  ['e-p-college-of-education-bimbilla', 'BIMBICO', 'E.P College of Education, Bimbilla', 'https://www.epcoebimbilla.edu.gh/'],
+  ['mampong-technical-college-of-education-ashanti-mampong', 'MAMTECH', 'Mampong Technical College of Education, Ashanti Mampong', 'https://mtce.edu.gh/'],
+  ['nurses-and-midwives-training-college-tamale', 'NMTC Tamale', 'Nurses and Midwives Training College, Tamale', 'https://www.nmtctamale.edu.gh/'],
+  ['ada-college-of-education-ada', 'AdaCoE', 'Ada College of Education, Ada', 'https://adacoe.edu.gh/'],
+  ['akrokerri-college-of-education-akrokerri', 'ARCE', 'Akrokerri College of Education, Akrokerri', 'https://www.arce.edu.gh/'],
+  ['komenda-college-of-education-komenda', 'Komenda CoE', 'Komenda College of Education, Komenda', 'https://www.komendacollege.edu.gh/'],
+  ['presbyterian-college-of-education-akropong-akuapem', 'PCE Akropong', 'Presbyterian College of Education, Akropong-Akuapem', 'https://pce.edu.gh/'],
+  ['st-francis-college-of-education-hohoe', 'FRANCO', 'St. Francis College of Education, Hohoe', 'https://franco.edu.gh/'],
+  ['wiawso-college-of-education', 'Wiawso CoE', 'Wiawso College of Education', 'https://wce.edu.gh/'],
+  ['offinso-college-of-education', 'OFCE', 'Offinso College of Education', 'https://www.ofce.edu.gh/'],
   ['anglican-university-college-of-technology', 'AUCT', 'Anglican University College of Technology', 'https://aut.edu.gh/'],
   ['bluecrest-college', 'BlueCrest', 'BlueCrest College', 'https://bluecrest.edu.gh/'],
   ['catholic-institute-of-business-and-technology', 'CIBT', 'Catholic Institute of Business and Technology', 'https://cibt.edu.gh/'],
@@ -273,6 +292,9 @@ async function main() {
   await mkdir(path.dirname(manifestPath), { recursive: true });
   const previous = existsSync(manifestPath) ? JSON.parse(await readFile(manifestPath, 'utf8')) : {};
   const manifest = { ...previous };
+  const requestedSlugs = new Set((process.argv.find((arg) => arg.startsWith('--slugs=')) || '').slice('--slugs='.length).split(',').filter(Boolean));
+  const institutionsToProcess = requestedSlugs.size ? institutions.filter(([slug]) => requestedSlugs.has(slug)) : institutions;
+  if (requestedSlugs.size && institutionsToProcess.length !== requestedSlugs.size) throw new Error('One or more requested school slugs are not configured.');
 
   async function processInstitution([slug, shortName, name, sourceUrl]) {
     const record = {
@@ -409,7 +431,7 @@ async function main() {
       record.logo = manualAssets[slug]?.logo ? record.logo : null;
       record.campus = manualAssets[slug]?.campus ? record.campus : null;
     }
-    record.status = record.logo && record.campus ? 'verified_assets_downloaded' : record.logo ? 'logo_only' : 'no_verified_assets';
+    record.status = record.logo && (record.campus || record.campusGallery.length) ? 'verified_assets_downloaded' : record.logo ? 'logo_only' : record.campusGallery.length ? 'verified_gallery_downloaded' : 'no_verified_assets';
     return record;
   }
 
@@ -417,8 +439,8 @@ async function main() {
   async function worker() {
     while (true) {
       const index = nextIndex++;
-      if (index >= institutions.length) return;
-      const tuple = institutions[index];
+      if (index >= institutionsToProcess.length) return;
+      const tuple = institutionsToProcess[index];
       try {
         const record = await processInstitution(tuple);
         manifest[record.slug] = record;
@@ -438,7 +460,7 @@ async function main() {
 
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   const counts = Object.values(manifest).reduce((acc, item) => { acc[item.status] = (acc[item.status] || 0) + 1; return acc; }, {});
-  console.log(JSON.stringify({ institutions: institutions.length, counts }, null, 2));
+  console.log(JSON.stringify({ institutions: institutionsToProcess.length, counts }, null, 2));
 }
 
 async function optimizeExistingGallery() {
@@ -447,15 +469,20 @@ async function optimizeExistingGallery() {
   let optimized = 0;
   let savedBytes = 0;
   for (const { record, asset } of assets) {
-    const inputPath = path.join(projectRoot, 'public', asset.path.replace(/^\//, ''));
+    if (asset.path.endsWith('.optimized.webp') && asset.contentType === 'image/webp' && asset.bytes <= 280_000) continue;
+    let inputPath = path.join(projectRoot, 'public', asset.path.replace(/^\//, ''));
     const stem = path.basename(asset.path, path.extname(asset.path)).replace(/(?:\.optimized)+$/, '');
     const outputName = `${stem}.optimized.webp`;
     const outputPath = path.join(path.dirname(inputPath), outputName);
+    if (inputPath === outputPath) {
+      const originalPath = path.join(path.dirname(inputPath), `${stem}${path.extname(asset.path.replace(/\.optimized(?=\.[^.]+$)/, ''))}`);
+      if (existsSync(originalPath)) inputPath = originalPath;
+    }
     try {
       const output = await sharp(inputPath, { limitInputPixels: 40_000_000, failOn: 'none' })
         .rotate()
-        .resize({ width: 1440, height: 1440, fit: 'inside', withoutEnlargement: true })
-        .webp({ quality: 76, effort: 4 })
+        .resize({ width: 1280, height: 1280, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 70, effort: 4 })
         .toBuffer();
       const sha256 = createHash('sha256').update(output).digest('hex');
       await writeFile(outputPath, output);

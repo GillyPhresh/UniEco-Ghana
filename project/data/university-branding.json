@@ -4840,5 +4840,1087 @@
     "status": "verified_assets_downloaded",
     "reviewNote": null,
     "checkedAt": "2026-11-14T00:29:50.146Z"
+  },
+  "al-faruq-college-of-education": {
+    "slug": "al-faruq-college-of-education",
+    "shortName": "AFCoE",
+    "name": "Al-Faruq College of Education",
+    "sourceUrl": "https://afcoe.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:27:08.958Z"
+  },
+  "dambai-college-of-education-dambai": {
+    "slug": "dambai-college-of-education-dambai",
+    "shortName": "DACE",
+    "name": "Dambai College of Education, Dambai",
+    "sourceUrl": "https://www.dace.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/news-events/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2025/03/DSC_0540-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 84996,
+        "sha256": "214db502b04190415fdbc8da69a924f38c8f7cc6a38947818e2c226e06bd87a0",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/student-life/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2021/06/WhatsApp-Image-2021-06-03-at-05.38.29.jpeg",
+        "contentType": "image/webp",
+        "bytes": 28266,
+        "sha256": "f4965368bff65cce80fedc6e265f5ed37cb9d56968f81032d081872167328d45",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2026/05/vacancy_banner_dace_updated_text-300x158.png",
+        "contentType": "image/webp",
+        "bytes": 4990,
+        "sha256": "87f2138b4cd78a4515de046bb141b2428ddb0d3fc99b06dadace3ba9231e4d03",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/news-events/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2026/05/vacancy_banner_dace_updated_text.png",
+        "contentType": "image/webp",
+        "bytes": 35234,
+        "sha256": "b883b1f25cfb5050b0ee7b78df9629066b7e078b1fab73905ffed4db69c63195",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/news-events/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2025/03/UDS-Workshop2.jpeg",
+        "contentType": "image/webp",
+        "bytes": 135140,
+        "sha256": "d165b8c9864da8ac8656c19d0255d27e305f1f6f659ef47cc30a9d4aaf88a8ca",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/dambai-college-of-education-dambai/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.dace.edu.gh/news-events/",
+        "sourceUrl": "https://www.dace.edu.gh/wp-content/uploads/2025/03/Fresh-Staff-Orientation1.jpeg",
+        "contentType": "image/webp",
+        "bytes": 72042,
+        "sha256": "456b3283a6133bbbae937e5e0ed3a1ca670358e5530a76f409783d4ac0a57000",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:27:08.999Z"
+  },
+  "akatsi-college-of-education-akatsi": {
+    "slug": "akatsi-college-of-education-akatsi",
+    "shortName": "AKATSICO",
+    "name": "Akatsi College of Education, Akatsi",
+    "sourceUrl": "https://akatsico.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/news",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fposts%2Fwp%2F2026%2F08%2Fbanner.jpeg&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 20420,
+        "sha256": "1a90778ce3ccd9520b91dd67db295caa958f17f782d042429d9e02978f80befc",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/news",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fposts%2Fwp%2F2026%2F07%2Fupsa-edited.jpeg&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 39258,
+        "sha256": "e5edf2f15cdd34ef6f1fe036a2a60340d978f3d81550f3f9e506100d46be9495",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/news",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fposts%2F2026%2F10%2F7e4b73e5-img-1968new1.png&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 36864,
+        "sha256": "19619669ab5c189ff7dc894aa7f1fc06f6ade355c99a527756577a7f58524231",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/news",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fposts%2F2026%2F10%2F55cbd53d-img-1967.jpg&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 172304,
+        "sha256": "0b35849f5edd2eca4e292c64a5e2a8e336e4ee88fe3ac569e230e028a3dd07bc",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/news",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fposts%2F2026%2F10%2F0f56be63-akatsicoe-news-cover-16x9.jpg&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 55174,
+        "sha256": "91d0f175689a8cf164465134781e7a678944d00763d40830f08573c7c9cc55ec",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akatsi-college-of-education-akatsi/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://akatsico.edu.gh/student-life",
+        "sourceUrl": "https://akatsico.edu.gh/img?src=https%3A%2F%2Fpub-e59a232a590b4e31a152ca4e1aa48a37.r2.dev%2Fcms%2Fpages%2Fwp%2F2025%2F04%2Fcuklll.jpg&w=1280&q=75",
+        "contentType": "image/webp",
+        "bytes": 66718,
+        "sha256": "8c106bd3fd68c7762550cad48e13d0a8c11e4da7a19a7016f6cd2a7ac8c9bec5",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:27:08.942Z"
+  },
+  "bia-lamplighter-college-of-education": {
+    "slug": "bia-lamplighter-college-of-education",
+    "shortName": "BLCoE",
+    "name": "BIA Lamplighter College of Education",
+    "sourceUrl": "https://blce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/409642.jpeg",
+        "contentType": "image/webp",
+        "bytes": 7726,
+        "sha256": "7e9939797495110055da0d57166ebf20f6336253ddfc393f4633195f102dccec",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/386269.jpg",
+        "contentType": "image/webp",
+        "bytes": 131176,
+        "sha256": "b5927eaf37c898b849b7a6f27e61821dd3f6ef2e62659cd15966c648c6397cb4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/641732.jpg",
+        "contentType": "image/webp",
+        "bytes": 59024,
+        "sha256": "a52f08fbf466bd7b908faddd27f17a8fd7909e19aa96e9f9b3d97283817d3649",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/376123.jpg",
+        "contentType": "image/webp",
+        "bytes": 56148,
+        "sha256": "0af25efe13d89e4e2796d6eb8147b75f4835655b53bb191be4728372f2394760",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/641104.jpg",
+        "contentType": "image/webp",
+        "bytes": 73678,
+        "sha256": "f1551c22a087810ef96f24c2485e38f2910ab830818bff1148c47f9d4b21e2c6",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bia-lamplighter-college-of-education/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://blce.edu.gh/",
+        "sourceUrl": "https://blce.edu.gh/images/gallery/231042.jpg",
+        "contentType": "image/webp",
+        "bytes": 85452,
+        "sha256": "13439e39346b4480b2b7040495590768ec882ca05c9fc8e26b9360ed5168b2ac",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:27:08.976Z"
+  },
+  "accra-college-of-education-accra": {
+    "slug": "accra-college-of-education-accra",
+    "shortName": "AcCE",
+    "name": "Accra College of Education, Accra",
+    "sourceUrl": "https://acce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2021/03/Principal.jpg",
+        "contentType": "image/webp",
+        "bytes": 38730,
+        "sha256": "79866af3b8633dc5338188d7686cb1775bc889af75e5bfd69af215dfa03d4ca6",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2026/09/Kentera-Abongo-Justice-Jnr.webp",
+        "contentType": "image/webp",
+        "bytes": 89408,
+        "sha256": "65d08b538ab461f0eba2364f11c4a12b07959ae53042258f754a1ed09d7b345f",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2026/05/image-1.webp",
+        "contentType": "image/webp",
+        "bytes": 75906,
+        "sha256": "ae833a89e56a9b9ed9070146b6bc96d78bf881c27dbccdf074c98f71b036a968",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2026/04/Picture-1.webp",
+        "contentType": "image/webp",
+        "bytes": 131388,
+        "sha256": "a9127c9534814dc3a0ceae4efa2353e7e80765213fc883fe3528228f88af395e",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2024/07/1000086982.webp",
+        "contentType": "image/webp",
+        "bytes": 51512,
+        "sha256": "dccefa146cc6db359a17bec01cb0e4aa1e4629412a9c4e2c17625221569b67d8",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/accra-college-of-education-accra/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://acce.edu.gh/",
+        "sourceUrl": "https://acce.edu.gh/wp-content/uploads/2024/07/1000086980.webp",
+        "contentType": "image/webp",
+        "bytes": 82774,
+        "sha256": "1cd64988261144fe5ae246e7dac41a8b7dca33161d20f48baafd4dc8ca98993b",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:27:08.797Z"
+  },
+  "atebubu-college-of-education-atebubu": {
+    "slug": "atebubu-college-of-education-atebubu",
+    "shortName": "ATECOE",
+    "name": "Atebubu College of Education, Atebubu",
+    "sourceUrl": "https://atecoe.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/2023/05/SRC_orientation-870x341.jpg",
+        "contentType": "image/webp",
+        "bytes": 48824,
+        "sha256": "fd11f491b8a65a0a29205dc0489bef23d47a35946db814bedc8957fb73f6d3ac",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/2023/05/SRC_orientation-600x341.jpg",
+        "contentType": "image/webp",
+        "bytes": 34022,
+        "sha256": "eac54e9e6b1d4db5b0645f5913deec47c44543bc4200eba186868839d53df82b",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/slider/cache/7ff9a1c50cdaaf94a093ad9b18981d37/admisin266.jpg",
+        "contentType": "image/webp",
+        "bytes": 59230,
+        "sha256": "b5370b4f08de4147bd2cc06d186383c1315531f1452babdb402729cbdb6c3ca0",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/slider/cache/a15931b5b2793e2a94e11abe7f795954/gra2.jpg",
+        "contentType": "image/webp",
+        "bytes": 76578,
+        "sha256": "bbfb04372c39b45c71c8770c56cf18bd4175f42e3df9943dc5afd1a4f73b0458",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/slider/cache/f214c4c28e32d6403b7f2436f0f420e1/ECE.jpg",
+        "contentType": "image/webp",
+        "bytes": 80020,
+        "sha256": "ea46f8c1f05bfd4d945e758bb29ed409b12d94c38cff29dd56d08d903eb59e77",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/atebubu-college-of-education-atebubu/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://atecoe.edu.gh/",
+        "sourceUrl": "https://atecoe.edu.gh/wp-content/uploads/slider/cache/1c09c9901d58bfb23b1deffcfc39d518/award.png1-min.jpg",
+        "contentType": "image/webp",
+        "bytes": 89992,
+        "sha256": "7aa2744167c554c3462b22c2ab2b7d7adced8e5b3d17bdf95064fc7db5af917c",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:29:18.156Z"
+  },
+  "offinso-college-of-education": {
+    "slug": "offinso-college-of-education",
+    "shortName": "OFCE",
+    "name": "Offinso College of Education",
+    "sourceUrl": "https://www.ofce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:29:18.365Z"
+  },
+  "berekum-college-of-education-berekum": {
+    "slug": "berekum-college-of-education-berekum",
+    "shortName": "BECOLED",
+    "name": "Berekum College of Education, Berekum",
+    "sourceUrl": "https://becoled.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/slider/21.jpg?v=2510192",
+        "contentType": "image/webp",
+        "bytes": 162652,
+        "sha256": "f7af01aca4fd42c49f02c28a99513d714d762ad34c1295bff6de6ee9330e7fa8",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/slider/22.jpg?v=2510192",
+        "contentType": "image/webp",
+        "bytes": 105040,
+        "sha256": "804a994c468db3c72e6fab91478bf6f3f67f1821a633cad68bb5bc4b7fbdc7ba",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/slider/23.jpg?v=2510192",
+        "contentType": "image/webp",
+        "bytes": 127464,
+        "sha256": "0e29f03d9e5cfd54499abd677f0ec1ba11cb3856484fdb2c329c4e1940298d55",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/featured/2025/council/1.jpg",
+        "contentType": "image/webp",
+        "bytes": 24372,
+        "sha256": "09b5d508b4eec19f819941c89e7bc19d8ed68f373dfbb6980354c1bf63c73979",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/featured/2025/14-congregation/1.jpg",
+        "contentType": "image/webp",
+        "bytes": 62294,
+        "sha256": "f9c44e11d8bafafd57b646acfb52188f321c9e7a8f0c1a85d94b45347f24d86a",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/berekum-college-of-education-berekum/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://becoled.edu.gh/",
+        "sourceUrl": "https://becoled.edu.gh/_filx/_visualx/img/featured/2025/award/1.jpg",
+        "contentType": "image/webp",
+        "bytes": 13986,
+        "sha256": "d3e9ebb49996428b3a9898d256d559c434cba75441de6db8a6e3d3d1816ff048",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:29:18.347Z"
+  },
+  "bagabaga-college-of-education-bagabaga": {
+    "slug": "bagabaga-college-of-education-bagabaga",
+    "shortName": "BACE",
+    "name": "Bagabaga College of Education, Bagabaga",
+    "sourceUrl": "https://bace.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2025/08/slider3.jpg",
+        "contentType": "image/webp",
+        "bytes": 40150,
+        "sha256": "2f705f64efea74fc2d476faed5d555dc3834199693f8ba4ab06e7d7d4917b21f",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2026/11/Bagabaga-College-of-Education-Successfully-Holds-2-Day-Workshop-on-Research-and-Grant-Proposal-Writing-1024x576.webp",
+        "contentType": "image/webp",
+        "bytes": 84762,
+        "sha256": "961ed9b5294f3f925705cc6aa15d845643e0473839714ee7f81311b5baeac5b1",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2026/10/BACE-12th-Congregation-Ceremony-1024x341.jpeg",
+        "contentType": "image/webp",
+        "bytes": 57562,
+        "sha256": "9605a9020ed37fee90f0296a8e7542b4a736cfab7374415c59b7275f35099b69",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2026/11/Bagabaga-College-of-Education-Successfully-Holds-2-Day-Workshop-on-Research-and-Grant-Proposal-Writing-768x432.webp",
+        "contentType": "image/webp",
+        "bytes": 53300,
+        "sha256": "69a75f69bd54fa4f9c136cfc6d60f971906300cfffc5ce8715e7f19f55a4033d",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2025/08/Prof.jpeg",
+        "contentType": "image/webp",
+        "bytes": 25286,
+        "sha256": "d86125d774adf1333f84130b06bec1d51b666f4d4c96d5d7c254c698ac69a2b3",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/bagabaga-college-of-education-bagabaga/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://bace.edu.gh/",
+        "sourceUrl": "https://bace.edu.gh/wp-content/uploads/2026/11/WORKSHOP-ON-GRANT-PROPOSAL-WRITING-819x1024.webp",
+        "contentType": "image/webp",
+        "bytes": 71238,
+        "sha256": "dd28c6d9f1393c12f189dd953152d3c2dbe423cbab55e9162e6ad9c4d60c9718",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:29:18.330Z"
+  },
+  "fosu-college-of-education-assin-fosu": {
+    "slug": "fosu-college-of-education-assin-fosu",
+    "shortName": "FOSCO",
+    "name": "Foso College of Education, Assin Fosu",
+    "sourceUrl": "https://fosco.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:31:46.418Z"
+  },
+  "e-p-college-of-education-bimbilla": {
+    "slug": "e-p-college-of-education-bimbilla",
+    "shortName": "BIMBICO",
+    "name": "E.P College of Education, Bimbilla",
+    "sourceUrl": "https://www.epcoebimbilla.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//public/frontend/images/banner/banner-feature.jpg",
+        "contentType": "image/webp",
+        "bytes": 47800,
+        "sha256": "7c33d30ae3baff212e848093139fbea8bd66428fbab97d784b8157bdf0dbea80",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//public/frontend/images/preloader.gif",
+        "contentType": "image/webp",
+        "bytes": 5768,
+        "sha256": "e3939c6639dd7f4333febcd089e7d2aa354caf7c74837d2b9bfc41c7be629cc4",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//uploads/frontend/images/carousels/1757274141_55071de86cc83bde0e17.jpg",
+        "contentType": "image/webp",
+        "bytes": 113762,
+        "sha256": "5284fc735533e8490b89e0a923fe91a0f1c3f5ed371cc59cb9dc1aefc42fbc7b",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//uploads/frontend/images/carousels/1757274152_366c1b11ab65a0b4744d.jpg",
+        "contentType": "image/webp",
+        "bytes": 92182,
+        "sha256": "448534c959f67fcff009e62ba48c88d5e0f81034fdfca0ac16e144b2dedfd531",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//uploads/frontend/images/carousels/1757274162_f1d722962fe425fd5099.jpg",
+        "contentType": "image/webp",
+        "bytes": 49508,
+        "sha256": "98dfc98315e1dcb3e9c91a75890fb1fe02333eeb7a98814ad2c3245e3c79492e",
+        "score": 0,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/e-p-college-of-education-bimbilla/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.epcoebimbilla.edu.gh/",
+        "sourceUrl": "https://www.epcoebimbilla.edu.gh//public/frontend/images/about/principal.jpg",
+        "contentType": "image/webp",
+        "bytes": 12306,
+        "sha256": "20ef2d25cfc9100d70802ac7390f1bdf2aade162faa4fd77f56d0c6a98773221",
+        "score": 0,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:31:46.590Z"
+  },
+  "mampong-technical-college-of-education-ashanti-mampong": {
+    "slug": "mampong-technical-college-of-education-ashanti-mampong",
+    "shortName": "MAMTECH",
+    "name": "Mampong Technical College of Education, Ashanti Mampong",
+    "sourceUrl": "https://mtce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/news/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2024/09/IMG_8477-768x512.jpg",
+        "contentType": "image/webp",
+        "bytes": 58204,
+        "sha256": "a6b9d482dc1d8844ebe35d3e1487d53b7bce7c8c57baee8b7b41210921977c0d",
+        "score": 54,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/gallery/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2022/08/LECTURE-HALL1-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 126460,
+        "sha256": "02b9f30a8dbac0500c9e93c25d82ce0a6d56c2c085df3c740ecc41eaf70e9de1",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/gallery/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2022/08/STUDENTS-HALLS-1024x683.jpg",
+        "contentType": "image/webp",
+        "bytes": 72904,
+        "sha256": "352b50dfda5ee7d51474407397a18648b793e32e76cbf6e6905a309fd8937c1a",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/news/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2026/07/Grad-2026.jpg-768x762.jpeg",
+        "contentType": "image/webp",
+        "bytes": 35080,
+        "sha256": "da969bc94510e2050846a079dd026de44b33fdde31be219a5b544a641654c282",
+        "score": 42,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/gallery/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2022/08/ICT-LABORATORY1-1024x581.jpg",
+        "contentType": "image/webp",
+        "bytes": 81356,
+        "sha256": "6414913249734e593b260462bc9fc16e610ae5ed256205f426005ed52f97eb14",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/mampong-technical-college-of-education-ashanti-mampong/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://mtce.edu.gh/gallery/",
+        "sourceUrl": "https://mtce.edu.gh/wp-content/uploads/2022/08/LIBRARY3-1-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 119778,
+        "sha256": "1da25d91425b05e79ede44788c30bb7866199511d5945477c6317440019ea7f8",
+        "score": 30,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:31:46.608Z"
+  },
+  "nurses-and-midwives-training-college-tamale": {
+    "slug": "nurses-and-midwives-training-college-tamale",
+    "shortName": "NMTC Tamale",
+    "name": "Nurses and Midwives Training College, Tamale",
+    "sourceUrl": "https://www.nmtctamale.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T01:39:23.792Z"
+  },
+  "komenda-college-of-education-komenda": {
+    "slug": "komenda-college-of-education-komenda",
+    "shortName": "Komenda CoE",
+    "name": "Komenda College of Education, Komenda",
+    "sourceUrl": "https://www.komendacollege.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2026-10/16th_graduation_komenco_web.jpg",
+        "contentType": "image/webp",
+        "bytes": 38634,
+        "sha256": "709cf60f3cfdd8677d8097aeb8d964e64d6fcbb6a37e19c8aaa55e24ebbc9989",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2026-02/web.png",
+        "contentType": "image/webp",
+        "bytes": 109338,
+        "sha256": "06bff50209016ce1d3b0e0e36d139b141d9309276742b80dc2e3ec63d09da8e1",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/facilities",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2024-08/rf.jpg",
+        "contentType": "image/webp",
+        "bytes": 162830,
+        "sha256": "9705cdffbd75a7da5c53074f2224a5b5f6f95e081aac6cbf398f53bedea43ef7",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/facilities",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2024-08/lib.jpg",
+        "contentType": "image/webp",
+        "bytes": 132610,
+        "sha256": "fa493df51e374350291479f0473e55e668be3b9cdbcaa76258d8126a94085664",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/facilities",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2024-08/img_0065.jpg",
+        "contentType": "image/webp",
+        "bytes": 56296,
+        "sha256": "0f4dcb810a3eeefd7d5c45a9ef275162bd9483c62ba614fb3741b43dc43d9485",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/komenda-college-of-education-komenda/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.komendacollege.edu.gh/facilities",
+        "sourceUrl": "https://www.komendacollege.edu.gh/sites/default/files/2024-08/421267181_342593335349312_8914526981430015113_n_0.jpg",
+        "contentType": "image/webp",
+        "bytes": 105970,
+        "sha256": "e8c221279319eb0eeef690eb2514d08b5dc0c55fbc1b8588dea6375b06dedbe5",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:05:15.455Z"
+  },
+  "ada-college-of-education-ada": {
+    "slug": "ada-college-of-education-ada",
+    "shortName": "AdaCoE",
+    "name": "Ada College of Education, Ada",
+    "sourceUrl": "https://adacoe.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/d9b80eec1c1b1663543be178ba551fa2/adacoe-orientation.jpg-1-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 110366,
+        "sha256": "834edad924cacd228ad01bcf49b429663cc6a9e5db9a75edeae96847f4a2243f",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/7c15bbc9403716f4995efef10dc0bc9d/WELCOMING-REGISTRATION-ADACOE.jpg-1-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 99122,
+        "sha256": "5b31ae07b0dc140a105c85c4ae34b2783461466cf70e8e62f68f376bb1103cd9",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/f4d135d9bf9d150f8e8a4db9791753fd/DSC_0540-scaled.jpg",
+        "contentType": "image/webp",
+        "bytes": 154900,
+        "sha256": "829b42ce4a4322cf83b89710573954a5f7d5cbd5d43211ac3c16f9e3b88fbe07",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/70183380dd2c16a875db58186d1f7466/why-adacoe.jpg",
+        "contentType": "image/webp",
+        "bytes": 129764,
+        "sha256": "3dd91dbd5a2e0f142eab18403502bb1f82ea5822a9f9e7324ac84f6943945b0d",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/8cb378137f1fbbe97413d15a2eccafad/college-principal.jpg",
+        "contentType": "image/webp",
+        "bytes": 48668,
+        "sha256": "509b340f0cf062fd723909db94bbc7473aab48a261732fb042ddd9d6f8ab89e5",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/ada-college-of-education-ada/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://adacoe.edu.gh/",
+        "sourceUrl": "https://adacoe.edu.gh/wp-content/uploads/slider/cache/9e68ce22c12646aafa6de883c52200de/WhatsApp-Image-2025-07-19-at-11.17.10-PM.jpg",
+        "contentType": "image/webp",
+        "bytes": 99454,
+        "sha256": "897e751b0258abdd9300eb37cb838e7ff0f9417e5a8adab8951fcfbf7add15a9",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:05:15.119Z"
+  },
+  "akrokerri-college-of-education-akrokerri": {
+    "slug": "akrokerri-college-of-education-akrokerri",
+    "shortName": "ARCE",
+    "name": "Akrokerri College of Education, Akrokerri",
+    "sourceUrl": "https://www.arce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/about/b2.png",
+        "contentType": "image/webp",
+        "bytes": 260560,
+        "sha256": "8b2d2f7a97746b927e88965037cdebab06957005c057593db23cb52e5bd2db74",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/about/b3.png",
+        "contentType": "image/webp",
+        "bytes": 229054,
+        "sha256": "159507c12644a64870afc7549ca9dfa1afc6110cb604bc186f41e489851fae01",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/New%20folder/055A0007.jpg",
+        "contentType": "image/webp",
+        "bytes": 60074,
+        "sha256": "593538613885800e23b17754e568695ab5c8ae94eb63e6dc8d3665f25c3f915c",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/New%20folder/055A0008.jpg",
+        "contentType": "image/webp",
+        "bytes": 91172,
+        "sha256": "8ff40a89ae5b4fa575b2fdc9a5e86645dc7d4a12556d37a48c5bbac4ce59b279",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/New%20folder/055A0022.jpg",
+        "contentType": "image/webp",
+        "bytes": 109452,
+        "sha256": "0a23a3ade79f307127a3d68b714c6f04eaec055eae7c89e66550fff62345de2f",
+        "score": 24,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/akrokerri-college-of-education-akrokerri/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://www.arce.edu.gh/",
+        "sourceUrl": "https://www.arce.edu.gh/images/New%20folder/055A0045.jpg",
+        "contentType": "image/webp",
+        "bytes": 123372,
+        "sha256": "d3c3476259486a1292c032b221b351472a42efc0dcda99be3fbaa50424c03661",
+        "score": 24,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:05:15.437Z"
+  },
+  "wiawso-college-of-education": {
+    "slug": "wiawso-college-of-education",
+    "shortName": "Wiawso CoE",
+    "name": "Wiawso College of Education",
+    "sourceUrl": "https://wce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [],
+    "status": "no_verified_assets",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:12:01.985Z"
+  },
+  "presbyterian-college-of-education-akropong-akuapem": {
+    "slug": "presbyterian-college-of-education-akropong-akuapem",
+    "shortName": "PCE Akropong",
+    "name": "Presbyterian College of Education, Akropong-Akuapem",
+    "sourceUrl": "https://pce.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/facilities",
+        "sourceUrl": "https://pce.edu.gh/newimg/fb.webp",
+        "contentType": "image/webp",
+        "bytes": 10542,
+        "sha256": "c478b8c096ca8eba24fda4a98bc26a60bd6285140426b600bd04f520d306f034",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/facilities",
+        "sourceUrl": "https://pce.edu.gh/newimg/YT.png",
+        "contentType": "image/webp",
+        "bytes": 4630,
+        "sha256": "5081de8fa6f0f543421a5dfca31f589eec4b09082468a4e79224be03915a3793",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/facilities",
+        "sourceUrl": "https://pce.edu.gh/newimg/tick%20talk.jpg",
+        "contentType": "image/webp",
+        "bytes": 2732,
+        "sha256": "f14091052510a6ca30cb189b87672c1b107dd08cd69341ee388114a48de487ca",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/",
+        "sourceUrl": "https://pce.edu.gh/newimg/graduation_18.jpeg",
+        "contentType": "image/webp",
+        "bytes": 66704,
+        "sha256": "b413f96dec4afb49a7b06780d53c43820535f73b8bb097943afefa13a82a2b5f",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/campus",
+        "sourceUrl": "https://pce.edu.gh/newimg/campus_bus.jpg",
+        "contentType": "image/webp",
+        "bytes": 55050,
+        "sha256": "041f04d6cffe0b118bd8c8bd0d879ad5b82bcab53ca9e31edee8117db968a7f4",
+        "score": 12,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/presbyterian-college-of-education-akropong-akuapem/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://pce.edu.gh/campus",
+        "sourceUrl": "https://pce.edu.gh/newimg/campus_market.jpg",
+        "contentType": "image/webp",
+        "bytes": 14488,
+        "sha256": "d14b63032ecb293d08e599740ac3871c5e5bdd9341476fbbde2b6659fed63ac8",
+        "score": 12,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:12:01.867Z"
+  },
+  "st-francis-college-of-education-hohoe": {
+    "slug": "st-francis-college-of-education-hohoe",
+    "shortName": "FRANCO",
+    "name": "St. Francis College of Education, Hohoe",
+    "sourceUrl": "https://franco.edu.gh/",
+    "logo": null,
+    "campus": null,
+    "campusGallery": [
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-1.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/events/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/uploads/2026/08/Graduation-Jp-100x70.jpg",
+        "contentType": "image/webp",
+        "bytes": 2400,
+        "sha256": "783ecc409555ef1d16cb55aa67ffa0d0d29cfe270d7e01624990d70c3c0bbce8",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-2.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/events/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/uploads/2026/08/Graduation-Jp-480x290.jpg",
+        "contentType": "image/webp",
+        "bytes": 31050,
+        "sha256": "054ad35d42ba3b5e7169074d459c1b67aab993ba3fcabccb3c6ccce1729c5682",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-3.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/student-life/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/uploads/2026/07/Lecturers.jpg-540x330.jpeg",
+        "contentType": "image/webp",
+        "bytes": 19514,
+        "sha256": "8a38ce66862663a9dcf0a6bf7cf777acdca0384911084aa58821cf00e56b5311",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-4.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/student-life/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/uploads/2026/03/Matriculation_2026-scaled-540x330.jpg",
+        "contentType": "image/webp",
+        "bytes": 26280,
+        "sha256": "d6acc4ac5d9eaea60c95ef729674203f87467c4bf7351dcf73d82936c4056289",
+        "score": 30,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-5.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/events/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/uploads/2021/01/inter-college-480x290.webp",
+        "contentType": "image/webp",
+        "bytes": 18052,
+        "sha256": "dbbe112ccee4aa12ea08853e2a1c646cd71f3e4ada6cf7ab5410e0df3250ab5c",
+        "score": 18,
+        "selection": "official_site_gallery"
+      },
+      {
+        "path": "/assets/universities/st-francis-college-of-education-hohoe/campus-gallery-6.optimized.webp",
+        "sourcePage": "https://franco.edu.gh/student-life/",
+        "sourceUrl": "https://franco.edu.gh/wp-content/plugins/elementor/assets/images/placeholder.png",
+        "contentType": "image/webp",
+        "bytes": 3184,
+        "sha256": "fbdffd781d42539afb236abcdd8a8ccc8bcb3aa3ff7bb8de08cd75d1e38f1943",
+        "score": 18,
+        "selection": "official_site_gallery"
+      }
+    ],
+    "status": "verified_gallery_downloaded",
+    "reviewNote": null,
+    "checkedAt": "2026-11-14T02:12:01.967Z"
   }
 }
