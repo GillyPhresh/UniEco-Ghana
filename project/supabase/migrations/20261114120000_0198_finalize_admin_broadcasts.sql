@@ -12,7 +12,7 @@ AS $function$
 DECLARE
   event_count integer;
   delivered_count integer;
-  failed_count integer;
+  v_failed_count integer;
   incomplete_count integer;
 BEGIN
   IF p_broadcast_id IS NULL THEN
@@ -30,11 +30,11 @@ BEGIN
       WHERE event.status NOT IN ('delivered', 'failed')
          OR (event.status = 'failed' AND event.attempt_count < 3 AND event.next_attempt_at IS NOT NULL)
     )::integer
-  INTO event_count, delivered_count, failed_count, incomplete_count
+  INTO event_count, delivered_count, v_failed_count, incomplete_count
   FROM public.communication_events AS event
   WHERE event.metadata ->> 'broadcast_id' = p_broadcast_id::text;
 
-  IF incomplete_count > 0 THEN
+  IF event_count = 0 OR incomplete_count > 0 THEN
     RETURN;
   END IF;
 
@@ -42,7 +42,7 @@ BEGIN
   SET status = 'sent',
       sent_at = COALESCE(broadcast.sent_at, now()),
       sent_count = delivered_count,
-      failed_count = failed_count,
+      failed_count = v_failed_count,
       updated_at = now()
   WHERE broadcast.id = p_broadcast_id
     AND broadcast.status = 'sending';
