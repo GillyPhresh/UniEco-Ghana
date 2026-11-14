@@ -79,6 +79,11 @@ test('internal outbound Edge Functions bound and validate provider payloads befo
   assert.match(sms, /message\.length > 4000/);
   assert.match(whatsapp, /readBoundedJson\(req, 32 \* 1024\)/);
   assert.match(whatsapp, /templateKey\.length > 2000/);
+  for (const source of [email, whatsapp]) {
+    assert.match(source, /provider rejected the message/);
+    assert.doesNotMatch(source, /await response\.text\(\)/);
+    assert.doesNotMatch(source, /console\.error\([^\n]*,\s*err\)/);
+  }
   assert.match(dispatcher, /readBoundedJson\(req, 1024\)/);
   assert.match(studentDocument, /readBoundedJson\(request, 4 \* 1024\)/);
   assert.match(vendorDocument, /readBoundedJson\(request, 4 \* 1024\)/);

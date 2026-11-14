@@ -112,10 +112,9 @@ Deno.serve(async (req: Request) => {
         const data = await response.json();
         providerReference = data.id || null;
       } else {
-        const errText = await response.text();
         return new Response(JSON.stringify({
           success: false,
-          error: `Resend error: ${errText}`,
+          error: "Email provider rejected the message.",
           provider,
         }), {
           status: 502,
@@ -149,10 +148,9 @@ Deno.serve(async (req: Request) => {
         const data = await response.json();
         providerReference = data.messageId || null;
       } else {
-        const errText = await response.text();
         return new Response(JSON.stringify({
           success: false,
-          error: `Brevo error: ${errText}`,
+          error: "Email provider rejected the message.",
           provider,
         }), {
           status: 502,
@@ -184,10 +182,9 @@ Deno.serve(async (req: Request) => {
       if (response.ok) {
         providerReference = response.headers.get("x-message-id") || null;
       } else {
-        const errText = await response.text();
         return new Response(JSON.stringify({
           success: false,
-          error: `SendGrid error: ${errText}`,
+          error: "Email provider rejected the message.",
           provider,
         }), {
           status: 502,
@@ -233,7 +230,8 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const boundedError = boundedBodyErrorResponse(err, corsHeaders);
     if (boundedError) return boundedError;
-    console.error("Email send error:", err);
+    // Provider and parser errors can contain recipient data or response bodies.
+    console.error("Email send failed");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

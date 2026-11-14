@@ -69,10 +69,9 @@ Deno.serve(async (req: Request) => {
     );
 
     if (!response.ok) {
-      const errText = await response.text();
       return new Response(JSON.stringify({
         success: false,
-        error: `WhatsApp API error: ${errText}`,
+        error: "WhatsApp provider rejected the message.",
         provider,
       }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -100,7 +99,8 @@ Deno.serve(async (req: Request) => {
   } catch (err) {
     const boundedError = boundedBodyErrorResponse(err, corsHeaders);
     if (boundedError) return boundedError;
-    console.error("WhatsApp send error:", err);
+    // Avoid logging provider response bodies or recipient data.
+    console.error("WhatsApp send failed");
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
