@@ -79,7 +79,7 @@ test('branded alert image can only render a public approved feed item', () => {
   assert.match(alertCard, /campus_feed_public_items/);
   assert.match(alertCard, /ImageResponse/);
   assert.match(alertCard, /unieco-main-logo\.png/);
-  assert.match(alertCard, /attachment; filename=/);
+  assert.match(alertCard, /'Content-Disposition': 'inline; filename=/);
 });
 
 test('scheduled worker uses secrets only and invokes the bounded Python collector', () => {

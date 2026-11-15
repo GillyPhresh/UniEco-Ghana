@@ -20,7 +20,7 @@ test('UniEco AI route is super-admin gated and never accepts arbitrary source UR
   assert.match(sources, /UNIECO_AI_TRUSTED_SOURCES/);
   assert.match(sources, /url\.protocol === 'https:'/);
   assert.match(sources, /universities\.flatMap/);
-  assert.match(sources, /slice\(0, 150\)/);
+  assert.match(sources, /slice\(0, 300\)/);
   assert.match(sources, /redirect: 'manual'/);
   assert.match(route, /schoolCoverage/);
   assert.match(route, /action === 'test'/);
