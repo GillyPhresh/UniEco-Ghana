@@ -24,10 +24,15 @@ test('push enable prepares iPhone requirements before the tap and enables push a
     read('app/dashboard/notifications/preferences/page.tsx'),
   ]);
   const clickHandler = card.slice(card.indexOf('const enablePush = async () =>'), card.indexOf('const sendTestPush = async () =>'));
+  const autoSync = card.slice(card.indexOf('useEffect(() =>'), card.indexOf('const enablePush = async () =>'));
   assert.match(card, /Promise\.all\(\[getPushRegistration\(\), getPushConfig\(\)\]\)/);
+  assert.match(autoSync, /if \(!existingSubscription && Notification\.permission !== 'granted'\) return/);
+  assert.doesNotMatch(autoSync, /Notification\.requestPermission\(\)/);
+  assert.match(autoSync, /registration\.pushManager\.subscribe\(/);
+  assert.match(card, /async function savePushSubscription\(subscription: PushSubscription, enableAllCategories: boolean\)/);
   assert.ok(clickHandler.indexOf('Notification.requestPermission()') < clickHandler.indexOf('registration.pushManager.subscribe('));
-  assert.match(clickHandler, /NOTIFICATION_CATEGORIES_FULL\.map/);
-  assert.match(clickHandler, /push: true/);
+  assert.match(card, /NOTIFICATION_CATEGORIES_FULL\.map/);
+  assert.match(card, /push: true/);
   assert.match(card, /iOS or iPadOS to version 16\.4 or later/);
   assert.match(card, /Share → Add to Home Screen/);
   assert.match(preferencesPage, /Push/);

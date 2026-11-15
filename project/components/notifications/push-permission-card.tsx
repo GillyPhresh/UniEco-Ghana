@@ -114,6 +114,33 @@ async function getPushConfig(): Promise<{ publicKey: string }> {
   return result as { publicKey: string };
 }
 
+async function savePushSubscription(subscription: PushSubscription, enableAllCategories: boolean) {
+  const subscriptionJson = subscription.toJSON();
+  const endpoint = subscriptionJson.endpoint;
+  const p256dh = subscriptionJson.keys?.p256dh;
+  const auth = subscriptionJson.keys?.auth;
+  if (!endpoint || !p256dh || !auth) throw new Error('The browser returned an incomplete push subscription.');
+
+  const result = await subscribeToPush({
+    endpoint,
+    keys: { p256dh, auth },
+    expirationTime: subscriptionJson.expirationTime,
+  });
+  if (result.error) throw new Error(result.error);
+
+  if (enableAllCategories) {
+    const currentPreferences = await getNotificationPreferences();
+    const allPushPreferences = Object.fromEntries(NOTIFICATION_CATEGORIES_FULL.map((category) => [
+      category.key,
+      { ...(currentPreferences?.[category.key] || category.defaultPrefs), push: true },
+    ]));
+    const preferenceResult = await updateNotificationPreferences(allPushPreferences);
+    if (preferenceResult.error) {
+      throw new Error('This device is connected, but notification types could not be enabled. Save your notification preferences and try again.');
+    }
+  }
+}
+
 export function PushPermissionCard({ onboarding = false }: { onboarding?: boolean }) {
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
@@ -134,21 +161,20 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
       .then(async ([registration, config]) => {
         preparedDevice.current = { registration, publicKey: config.publicKey };
         if (!cancelled) setPreparing(false);
-        const subscription = await registration.pushManager.getSubscription();
-        if (!subscription) return;
-        const subscriptionJson = subscription.toJSON();
-        const endpoint = subscriptionJson.endpoint;
-        const p256dh = subscriptionJson.keys?.p256dh;
-        const auth = subscriptionJson.keys?.auth;
-        if (!endpoint || !p256dh || !auth) return;
-        const result = await subscribeToPush({
-          endpoint,
-          keys: { p256dh, auth },
-          expirationTime: subscriptionJson.expirationTime,
+        const existingSubscription = await registration.pushManager.getSubscription();
+        // Permission is scoped to this browser/device. If the user already
+        // granted it, finish registering this device without asking again.
+        // Never trigger a first-time permission prompt from page load.
+        if (!existingSubscription && Notification.permission !== 'granted') return;
+        if (!cancelled) setBusy(true);
+        const subscription = existingSubscription || await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: decodeBase64Url(config.publicKey),
         });
+        await savePushSubscription(subscription, !existingSubscription);
         if (!cancelled) {
-          if (result.error) setSyncError(result.error);
-          else setEnabled(true);
+          setEnabled(true);
+          setSyncError(null);
         }
       })
       .catch(() => {
@@ -156,6 +182,9 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
           setPreparing(false);
           setSyncError('Could not prepare this device. Check your connection and tap the button to try again.');
         }
+      })
+      .finally(() => {
+        if (!cancelled) setBusy(false);
       });
     return () => {
       cancelled = true;
@@ -197,23 +226,7 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
         userVisibleOnly: true,
         applicationServerKey: decodeBase64Url(prepared.publicKey),
       });
-      const subscriptionJson = subscription.toJSON();
-      const endpoint = subscriptionJson.endpoint;
-      const p256dh = subscriptionJson.keys?.p256dh;
-      const auth = subscriptionJson.keys?.auth;
-      if (!endpoint || !p256dh || !auth) throw new Error('The browser returned an incomplete push subscription.');
-
-      const result = await subscribeToPush({ endpoint, keys: { p256dh, auth }, expirationTime: subscriptionJson.expirationTime });
-      if (result.error) throw new Error(result.error);
-      const currentPreferences = await getNotificationPreferences();
-      const allPushPreferences = Object.fromEntries(NOTIFICATION_CATEGORIES_FULL.map((category) => [
-        category.key,
-        { ...(currentPreferences?.[category.key] || category.defaultPrefs), push: true },
-      ]));
-      const preferenceResult = await updateNotificationPreferences(allPushPreferences);
-      if (preferenceResult.error) {
-        throw new Error('This device is connected, but notification types could not be enabled. Save your notification preferences and try again.');
-      }
+      await savePushSubscription(subscription, true);
       setEnabled(true);
       toast({ title: 'Push notifications connected', description: 'This device is enabled for every message category. You can fine-tune types below.' });
     } catch (error) {
@@ -254,8 +267,8 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
             <Bell className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <p className="font-semibold">Device notifications</p>
-            <p className="mt-1 text-sm text-muted-foreground">{onboarding ? 'Receive messages, order updates, and campus alerts even when the site is closed.' : 'Enable push for every message category on this device, then fine-tune individual types below.'}</p>
+            <p className="font-semibold">{onboarding ? 'Get important UniEco updates on this device' : 'Device notifications'}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{onboarding ? 'Get messages, order updates, and campus alerts even when you are away from UniEco. You stay in control and can change these preferences any time.' : 'Enable push for every message category on this device, then fine-tune individual types below.'}</p>
             {support && <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />{support.message}</p>}
             {support?.installRequired && <p className="mt-2 text-xs text-muted-foreground">On iPhone: open UniEco in Safari, tap Share → Add to Home Screen, open the new UniEco icon, then enable notifications here.</p>}
             {syncError && <p className="mt-2 text-xs font-medium text-destructive">{syncError}</p>}
@@ -264,7 +277,7 @@ export function PushPermissionCard({ onboarding = false }: { onboarding?: boolea
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:min-w-44">
           <Button type="button" size="sm" onClick={enablePush} disabled={busy || preparing || !support?.supported} className="w-full">
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : enabled ? <RefreshCw className="mr-2 h-4 w-4" /> : <Smartphone className="mr-2 h-4 w-4" />}
-            {preparing ? 'Preparing this device…' : enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : onboarding ? 'Turn on all notifications' : 'Enable all push types'}
+            {preparing ? 'Preparing this device…' : enabled ? 'Refresh connection' : support?.installRequired ? 'Install first' : onboarding ? 'Enable notifications on this device' : 'Enable all push types'}
           </Button>
           {enabled && <Button type="button" size="sm" variant="outline" onClick={sendTestPush} disabled={busy} className="w-full"><Send className="mr-2 h-4 w-4" /> Send test notification</Button>}
         </div>
