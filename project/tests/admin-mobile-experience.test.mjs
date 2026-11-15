@@ -13,12 +13,32 @@ test('admin shell provides a mobile-first navigation and connectivity contract',
   const source = read('components/admin/admin-layout.tsx');
   assert.match(source, /navigator\.onLine/);
   assert.match(source, /aria-label="Mobile admin shortcuts"/);
-  assert.match(source, /pb-24/);
+  assert.match(source, /pb-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
   assert.match(source, /safe-area-inset-bottom/);
   assert.match(source, /aria-current=\{isActive \? 'page' : undefined\}/);
   assert.match(source, /aria-label="Refresh management page"/);
   assert.match(source, /window\.location\.reload\(\)/);
   assert.match(source, /RefreshCw className="h-4 w-4" \/> Refresh/);
+  assert.match(source, /Find a tool/);
+  assert.match(source, /aria-expanded=\{isExpanded\}/);
+  assert.match(source, /pb-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(source, /min-h-\[100dvh\]/);
+});
+
+test('management destinations are organized into compact, task-based menu groups', () => {
+  const navigation = read('lib/types/admin.ts');
+  for (const group of [
+    'People & Campuses',
+    'Marketplace',
+    'Finance & Growth',
+    'Review & Safety',
+    'Communications & Content',
+    'Governance',
+  ]) {
+    assert.ok(navigation.includes(`label: '${group}'`), `Missing ${group} group`);
+  }
+  assert.match(navigation, /href: '\/admin\/reviews'/);
+  assert.match(navigation, /href: '\/admin\/trust-safety'/);
 });
 
 test('high-traffic admin records have a mobile card view and a desktop table view', () => {

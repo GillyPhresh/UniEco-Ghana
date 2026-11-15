@@ -108,6 +108,8 @@ export function AdminRouteGuard({ children }: { children: React.ReactNode }) {
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [navigationSearch, setNavigationSearch] = useState('');
+  const [expandedNavGroups, setExpandedNavGroups] = useState<Record<string, boolean>>({ Overview: true });
   const [isOnline, setIsOnline] = useState(true);
   const { user } = useAuth();
   const [moderatorPermissions, setModeratorPermissions] = useState<Set<string>>(new Set());
@@ -177,6 +179,18 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   const activeItem = navGroups.flatMap(group => group.items).find(item => pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href)));
   const activeGroup = navGroups.find(group => group.items.some(item => item.href === activeItem?.href));
+  const activeGroupLabel = activeGroup?.label;
+  useEffect(() => {
+    if (!activeGroupLabel) return;
+    setExpandedNavGroups(current => ({ ...current, [activeGroupLabel]: true }));
+  }, [activeGroupLabel]);
+
+  const filteredNavGroups = navGroups
+    .map(group => ({
+      ...group,
+      items: group.items.filter(item => item.label.toLowerCase().includes(navigationSearch.trim().toLowerCase())),
+    }))
+    .filter(group => group.items.length > 0);
   const availablePaths = new Set<string>(navGroups.flatMap(group => group.items.map(item => item.href)));
   const reviewHref = ['/admin/verification/students', '/admin/trust-safety', '/admin/students', '/admin/orders']
     .find(href => availablePaths.has(href)) || '/admin';
@@ -186,7 +200,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     ...(availablePaths.has('/admin/search') ? [{ href: '/admin/search', label: 'Search', icon: Search }] : []),
   ];
 
-  const sidebar = (
+  const sidebar = (instance: 'desktop' | 'mobile') => (
       <div className="flex h-full flex-col bg-[#0b1220] text-white">
       <div className="relative flex h-[5.25rem] items-center gap-3 border-b border-white/10 px-5">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 ring-1 ring-primary/20">
@@ -198,35 +212,70 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
 
-      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-7 overflow-y-auto px-3 py-5">
-        {navGroups.map(group => (
-          <div key={group.label}>
-            <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/35">{group.label}</p>
-            <div className="space-y-0.5">
-              {group.items.map(item => {
-                const Icon = ICON_MAP[item.icon] || Shield;
-                const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileNavOpen(false)}
-                    aria-current={isActive ? 'page' : undefined}
-                    className={cn(
-                      'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
-                      isActive
-                        ? 'bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(16,185,129,0.18)]'
-                        : 'text-white/65 hover:bg-white/10 hover:text-white'
-                    )}
-                  >
-                    <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-105" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+      <div className="border-b border-white/10 px-3 py-3">
+        <label className="mb-1.5 block px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45" htmlFor={`${instance}-admin-navigation-search`}>Find a tool</label>
+        <div className="flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-3 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20">
+          <Search className="h-4 w-4 shrink-0 text-white/45" aria-hidden="true" />
+          <input
+            id={`${instance}-admin-navigation-search`}
+            type="search"
+            value={navigationSearch}
+            onChange={event => setNavigationSearch(event.target.value)}
+            placeholder="Search menu"
+            className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+            autoComplete="off"
+          />
+        </div>
+      </div>
+
+      <nav aria-label="Admin navigation" className="scrollbar-thin flex-1 space-y-2 overflow-y-auto px-3 py-3">
+        {filteredNavGroups.length === 0 && (
+          <p className="px-3 py-5 text-sm text-white/55">No tools match “{navigationSearch}”.</p>
+        )}
+        {filteredNavGroups.map(group => {
+          const groupId = `${instance}-admin-nav-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
+          const isExpanded = expandedNavGroups[group.label] ?? Boolean(navigationSearch.trim());
+          return (
+            <div key={group.label}>
+              <button
+                type="button"
+                className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg px-3 text-left text-[11px] font-bold uppercase tracking-[0.12em] text-white/60 hover:bg-white/[0.06] hover:text-white"
+                aria-expanded={isExpanded}
+                aria-controls={groupId}
+                onClick={() => setExpandedNavGroups(current => ({ ...current, [group.label]: !isExpanded }))}
+              >
+                <span className="min-w-0 truncate">{group.label}</span>
+                <span className="flex shrink-0 items-center gap-2 text-[10px] font-medium tracking-normal text-white/35">
+                  {group.items.length}
+                  <ChevronRight className={cn('h-4 w-4 transition-transform', isExpanded && 'rotate-90')} aria-hidden="true" />
+                </span>
+              </button>
+              {isExpanded && <div id={groupId} className="mt-1 space-y-0.5">
+                {group.items.map(item => {
+                  const Icon = ICON_MAP[item.icon] || Shield;
+                  const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href));
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => { setMobileNavOpen(false); setNavigationSearch(''); }}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={cn(
+                        'group flex min-h-11 items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-[0_8px_20px_rgba(16,185,129,0.18)]'
+                          : 'text-white/65 hover:bg-white/10 hover:text-white'
+                      )}
+                    >
+                      <Icon className="h-4 w-4 shrink-0 transition-transform group-hover:scale-105" />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="border-t border-white/10 bg-white/[0.03] p-3">
@@ -241,15 +290,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#eef1f5] lg:h-screen lg:overflow-hidden">
+      <div className="flex min-h-[100dvh] bg-[#eef1f5] lg:h-screen lg:overflow-hidden">
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-[#0b1220] xl:w-[17rem] lg:block">
-        {sidebar}
+        {sidebar('desktop')}
       </aside>
 
       {/* Mobile sidebar */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-        <div className="flex min-h-screen flex-1 flex-col lg:hidden">
+        <div className="flex min-h-[100dvh] flex-1 flex-col lg:hidden">
           {/* Top bar */}
           <header className="sticky top-0 z-30 flex h-[4.25rem] items-center gap-3 border-b border-border bg-white/95 px-3 shadow-[0_1px_0_rgba(15,23,42,0.03)] backdrop-blur sm:px-4">
             <SheetTrigger asChild>
@@ -280,11 +329,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           )}
 
           {/* Main content */}
-          <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-24">
+          <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
             {children}
           </main>
 
-          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-6px_20px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="Mobile admin shortcuts">
+          <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-6px_20px_rgba(15,23,42,0.08)] backdrop-blur" aria-label="Mobile admin shortcuts">
             <div className="mx-auto grid max-w-lg grid-cols-4 gap-1 rounded-2xl border border-border/80 bg-white/95 p-1 shadow-[0_-8px_28px_rgba(15,23,42,0.08)]">
               {mobileQuickLinks.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href || (href !== '/admin' && pathname.startsWith(href));
@@ -310,7 +359,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
         <SheetContent side="left" className="w-[88vw] max-w-[22rem] border-white/10 bg-[#0b1220] p-0 text-white">
-          {sidebar}
+          {sidebar('mobile')}
         </SheetContent>
       </Sheet>
 
