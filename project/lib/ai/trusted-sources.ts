@@ -108,7 +108,9 @@ export function getTrustedUniEcoAiSources(universities: UniEcoAiUniversity[] = [
   for (const source of [...DEFAULT_UNIECO_AI_SOURCES, ...additional.slice(0, 60), ...universitySources]) {
     if (isSafeSource(source) && !unique.has(source.id)) unique.set(source.id, source);
   }
-  return Array.from(unique.values()).slice(0, 150);
+  // Include every school in the institution directory (currently 207), plus
+  // national sources, while keeping the scan list bounded.
+  return Array.from(unique.values()).slice(0, 300);
 }
 
 export function safeOfficialWebsite(value: string | null | undefined): string | null {

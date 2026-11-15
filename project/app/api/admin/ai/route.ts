@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { askUniEcoAi, createUniEcoAiDraft, type UniEcoAiChatMessage } from '@/lib/ai/assistant';
-import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
+import { fetchTrustedUniEcoAiUpdates, getTrustedUniEcoAiSources, safeOfficialWebsite, type UniEcoAiUniversity } from '@/lib/ai/trusted-sources';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 
 export const dynamic = 'force-dynamic';
@@ -33,15 +33,16 @@ export async function GET() {
     .select('name, slug, website_url', { count: 'exact' })
     .eq('is_enabled', true)
     .order('name')
-    .limit(200);
+    .limit(500);
   const directory = (universities || []) as UniEcoAiUniversity[];
   const sources = getTrustedUniEcoAiSources(directory);
-  const covered = new Set(sources.filter((source) => source.id.startsWith('university-')).map((source) => source.id));
+  const covered = new Set(directory.filter((school) => safeOfficialWebsite(school.website_url)).map((school) => school.slug));
   return privateJson({
     mode: 'provider-free',
     providerFree: true,
     capabilities: ['trusted_source_scan', 'admin_chat', 'draft_broadcast', 'queue_public_update_review', 'system_snapshot'],
     sources,
+    universities: directory.map((school) => ({ name: school.name, slug: school.slug, websiteConfigured: Boolean(safeOfficialWebsite(school.website_url)) })),
     schoolCoverage: {
       total: count ?? directory.length,
       withOfficialWebsite: covered.size,
@@ -73,10 +74,17 @@ export async function POST(request: Request) {
       .select('name, slug, website_url')
       .eq('is_enabled', true)
       .order('name')
-      .limit(200);
+      .limit(500);
     if (directoryError) return privateJson({ error: 'Unable to load the trusted university directory for this scan.' }, 503);
     const sources = getTrustedUniEcoAiSources((universities || []) as UniEcoAiUniversity[]);
     if (sourceId && !sources.some((source) => source.id === sourceId)) {
+      if (sourceId.startsWith('university-')) {
+        const slug = sourceId.slice('university-'.length);
+        const school = (universities || []).find((entry) => entry.slug === slug);
+        if (school && !safeOfficialWebsite(school.website_url)) {
+          return privateJson({ error: `An official HTTPS website is not configured for ${school.name}. Add and verify its official website before scanning.` }, 409);
+        }
+      }
       return privateJson({ error: 'That source is not in the trusted source list. Refresh and try again.' }, 400);
     }
     const updates = await fetchTrustedUniEcoAiUpdates(sourceId, sources);
