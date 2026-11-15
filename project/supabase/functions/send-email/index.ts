@@ -274,6 +274,10 @@ function renderEmail(input: {
   const meta = input.metadata;
   const name = escapeHtml(meta.name || 'there');
   const template = typeof meta.template === 'string' ? meta.template : input.eventType;
+  const conversationId = typeof meta.conversation_id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(meta.conversation_id)
+    ? meta.conversation_id
+    : null;
+  const messagePath = conversationId ? `/dashboard/messages?conversation=${conversationId}` : '/dashboard/messages';
   const hintedRole = typeof meta.action_url === 'string'
     ? (() => { try { return new URL(meta.action_url, PUBLIC_ORIGIN).searchParams.get('role'); } catch { return null; } })()
     : null;
@@ -281,7 +285,7 @@ function renderEmail(input: {
   const registrationCheckoutPath = `/payments/registration-checkout?role=${registrationRole}`;
   const actionUrl = normalizePublicActionUrl(
     meta.action_url,
-    template === 'registration_payment_required' ? registrationCheckoutPath : '/dashboard/notifications',
+    template === 'registration_payment_required' ? registrationCheckoutPath : template === 'new_message' ? messagePath : '/dashboard/notifications',
   );
   const amount = meta.amount !== undefined ? `${escapeHtml(meta.amount)} ${escapeHtml(meta.currency || 'GHS')}` : '';
   const paymentReference = typeof meta.payment_reference === 'string' ? meta.payment_reference : '';
@@ -298,6 +302,11 @@ function renderEmail(input: {
     heading = 'Welcome to UniEco Ghana';
     copy = `<p>Hi ${name},</p><p>Congratulations! Your UniEco Ghana account has been created successfully.</p><p>Complete your registration to discover campus businesses, opportunities, events, and services built for Ghana’s university community.</p>`;
     button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Continue registration</a>`;
+  } else if (template === 'new_message') {
+    heading = 'You have a new message';
+    copy = `<p>Hi ${name},</p><p>You have a new private message waiting for you on UniEco Ghana. Sign in to view and reply securely.</p>`;
+    button = `<a href="${escapeHtml(actionUrl)}" style="display:inline-block;background:#10b981;color:#fff;padding:13px 22px;border-radius:9px;text-decoration:none;font-weight:700">View message</a>`;
+    plainText = `You have a new message on UniEco Ghana.\n\nSign in to view and reply securely: ${actionUrl}`;
   } else if (template === 'registration_payment_required') {
     const registrationType = meta.registration_intent === 'external_vendor' ? 'business' : 'student';
     const accessCopy = registrationType === 'business'

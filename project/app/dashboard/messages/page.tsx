@@ -114,6 +114,7 @@ function MessagesContent() {
   const searchParams = useSearchParams();
   const targetUserId = searchParams.get('to');
   const orderParam = searchParams.get('order');
+  const conversationParam = searchParams.get('conversation');
   const { toast } = useToast();
 
   const [conversations, setConversations] = useState<ConversationWithDetails[]>([]);
@@ -380,7 +381,7 @@ function MessagesContent() {
     typingTimeoutRef.current = setTimeout(() => sendTypingEvent(false), 3000);
   };
 
-  const openConversation = async (conv: ConversationWithDetails) => {
+  const openConversation = useCallback(async (conv: ConversationWithDetails) => {
     const requestId = ++conversationRequestRef.current;
     setActiveConvId(conv.id);
     setActiveOtherUser(conv.other_participant);
@@ -401,7 +402,22 @@ function MessagesContent() {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  };
+  }, []);
+
+  // Open notification links only when the conversation appears in the
+  // signed-in user's membership-scoped inbox. A URL ID never grants access.
+  useEffect(() => {
+    if (!conversationParam || !conversations.length || activeConvId === conversationParam) return;
+    const conversation = conversations.find((item) => item.id === conversationParam);
+    if (conversation) {
+      void openConversation(conversation);
+      return;
+    }
+    if (!loading) {
+      toast({ title: 'Message unavailable', description: 'This conversation is unavailable or you no longer have access to it.' });
+      router.replace('/dashboard/messages');
+    }
+  }, [conversationParam, conversations, activeConvId, loading, openConversation, router, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

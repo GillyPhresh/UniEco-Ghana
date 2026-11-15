@@ -171,8 +171,8 @@ Deno.serve(async (req: Request) => {
 
       try {
         const pushPayload = JSON.stringify({
-          title,
-          body,
+          title: eventType === "new_message" ? "New message" : title,
+          body: eventType === "new_message" ? "You have a new message. Tap to view it in UniEco." : body,
           url: normalizePushActionUrl(actionUrl, eventType),
           icon: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           badge: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
@@ -245,7 +245,7 @@ const TRUSTED_PUBLIC_HOSTS = new Set(["www.uniecoghana.com", "uniecoghana.com"])
 function normalizePushActionUrl(value: unknown, eventType?: string): string {
   const fallback = eventType === "registration_payment_required"
     ? "/payments/registration-checkout?role=student"
-    : "/dashboard/notifications";
+    : eventType === "new_message" ? "/dashboard/messages" : "/dashboard/notifications";
   if (typeof value !== "string" || !value.trim()) return fallback;
 
   try {
