@@ -407,16 +407,14 @@ function MessagesContent() {
   // Open notification links only when the conversation appears in the
   // signed-in user's membership-scoped inbox. A URL ID never grants access.
   useEffect(() => {
-    if (!conversationParam || !conversations.length || activeConvId === conversationParam) return;
+    if (!conversationParam || loading || activeConvId === conversationParam) return;
     const conversation = conversations.find((item) => item.id === conversationParam);
     if (conversation) {
       void openConversation(conversation);
       return;
     }
-    if (!loading) {
-      toast({ title: 'Message unavailable', description: 'This conversation is unavailable or you no longer have access to it.' });
-      router.replace('/dashboard/messages');
-    }
+    toast({ title: 'Message unavailable', description: 'This conversation is unavailable or you no longer have access to it.' });
+    router.replace('/dashboard/messages');
   }, [conversationParam, conversations, activeConvId, loading, openConversation, router, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
