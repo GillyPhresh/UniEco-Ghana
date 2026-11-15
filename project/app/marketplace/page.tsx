@@ -20,7 +20,7 @@ import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import { normalizeSearchTerm } from '@/lib/utils/search';
 import {
   Search, TrendingUp, Tag, Clock, Wrench, ArrowRight,
-  Sparkles, ShoppingBag, Star,
+  Sparkles, ShoppingBag, Star, Package,
 } from 'lucide-react';
 
 type ProductWithVendor = Product & { vendor?: { business_name: string; business_slug: string; logo_url?: string | null } };
@@ -118,15 +118,25 @@ export default function MarketplacePage() {
       <main className="container max-w-7xl px-4 py-3 sm:px-6 sm:py-8">
         {/* Hero */}
         <div className="mb-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:mb-8 sm:p-8">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="h-6 w-6 text-primary" />
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-              Marketplace
-            </h1>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShoppingBag className="h-6 w-6 text-primary" />
+                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+                  Marketplace
+                </h1>
+              </div>
+              <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2 sm:text-base">
+                Discover products and services from vendors across campus. From food to fashion, repairs to tutoring — find everything you need.
+              </p>
+            </div>
+            <Button asChild variant="outline" className="min-h-11 shrink-0 self-start bg-background/70">
+              <Link href="/orders">
+                <Package className="mr-2 h-4 w-4" />
+                My orders
+              </Link>
+            </Button>
           </div>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2 sm:text-base">
-            Discover products and services from vendors across campus. From food to fashion, repairs to tutoring — find everything you need.
-          </p>
 
           {/* Search bar */}
           <div className="relative mt-4 max-w-2xl">

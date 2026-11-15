@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { CalendarDays, Home, MapPinned, ShoppingCart, Package, User } from 'lucide-react';
+import { Home, MapPinned, ShoppingCart, Newspaper, User } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cn } from '@/lib/utils';
 
@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
   { href: '/campus-mate', label: 'Mate', icon: MapPinned },
-  { href: '/orders', label: 'Orders', icon: Package },
+  { href: '/updates', label: 'Updates', icon: Newspaper },
   { href: '/dashboard', label: 'Account', icon: User },
 ];
 
@@ -41,7 +41,7 @@ export function MobileBottomNav() {
         { href: '/', label: 'Home', icon: Home },
         { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
         { href: '/campus-mate', label: 'Mate', icon: MapPinned },
-        { href: '/events', label: 'Events', icon: CalendarDays },
+        { href: '/updates', label: 'Updates', icon: Newspaper },
         { href: '/signin', label: 'Sign in', icon: User },
       ];
 
@@ -73,7 +73,7 @@ export function MobileBottomNav() {
               <span className={cn('flex h-9 w-10 items-center justify-center transition-colors', isActive ? 'text-foreground' : 'text-muted-foreground')}>
                 <Icon className="h-[23px] w-[23px]" strokeWidth={isActive ? 2.6 : 1.8} fill={isActive && item.href === '/' ? 'currentColor' : 'none'} />
               </span>
-              <span className="sr-only">{item.label}</span>
+              <span className="text-[10px] font-medium leading-none">{item.label}</span>
             </Link>
           );
         })}
