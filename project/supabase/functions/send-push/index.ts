@@ -173,7 +173,7 @@ Deno.serve(async (req: Request) => {
         const pushPayload = JSON.stringify({
           title,
           body,
-          url: normalizePushActionUrl(actionUrl),
+          url: normalizePushActionUrl(actionUrl, eventType),
           icon: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           badge: "/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png",
           tag: eventId || eventType || "notification",
@@ -242,13 +242,21 @@ function describePushFailure(statusCode?: number): string {
 const PUBLIC_ORIGIN = "https://www.uniecoghana.com";
 const TRUSTED_PUBLIC_HOSTS = new Set(["www.uniecoghana.com", "uniecoghana.com"]);
 
-function normalizePushActionUrl(value: unknown): string {
-  const fallback = "/dashboard/notifications";
+function normalizePushActionUrl(value: unknown, eventType?: string): string {
+  const fallback = eventType === "registration_payment_required"
+    ? "/payments/registration-checkout?role=student"
+    : "/dashboard/notifications";
   if (typeof value !== "string" || !value.trim()) return fallback;
 
   try {
     const parsed = new URL(value.trim(), PUBLIC_ORIGIN);
-    if (parsed.protocol !== "https:" || !TRUSTED_PUBLIC_HOSTS.has(parsed.hostname)) return fallback;
+    if (parsed.protocol !== "https:" || !TRUSTED_PUBLIC_HOSTS.has(parsed.hostname)) {
+      if (eventType === "registration_payment_required") {
+        const role = parsed.searchParams.get("role") === "vendor" ? "vendor" : "student";
+        return `/payments/registration-checkout?role=${role}`;
+      }
+      return fallback;
+    }
     return `${parsed.pathname || "/"}${parsed.search}${parsed.hash}`;
   } catch {
     return fallback;

@@ -8,7 +8,8 @@ const read = (relativePath) => fs.readFileSync(path.join(projectRoot, relativePa
 
 test('email destinations are canonical, same-origin, and safe for email clients', () => {
   const source = read('supabase/functions/send-email/index.ts');
-  assert.match(source, /const actionUrl = normalizePublicActionUrl\(meta\.action_url\)/);
+  assert.match(source, /template === 'registration_payment_required' \? registrationCheckoutPath/);
+  assert.match(source, /payments\/registration-checkout\?role=\$\{registrationRole\}/);
   assert.match(source, /const PUBLIC_ORIGIN = 'https:\/\/www\.uniecoghana\.com'/);
   assert.match(source, /TRUSTED_PUBLIC_HOSTS/);
   assert.match(source, /new URL\(value\.trim\(\), PUBLIC_ORIGIN\)/);
@@ -20,7 +21,9 @@ test('push and in-app clicks share the same trusted destination contract', () =>
   const push = read('supabase/functions/send-push/index.ts');
   const page = read('app/dashboard/notifications/page.tsx');
   const serviceWorker = read('public/sw.js');
-  assert.match(push, /url: normalizePushActionUrl\(actionUrl\)/);
+  assert.match(push, /url: normalizePushActionUrl\(actionUrl, eventType\)/);
+  assert.match(push, /eventType === "registration_payment_required"/);
+  assert.match(push, /payments\/registration-checkout\?role=\$\{role\}/);
   assert.match(push, /TRUSTED_PUBLIC_HOSTS/);
   assert.match(page, /normalizeNotificationActionUrl\(n\.action_url \|\| n\.link\)/);
   assert.match(serviceWorker, /function resolveNotificationUrl\(rawUrl\)/);

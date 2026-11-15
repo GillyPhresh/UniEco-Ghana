@@ -252,8 +252,8 @@ const PUBLIC_ORIGIN = 'https://www.uniecoghana.com';
 const TRUSTED_PUBLIC_HOSTS = new Set(['www.uniecoghana.com', 'uniecoghana.com']);
 const EMAIL_LOGO_URL = `${PUBLIC_ORIGIN}/UniEco%20Ghana%20Logo%20(No%20Background)paystack.png`;
 
-function normalizePublicActionUrl(value: unknown): string {
-  const fallback = `${PUBLIC_ORIGIN}/dashboard/notifications`;
+function normalizePublicActionUrl(value: unknown, fallbackPath = '/dashboard/notifications'): string {
+  const fallback = `${PUBLIC_ORIGIN}${fallbackPath}`;
   if (typeof value !== 'string' || !value.trim()) return fallback;
 
   try {
@@ -273,8 +273,16 @@ function renderEmail(input: {
 }): { html: string; text: string } {
   const meta = input.metadata;
   const name = escapeHtml(meta.name || 'there');
-  const actionUrl = normalizePublicActionUrl(meta.action_url);
   const template = typeof meta.template === 'string' ? meta.template : input.eventType;
+  const hintedRole = typeof meta.action_url === 'string'
+    ? (() => { try { return new URL(meta.action_url, PUBLIC_ORIGIN).searchParams.get('role'); } catch { return null; } })()
+    : null;
+  const registrationRole = meta.registration_intent === 'external_vendor' || hintedRole === 'vendor' ? 'vendor' : 'student';
+  const registrationCheckoutPath = `/payments/registration-checkout?role=${registrationRole}`;
+  const actionUrl = normalizePublicActionUrl(
+    meta.action_url,
+    template === 'registration_payment_required' ? registrationCheckoutPath : '/dashboard/notifications',
+  );
   const amount = meta.amount !== undefined ? `${escapeHtml(meta.amount)} ${escapeHtml(meta.currency || 'GHS')}` : '';
   const paymentReference = typeof meta.payment_reference === 'string' ? meta.payment_reference : '';
   const reference = paymentReference ? `<p style="color:#64748b;font-size:13px">Reference: ${escapeHtml(paymentReference)}</p>` : '';
