@@ -7,6 +7,7 @@ import { OfflineIndicator } from '@/components/pwa/offline-indicator';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { UpdateBanner } from '@/components/pwa/update-banner';
 import { MobileBottomNav } from '@/components/pwa/mobile-bottom-nav';
+import { InstallPromptProvider } from '@/hooks/use-install-prompt';
 import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { siteConfig } from '@/lib/constants/site';
 
@@ -137,15 +138,17 @@ export default function RootLayout({
         className={`${inter.variable} mobile-viewport-safe font-sans pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0`}
         suppressHydrationWarning
       >
-        <AppProviders>
-          <PageViewTracker />
-          <ServiceWorkerRegister />
-          <OfflineIndicator />
-          <UpdateBanner />
-          <InstallPrompt />
-          {children}
-          <MobileBottomNav />
-        </AppProviders>
+        <InstallPromptProvider>
+          <AppProviders>
+            <PageViewTracker />
+            <ServiceWorkerRegister />
+            <OfflineIndicator />
+            <UpdateBanner />
+            <InstallPrompt />
+            {children}
+            <MobileBottomNav />
+          </AppProviders>
+        </InstallPromptProvider>
       </body>
     </html>
   );

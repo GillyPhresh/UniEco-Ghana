@@ -9,6 +9,7 @@ import {
   Briefcase,
   CalendarDays,
   Compass,
+  Download,
   Gift,
   GraduationCap,
   Heart,
@@ -46,6 +47,7 @@ import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { ROLE_LABELS, isStudent, isVendor } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
 import { getUnreadNotificationCount } from '@/lib/data/student-client';
+import { useInstallPrompt } from '@/hooks/use-install-prompt';
 
 const networkLinks = [
   { href: '/', label: 'Home', icon: Home },
@@ -61,6 +63,7 @@ export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, loading, signOut } = useAuth();
+  const { installed, installApp } = useInstallPrompt();
   const router = useRouter();
   const [unreadNotifs, setUnreadNotifs] = useState(0);
 
@@ -160,6 +163,7 @@ export function SiteHeader() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => router.push('/profile')}><Settings className="mr-2 h-4 w-4" />Profile &amp; settings</DropdownMenuItem>
+                  {!installed && <DropdownMenuItem onSelect={() => void installApp()}><Download className="mr-2 h-4 w-4 text-primary" />Install UniEco app</DropdownMenuItem>}
                   <DropdownMenuItem onClick={() => router.push('/dashboard')}><LayoutDashboard className="mr-2 h-4 w-4" />My dashboard</DropdownMenuItem>
                   {user.role === 'super_admin' && <DropdownMenuItem onClick={() => router.push('/admin')}><ShieldCheck className="mr-2 h-4 w-4 text-primary" />Management system</DropdownMenuItem>}
                   {user.role === 'university_admin' && <DropdownMenuItem onClick={() => router.push('/university-admin')}><Award className="mr-2 h-4 w-4 text-primary" />Campus impact</DropdownMenuItem>}
@@ -177,8 +181,10 @@ export function SiteHeader() {
             </>
           ) : (
             <>
+              {!installed && <Button variant="outline" size="icon" className="hidden h-11 w-11 lg:inline-flex xl:hidden" onClick={() => void installApp()} aria-label="Install UniEco app" title="Install UniEco app"><Download className="h-4 w-4" /></Button>}
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link href="/signin">Sign in</Link></Button>
               <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/signup">Join UniEco</Link></Button>
+              {!installed && <Button variant="outline" size="sm" className="hidden xl:inline-flex" onClick={() => void installApp()}><Download className="mr-1.5 h-4 w-4" />Install</Button>}
             </>
           )}
 
@@ -206,6 +212,7 @@ export function SiteHeader() {
                     </Link>
                   </SheetClose>
                 </div>
+                {!installed && <div className="border-b border-border px-4 py-3"><Button className="min-h-12 w-full justify-start gap-3" variant="outline" onClick={() => void installApp()}><Download className="h-5 w-5 text-primary" />Install UniEco app</Button></div>}
                 <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4" aria-label="Mobile primary">
                   <div className="flex flex-col gap-1">
                   <AnimatePresence>

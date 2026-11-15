@@ -6,6 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'UniEco',
     description:
       'The campus marketplace and community platform for every tertiary institution in Ghana.',
+    id: '/',
     start_url: '/?source=pwa',
     display: 'standalone',
     display_override: ['standalone', 'minimal-ui'],
@@ -17,6 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en-GH',
     dir: 'ltr',
     icons: [
+      { src: '/unieco-app-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
       { src: '/unieco-official-favicon-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
     ],
     shortcuts: [
