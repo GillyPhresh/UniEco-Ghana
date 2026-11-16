@@ -339,6 +339,18 @@ html {
   100% { opacity: 0; transform: scale(1.06); }
 }
 
+.campus-feed-surface {
+  --primary: 160 86% 26%;
+  --primary-foreground: 0 0% 100%;
+  --ring: 160 86% 26%;
+}
+
+.dark .campus-feed-surface {
+  --primary: 160 81% 44%;
+  --primary-foreground: 222 47% 7%;
+  --ring: 160 81% 44%;
+}
+
 .campus-heart-burst { animation: campus-heart-burst 680ms ease-out both; }
 .campus-feed-video { pointer-events: none; }
 .campus-feed-video::-webkit-media-controls-start-playback-button { display: none !important; }

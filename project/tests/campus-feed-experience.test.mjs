@@ -58,6 +58,30 @@ test('natural aspect ratio fits wide and tall media into a stable viewport', () 
   assert.equal(feedAspectRatio(4000, 900), 2);
 });
 
+test('feed accents and their button text meet normal-text contrast in both themes', async () => {
+  const css = await readFile(new URL('../app/globals.css', import.meta.url), 'utf8');
+  const luminance = (hsl) => {
+    const [h, s, l] = hsl.split(/\s+/).map(parseFloat);
+    const level = l / 100;
+    const a = (s / 100) * Math.min(level, 1 - level);
+    const rgb = [0, 8, 4].map((n) => {
+      const k = (n + h / 30) % 12;
+      const channel = level - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+      return channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+  };
+  for (const selector of [/^\.campus-feed-surface\s*\{([^}]+)}/m, /^\.dark \.campus-feed-surface\s*\{([^}]+)}/m]) {
+    const scope = css.match(selector)?.[1] ?? '';
+    const color = scope.match(/--primary:\s*([^;]+);/)?.[1];
+    const text = scope.match(/--primary-foreground:\s*([^;]+);/)?.[1];
+    assert.ok(color && text, 'Both feed accent variables are defined');
+    const a = luminance(color);
+    const b = luminance(text);
+    assert.ok((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5);
+  }
+});
+
 test('Following reads from the signed-in viewer’s relation and cannot expose restricted posts', async () => {
   const sql = await readFile(new URL('../supabase/migrations/20261116110000_0202_campus_community_following_feed.sql', import.meta.url), 'utf8');
   assert.match(sql, /v_viewer_id uuid := auth\.uid\(\)/);

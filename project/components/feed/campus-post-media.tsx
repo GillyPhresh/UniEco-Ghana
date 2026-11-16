@@ -310,7 +310,7 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
       {(showBuffering || preparing || resolving) && !failed && <div role="status" className="pointer-events-none absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 text-xs text-white"><Loader2 aria-hidden="true" className="h-3.5 w-3.5 motion-safe:animate-spin" />Loading video</div>}
       {(failed || (!mediaUrl && !resolving)) && !preparing && <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center text-sm text-white">
         <p>Video unavailable</p>
-        {(mediaUrl || refreshSource) && <button type="button" onClick={retry} className="min-h-11 rounded-full bg-white px-4 font-semibold text-neutral-900 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950">Try again</button>}
+        {(mediaUrl || refreshSource) && <button type="button" onClick={retry} className="min-h-11 rounded-full bg-neutral-50 px-4 font-semibold text-neutral-900 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-950">Try again</button>}
       </div>}
     </div>
   );

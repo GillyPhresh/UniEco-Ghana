@@ -282,7 +282,7 @@ export function CommunityPostActions({
   const menu = (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild><button type="button" aria-label="More post options" className={iconAction}><MoreHorizontal className="h-5 w-5" /></button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-[60] min-w-44 rounded-xl p-1.5">
+      <DropdownMenuContent align="end" className="campus-feed-surface z-[60] min-w-44 rounded-xl p-1.5">
         <DropdownMenuItem asChild className="min-h-10 gap-2.5"><Link href={postHref}><ArrowUpRight className="h-4 w-4" />Open post</Link></DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void sharePost(true)} className="min-h-10 gap-2.5"><Link2 className="h-4 w-4" />Copy link</DropdownMenuItem>
         {user && !myPost && <DropdownMenuItem disabled={Boolean(busy)} onSelect={() => void toggle('follow')} className="min-h-10 gap-2.5">{state.following_author ? <UserRoundCheck className="h-4 w-4" /> : <UserRoundPlus className="h-4 w-4" />}{state.following_author ? 'Unfollow member' : 'Follow member'}</DropdownMenuItem>}
@@ -322,7 +322,7 @@ export function CommunityPostActions({
       <Dialog open={commentsOpen} onOpenChange={(open) => { setCommentsOpen(open); if (!open) setReplyTo(null); }}>
         <DialogContent onOpenAutoFocus={(event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus(); }}
           onCloseAutoFocus={(event) => { if (commentsOrigin.current?.isConnected) { event.preventDefault(); commentsOrigin.current.focus(); } }}
-          className="flex max-h-[min(82dvh,44rem)] flex-col gap-0 overflow-hidden p-0 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg">
+          className="campus-feed-surface flex max-h-[min(82dvh,44rem)] flex-col gap-0 overflow-hidden p-0 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg">
           <DialogHeader className="shrink-0 border-b border-border px-5 pb-4 pt-5">
             <DialogTitle>Comments</DialogTitle><DialogDescription className="sr-only">Read or add a comment on this campus post.</DialogDescription>
           </DialogHeader>

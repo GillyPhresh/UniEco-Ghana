@@ -665,7 +665,7 @@ export function CampusCommunityFeed() {
   if (canPost) scopes.push({ id: 'following', label: 'Following' });
 
   return (
-    <div className="min-h-[80dvh] bg-background" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
+    <div className="campus-feed-surface min-h-[80dvh] bg-background" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
       <Suspense fallback={null}><FeedPostLocation onChange={setLinkedPostId} /></Suspense>
       <div className="mx-auto grid w-full max-w-[78rem] gap-6 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,40rem)_minmax(14rem,17rem)] lg:justify-center lg:gap-8 xl:grid-cols-[minmax(11rem,15rem)_minmax(0,39rem)_minmax(14rem,17rem)]">
         <aside className="hidden xl:block" aria-label="Explore UniEco">
@@ -812,7 +812,7 @@ export function CampusCommunityFeed() {
       <Dialog open={postOpen} onOpenChange={closePostDialog}>
         <DialogContent onCloseAutoFocus={(event) => { if (composerOrigin.current?.isConnected) { event.preventDefault(); composerOrigin.current.focus(); } }}
           onOpenAutoFocus={(event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus(); }}
-          className="max-h-[min(92dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg sm:p-6">
+          className="campus-feed-surface max-h-[min(92dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg sm:p-6">
           <DialogHeader className="pr-10"><DialogTitle className="text-xl">New campus post</DialogTitle><DialogDescription>Share a campus moment.</DialogDescription></DialogHeader>
           <form onSubmit={submitPost} className="space-y-4" aria-busy={uploading}>
             <div>
@@ -857,7 +857,7 @@ export function CampusCommunityFeed() {
       </Dialog>
 
       <Dialog open={Boolean(reportPost)} onOpenChange={(open) => { if (!open && !reporting) setReportPost(null); }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="campus-feed-surface sm:max-w-lg">
           <DialogHeader><DialogTitle>Report this post</DialogTitle><DialogDescription>Reports go to UniEco Ghana moderation. Please tell us what needs review.</DialogDescription></DialogHeader>
           <form onSubmit={submitReport} className="space-y-4">
             <label htmlFor="community-report-reason" className="block text-sm font-semibold">Reason</label>
@@ -888,7 +888,7 @@ export function CommunityPostCard({ post, priority = false, socialState = emptyC
 
   return (
     <article id={`campus-post-${post.id}`} data-post-id={post.id} tabIndex={-1} aria-label={`Post by ${post.author_name}`}
-      className="scroll-mt-20 overflow-hidden border-b border-border bg-card text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:rounded-2xl sm:border">
+      className="campus-feed-surface scroll-mt-20 overflow-hidden border-b border-border bg-card text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:rounded-2xl sm:border">
       <CommunityPostActions postId={post.id} authorId={post.author_id} authorName={post.author_name} caption={post.caption} textOnly={post.media_type === 'text'}
         initialState={socialState} onStateChange={onSocialChange} onReport={onReport} onDelete={onDelete}
         renderHeader={(menu) => (
