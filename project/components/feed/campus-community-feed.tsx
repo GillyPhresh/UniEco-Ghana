@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Upload } from 'tus-js-client';
 import { supabase } from '@/lib/supabase/client';
@@ -11,18 +12,19 @@ import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  ArrowDownToLine, ArrowUpRight, Bookmark, Building2, CircleAlert, FileText,
-  Flag, ImagePlus, Loader2, MapPin, Paperclip, Play, Plus, RefreshCw, Send,
-  ShieldCheck, Volume2, VolumeX,
+  ArrowUpRight, Bookmark, Building2, CalendarDays, CheckCircle2, CircleAlert, Film, FileText,
+  Flag, ImagePlus, Loader2, MapPin, Newspaper, Play, Plus, RefreshCw, UsersRound, X, type LucideIcon,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
   DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { CommunityPostActions, emptyCommunitySocialState, type CommunitySocialState } from '@/components/feed/community-post-actions';
+import { CommunityPostActions, emptyCommunitySocialState, type CommunityMutation, type CommunitySocialState } from '@/components/feed/community-post-actions';
+import { CampusPostMedia } from '@/components/feed/campus-post-media';
+import { appendCampusFeed, getCampusMoments, pageCampusFeed, type FeedScope } from '@/lib/community/feed-experience';
+import { MAX_ATTACHMENT_BYTES, VIDEO_PREPARATION_TIMEOUT_MS, VIDEO_FILE_EXTENSION, readableSize, safeFileName, withRequestTimeout } from '@/lib/community/media-client';
 
-type Scope = 'all' | 'university';
 export type CommunityPost = {
   id: string;
   author_id: string;
@@ -39,35 +41,17 @@ export type CommunityPost = {
 };
 
 const PAGE_SIZE = 8;
-const FEED_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
+const FEED_CACHE_TTL_MS = 15 * 60 * 1000;
+const followingSocialState = { ...emptyCommunitySocialState, following_author: true };
 const MAX_PREVIEW_MEDIA_BYTES = 25 * 1024 * 1024;
 // Stay below the Storage bucket's 25 MiB hard limit so every published video
 // uses the same public, range-capable feed-media path as photos.
 const MAX_PUBLIC_VIDEO_BYTES = 24 * 1024 * 1024;
-const VIDEO_PREPARATION_TIMEOUT_MS = 240_000;
 const RESUMABLE_UPLOAD_CHUNK_BYTES = 6 * 1024 * 1024;
 const PREVIEW_MEDIA = new Map([
   ['image/jpeg', 'jpg'], ['image/png', 'png'], ['image/webp', 'webp'],
   ['video/mp4', 'mp4'], ['video/webm', 'webm'],
 ]);
-// Accept common phone, camera, desktop-editor, and legacy video containers.
-// Prepared posts are H.264/AAC MP4 before they enter the public feed-media bucket.
-const VIDEO_FILE_EXTENSION = /\.(mp4|m4v|mov|qt|webm|ogv|ogg|avi|mkv|3gp|3g2|3gpp|3gpp2|mpeg|mpg|mpe|mpv|m2v|mts|m2ts|ts|vob|wmv|asf|flv|f4v|dv|mxf|divx|xvid|rm|rmvb|amv)$/i;
-
-async function withRequestTimeout<T>(timeoutMs: number, request: (signal: AbortSignal) => Promise<T>) {
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => {
-    const timeoutError = new Error('The request timed out.');
-    timeoutError.name = 'TimeoutError';
-    controller.abort(timeoutError);
-  }, timeoutMs);
-  try {
-    return await request(controller.signal);
-  } finally {
-    window.clearTimeout(timer);
-  }
-}
 
 function isVideoUploadCandidate(file: File) {
   return file.type.startsWith('video/') || VIDEO_FILE_EXTENSION.test(file.name);
@@ -77,30 +61,6 @@ function canDisplayInline(file: File) {
   return PREVIEW_MEDIA.has(file.type) && file.size <= MAX_PREVIEW_MEDIA_BYTES;
 }
 
-function canPlayPrivateVideoInline(file: { name: string; size: number }) {
-  return file.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION.test(file.name);
-}
-
-type CommunityFileInfo = { path: string; name: string; size: number };
-
-async function getCommunityFileInfo(postId: string): Promise<CommunityFileInfo> {
-  const read = () => supabase.rpc('get_campus_community_post_file_info', { p_post_id: postId });
-  let response = await read();
-  const status = (response.error as (typeof response.error & { status?: number }) | null)?.status;
-  if (status === 401) {
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    if (!refreshError) response = await read();
-  }
-  if (response.error) throw response.error;
-  const rows = Array.isArray(response.data) ? response.data : response.data ? [response.data] : [];
-  const result = rows[0] as { file_path?: string; file_name?: string; file_size?: number } | undefined;
-  if (!result?.file_path || !result.file_name) throw new Error('Attachment details are unavailable.');
-  return {
-    path: result.file_path,
-    name: safeFileName(result.file_name),
-    size: Number(result.file_size) || 0,
-  };
-}
 
 async function uploadCommunityMediaResumably(
   file: File,
@@ -179,12 +139,6 @@ async function uploadCommunityMediaResumably(
   }
 }
 
-type NetworkInformationLike = {
-  saveData?: boolean;
-  effectiveType?: string;
-  addEventListener?: (type: 'change', listener: () => void) => void;
-  removeEventListener?: (type: 'change', listener: () => void) => void;
-};
 
 export function publicMediaUrl(path: string | null) {
   if (!path) return null;
@@ -223,14 +177,6 @@ function writeCachedFeed(cacheKey: string, posts: CommunityPost[]) {
   }
 }
 
-function safeFileName(name: string) {
-  return name.split(/[\\/]/).pop()?.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 180) || 'campus-attachment';
-}
-
-function readableSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
 
 function friendlyRole(role: string) {
   if (role === 'student_vendor') return 'Student vendor';
@@ -253,6 +199,34 @@ function formatFeedTimestamp(value: string) {
     : { day: 'numeric', month: 'short' }).format(date);
 }
 
+function FeedPostLocation({ onChange }: { onChange: (id: string | null) => void }) {
+  const requested = useSearchParams().get('post');
+  useEffect(() => {
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    onChange(requested && uuid.test(requested) ? requested.toLowerCase() : null);
+  }, [onChange, requested]);
+  return null;
+}
+
+function FeedRailLink({ href, icon: Icon, children }: { href: string; icon: LucideIcon; children: ReactNode }) {
+  return (
+    <Link href={href} className="flex min-h-11 items-center gap-2.5 rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+      <Icon className="h-[18px] w-[18px] shrink-0 text-primary" />{children}
+    </Link>
+  );
+}
+
+function FeedSkeleton() {
+  return <div role="status" className="overflow-hidden bg-card sm:rounded-2xl sm:border">
+    <span className="sr-only">Loading campus feed…</span>
+    <div className="motion-safe:animate-pulse" aria-hidden="true">
+      <div className="flex h-16 items-center gap-3 px-4"><span className="h-9 w-9 rounded-full bg-muted" /><span className="h-3 w-28 rounded-full bg-muted" /></div>
+      <div className="aspect-[4/3] max-h-[58dvh] bg-muted" />
+      <div className="flex gap-4 px-4 py-4"><span className="h-4 w-4 rounded-full bg-muted" /><span className="h-4 w-4 rounded-full bg-muted" /><span className="ml-auto h-4 w-4 rounded bg-muted" /></div>
+    </div>
+  </div>;
+}
+
 export function CampusCommunityFeed() {
   const { user, loading: authLoading } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -269,201 +243,256 @@ export function CampusCommunityFeed() {
   const [caption, setCaption] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewFailed, setPreviewFailed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadStage, setUploadStage] = useState('');
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState('spam');
   const [reportDetails, setReportDetails] = useState('');
   const [reporting, setReporting] = useState(false);
-  const [pullDistance, setPullDistance] = useState(0);
+  const [selectedScope, setSelectedScope] = useState<FeedScope | null>(null);
+  const [linkedPostId, setLinkedPostId] = useState<string | null>(null);
+  const [linkedPostMissing, setLinkedPostMissing] = useState(false);
+  const [dataKey, setDataKey] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const touchStartYRef = useRef<number | null>(null);
-  const pullDistanceRef = useRef(0);
+  const timelineRef = useRef<HTMLElement>(null);
+  const nextPageRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<{ created_at: string; id: string } | null>(null);
   const requestRef = useRef(0);
+  const socialRevision = useRef(0);
+  const socialChanges = useRef<Record<string, Partial<Record<CommunityMutation, number>>>>({});
   const hasMoreRef = useRef(false);
   const loadingMoreRef = useRef(false);
-  const pendingPostFocusRef = useRef<string | null>(null);
+  const loadingFirstRef = useRef(false);
+  const focusedLinkRef = useRef<string | null>(null);
+  const uploadLock = useRef(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const composerOrigin = useRef<HTMLElement | null>(null);
+  const touchOrigin = useRef<{ x: number; y: number } | null>(null);
+  const pullReadyRef = useRef(false);
 
   const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
-  const hasUniversity = Boolean(user?.profile?.university_id);
-  const scope: Scope = hasUniversity ? 'university' : 'all';
-  const feedCacheKey = `unieco:community-feed:v1:${user?.id ?? 'guest'}:${scope}:${user?.profile?.university_id ?? 'none'}`;
+  const universityId = user?.profile?.university_id;
+  const hasUniversity = Boolean(universityId);
+  const allowedScope = (selectedScope === 'university' && !hasUniversity) || (selectedScope === 'following' && !canPost) ? null : selectedScope;
+  const scope = linkedPostId ? 'all' : allowedScope ?? (hasUniversity ? 'university' : 'all');
+  const feedCacheKey = `unieco:community-feed:v2:${user?.id ?? 'guest'}:${scope}:${universityId ?? 'none'}`;
+  const viewKey = `${feedCacheKey}:${linkedPostId ?? ''}`;
+  const mountedKey = useRef(viewKey);
+  mountedKey.current = viewKey;
+  const currentView = dataKey === viewKey;
+  const visiblePosts = currentView ? posts : [];
+  const moments = getCampusMoments(visiblePosts.slice(0, PAGE_SIZE));
+  const leadPhoto = visiblePosts[0]?.media_type === 'image' ? visiblePosts[0].id : null;
+  const loadingView = loading || !currentView;
 
   useEffect(() => {
-    if (!mediaFile) { setPreviewUrl(null); return; }
+    if (!mediaFile || !canDisplayInline(mediaFile) && !isVideoUploadCandidate(mediaFile)) { setPreviewUrl(null); return; }
     const objectUrl = URL.createObjectURL(mediaFile);
     setPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [mediaFile]);
 
-  useEffect(() => {
-    const openComposer = () => {
-      if (canPost) setPostOpen(true);
-      else if (user) toast.info('Your account cannot publish campus posts.');
-      else window.location.assign('/signin?next=%2F');
-    };
-    window.addEventListener('unieco:open-post-composer', openComposer);
-
-    if (!authLoading && new URLSearchParams(window.location.search).get('createPost') === '1') {
-      openComposer();
-      window.history.replaceState(window.history.state, '', window.location.pathname);
-    }
-    return () => window.removeEventListener('unieco:open-post-composer', openComposer);
+  const openComposer = useCallback(() => {
+    if (authLoading) return;
+    if (canPost) {
+      composerOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      setPostOpen(true);
+    } else if (user) toast.info('Your account cannot publish campus posts.');
+    else window.location.assign('/signin?next=%2F%3FcreatePost%3D1');
   }, [authLoading, canPost, user]);
 
+  useEffect(() => {
+    window.addEventListener('unieco:open-post-composer', openComposer);
+    const params = new URLSearchParams(window.location.search);
+    if (!authLoading && params.has('createPost')) {
+      if (params.get('createPost') === '1') openComposer();
+      params.delete('createPost');
+      const query = params.toString();
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
+    return () => window.removeEventListener('unieco:open-post-composer', openComposer);
+  }, [authLoading, openComposer]);
+
   const loadPage = useCallback(async (append = false) => {
-    if (append && (loadingMoreRef.current || !hasMoreRef.current)) return;
+    if (append && (loadingMoreRef.current || loadingFirstRef.current || !hasMoreRef.current || !cursorRef.current)) return;
     const requestId = append ? requestRef.current : ++requestRef.current;
-    if (append) { loadingMoreRef.current = true; setLoadingMore(true); setLoadMoreError(false); }
-    else { setLoading(true); setLoadError(false); setLoadMoreError(false); cursorRef.current = null; }
+    const isCurrent = () => requestId === requestRef.current && mountedKey.current === viewKey;
+    if (append) {
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+    } else {
+      loadingFirstRef.current = true;
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+      setLoading(true);
+      setLoadError(false);
+      cursorRef.current = null;
+    }
+    setLoadMoreError(false);
     try {
       const cursor = append ? cursorRef.current : null;
-      let requestedPostId: string | null = null;
-      if (!append && typeof window !== 'undefined') {
-        const candidate = new URLSearchParams(window.location.search).get('post');
-        if (candidate && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidate)) {
-          requestedPostId = candidate;
-          pendingPostFocusRef.current = candidate;
-        }
-      }
-      const { data, error } = await supabase.rpc('get_campus_community_feed', {
-        p_scope: scope,
-        p_before_created_at: cursor?.created_at ?? null,
-        p_before_id: cursor?.id ?? null,
-        p_limit: PAGE_SIZE,
-      });
+      const args = { p_before_created_at: cursor?.created_at ?? null, p_before_id: cursor?.id ?? null, p_limit: PAGE_SIZE };
+      const { data, error } = scope === 'following'
+        ? await supabase.rpc('get_campus_community_following_feed', args)
+        : await supabase.rpc('get_campus_community_feed', { ...args, p_scope: scope });
       if (error) throw error;
-      if (requestId !== requestRef.current) return;
-      let rows = (data || []) as Omit<CommunityPost, 'media_url'>[];
-      if (!append && requestedPostId && !rows.some((post) => post.id === requestedPostId)) {
-        const { data: target } = await supabase.rpc('get_campus_community_post', { p_post_id: requestedPostId });
-        if (requestId !== requestRef.current) return;
-        const targetPost = (target || [])[0] as Omit<CommunityPost, 'media_url'> | undefined;
-        if (targetPost) rows = [targetPost, ...rows];
+      if (!isCurrent()) return;
+      const rows = (data ?? []) as Omit<CommunityPost, 'media_url'>[];
+      let linkedPost: Omit<CommunityPost, 'media_url'> | undefined;
+      if (!append && linkedPostId && !rows.some((post) => post.id === linkedPostId)) {
+        const { data: target, error: targetError } = await supabase.rpc('get_campus_community_post', { p_post_id: linkedPostId });
+        if (!isCurrent()) return;
+        if (targetError) throw targetError;
+        linkedPost = (target ?? [])[0] as typeof linkedPost;
       }
-      const page = rows.map((post) => ({ ...post, media_url: publicMediaUrl(post.media_path) }));
-      setPosts((current) => append ? [...current, ...page] : page);
+      if (!append) setLinkedPostMissing(Boolean(linkedPostId && !linkedPost && !rows.some((post) => post.id === linkedPostId)));
+      const result = pageCampusFeed(rows, PAGE_SIZE, linkedPost);
+      const withMedia = (post: Omit<CommunityPost, 'media_url'>) => ({ ...post, media_url: publicMediaUrl(post.media_path) });
+      const page = result.entries.map(withMedia);
+      setPosts((current) => append ? appendCampusFeed(current, page) : page);
+      setDataKey(viewKey);
       if (!append) {
-        setSocialByPost({});
         setShowingCachedPosts(false);
-        writeCachedFeed(feedCacheKey, page);
+        // Store only public timeline rows, not a linked out-of-scope post or a member’s Follow graph.
+        if (scope !== 'following') writeCachedFeed(feedCacheKey, rows.map(withMedia));
       }
       if (page.length) {
         // Social counts are secondary: don't hold the actual feed hostage to this request on slow networks.
-        void Promise.resolve(supabase.rpc('get_campus_community_post_social_state', { p_post_ids: page.slice(0, 12).map((post) => post.id) }))
+        const revision = socialRevision.current;
+        void Promise.resolve(supabase.rpc('get_campus_community_post_social_state', { p_post_ids: page.map((post) => post.id) }))
           .then(({ data: socialRows, error: socialError }) => {
-            if (socialError || requestId !== requestRef.current || !socialRows) return;
-            setSocialByPost((current) => ({ ...current, ...Object.fromEntries((socialRows as (CommunitySocialState & { post_id: string })[]).map((item) => [item.post_id, {
+            if (socialError || !isCurrent() || !socialRows) return;
+            const incoming = Object.fromEntries((socialRows as (CommunitySocialState & { post_id: string })[]).map((item) => [item.post_id, {
               like_count: Number(item.like_count) || 0, comment_count: Number(item.comment_count) || 0,
               liked_by_me: Boolean(item.liked_by_me), bookmarked_by_me: Boolean(item.bookmarked_by_me), following_author: Boolean(item.following_author),
-            }])) }));
+            }]));
+            setSocialByPost((current) => {
+              const next = { ...current };
+              for (const [id, item] of Object.entries(incoming)) {
+                const change = socialChanges.current[id];
+                const previous = next[id];
+                next[id] = !change || !previous ? item : {
+                  ...(item),
+                  ...((change.like ?? 0) > revision ? { like_count: previous.like_count, liked_by_me: previous.liked_by_me } : {}),
+                  ...((change.comment ?? 0) > revision ? { comment_count: previous.comment_count } : {}),
+                  ...((change.bookmark ?? 0) > revision ? { bookmarked_by_me: previous.bookmarked_by_me } : {}),
+                  ...((change.follow ?? 0) > revision ? { following_author: previous.following_author } : {}),
+                };
+              }
+              return next;
+            });
           })
           .catch(() => undefined);
       }
-      cursorRef.current = page.length ? { created_at: page[page.length - 1].created_at, id: page[page.length - 1].id } : (append ? cursorRef.current : null);
-      hasMoreRef.current = page.length === PAGE_SIZE;
-      setHasMore(page.length === PAGE_SIZE);
+      cursorRef.current = result.cursor;
+      hasMoreRef.current = result.hasMore;
+      setHasMore(result.hasMore);
       setLoadError(false);
     } catch {
-      if (requestId !== requestRef.current) return;
+      if (!isCurrent()) return;
       if (append) setLoadMoreError(true);
-      else {
-        setLoadError(true);
-        const cached = readCachedFeed(feedCacheKey);
-        cursorRef.current = cached?.length ? { created_at: cached[cached.length - 1].created_at, id: cached[cached.length - 1].id } : null;
-      }
+      else setLoadError(true);
     } finally {
-      if (requestId === requestRef.current) {
-        setLoading(false);
+      if (isCurrent()) {
+        loadingFirstRef.current = false;
         loadingMoreRef.current = false;
+        setLoading(false);
         setLoadingMore(false);
       }
     }
-  }, [feedCacheKey, scope]);
+  }, [feedCacheKey, linkedPostId, scope, viewKey]);
 
   useEffect(() => {
-    const cached = readCachedFeed(feedCacheKey);
-    setPosts(cached || []);
+    const cached = scope === 'following' ? null : readCachedFeed(feedCacheKey);
+    setPosts(cached ?? []);
+    setDataKey(viewKey);
+    setSocialByPost({});
+    socialChanges.current = {};
     setShowingCachedPosts(Boolean(cached?.length));
-    const hasCachedPage = Boolean(cached?.length === PAGE_SIZE);
-    setHasMore(hasCachedPage);
-    hasMoreRef.current = hasCachedPage;
-    cursorRef.current = cached?.length ? { created_at: cached[cached.length - 1].created_at, id: cached[cached.length - 1].id } : null;
-    setLoading(!cached?.length);
-    setLoadError(false);
-    if (viewportRef.current) viewportRef.current.scrollTop = 0;
+    setHasMore(false);
+    hasMoreRef.current = false;
+    setLinkedPostMissing(false);
+    focusedLinkRef.current = null;
     void loadPage(false);
     return () => { requestRef.current += 1; };
-  }, [feedCacheKey, loadPage]);
+  }, [feedCacheKey, loadPage, scope, viewKey]);
 
   useEffect(() => {
-    const root = viewportRef.current;
-    if (!root) return;
-    const observer = new IntersectionObserver((entries) => {
-      const mostVisible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (mostVisible) setActivePostId((mostVisible.target as HTMLElement).dataset.postId || null);
-    }, { root, threshold: [0.15, 0.3, 0.5] });
-    root.querySelectorAll<HTMLElement>('[data-post-id]').forEach((node) => observer.observe(node));
+    const target = nextPageRef.current;
+    if (!target || !hasMore || loadingView || loadError || loadMoreError || !('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry?.isIntersecting) void loadPage(true);
+    }, { rootMargin: '0px 0px 480px 0px' });
+    observer.observe(target);
     return () => observer.disconnect();
-  }, [posts]);
+  }, [hasMore, loadingView, loadError, loadMoreError, loadPage, posts.length]);
+
+  const focusPost = useCallback((postId: string) => {
+    const card = document.getElementById(`campus-post-${postId}`);
+    if (!card) return;
+    card.focus({ preventScroll: true });
+    card.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  }, []);
 
   useEffect(() => {
-    const postId = pendingPostFocusRef.current;
-    if (!postId || !posts.some((post) => post.id === postId)) return;
+    if (!currentView || !linkedPostId || focusedLinkRef.current === linkedPostId || !posts.some((post) => post.id === linkedPostId)) return;
     const frame = requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(`[data-post-id="${postId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      pendingPostFocusRef.current = null;
+      focusPost(linkedPostId);
+      focusedLinkRef.current = linkedPostId;
     });
     return () => cancelAnimationFrame(frame);
-  }, [posts]);
+  }, [currentView, focusPost, linkedPostId, posts]);
 
-  const handleScroll = () => {
-    const viewport = viewportRef.current;
-    if (!viewport || loading || loadingMoreRef.current || !hasMoreRef.current) return;
-    if (viewport.scrollTop + viewport.clientHeight >= viewport.scrollHeight - viewport.clientHeight * 1.5) {
-      void loadPage(true);
+  const changeScope = (next: FeedScope) => {
+    if (next === scope && !linkedPostId) return;
+    if (linkedPostId) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('post');
+      window.history.replaceState(window.history.state, '', url);
+      setLinkedPostId(null);
     }
+    setSelectedScope(next);
+    timelineRef.current?.scrollIntoView({ block: 'start' });
   };
 
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (viewportRef.current?.scrollTop === 0) touchStartYRef.current = event.touches[0]?.clientY ?? null;
-    else touchStartYRef.current = null;
+  const refresh = () => {
+    if (loadingFirstRef.current) return;
+    setRefreshing(true);
+    void loadPage(false).finally(() => setRefreshing(false));
   };
 
-  const handleTouchMove = (event: React.TouchEvent<HTMLDivElement>) => {
-    const startY = touchStartYRef.current;
-    if (startY === null || viewportRef.current?.scrollTop !== 0 || refreshing) return;
-    const distance = event.touches[0].clientY - startY;
-    const nextDistance = Math.max(0, Math.min(88, distance * 0.48));
-    pullDistanceRef.current = nextDistance;
-    setPullDistance(nextDistance);
+  const handleTouchStart = (event: React.TouchEvent) => {
+    pullReadyRef.current = false;
+    const point = event.touches[0];
+    touchOrigin.current = window.scrollY <= 0 && event.touches.length === 1 ? { x: point.clientX, y: point.clientY } : null;
+  };
+
+  const handleTouchMove = (event: React.TouchEvent) => {
+    const start = touchOrigin.current;
+    const point = event.touches[0];
+    if (!start || !point) return;
+    pullReadyRef.current = window.scrollY <= 0 && event.touches.length === 1 && Math.abs(point.clientX - start.x) < 24 && point.clientY - start.y > 110;
   };
 
   const handleTouchEnd = () => {
-    touchStartYRef.current = null;
-    if (pullDistanceRef.current >= 54 && !loading) {
-      setRefreshing(true);
-      void loadPage(false).finally(() => setRefreshing(false));
-    }
-    pullDistanceRef.current = 0;
-    setPullDistance(0);
+    if (pullReadyRef.current && window.scrollY <= 0) refresh();
+    touchOrigin.current = null;
+    pullReadyRef.current = false;
   };
 
-  const handleTouchCancel = () => {
-    touchStartYRef.current = null;
-    pullDistanceRef.current = 0;
-    setPullDistance(0);
-  };
+  const handleTouchCancel = () => { touchOrigin.current = null; pullReadyRef.current = false; };
 
-  const resetPostForm = () => { setCaption(''); setMediaFile(null); setUploading(false); setUploadStage(''); setUploadProgress(null); };
-  const closePostDialog = (open: boolean) => { setPostOpen(open); if (!open && !uploading) resetPostForm(); };
+  const resetPostForm = () => { setCaption(''); setMediaFile(null); setPreviewFailed(false); setUploadStage(''); setUploadProgress(null); };
+  const closePostDialog = (open: boolean) => {
+    if (uploadLock.current) return;
+    setPostOpen(open);
+    if (!open) resetPostForm();
+  };
 
   const submitPost = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (uploadLock.current) return;
     if (!user || !canPost) { toast.error('Sign in with an eligible UniEco account to post.'); return; }
     const trimmedCaption = caption.trim();
     if (!mediaFile && !trimmedCaption) {
@@ -479,13 +508,16 @@ export function CampusCommunityFeed() {
     let publicPath = previewable ? `${user.id}/${crypto.randomUUID()}.${safePreviewExtension}` : null;
     let attachmentPath: string | null = null;
     let attachmentName: string | null = null;
+    uploadLock.current = true;
     setUploading(true);
-    setUploadStage(isVideo ? 'Getting video ready…' : 'Uploading your post…');
-    setUploadProgress(isVideo ? null : 0);
+    setUploadStage(isVideo ? 'Preparing video…' : 'Uploading…');
+    setUploadProgress(null);
     let uploadedBucket: 'campus-community' | 'campus-community-files' | null = null;
     let uploadPath: string | null = publicPath;
     let uploadBucket: 'campus-community' | 'campus-community-files' | null = publicPath ? 'campus-community' : null;
     let publicVideoUpload = false;
+    let publishAttempted = false;
+    let publishRejected = false;
     try {
       let fileToUpload = mediaFile;
       if (mediaFile && isVideo) {
@@ -542,7 +574,7 @@ export function CampusCommunityFeed() {
             throw new Error('RESUMABLE_UPLOAD:Video upload was interrupted. Check your connection and retry; your post has not been published.');
           }
         } else {
-          setUploadStage('Uploading your post…');
+          setUploadStage('Uploading photo…');
           const { error: uploadError } = await supabase.storage.from(uploadBucket).upload(uploadPath, fileToUpload, {
             contentType: fileToUpload.type || 'application/octet-stream',
             cacheControl: '31536000',
@@ -552,9 +584,10 @@ export function CampusCommunityFeed() {
         }
         uploadedBucket = uploadBucket;
       }
-      setUploadStage('Publishing to the campus feed…');
+      setUploadStage('Publishing…');
       setUploadProgress(null);
-      const { error: postError } = await supabase.rpc('create_campus_community_post_with_attachment', {
+      publishAttempted = true;
+      const { error: postError, status } = await supabase.rpc('create_campus_community_post_with_attachment', {
         p_caption: trimmedCaption,
         p_media_path: publicPath,
         p_media_type: publicPath ? mediaType : null,
@@ -562,29 +595,32 @@ export function CampusCommunityFeed() {
         p_attachment_name: attachmentName,
         p_attachment_size: fileToUpload && attachmentPath ? fileToUpload.size : null,
       });
-      if (postError) throw postError;
+      if (postError) {
+        publishRejected = status >= 400 && status < 500 && status !== 408;
+        throw new Error(postError.message);
+      }
       uploadedBucket = null;
-      toast.success('Your post is live on the campus feed.');
+      toast.success('Post shared.');
       setPostOpen(false);
-      setCaption('');
-      setMediaFile(null);
-      // Do not keep the publish dialog in its busy state while refreshing the
-      // feed. A slow feed query must not make a successful post look stuck or
-      // tempt the user to submit it a second time.
-      setUploading(false);
-      setUploadStage('');
-      setUploadProgress(null);
-      void loadPage(false);
+      resetPostForm();
+      if (scope === 'following' || linkedPostId) changeScope('all');
+      else void loadPage(false);
     } catch (error) {
-      if (uploadedBucket && uploadPath) await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
+      // If the response was lost after a database commit, deleting the uploaded
+      // media would leave a published post without its photo or video.
+      if (uploadedBucket && uploadPath && (!publishAttempted || publishRejected)) {
+        await supabase.storage.from(uploadedBucket).remove([uploadPath]).catch(() => undefined);
+      }
       const message = error instanceof Error ? error.message : '';
-      if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
+      if (publishAttempted && !publishRejected) toast.error('Couldn’t confirm whether the post was shared. Check the feed before trying again.');
+      else if (message.includes('hourly posting limit')) toast.error('You have reached the posting limit. Please try again later.');
       else if (message.startsWith('VIDEO_PREPARE:')) toast.error(message.slice('VIDEO_PREPARE:'.length));
       else if (message.startsWith('RESUMABLE_UPLOAD:')) toast.error(message.slice('RESUMABLE_UPLOAD:'.length));
-      else if (message === 'TimeoutError' || message === 'AbortError') toast.error('Couldn’t get the video ready. Try a shorter clip or retry on a stronger connection.');
+      else if (error instanceof Error && ['TimeoutError', 'AbortError'].includes(error.name)) toast.error('Video timed out. Try a shorter clip.');
       else if (message.toLowerCase().includes('storage')) toast.error('Your file could not be uploaded. Check your connection and try again.');
-      else toast.error('Your post could not be published. Your account and feed are safe; please retry.');
+      else toast.error('Couldn’t share this post. Try again.');
     } finally {
+      uploadLock.current = false;
       setUploading(false);
       setUploadStage('');
       setUploadProgress(null);
@@ -624,87 +660,198 @@ export function CampusCommunityFeed() {
   };
 
   const selectedVideo = mediaFile ? isVideoUploadCandidate(mediaFile) : false;
+  const scopes: { id: FeedScope; label: string }[] = [{ id: 'all', label: 'Across Ghana' }];
+  if (hasUniversity) scopes.push({ id: 'university', label: 'My campus' });
+  if (canPost) scopes.push({ id: 'following', label: 'Following' });
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="sticky top-0 z-20 flex min-h-12 shrink-0 items-center justify-between gap-2 border-b border-border/70 bg-background/95 px-3 py-1.5 shadow-[0_4px_18px_-14px_rgba(15,23,42,0.35)] backdrop-blur-xl sm:min-h-14 sm:px-6 sm:py-0">
-        <h2 className="truncate text-sm font-bold text-foreground sm:text-base xl:hidden">Campus feed</h2>
-        <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:justify-end sm:gap-1.5">
-          <div className="flex min-w-0 items-center gap-0.5 sm:gap-1.5">
-          <Link href="/universities" className="hidden min-h-10 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-foreground md:inline-flex"><Building2 className="h-4 w-4" />Universities</Link>
-          {user && <Link href="/community/saved" aria-label="Saved campus posts" className="inline-flex min-h-10 min-w-10 touch-manipulation items-center justify-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-muted-foreground transition hover:bg-muted hover:text-emerald-800 sm:px-3"><Bookmark className="h-4 w-4" /><span className="hidden sm:inline">Saved</span></Link>}
+    <div className="min-h-[80dvh] bg-background" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
+      <Suspense fallback={null}><FeedPostLocation onChange={setLinkedPostId} /></Suspense>
+      <div className="mx-auto grid w-full max-w-[78rem] gap-6 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,40rem)_minmax(14rem,17rem)] lg:justify-center lg:gap-8 xl:grid-cols-[minmax(11rem,15rem)_minmax(0,39rem)_minmax(14rem,17rem)]">
+        <aside className="hidden xl:block" aria-label="Explore UniEco">
+          <div className="sticky top-24 space-y-4">
+            <div className="px-2">
+              <span className="text-xs font-bold uppercase tracking-[.18em] text-primary">UniEco Ghana</span>
+              <p className="mt-2 max-w-[12rem] text-xl font-bold leading-tight tracking-tight">Campus life, in the moment.</p>
+            </div>
+            <nav className="space-y-1" aria-label="Explore Ghana’s campuses">
+              <FeedRailLink href="/universities" icon={Building2}>Universities</FeedRailLink>
+              <FeedRailLink href="/updates" icon={Newspaper}>Campus updates</FeedRailLink>
+              <FeedRailLink href="/events" icon={CalendarDays}>Events</FeedRailLink>
+              {user && <FeedRailLink href="/community/saved" icon={Bookmark}>Saved posts</FeedRailLink>}
+            </nav>
           </div>
-          <Button onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="group min-h-10 touch-manipulation gap-2 rounded-full border border-emerald-200 bg-white px-3 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-900 sm:px-4">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-800 transition group-hover:bg-emerald-200"><Plus className="h-4 w-4" /></span><span className="hidden sm:inline">Create post</span><span className="sm:hidden">Post</span>
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,42rem)] xl:grid-cols-[minmax(15rem,1fr)_minmax(0,42rem)_minmax(15rem,1fr)]">
-        <aside className="hidden flex-col justify-between border-r border-border/60 p-6 xl:flex">
-          <div>
-            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800"><span className="h-2 w-2 rounded-full bg-emerald-500" />Campus community</span>
-            <h2 className="mt-5 max-w-xs text-3xl font-bold leading-tight tracking-tight text-slate-900">What’s happening on campus?</h2>
-            <p className="mt-3 max-w-xs text-sm leading-6 text-slate-600">Short videos, photos and everyday moments shared by students and vendors across Ghana.</p>
-            <Link href="/universities" className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-xl border bg-white px-4 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-emerald-200 hover:text-emerald-800"><Building2 className="h-4 w-4 text-emerald-700" />Explore universities<ArrowUpRight className="h-4 w-4" /></Link>
-          </div>
-          <p className="max-w-xs text-xs leading-5 text-muted-foreground"><ShieldCheck className="mr-1 inline h-4 w-4 text-emerald-700" />Community posts are public. Share campus moments respectfully and avoid posting private details.</p>
         </aside>
 
-        <section className="relative min-h-0 bg-muted/40 lg:border-x lg:border-border/70" aria-label={hasUniversity ? 'Campus posts from your university' : 'Campus posts from Ghana'}>
-          <div ref={viewportRef} onScroll={handleScroll} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel} className="h-full min-h-0 overflow-y-auto overscroll-contain px-0 py-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:px-5 sm:py-4 lg:px-6" aria-live="polite">
-            {(pullDistance > 0 || refreshing) && <div className="flex items-center justify-center overflow-hidden text-muted-foreground" style={{ height: refreshing ? 44 : pullDistance }} aria-live="polite"><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} /><span className="sr-only">{refreshing ? 'Refreshing campus feed' : 'Pull down to refresh campus feed'}</span></div>}
-            <div className="mx-auto w-full max-w-2xl space-y-2.5 sm:space-y-4">
-              <div className="relative overflow-hidden border-y border-slate-200/80 bg-gradient-to-br from-white via-white to-emerald-50/70 p-3 shadow-sm sm:rounded-2xl sm:border sm:p-4">
-                <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-emerald-300 via-teal-500 to-emerald-200" aria-hidden="true" />
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 border border-emerald-100">
-                    {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
-                    <AvatarFallback className="bg-emerald-100 text-sm font-bold text-emerald-800">{user ? initials(user.profile?.full_name || user.email || 'You') : 'U'}</AvatarFallback>
-                  </Avatar>
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="min-h-11 flex-1 rounded-full bg-muted px-4 text-left text-sm text-muted-foreground transition hover:bg-muted/80">Share a campus moment…</button>
+        <section ref={timelineRef} className="mx-auto min-w-0 w-full max-w-[40rem] scroll-mt-[4.3rem]" aria-labelledby="campus-community-heading">
+          <div className="border-b border-border bg-card sm:overflow-hidden sm:rounded-2xl sm:border">
+            <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-3.5 py-4 min-[375px]:px-4 sm:px-6 sm:py-5">
+              <div className="pointer-events-none absolute -right-12 -top-20 h-52 w-52 rounded-full border border-primary/15 before:absolute before:inset-4 before:rounded-full before:border before:border-primary/10 after:absolute after:inset-9 after:rounded-full after:border after:border-primary/10" aria-hidden="true" />
+              <div className="relative flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.18em] text-primary sm:text-[11px]"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" /> Campus life</p>
+                  <h1 id="campus-community-heading" className="mt-1 text-[clamp(1.35rem,6vw,2rem)] font-extrabold leading-none tracking-tight">Campus feed</h1>
                 </div>
-                <div className="mt-3 flex items-center gap-2 border-t border-slate-200/70 pt-2">
-                  <button type="button" onClick={() => user ? setPostOpen(true) : window.location.assign('/signin?next=%2F')} className="flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-2 rounded-full text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-900"><ImagePlus className="h-5 w-5 text-emerald-700" />Photo or video</button>
-                  <span className="hidden text-xs text-slate-400 sm:inline">Share a little campus life</span>
+                <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+                  {user && <Link href="/community/saved" aria-label="Saved posts" title="Saved posts" className="grid h-11 w-11 place-items-center rounded-full border border-border bg-card/80 transition hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><Bookmark className="h-5 w-5" /></Link>}
+                  <Button type="button" onClick={openComposer} disabled={authLoading} className="min-h-11 gap-1.5 rounded-full px-3 text-sm font-bold sm:px-4"><Plus className="h-[18px] w-[18px] shrink-0" /><span>Post</span></Button>
                 </div>
               </div>
-              {loading && posts.length === 0 ? <div className="flex min-h-64 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-5 w-5 animate-spin text-emerald-700" />Loading campus moments…</div>
-                : loadError && posts.length === 0 ? <div className="flex min-h-64 flex-col items-center justify-center rounded-2xl border bg-white px-6 text-center"><CircleAlert className="h-9 w-9 text-amber-600" /><h2 className="mt-4 text-lg font-semibold">The feed didn’t load</h2><p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">Your account is safe. Check your connection and try again.</p><Button variant="outline" onClick={() => void loadPage(false)} className="mt-5 min-h-11 rounded-full"><RefreshCw className="mr-2 h-4 w-4" />Try again</Button></div>
-                  : posts.length === 0 ? <div className="flex min-h-72 flex-col items-center justify-center rounded-2xl border bg-white px-6 py-10 text-center shadow-sm"><div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-700"><ImagePlus className="h-7 w-7" /></div><h2 className="mt-4 text-xl font-bold text-slate-900">Your campus community starts here</h2><p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">There aren’t any posts in this feed yet. Share a genuine photo or video from campus—no sample posts or made-up activity.</p>{canPost ? <Button onClick={() => setPostOpen(true)} className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Plus className="mr-2 h-4 w-4" />Share the first moment</Button> : <Button asChild className="mt-5 min-h-11 rounded-full bg-emerald-700 px-5 hover:bg-emerald-800"><Link href="/signup">Join UniEco Ghana</Link></Button>}<Link href="/universities" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800 hover:underline">Browse universities<ArrowUpRight className="h-4 w-4" /></Link></div>
-                    : <>{(showingCachedPosts || loadError) && <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-950" role="status"><span>{loadError ? 'Connection unavailable. Showing recent posts saved on this device.' : 'Showing recent posts while we refresh the feed.'}</span>{loadError && <button type="button" onClick={() => void loadPage(false)} className="min-h-9 shrink-0 px-2 font-semibold underline underline-offset-2">Retry</button>}</div>}{posts.map((post) => <CommunityPostCard key={post.id} post={post} active={activePostId === post.id} socialState={socialByPost[post.id] ?? emptyCommunitySocialState} onSocialChange={(next) => setSocialByPost((current) => ({ ...current, [post.id]: next }))} onReport={() => handleReportClick(post)} onDelete={() => { const remaining = posts.filter((item) => item.id !== post.id); setPosts(remaining); setSocialByPost((current) => { const next = { ...current }; delete next[post.id]; return next; }); writeCachedFeed(feedCacheKey, remaining); if (activePostId === post.id) { setActivePostId(null); setPostOpen(false); } }} />)}
-                      {loadingMore && <div className="flex min-h-20 items-center justify-center rounded-2xl border bg-white text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Loading more posts…</div>}
-                      {loadMoreError && <div className="rounded-2xl border bg-white p-5 text-center text-sm text-muted-foreground" role="status"><p>Couldn’t load the next posts. The posts already here are safe.</p><button type="button" onClick={() => void loadPage(true)} className="mt-2 min-h-10 px-3 font-semibold text-emerald-800 hover:underline">Try again</button></div>}
-                      {!hasMore && posts.length > 0 && <div className="py-5 text-center text-sm text-muted-foreground">You’re all caught up.</div>}
-                    </>}
             </div>
+            <div className="flex items-center gap-1.5 px-3 py-2 min-[375px]:px-4 sm:gap-3 sm:px-6">
+              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Choose a feed">
+                {scopes.map(({ id, label }) => <button type="button" key={id} onClick={() => changeScope(id)} aria-pressed={scope === id}
+                  className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring min-[375px]:px-3 sm:px-4 sm:text-sm ${scope === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>{label}</button>)}
+              </div>
+              <button type="button" onClick={refresh} disabled={refreshing || loadingView} aria-label="Refresh feed" title="Refresh feed" className="grid h-11 w-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><RefreshCw className={`h-[17px] w-[17px] ${refreshing ? 'motion-safe:animate-spin' : ''}`} /></button>
+            </div>
+          </div>
+
+          <div className="border-b border-border bg-card px-3 pb-3 pt-4 sm:mt-3 sm:rounded-2xl sm:border sm:px-5 sm:pb-4">
+            <div className="flex items-baseline justify-between gap-2 px-1">
+              <h2 className="text-sm font-bold">Campus moments</h2>
+              {moments.length > 0 && <p className="shrink-0 text-[11px] font-medium text-muted-foreground">From the feed</p>}
+            </div>
+            <div className="-mx-1 mt-2 flex snap-x gap-2 overflow-x-auto px-1 pb-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
+              <button type="button" onClick={openComposer} disabled={authLoading} className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span className="relative grid h-[3.6rem] w-[3.6rem] place-items-center rounded-full border border-dashed border-primary/55 bg-primary/10 transition group-hover:bg-primary/15">
+                  {user?.profile?.avatar_url ? <Avatar className="h-12 w-12"><AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" /><AvatarFallback className="bg-primary/10 text-primary"><ImagePlus className="h-5 w-5" /></AvatarFallback></Avatar> : <ImagePlus className="h-6 w-6 text-primary" />}
+                  <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"><Plus className="h-3.5 w-3.5" /></span>
+                </span>
+                <span>New moment</span>
+              </button>
+              {moments.map((post) => <button key={post.id} type="button" onClick={() => focusPost(post.id)} aria-label={`Go to ${post.author_name}’s ${post.media_type === 'image' ? 'photo' : 'video'}`}
+                className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span className="relative rounded-full bg-gradient-to-tr from-amber-400 via-emerald-500 to-teal-600 p-[2px] transition group-hover:brightness-110">
+                  <Avatar className="h-[3.35rem] w-[3.35rem] border-[3px] border-card">
+                    <AvatarImage src={getPublicAvatarUrl(post.author_avatar_url)} alt="" loading="lazy" />
+                    <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{initials(post.author_name)}</AvatarFallback>
+                  </Avatar>
+                  {post.media_type === 'video' && <span className="absolute bottom-0 right-0 grid h-[17px] w-[17px] place-items-center rounded-full bg-card text-primary ring-1 ring-border"><Play className="ml-px h-2.5 w-2.5 fill-current" /></span>}
+                </span>
+                <span className="w-full truncate px-0.5">{post.author_name}</span>
+              </button>)}
+              {!moments.length && <p className="my-auto max-w-xs px-1 text-xs leading-5 text-muted-foreground">Share a photo or a short video from campus.</p>}
+            </div>
+          </div>
+
+          <div className="divide-y divide-border sm:mt-3 sm:space-y-3 sm:divide-y-0">
+            {(showingCachedPosts || loadError) && visiblePosts.length > 0 && <div className="flex items-center justify-between gap-2 bg-muted/70 px-4 py-2 text-xs text-muted-foreground sm:rounded-xl" role="status">
+              <span>{loadError ? 'Couldn’t refresh. Showing recent posts.' : 'Refreshing recent posts…'}</span>
+              {loadError && <button type="button" onClick={refresh} className="min-h-11 shrink-0 px-2 font-semibold text-primary">Retry</button>}
+            </div>}
+            {linkedPostMissing && <p className="bg-muted/70 px-4 py-3 text-sm text-muted-foreground sm:rounded-xl" role="status">That post is no longer available.</p>}
+            {loadingView && !visiblePosts.length ? <FeedSkeleton />
+              : loadError && !visiblePosts.length ? <div className="flex min-h-52 flex-col items-center justify-center gap-2 bg-card px-5 text-center sm:rounded-2xl sm:border">
+                <CircleAlert className="h-7 w-7 text-muted-foreground" /><h2 className="font-semibold">Couldn’t load the feed</h2>
+                <Button variant="outline" onClick={refresh} className="mt-2 min-h-11 rounded-full">Try again</Button>
+              </div>
+              : !visiblePosts.length ? <div className="flex min-h-56 flex-col items-center justify-center gap-2 bg-card px-5 text-center sm:rounded-2xl sm:border">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">{scope === 'following' ? <UsersRound className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}</span>
+                <h2 className="mt-1 text-lg font-bold">{scope === 'following' ? 'Nothing from your follows yet' : 'No posts here yet'}</h2>
+                <p className="max-w-xs text-sm leading-6 text-muted-foreground">{scope === 'following' ? 'Find people in Across Ghana and follow the ones you’d like to see here.' : 'Share a moment, or see what’s happening across Ghana.'}</p>
+                {scope !== 'all' ? <Button type="button" variant="outline" className="mt-2 min-h-11 rounded-full" onClick={() => changeScope('all')}>Browse Across Ghana</Button>
+                  : <Button type="button" onClick={openComposer} disabled={authLoading} className="mt-2 min-h-11 rounded-full">Create a post</Button>}
+              </div>
+              : visiblePosts.map((post) => <CommunityPostCard key={post.id} post={post} priority={leadPhoto === post.id}
+                socialState={socialByPost[post.id] ?? (scope === 'following' && post.id !== linkedPostId ? followingSocialState : emptyCommunitySocialState)}
+                onSocialChange={(next, kind) => {
+                  if (mountedKey.current !== viewKey) return;
+                  const revision = ++socialRevision.current;
+                  socialChanges.current[post.id] = { ...socialChanges.current[post.id], [kind]: revision };
+                  if (kind === 'follow') for (const entry of posts) {
+                    if (entry.author_id === post.author_id) socialChanges.current[entry.id] = { ...socialChanges.current[entry.id], follow: revision };
+                  }
+                  setSocialByPost((current) => {
+                    const updated = { ...current, [post.id]: next };
+                    if (kind === 'follow') for (const entry of posts) {
+                      if (entry.author_id === post.author_id && entry.id !== post.id) updated[entry.id] = { ...emptyCommunitySocialState, ...updated[entry.id], following_author: next.following_author };
+                    }
+                    return updated;
+                  });
+                  if (kind === 'follow' && scope === 'following' && !next.following_author) setPosts((current) => current.filter((item) => item.author_id !== post.author_id));
+                }}
+                onReport={() => handleReportClick(post)}
+                onDelete={() => {
+                  const remaining = posts.filter((item) => item.id !== post.id);
+                  setPosts(remaining);
+                  setSocialByPost((current) => { const next = { ...current }; delete next[post.id]; return next; });
+                  if (scope !== 'following' && !linkedPostId) writeCachedFeed(feedCacheKey, remaining.slice(0, PAGE_SIZE));
+                  if (linkedPostId === post.id) setLinkedPostMissing(true);
+                }} />)}
+            {hasMore && !loadError && <div ref={nextPageRef} className="py-5 text-center text-sm text-muted-foreground">
+              {loadingMore ? <p role="status" className="flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 motion-safe:animate-spin" />Loading more…</p>
+                : <Button type="button" variant="outline" onClick={() => void loadPage(true)} className="min-h-11 rounded-full">{loadMoreError ? 'Retry loading more' : 'Load more posts'}</Button>}
+            </div>}
+            {!hasMore && !loadError && visiblePosts.length > 0 && <div className="flex items-center justify-center gap-2 px-4 py-6 text-xs font-medium text-muted-foreground"><CheckCircle2 className="h-4 w-4 text-primary" />You’re all caught up.</div>}
           </div>
         </section>
 
-        <aside className="hidden flex-col gap-4 p-6 xl:flex">
-          <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"><MapPin className="h-5 w-5" /></div><h2 className="mt-4 font-bold text-slate-900">Your campus, your people</h2><p className="mt-2 text-sm leading-6 text-slate-600">{hasUniversity ? 'Your feed is automatically focused on your university. Change your campus anytime in your profile.' : 'Add your university to your profile and your feed will focus on the people and moments from your campus.'}</p>{!hasUniversity && <Link href="/profile" className="mt-3 inline-flex min-h-10 items-center gap-1 text-sm font-semibold text-emerald-800">Add your university<ArrowUpRight className="h-4 w-4" /></Link>}</div>
-          <div className="rounded-2xl border bg-white p-5 shadow-sm"><div className="flex items-center gap-2 font-bold text-slate-900"><ShieldCheck className="h-5 w-5 text-emerald-700" />A safer campus feed</div><p className="mt-2 text-sm leading-6 text-slate-600">Every post is tied to an active UniEco account. Use the report control if something feels unsafe or inappropriate.</p></div>
-          <Link href="/updates" className="flex min-h-12 items-center justify-between rounded-xl border bg-white px-4 text-sm font-semibold text-slate-800 transition hover:border-emerald-200 hover:text-emerald-800"><span>Official campus updates</span><ArrowUpRight className="h-4 w-4" /></Link>
+        <aside className="hidden lg:block" aria-label="More from UniEco">
+          <div className="sticky top-24 space-y-4">
+            <div className="rounded-2xl border border-border bg-card px-4 py-5">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-5 w-5" /></span>
+              <h2 className="mt-3 text-base font-bold">Your campus, your people</h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{hasUniversity ? 'See what members at your school are sharing.' : 'Choose your school in your profile to see a feed just for your campus.'}</p>
+              {hasUniversity ? <button type="button" onClick={() => changeScope('university')} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">View My campus <ArrowUpRight className="h-4 w-4" /></button>
+                : <Link href={user ? '/profile' : '/signup'} className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-primary hover:underline">{user ? 'Choose your school' : 'Join UniEco'} <ArrowUpRight className="h-4 w-4" /></Link>}
+            </div>
+            <div className="rounded-2xl border border-border bg-card p-2 xl:hidden">
+              <FeedRailLink href="/universities" icon={Building2}>Find a university</FeedRailLink>
+              <FeedRailLink href="/updates" icon={Newspaper}>Campus updates</FeedRailLink>
+              <FeedRailLink href="/events" icon={CalendarDays}>Upcoming events</FeedRailLink>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 px-2 text-xs leading-6 text-muted-foreground">
+              <Link href="/privacy-policy" className="hover:text-foreground hover:underline">Privacy</Link><Link href="/terms-of-service" className="hover:text-foreground hover:underline">Terms</Link>
+              <span className="w-full">UniEco Ghana</span>
+            </div>
+          </div>
         </aside>
       </div>
 
       <Dialog open={postOpen} onOpenChange={closePostDialog}>
-        <DialogContent className="max-h-[min(90dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 sm:max-w-xl sm:p-6">
-          <DialogHeader><DialogTitle>Share a campus moment</DialogTitle><DialogDescription>Share a moment with your campus community.</DialogDescription></DialogHeader>
-          <form onSubmit={submitPost} className="space-y-4">
-            <label className="block text-sm font-semibold" htmlFor="community-media">Photo or video <span className="font-normal text-muted-foreground">(up to 50 MB)</span></label>
-            <input id="community-media" type="file" accept="image/*,video/*,.mov,.m4v,.qt,.ogv,.ogg,.avi,.mkv,.3gp,.3g2,.mpeg,.mpg,.mts,.m2ts,.ts,.vob,.wmv,.asf,.flv,.f4v,.mxf,.rm,.rmvb,.amv" disabled={uploading} onChange={(event) => setMediaFile(event.target.files?.[0] || null)} className="block min-h-12 w-full cursor-pointer rounded-xl border border-input bg-background text-sm file:mr-3 file:h-12 file:border-0 file:bg-emerald-50 file:px-4 file:font-semibold file:text-emerald-800" />
-            {mediaFile && <p className="-mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Paperclip className="h-4 w-4 shrink-0" />{selectedVideo ? 'Video selected' : mediaFile.type.startsWith('image/') ? 'Photo selected' : 'File selected'} · {readableSize(mediaFile.size)}</p>}
-            {mediaFile && !selectedVideo && (!PREVIEW_MEDIA.has(mediaFile.type) || mediaFile.size > MAX_PREVIEW_MEDIA_BYTES) && <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
-              This file will be downloadable in your post.
-            </p>}
-            {previewUrl && mediaFile && !selectedVideo && mediaFile.type.startsWith('image/') && mediaFile.size <= MAX_PREVIEW_MEDIA_BYTES && <img src={previewUrl} alt="Preview of your campus post" className="max-h-72 w-full rounded-xl bg-muted object-contain" />}
-            <label className="block text-sm font-semibold" htmlFor="community-caption">Caption <span className="font-normal text-muted-foreground">(optional, up to 500 characters)</span></label>
-            <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="What’s happening on campus?" disabled={uploading} />
-            <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Keep private information out of your post.</span><span>{caption.length}/500</span></div>
-            {uploading && uploadProgress !== null && <div className="space-y-1.5" role="status" aria-live="polite"><div className="flex justify-between text-xs text-muted-foreground"><span>{uploadStage || 'Uploading securely…'}</span><span>{uploadProgress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-emerald-600 transition-[width] duration-300" style={{ width: `${uploadProgress}%` }} /></div><p className="text-xs text-muted-foreground">Upload resumes automatically after brief connection interruptions.</p></div>}
-            {uploading && uploadProgress === null && <p className="text-xs text-muted-foreground" role="status" aria-live="polite">{uploadStage || 'Working…'}</p>}
-            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full rounded-xl bg-[#079b68] hover:bg-[#07855b] sm:w-auto">{uploading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Please wait…</> : <><Send className="mr-2 h-4 w-4" />Publish post</>}</Button></DialogFooter>
+        <DialogContent onCloseAutoFocus={(event) => { if (composerOrigin.current?.isConnected) { event.preventDefault(); composerOrigin.current.focus(); } }}
+          onOpenAutoFocus={(event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus(); }}
+          className="max-h-[min(92dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg sm:p-6">
+          <DialogHeader className="pr-10"><DialogTitle className="text-xl">New campus post</DialogTitle><DialogDescription>Share a campus moment.</DialogDescription></DialogHeader>
+          <form onSubmit={submitPost} className="space-y-4" aria-busy={uploading}>
+            <div>
+              <input ref={fileInputRef} id="community-media" type="file" accept="image/*,video/*,.mov,.m4v,.qt,.ogv,.ogg,.avi,.mkv,.3gp,.3g2,.mpeg,.mpg,.mts,.m2ts,.ts,.vob,.wmv,.asf,.flv,.f4v,.mxf,.rm,.rmvb,.amv"
+                disabled={uploading} onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = '';
+                  if (!file) return;
+                  if (!file.size || file.size > MAX_ATTACHMENT_BYTES) { toast.error('Choose a photo or video up to 50 MB.'); return; }
+                  setPreviewFailed(false);
+                  setMediaFile(file);
+                }} className="peer sr-only" />
+              {!mediaFile ? <label htmlFor="community-media" className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-primary/40 bg-primary/5 px-3 py-5 text-center transition hover:bg-primary/10 peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
+                <span className="mb-1 grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><ImagePlus className="h-5 w-5" /></span>
+                <span className="text-sm font-semibold">Add a photo or video</span><span className="text-xs text-muted-foreground">Up to 50 MB</span>
+              </label> : <div className="overflow-hidden rounded-2xl border border-border peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
+                {previewUrl && !previewFailed && (selectedVideo ? <video key={previewUrl} src={previewUrl} controls playsInline muted preload="metadata" aria-label="Preview of your video" onError={() => setPreviewFailed(true)} className="block max-h-[34dvh] w-full bg-neutral-950 object-contain" />
+                  : mediaFile.type.startsWith('image/') && <img src={previewUrl} alt="Preview of your photo" onError={() => setPreviewFailed(true)} className="block max-h-[34dvh] w-full bg-muted object-contain" />)}
+                <div className="flex min-w-0 items-center gap-2 bg-muted/40 p-2 pl-3">
+                  {selectedVideo ? <Film className="h-[18px] w-[18px] shrink-0 text-primary" /> : <FileText className="h-[18px] w-[18px] shrink-0 text-primary" />}
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold" title={mediaFile.name}>{mediaFile.name}</p><p className="text-xs text-muted-foreground">{readableSize(mediaFile.size)}</p>
+                  </div>
+                  {!uploading && <><label htmlFor="community-media" className="inline-flex min-h-11 cursor-pointer items-center px-1.5 text-xs font-semibold text-primary hover:underline">Change</label>
+                    <button type="button" aria-label="Remove selected file" onClick={() => { if (fileInputRef.current) fileInputRef.current.value = ''; setMediaFile(null); setPreviewFailed(false); }} className="grid h-11 w-11 shrink-0 place-items-center rounded-full hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><X className="h-4 w-4" /></button></>}
+                </div>
+                {!selectedVideo && !canDisplayInline(mediaFile) && <p className="px-3 py-2 text-xs text-muted-foreground">This file will be shared as an attachment.</p>}
+              </div>}
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold" htmlFor="community-caption">Caption</label>
+              <Textarea id="community-caption" value={caption} onChange={(event) => setCaption(event.target.value.slice(0, 500))} maxLength={500} rows={3} placeholder="Write a caption…" disabled={uploading} className="resize-none rounded-xl text-base sm:text-sm" />
+              <p className="flex justify-between text-xs text-muted-foreground"><span>Public post</span><span>{caption.length}/500</span></p>
+            </div>
+            {uploading && <div className="space-y-1.5" role="status" aria-live="polite">
+              <div className="flex justify-between text-xs font-medium text-muted-foreground"><span>{uploadStage || 'Posting…'}</span>{uploadProgress !== null && <span>{uploadProgress}%</span>}</div>
+              {uploadProgress !== null && <progress max={100} value={uploadProgress} aria-label="Upload progress" className="block h-2 w-full overflow-hidden rounded-full accent-primary" />}
+            </div>}
+            <DialogFooter><Button type="submit" disabled={uploading || (!mediaFile && !caption.trim())} className="min-h-11 w-full gap-2 rounded-full">{uploading && <Loader2 className="h-4 w-4 motion-safe:animate-spin" />}{uploading ? 'Posting…' : 'Share post'}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
@@ -727,332 +874,45 @@ export function CampusCommunityFeed() {
   );
 }
 
-export function CommunityPostCard({ post, active = false, socialState = emptyCommunitySocialState, onSocialChange, onReport, onDelete }: {
+export function CommunityPostCard({ post, priority = false, socialState = emptyCommunitySocialState, onSocialChange, onReport, onDelete }: {
   post: CommunityPost;
-  active?: boolean;
+  priority?: boolean;
   socialState?: CommunitySocialState;
-  onSocialChange?: (state: CommunitySocialState) => void;
+  onSocialChange?: (state: CommunitySocialState, kind: CommunityMutation) => void;
   onReport?: () => void;
   onDelete?: () => void;
 }) {
+  const { user } = useAuth();
   const avatar = getPublicAvatarUrl(post.author_avatar_url);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoState, setVideoState] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [videoFailure, setVideoFailure] = useState<'network' | 'decode' | 'unsupported' | 'unknown' | null>(null);
-  const [videoMuted, setVideoMuted] = useState(true);
-  const [reducedData, setReducedData] = useState(false);
-  const [imageFailed, setImageFailed] = useState(false);
-  const [fileInfo, setFileInfo] = useState<{ path: string; name: string; size: number } | null>(null);
-  const [fileLoading, setFileLoading] = useState(false);
-  const [fileError, setFileError] = useState(false);
-  const [fileChecking, setFileChecking] = useState(false);
-  const [fileLookupAttempt, setFileLookupAttempt] = useState(0);
-  const [privateVideoUrl, setPrivateVideoUrl] = useState<string | null>(null);
-  const [privateVideoLoading, setPrivateVideoLoading] = useState(false);
-  const [privateVideoAttempted, setPrivateVideoAttempted] = useState(false);
-  const [preparedLegacyVideoUrl, setPreparedLegacyVideoUrl] = useState<string | null>(null);
-  const [preparingLegacyVideo, setPreparingLegacyVideo] = useState(false);
-  const legacyPrepareAttemptedRef = useRef(false);
-  const networkRetryCountRef = useRef(0);
-
-  const prepareLegacyVideoForPlayback = useCallback(() => {
-    if (legacyPrepareAttemptedRef.current) return;
-    legacyPrepareAttemptedRef.current = true;
-    setPreparingLegacyVideo(true);
-    setFileError(false);
-    setVideoState('loading');
-    const url = `/api/community/video/prepare?postId=${encodeURIComponent(post.id)}`;
-    void withRequestTimeout(VIDEO_PREPARATION_TIMEOUT_MS, async (signal) => {
-      const response = await fetch(url, {
-        credentials: 'same-origin',
-        // Reuse a successfully prepared legacy video on this device when the
-        // viewer revisits it. Private attachments remain no-store at the route.
-        cache: 'force-cache',
-        signal,
-      });
-      if (!response.ok) throw new Error('The video could not be prepared for this device.');
-      return response.blob();
-    }).then((mp4) => {
-      if (!mp4.size || mp4.type !== 'video/mp4') throw new Error('The prepared video was invalid.');
-      // iOS Safari is unreliable with an on-demand, chunked MP4 response that
-      // has no byte-range metadata. Buffer the bounded prepared file and hand
-      // the player a local URL so it can seek and decode it like a normal post.
-      setPreparedLegacyVideoUrl(URL.createObjectURL(mp4));
-    }).catch(() => {
-      setPreparingLegacyVideo(false);
-      if (post.media_type === 'file') setFileError(true);
-      else {
-        setVideoFailure('network');
-        setVideoState('error');
-      }
-    });
-  }, [post.id, post.media_type]);
-
-  useEffect(() => {
-    if (!active || post.media_type !== 'file' || !fileInfo || !canPlayPrivateVideoInline(fileInfo)
-      || privateVideoUrl || privateVideoLoading || privateVideoAttempted) return;
-    setPrivateVideoAttempted(true);
-    setPrivateVideoLoading(true);
-    void supabase.storage.from('campus-community-files').createSignedUrl(fileInfo.path, 10 * 60)
-      .then(({ data, error }) => {
-        if (error || !data?.signedUrl) {
-          setFileError(true);
-          return;
-        }
-        setPrivateVideoUrl(data.signedUrl);
-      })
-      .catch(() => setFileError(true))
-      .finally(() => setPrivateVideoLoading(false));
-  }, [active, post.media_type, fileInfo, privateVideoUrl, privateVideoLoading, privateVideoAttempted, prepareLegacyVideoForPlayback]);
-
-  useEffect(() => {
-    if (!active || post.media_type !== 'file' || fileInfo) return;
-    let cancelled = false;
-    setFileChecking(true);
-    void (async () => {
-      try {
-        const info = await getCommunityFileInfo(post.id);
-        if (!cancelled) {
-          setFileInfo(info);
-          setFileError(false);
-        }
-      } catch {
-        if (!cancelled) setFileError(true);
-      } finally {
-        if (!cancelled) setFileChecking(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [active, post.id, post.media_type, fileInfo, fileLookupAttempt]);
-
-  useEffect(() => {
-    const connection = (navigator as Navigator & { connection?: NetworkInformationLike }).connection;
-    const update = () => setReducedData(Boolean(connection?.saveData || ['slow-2g', '2g', '3g'].includes(connection?.effectiveType || '')));
-    update();
-    connection?.addEventListener?.('change', update);
-    return () => connection?.removeEventListener?.('change', update);
-  }, []);
-
-  useEffect(() => () => {
-    if (preparedLegacyVideoUrl?.startsWith('blob:')) URL.revokeObjectURL(preparedLegacyVideoUrl);
-  }, [preparedLegacyVideoUrl]);
-
-  useEffect(() => {
-    if (!preparedLegacyVideoUrl || post.media_type !== 'video') return;
-    const video = videoRef.current;
-    if (!video) return;
-    video.load();
-    void video.play().catch(() => undefined);
-  }, [preparedLegacyVideoUrl, post.media_type]);
-
-  const downloadAttachment = async () => {
-    if (fileLoading) return;
-    setFileLoading(true);
-    setFileError(false);
-    try {
-      let attachment = fileInfo;
-      if (!attachment) {
-        attachment = await getCommunityFileInfo(post.id);
-        setFileInfo(attachment);
-      }
-      const { data, error } = await supabase.storage.from('campus-community-files').createSignedUrl(attachment.path, 60, { download: attachment.name });
-      if (error || !data?.signedUrl) throw error || new Error('Attachment link unavailable');
-      window.location.assign(data.signedUrl);
-    } catch {
-      setFileError(true);
-      toast.error('This attachment is not available right now. Please try again.');
-    } finally {
-      setFileLoading(false);
-    }
-  };
-
-  const retryAttachmentLookup = () => {
-    setFileError(false);
-    setFileInfo(null);
-    setPrivateVideoUrl(null);
-    setPrivateVideoAttempted(false);
-    setFileChecking(true);
-    setFileLookupAttempt((attempt) => attempt + 1);
-  };
-
-  const resolvingPrivateAttachment = active && !fileInfo && !fileError;
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    video.muted = videoMuted;
-    if (active && !reducedData) {
-      void video.play().catch(() => {
-        // Autoplay can be blocked by device policy even when the file is healthy.
-        if (!video.error) setVideoState('ready');
-      });
-    } else {
-      video.pause();
-    }
-  }, [active, reducedData, privateVideoUrl, preparedLegacyVideoUrl, videoMuted]);
-
-  const toggleVideoMuted = () => {
-    const nextMuted = !videoMuted;
-    setVideoMuted(nextMuted);
-    if (videoRef.current) videoRef.current.muted = nextMuted;
-  };
-
-  const retryVideo = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    legacyPrepareAttemptedRef.current = false;
-    networkRetryCountRef.current = 0;
-    setVideoState('loading');
-    setVideoFailure(null);
-    if (preparedLegacyVideoUrl) {
-      setPreparedLegacyVideoUrl(null);
-      void prepareLegacyVideoForPlayback();
-      return;
-    }
-    video.load();
-    if (active && !reducedData) void video.play().catch(() => {
-      if (!video.error) setVideoState('ready');
-    });
-  };
+  const memberHref = `/community/member/${post.author_id}`;
 
   return (
-    <article data-post-id={post.id} className="overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border">
-      <header className="flex items-center gap-3 px-4 py-3 sm:px-5">
-        <Link href={`/community/member/${post.author_id}`} aria-label={`View ${post.author_name}'s profile`} className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-emerald-100 text-sm font-bold text-emerald-800">
-          {avatar ? <img src={avatar} alt="" loading="lazy" className="h-full w-full object-cover" /> : initials(post.author_name)}
-        </Link>
-        <div className="min-w-0 flex-1">
-          <Link href={`/community/member/${post.author_id}`} className="block truncate text-sm font-bold text-slate-900 hover:underline">{post.author_name}</Link>
-          <p className="mt-0.5 flex min-w-0 items-center gap-1 truncate text-xs text-slate-500">
-            <span>{friendlyRole(post.author_role)}</span>
-            {post.university_name && <><span aria-hidden="true">·</span><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{post.university_name}</span></>}
-            <span aria-hidden="true">·</span>
-            <time dateTime={post.created_at} title={new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}>{formatFeedTimestamp(post.created_at)}</time>
-          </p>
-        </div>
-        {post.university_slug && <Link href={`/university/${post.university_slug}`} aria-label={`View ${post.university_name}`} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-emerald-800"><ArrowUpRight className="h-5 w-5" /></Link>}
-        {onReport && <button type="button" onClick={onReport} aria-label="Report post" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-rose-700"><Flag className="h-5 w-5" /></button>}
-      </header>
-
-      {post.caption && <p className="whitespace-pre-wrap break-words px-4 pb-3 text-sm leading-6 text-slate-800 sm:px-5">{post.caption}</p>}
-
-      {post.media_type === 'text' ? (
-        <div className="border-t bg-slate-50 px-4 py-5 text-sm text-slate-500 sm:px-5">Text post</div>
-      ) : post.media_type === 'file' ? (
-        <div className="border-t border-slate-200/70 bg-black">
-          {(fileChecking || resolvingPrivateAttachment) && (
-            <div className="mx-auto flex aspect-[9/16] max-h-[72dvh] w-full max-w-xl flex-col items-center justify-center gap-3 bg-black px-5 text-center text-white" role="status">
-              <Loader2 className="h-8 w-8 animate-spin text-emerald-300" />
-              <p className="text-sm font-medium">Loading campus video…</p>
+    <article id={`campus-post-${post.id}`} data-post-id={post.id} tabIndex={-1} aria-label={`Post by ${post.author_name}`}
+      className="scroll-mt-20 overflow-hidden border-b border-border bg-card text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:rounded-2xl sm:border">
+      <CommunityPostActions postId={post.id} authorId={post.author_id} authorName={post.author_name} caption={post.caption} textOnly={post.media_type === 'text'}
+        initialState={socialState} onStateChange={onSocialChange} onReport={onReport} onDelete={onDelete}
+        renderHeader={(menu) => (
+          <header className="flex min-h-16 items-center gap-2.5 px-3 py-2 sm:px-4">
+            <Link href={memberHref} aria-label={`View ${post.author_name}’s profile`} className="shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring">
+              <Avatar className="h-10 w-10 border border-border">
+                {avatar && <AvatarImage src={avatar} alt="" />}
+                <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{initials(post.author_name)}</AvatarFallback>
+              </Avatar>
+            </Link>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 items-baseline gap-1.5">
+                <Link href={memberHref} className="truncate text-sm font-bold hover:underline">{post.author_name}</Link>
+                <span aria-hidden="true" className="text-xs text-muted-foreground">·</span>
+                <time className="shrink-0 text-xs text-muted-foreground" dateTime={post.created_at} title={new Intl.DateTimeFormat('en-GH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(post.created_at))}>{formatFeedTimestamp(post.created_at)}</time>
+              </div>
+              {post.university_name && post.university_slug ? <Link href={`/university/${post.university_slug}`} className="block truncate text-xs text-muted-foreground hover:text-foreground hover:underline">{post.university_name}</Link>
+                : <p className="truncate text-xs text-muted-foreground">{post.university_name || friendlyRole(post.author_role)}</p>}
             </div>
-          )}
-          {fileInfo && canPlayPrivateVideoInline(fileInfo) ? (
-            <div className="relative mx-auto flex aspect-[9/16] max-h-[72dvh] w-full max-w-xl items-center justify-center bg-black">
-                {preparedLegacyVideoUrl || privateVideoUrl ? <video ref={videoRef} src={preparedLegacyVideoUrl || privateVideoUrl || undefined} controls playsInline autoPlay muted loop preload={active ? 'auto' : 'metadata'} aria-label={`Video shared by ${post.author_name}`} className="block h-full max-h-[72dvh] w-full object-contain" onLoadedData={() => { setPreparingLegacyVideo(false); setFileError(false); }} onPlaying={() => { setPreparingLegacyVideo(false); setFileError(false); }} onError={(event) => {
-                  if (preparedLegacyVideoUrl) { setPreparingLegacyVideo(false); setPreparedLegacyVideoUrl(null); setFileError(true); return; }
-                  setPrivateVideoUrl(null);
-                  const code = event.currentTarget.error?.code;
-                  // Play compatible originals directly. Transcode only when the
-                  // browser confirms it cannot decode the source; network errors
-                  // should be retried, not turned into a slow conversion job.
-                  if ([3, 4].includes(code || 0) && !legacyPrepareAttemptedRef.current) {
-                    void prepareLegacyVideoForPlayback();
-                  } else setFileError(true);
-                }} /> : (
-                  <div className="flex flex-col items-center gap-3 px-5 py-8 text-center text-white">
-                    {privateVideoLoading ? <Loader2 className="h-8 w-8 animate-spin" /> : <Play className="h-9 w-9 text-emerald-300" />}
-                    <p className="text-sm font-medium">{preparingLegacyVideo ? 'Adapting this older video for your device…' : privateVideoLoading ? 'Loading campus video…' : fileError ? 'This video could not load. Tap to retry.' : 'Loading campus video…'}</p>
-                    {fileError && <Button type="button" variant="outline" onClick={() => { legacyPrepareAttemptedRef.current = false; setFileError(false); setPreparedLegacyVideoUrl(null); setPrivateVideoAttempted(false); }} disabled={privateVideoLoading || preparingLegacyVideo} className="min-h-10 touch-manipulation rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">Try again</Button>}
-                  </div>
-                )}
-                {preparingLegacyVideo && (preparedLegacyVideoUrl || privateVideoUrl) && <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-sm font-medium text-white" role="status"><Loader2 className="h-7 w-7 animate-spin text-emerald-300" />Adapting this older video…</div>}
-            </div>
-          ) : fileChecking || resolvingPrivateAttachment ? null : (
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-white p-4">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><FileText className="h-5 w-5" /></div>
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{fileInfo?.name || (fileError ? 'Attachment unavailable' : 'Campus attachment')}</p><p className="text-xs text-slate-500">{fileInfo ? readableSize(fileInfo.size) : fileError ? 'The private attachment could not be reached.' : fileChecking ? 'Checking secure attachment…' : 'Secure attachment · private by default'}</p></div>
-              {fileError && <Button type="button" variant="outline" onClick={retryAttachmentLookup} disabled={fileChecking || fileLoading} className="min-h-11 shrink-0 touch-manipulation rounded-full">Try again</Button>}
-              <Button type="button" variant="ghost" onClick={() => void downloadAttachment()} disabled={fileLoading} aria-label={fileLoading ? 'Preparing attachment download' : 'Download campus attachment'} title="Download attachment" className="min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full px-3 text-slate-700 hover:bg-slate-100 hover:text-emerald-800 sm:min-w-0 sm:px-4">{fileLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowDownToLine className="h-4 w-4" />}<span className="sr-only sm:not-sr-only sm:ml-2">Download</span></Button>
-            </div>
-          )}
-        </div>
-      ) : post.media_type === 'video' ? (
-        <div className="relative flex min-h-48 items-center justify-center bg-slate-950">
-          <video
-            ref={videoRef}
-            src={preparedLegacyVideoUrl || post.media_url || undefined}
-            playsInline
-            muted={videoMuted}
-            loop
-            controls
-            autoPlay={active && !reducedData}
-            preload={active && !reducedData ? 'auto' : 'none'}
-            onLoadedMetadata={() => setVideoState('loading')}
-            onLoadedData={() => { networkRetryCountRef.current = 0; setVideoState('ready'); setPreparingLegacyVideo(false); }}
-            onPlaying={() => { networkRetryCountRef.current = 0; setVideoState('ready'); setPreparingLegacyVideo(false); }}
-            onWaiting={() => setVideoState('loading')}
-            onError={(event) => {
-              const code = event.currentTarget.error?.code;
-              setVideoFailure(code === 2 ? 'network' : code === 3 ? 'decode' : code === 4 ? 'unsupported' : 'unknown');
-              // Mobile networks can briefly interrupt media requests. Retry
-              // the range-capable source with bounded backoff; do not send a
-              // transient network failure through the slower transcode path.
-              if (code === 2 && active && networkRetryCountRef.current < 3 && !preparedLegacyVideoUrl) {
-                const retryNumber = ++networkRetryCountRef.current;
-                setVideoState('loading');
-                const video = event.currentTarget;
-                window.setTimeout(() => {
-                  if (videoRef.current !== video || !video.isConnected) return;
-                  video.load();
-                  if (active && !reducedData) void video.play().catch(() => undefined);
-                }, [700, 1600, 3200][retryNumber - 1]);
-                return;
-              }
-              if ([3, 4].includes(code || 0) && !preparedLegacyVideoUrl && !legacyPrepareAttemptedRef.current) {
-                void prepareLegacyVideoForPlayback();
-                return;
-              }
-              setVideoState('error');
-            }}
-            aria-label={`Video shared by ${post.author_name}`}
-            className="block max-h-[min(68dvh,44rem)] w-full object-contain"
-          />
-          <button
-            type="button"
-            onClick={toggleVideoMuted}
-            aria-label={videoMuted ? 'Unmute video' : 'Mute video'}
-            aria-pressed={!videoMuted}
-            className="absolute bottom-3 right-3 z-10 inline-flex min-h-11 min-w-11 touch-manipulation items-center justify-center rounded-full border border-white/25 bg-black/70 p-3 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-          >
-            {videoMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-          </button>
-          {active && reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto w-fit rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status">Data saver is on · tap play to load this video</div>}
-          {active && !reducedData && videoState === 'loading' && <div className="pointer-events-none absolute inset-x-3 top-3 mx-auto flex w-fit items-center gap-2 rounded-full bg-black/70 px-3 py-2 text-xs font-medium text-white" role="status"><Loader2 className="h-4 w-4 animate-spin" />Loading video…</div>}
-          {(videoState === 'error' || preparingLegacyVideo) && <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 px-5 text-center text-white">
-            {preparingLegacyVideo ? <Loader2 className="h-8 w-8 animate-spin text-emerald-300" /> : <CircleAlert className="h-8 w-8 text-amber-300" />}
-            {preparingLegacyVideo ? <p className="mt-3 font-semibold">Making this video ready…</p> : <>
-            <p className="mt-3 font-semibold">We couldn’t play this video</p>
-            <p className="mt-1 max-w-sm text-xs leading-5 text-white/75">{videoFailure === 'network'
-              ? 'The video stream was interrupted by the connection. Try again when the signal is steadier; the rest of the feed remains available.'
-              : videoFailure === 'decode' || videoFailure === 'unsupported'
-                ? 'We’re adapting this older video for your device.'
-                : 'The video could not be opened. Check your connection and try again.'}</p>
-            <div className="mt-3 flex flex-wrap justify-center gap-2">
-              <Button type="button" variant="secondary" onClick={retryVideo} className="min-h-10 rounded-full">Try again</Button>
-            </div>
-            </>}
-          </div>}
-        </div>
-      ) : imageFailed ? (
-        <div className="flex min-h-52 items-center justify-center bg-slate-100 px-5 text-center text-sm text-slate-600"><CircleAlert className="mr-2 h-5 w-5 text-slate-400" />This photo is unavailable right now.</div>
-      ) : (
-        <div className="flex max-h-[68dvh] items-center justify-center bg-slate-950">
-          {post.media_url && <img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={active ? 'eager' : 'lazy'} onError={() => setImageFailed(true)} className="max-h-[68dvh] w-full object-contain" />}
-        </div>
-      )}
-
-      {post.university_name && <div className="flex items-center gap-1.5 border-t px-4 py-2.5 text-xs font-medium text-slate-500 sm:px-5"><MapPin className="h-3.5 w-3.5 text-emerald-700" /><span className="truncate">Shared with the {post.university_name} community</span></div>}
-      <CommunityPostActions postId={post.id} authorId={post.author_id} initialState={socialState} onStateChange={onSocialChange} onDelete={onDelete} />
+            {menu}
+          </header>
+        )}
+        renderMedia={(onLike) => <CampusPostMedia key={`${post.id}:${user?.id ?? 'guest'}`} post={post} viewerId={user?.id ?? null} priority={priority} onLike={onLike} />}
+      />
     </article>
   );
 }

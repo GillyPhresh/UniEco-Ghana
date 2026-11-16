@@ -11,10 +11,13 @@ test('homepage is a real community feed and keeps the university directory separ
   assert.match(page, /CampusCommunityFeed/);
   assert.doesNotMatch(page, /Discover Ghana|Browse the marketplace/);
   assert.doesNotMatch(page, /UniversitySection|FeaturedBusinesses|EventsPreview/);
-  assert.doesNotMatch(feed, /Across Ghana|My university|Refresh the feed/);
-  assert.match(feed, /const scope: Scope = hasUniversity \? 'university' : 'all'/);
+  assert.match(feed, /Across Ghana/);
+  assert.match(feed, /My campus/);
+  assert.match(feed, /Following/);
+  assert.match(feed, /hasUniversity \? 'university' : 'all'/);
   assert.match(feed, /onTouchStart=\{handleTouchStart\} onTouchMove=\{handleTouchMove\} onTouchEnd=\{handleTouchEnd\}/);
-  assert.match(feed, /pullDistanceRef\.current >= 54/);
+  assert.match(feed, /pullReadyRef\.current && window\.scrollY <= 0/);
+  assert.doesNotMatch(page, /overflow-hidden/);
   assert.match(feed, /href="\/universities"/);
   assert.match(feed, /href="\/updates"/);
   assert.match(feed, /Campus feed/);
@@ -33,7 +36,7 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.match(migration, /pg_advisory_xact_lock/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post\(text, text, text\) TO authenticated/);
   assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post\(text, text, text\) TO anon/);
-  assert.match(feed, /MAX_ATTACHMENT_BYTES = 50 \* 1024 \* 1024/);
+  assert.match(await read('lib/community/media-client.ts'), /MAX_ATTACHMENT_BYTES = 50 \* 1024 \* 1024/);
   assert.match(feed, /MAX_PREVIEW_MEDIA_BYTES = 25 \* 1024 \* 1024/);
   assert.match(feed, /campus-community-files/);
   assert.match(feed, /upsert: false/);
@@ -47,34 +50,24 @@ test('community media is bounded and writes go through authenticated owner-check
   assert.doesNotMatch(attachmentMigration, /GRANT EXECUTE ON FUNCTION public\.create_campus_community_post_with_attachment[^;]+TO anon/);
 });
 
-test('private video attachments autoplay inline without exposing file details', async () => {
+test('private attachments look up metadata only for signed-in viewers and share the inline player', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
+  const media = await read('components/feed/campus-post-media.tsx');
+  const helpers = await read('lib/community/media-client.ts');
   const admin = await read('app/admin/community-posts/page.tsx');
   const migration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');
   assert.match(feed, /type="file"/);
-  assert.match(feed, /Secure attachment · private by default/);
-  assert.match(feed, /get_campus_community_post_file_info/);
-  assert.match(feed, /status === 401/);
-  assert.match(feed, /supabase\.auth\.refreshSession\(\)/);
-  assert.match(feed, /Array\.isArray\(response\.data\)/);
-  assert.match(feed, /onClick=\{retryAttachmentLookup\}/);
-  assert.match(feed, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
-  assert.match(feed, /canPlayPrivateVideoInline/);
-  assert.match(feed, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /Play compatible originals directly[\s\S]*\[3, 4\]\.includes\(code \|\| 0\)/);
-  assert.match(feed, /controls playsInline autoPlay muted loop preload=\{active \? 'auto' : 'metadata'\}/);
-  assert.match(feed, /aspect-\[9\/16\] max-h-\[72dvh\]/);
-  assert.match(feed, /Loading campus video…/);
-  assert.doesNotMatch(feed, /fileInfo\.name/);
-  assert.doesNotMatch(feed, /readableSize\(fileInfo\.size\).*private video/);
-  assert.match(feed, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
-  assert.match(feed, /VIDEO_FILE_EXTENSION = \/\\\.\(mp4\|m4v\|mov\|qt\|webm\|ogv\|ogg\|avi\|mkv\|3gp\|3g2\|3gpp\|3gpp2/);
-  const privatePlayback = feed.slice(feed.indexOf('if (!active || post.media_type !== \'file\''), feed.indexOf('useEffect(() => {\n    const connection'));
-  assert.match(privatePlayback, /canPlayPrivateVideoInline\(fileInfo\)/);
-  assert.match(privatePlayback, /createSignedUrl\(fileInfo\.path, 10 \* 60\)/);
-  assert.match(feed, /Video shared by \$\{post\.author_name\}/);
-  assert.doesNotMatch(feed, /Play video/);
-  assert.match(feed, /onClick=\{\(\) => void downloadAttachment\(\)\}/);
+  assert.match(media, /if \(!viewerId \|\| post\.media_type !== 'file' \|\| !visibility\.near/);
+  assert.match(media, /get_campus_community_post_file_info/);
+  assert.match(media, /response\.status === 401/);
+  assert.match(media, /supabase\.auth\.refreshSession\(\)/);
+  assert.match(media, /Array\.isArray\(response\.data\)/);
+  assert.match(media, /createSignedUrl\(attachment\.path, 60, \{ download: attachment\.name \}\)/);
+  assert.match(media, /createSignedUrl\(info\.path, 10 \* 60\)/);
+  assert.match(media, /source=\{privateVideo \? signedVideo : post\.media_url\}/);
+  assert.match(media, /file\.size <= MAX_ATTACHMENT_BYTES && VIDEO_FILE_EXTENSION\.test\(file\.name\)/);
+  assert.match(helpers, /VIDEO_FILE_EXTENSION = \/\\\.\(mp4\|m4v\|mov\|qt\|webm\|ogv\|ogg\|avi\|mkv\|3gp\|3g2\|3gpp\|3gpp2/);
+  assert.match(media, /onClick=\{\(\) => void downloadAttachment\(\)\}/);
   assert.match(admin, /media_type: 'image' \| 'video' \| 'file' \| 'text'/);
   assert.match(admin, /get_campus_community_post_file_info/);
   assert.match(admin, /campus-community-files/);
@@ -96,14 +89,14 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(prepareRoute, /contentType\.includes\('application\/octet-stream'\)/);
   assert.match(prepareRoute, /request\.arrayBuffer\(\)/);
   assert.match(prepareRoute, /x-unieco-video-name/);
-  assert.match(feed, /Getting video ready…/);
-  assert.match(feed, /Please wait…/);
+  assert.match(feed, /Preparing video…/);
+  assert.match(feed, /Posting…/);
   assert.doesNotMatch(feed, /Your post is public and linked to your account and campus|phone-friendly MP4 before posting/);
   assert.match(feed, /video\/mp4/);
   assert.match(feed, /\.mov/);
   assert.match(dockerfile, /apk add --no-cache ffmpeg/);
   assert.match(dockerfile, /libx264/);
-  assert.match(feed, /VIDEO_PREPARATION_TIMEOUT_MS = 240_000/);
+  assert.match(await read('lib/community/media-client.ts'), /VIDEO_PREPARATION_TIMEOUT_MS = 240_000/);
   assert.match(feed, /withRequestTimeout\(VIDEO_PREPARATION_TIMEOUT_MS, async \(signal\) =>/);
   assert.match(feed, /createSignedUploadUrl\(path, \{ upsert: false \}\)/);
   assert.match(feed, /storage\.supabase\.co\/storage\/v1\/upload\/resumable/);
@@ -112,10 +105,11 @@ test('post composer prepares accepted video containers for phone-friendly inline
   assert.match(feed, /RESUMABLE_UPLOAD_CHUNK_BYTES = 6 \* 1024 \* 1024/);
   assert.match(feed, /onProgress\(bytesUploaded, bytesTotal\)/);
   assert.match(feed, /storeFingerprintForResuming: false/);
-  assert.match(feed, /Upload resumes automatically after brief connection interruptions/);
   assert.match(feed, /Video upload was interrupted\. Check your connection and retry/);
-  assert.match(feed, /Uploading your post…/);
-  assert.match(feed, /Publishing to the campus feed…/);
+  assert.match(feed, /Upload progress/);
+  assert.match(feed, /Publishing…/);
+  assert.match(feed, /if \(uploadLock\.current\) return/);
+  assert.match(feed, /uploadedBucket && uploadPath && \(!publishAttempted \|\| publishRejected\)/);
   assert.match(feed, /void loadPage\(false\)/);
   assert.doesNotMatch(feed, /await loadPage\(false\);/);
 });
@@ -136,40 +130,33 @@ test('prepared videos publish through the same public feed-media path as photos'
   assert.match(submit, /setUploadProgress, publicVideoUpload/);
   assert.match(submit, /p_media_type: publicPath \? mediaType : null/);
   assert.match(submit, /p_media_path: publicPath/);
-  assert.match(feed, /src=\{preparedLegacyVideoUrl \|\| post\.media_url \|\| undefined\}/);
+  assert.match(await read('components/feed/campus-post-media.tsx'), /const mediaUrl = prepared \|\| source/);
 });
 
-test('campus feed has a quiet branded composer and automatic legacy video recovery', async () => {
+test('inline playback uses custom controls, bounded recovery, and a tap fallback', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
-  assert.match(feed, /function withRequestTimeout<T>\(timeoutMs: number, request: \(signal: AbortSignal\) => Promise<T>\)/);
-  assert.match(feed, /new AbortController\(\)[\s\S]*window\.setTimeout[\s\S]*controller\.abort/);
-  assert.doesNotMatch(feed, /AbortSignal\.timeout/);
+  const media = await read('components/feed/campus-post-media.tsx');
+  const helpers = await read('lib/community/media-client.ts');
+  const viewport = await read('hooks/use-feed-media-viewport.ts');
+  assert.match(helpers, /function withRequestTimeout<T>\(timeoutMs: number, request: \(signal: AbortSignal\) => Promise<T>\)/);
+  assert.match(helpers, /new AbortController\(\)[\s\S]*window\.setTimeout[\s\S]*controller\.abort/);
+  assert.doesNotMatch(helpers, /AbortSignal\.timeout/);
   assert.match(feed, /Share a campus moment/);
-  assert.match(feed, /overflow-hidden border-y border-slate-200 bg-white text-slate-900 shadow-sm sm:rounded-2xl sm:border/);
-  assert.match(feed, /controls/);
-  assert.match(feed, /event\.currentTarget\.error\?\.code/);
-  assert.match(feed, /The video stream was interrupted by the connection/);
-  assert.match(feed, /We couldn’t play this video/);
-  assert.match(feed, /Try again/);
-  assert.match(feed, /Making this video ready…/);
-  assert.match(feed, /Adapting this older video for your device…/);
-  assert.match(feed, /legacyPrepareAttemptedRef/);
-  assert.match(feed, /code === 2 && active && networkRetryCountRef\.current < 3/);
-  assert.match(feed, /\[700, 1600, 3200\]\[retryNumber - 1\]/);
-  assert.match(feed, /transient network failure through the slower transcode path/);
-  assert.match(feed, /\[3, 4\]\.includes\(code \|\| 0\)/);
-  assert.match(feed, /preload=\{active && !reducedData \? 'auto' : 'none'\}/);
-  assert.match(feed, /aria-label=\{videoMuted \? 'Unmute video' : 'Mute video'\}/);
-  assert.match(feed, /absolute bottom-3 right-3/);
-  assert.match(feed, /VolumeX/);
-  assert.match(feed, /Volume2/);
-  assert.match(feed, /autoPlay=\{active && !reducedData\}/);
-  assert.match(feed, /border border-emerald-200 bg-white/);
-  assert.doesNotMatch(feed, /Prepare &amp; play/);
-  assert.match(feed, /prepareLegacyVideoForPlayback/);
-  assert.match(feed, /credentials: 'same-origin'[\s\S]*cache: 'force-cache'[\s\S]*response\.blob\(\)/);
-  assert.match(feed, /URL\.createObjectURL\(mp4\)/);
-  assert.match(feed, /setVideoState\('ready'\); setPreparingLegacyVideo\(false\)/);
+  assert.match(media, /playsInline muted=\{muted\} loop disablePictureInPicture/);
+  assert.doesNotMatch(media, /<video\b[^>]*\bcontrols\b/);
+  assert.match(media, /aria-label=\{playing \? 'Pause video' : 'Play video'\}/);
+  assert.match(media, /aria-label=\{muted \? 'Unmute video' : 'Mute video'\}/);
+  assert.match(media, /absolute bottom-3 right-3/);
+  assert.match(media, /video\.play\(\)\.catch/);
+  assert.match(media, /if \(!active\) \{ video\.pause\(\)/);
+  assert.match(media, /code === 2 && !prepared && \(active \|\| manual\) && retryCount\.current < retryDelays\.length/);
+  assert.match(media, /\[700, 1600, 3200\]/);
+  assert.match(media, /\(code === 3 \|\| code === 4\) && !prepared/);
+  assert.match(media, /Try again/);
+  assert.match(media, /credentials: 'same-origin'[\s\S]*cache: 'force-cache'[\s\S]*response\.blob\(\)/);
+  assert.match(media, /URL\.createObjectURL\(mp4\)/);
+  assert.match(media, /URL\.revokeObjectURL\(prepared\)/);
+  assert.match(viewport, /addEventListener\('visibilitychange', handleVisibilityChange\)/);
   assert.doesNotMatch(feed, /h-full min-h-full snap-start snap-always/);
 });
 
@@ -219,12 +206,15 @@ test('video recovery serves public posts to guests but keeps private attachments
 
 test('slow connections can use cached feed content and media remains lazy', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
+  const media = await read('components/feed/campus-post-media.tsx');
   const auth = await read('lib/auth/auth-context.tsx');
   assert.match(feed, /sessionStorage\.getItem\(cacheKey\)/);
   assert.match(feed, /FEED_CACHE_TTL_MS/);
-  assert.match(feed, /Showing recent posts saved on this device/);
-  assert.match(feed, /preload=\{active && !reducedData \? 'auto' : 'none'\}/);
-  assert.match(feed, /connection\?\.saveData/);
+  assert.match(feed, /Showing recent posts/);
+  assert.match(feed, /if \(scope !== 'following'\) writeCachedFeed/);
+  assert.match(media, /const preloadMode = active && \(!conserve \|\| manual\) \? 'auto' : preload && !conserve \? 'metadata' : 'none'/);
+  assert.match(media, /connection\?\.saveData/);
+  assert.match(media, /prefers-reduced-motion/);
   assert.match(feed, /Social counts are secondary: don't hold the actual feed hostage/);
   assert.match(auth, /Promise\.all\(\[/);
 });
@@ -260,10 +250,12 @@ test('social actions use guarded RPCs and interaction records are not directly e
   assert.match(actions, /set_campus_community_follow/);
   assert.match(actions, /navigator\.share\(shareData\)/);
   assert.match(actions, /copyTextToClipboard\(shareData\.url\)/);
-  assert.match(actions, /searchParams\.set\('post', postId\)/);
+  assert.match(actions, /const postHref = `\/\?post=\$\{encodeURIComponent\(postId\)\}`/);
   assert.match(actions, /aria-label="Share post"/);
   assert.match(actions, /role="group" aria-label="Post actions"/);
-  assert.match(actions, /Share2/);
+  assert.match(actions, /<Send className="h-\[22px\] w-\[22px\]/);
+  assert.match(actions, /void toggle\('like', true\)/);
+  assert.match(actions, /if \(nextValue === wasSet\) return/);
   assert.match(actions, /aria-pressed=\{state\.liked_by_me\}/);
   assert.match(actions, /aria-pressed=\{state\.bookmarked_by_me\}/);
   assert.match(actions, /\['student', 'student_vendor', 'external_vendor', 'university_admin'\]/);
@@ -291,7 +283,7 @@ test('post deletion is owner-only, audited, and cleans up assets through Storage
   assert.match(actions, /storage\.from\('campus-community-files'\)\.remove/);
   assert.match(actions, /permanently deletes its attached media or files/);
   assert.match(feed, /onDelete=\{\(\) =>/);
-  assert.match(feed, /writeCachedFeed\(feedCacheKey, remaining\)/);
+  assert.match(feed, /writeCachedFeed\(feedCacheKey, remaining\.slice\(0, PAGE_SIZE\)\)/);
 });
 
 test('mobile header keeps message and notification controls visible with fixed touch targets', async () => {
@@ -313,12 +305,10 @@ test('referral dashboards distinguish available rewards from paid-out rewards', 
 });
 
 test('attachment download is a quiet, labelled, mobile-size-safe action', async () => {
-  const feed = await read('components/feed/campus-community-feed.tsx');
-  const card = feed.slice(feed.indexOf('export function CommunityPostCard'));
-  assert.match(card, /aria-label=\{fileLoading \? 'Preparing attachment download' : 'Download campus attachment'\}/);
-  assert.match(card, /min-h-11 min-w-11 shrink-0 touch-manipulation rounded-full/);
-  assert.match(card, /variant="ghost"/);
-  assert.doesNotMatch(card, /Download campus attachment[^\n]*bg-emerald-700/);
+  const media = await read('components/feed/campus-post-media.tsx');
+  assert.match(media, /aria-label="Download attachment"/);
+  assert.match(media, /h-11 w-11 shrink-0 place-items-center rounded-full/);
+  assert.doesNotMatch(media, /Download attachment[^\n]*bg-emerald-700/);
 });
 
 test('publishing and media uploads require verified eligible accounts at the database boundary', async () => {
@@ -357,9 +347,9 @@ test('public member profiles and private saved posts use limited RPCs and safe i
 test('post links open a requested feed item and move the viewport to it', async () => {
   const feed = await read('components/feed/campus-community-feed.tsx');
   const migration = await read('supabase/migrations/20261102100000_0176_community_social_graph.sql');
-  assert.match(feed, /new URLSearchParams\(window\.location\.search\)\.get\('post'\)/);
+  assert.match(feed, /useSearchParams\(\)\.get\('post'\)/);
   assert.match(feed, /get_campus_community_post/);
-  assert.match(feed, /scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.match(feed, /scrollIntoView\(\{ behavior:[^\n]*prefers-reduced-motion[^\n]*block: 'start' \}\)/);
   assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_campus_community_post\(p_post_id uuid\)/);
   assert.match(migration, /https:\/\/www\.uniecoghana\.com\/\?post=/);
 });

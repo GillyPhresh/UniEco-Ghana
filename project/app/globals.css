@@ -332,3 +332,17 @@ html {
     transition-duration: 0.01ms !important;
   }
 }
+@keyframes campus-heart-burst {
+  0% { opacity: 0; transform: scale(.65); }
+  21% { opacity: 1; transform: scale(1.16); }
+  40%, 65% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+
+.campus-heart-burst { animation: campus-heart-burst 680ms ease-out both; }
+.campus-feed-video { pointer-events: none; }
+.campus-feed-video::-webkit-media-controls-start-playback-button { display: none !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .campus-heart-burst { display: none; }
+}

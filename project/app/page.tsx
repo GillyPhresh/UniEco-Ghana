@@ -14,10 +14,7 @@ export default function Home() {
     <>
       <SiteHeader />
       <main id="main-content">
-        <section aria-labelledby="campus-community-heading" className="h-[calc(100dvh-4rem-3.75rem-env(safe-area-inset-bottom))] min-h-[34rem] overflow-hidden lg:h-[calc(100dvh-4rem)]">
-          <h1 id="campus-community-heading" className="sr-only">Campus community feed</h1>
-          <CampusCommunityFeed />
-        </section>
+        <CampusCommunityFeed />
       </main>
     </>
   );

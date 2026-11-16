@@ -116,8 +116,9 @@ test('public audience landing pages remain linked from the discovery hub, not th
     assert.match(page, /SeoLandingPage/);
   }
   const home = read('app/page.tsx');
+  const communityFeed = read('components/feed/campus-community-feed.tsx');
   const discovery = read('app/discover/page.tsx');
-  assert.match(home, /<h1/);
+  assert.match(communityFeed, /<h1 id="campus-community-heading"[^>]*>Campus feed<\/h1>/);
   assert.match(home, /<CampusCommunityFeed\s*\/>/);
   assert.doesNotMatch(home, /Discover Ghana|Browse the marketplace|Explore UniEco Ghana/);
   assert.match(discovery, /href="\/for-students"/);
