@@ -208,7 +208,11 @@ function EditorialDesk() {
         const publisher = publicSourceUrl(item.website);
         return <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
           <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{item.label}</p><p className="text-xs leading-5 text-muted-foreground">{coverageLabels[state]}{outcomes[item.id]?.leads.length ? ' · ' + outcomes[item.id].leads.length + ' leads' : ''}</p></div>
-          <div className="flex flex-wrap gap-1.5">{publisher && <Button asChild variant="ghost" size="sm"><a href={publisher.href} target="_blank" rel="noopener noreferrer">Publisher <ArrowUpRight className="ml-1 h-3 w-3" /></a></Button>}{item.state === 'ready' ? <Button size="sm" variant="outline" disabled={scan?.active} onClick={() => void startScan(item.id)}>Scan</Button> : <Button asChild size="sm" variant="outline"><Link href={'/university/' + item.schoolSlug} target="_blank">Profile</Link></Button>}</div>
+          <div className="flex flex-wrap gap-1.5">
+            {publisher && <Button asChild variant="ghost" size="sm"><a href={publisher.href} target="_blank" rel="noopener noreferrer">Publisher <ArrowUpRight className="ml-1 h-3 w-3" /></a></Button>}
+            {item.state === 'missing_source' && <Button asChild variant="ghost" size="sm"><a href={'https://www.google.com/search?q=' + encodeURIComponent('"' + item.label + '" Ghana official website news')} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Find official source <ArrowUpRight className="ml-1 h-3 w-3" /></a></Button>}
+            {item.state === 'ready' ? <Button size="sm" variant="outline" disabled={scan?.active} onClick={() => void startScan(item.id)}>Scan</Button> : <Button asChild size="sm" variant="outline"><Link href={'/university/' + item.schoolSlug} target="_blank">Profile</Link></Button>}
+          </div>
         </li>;
       })}</ul>
     </section>}

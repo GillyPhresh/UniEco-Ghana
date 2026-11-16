@@ -56,8 +56,12 @@ dated leads per publisher per pass, and reports publisher failures and coverage
 gaps without opening access or sending messages. An append-only audit marker
 prevents overlapping deployments from claiming the same six-hour window. Look
 for `campus_research.sweep_started`, `campus_research.sweep_completed`, and the
-aggregate Railway log. A disconnected run is retried once; subsequent windows can
-fill in safely because ingestion is idempotent.
+aggregate Railway log. A temporary timeout or connection loss retries only the
+interrupted batch; it does not restart the entire directory. The verified lease is
+anchored to the start of the sweep, even if the run crosses a six-hour boundary.
+If a sweep does not finish, a single recovery claim is allowed after the first
+lease is older than the worker's hard deadline. The original audit record stays
+intact, and ingestion is idempotent.
 
 The operator worker described in [feed_worker/README.md](../feed_worker/README.md)
 is optional. It is not the production scheduler.

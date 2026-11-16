@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash, randomUUID } from 'node:crypto';
 import { testModules } from './helpers/load-typescript.mjs';
 import { sweepCampusResearch } from '../scripts/run-campus-research-schedule.mjs';
 
@@ -169,14 +170,110 @@ test('queuing a lead skips duplicates and cannot alter a reviewed record', async
 });
 
 test('the production sweep iterates every school and national source through a loopback-only API', async () => {
+  const windows = new Set();
   const totals = await sweepCampusResearch({ port: 3000, token: 'fixture-token', fetchBatch: async (url, options) => {
     assert.equal(new URL(url).hostname, '127.0.0.1');
     assert.equal(options.redirect, 'error');
-    const { offset } = JSON.parse(options.body);
+    const { offset, windowUtc } = JSON.parse(options.body);
+    windows.add(windowUtc);
     const row = { state: 'found', found: 1, added: 0, error: false };
     const end = Math.min(offset + 8, 209);
     return Response.json({ report: Array.from({ length: end - offset }, () => row), nextOffset: end === 209 ? null : end });
   } });
   assert.equal(totals.processed, 209);
   assert.equal(totals.found, 209);
+  assert.equal(windows.size, 1);
+});
+
+test('transient errors replay only the interrupted batch without losing full-directory progress', async () => {
+  const offsets = [];
+  const pauses = [];
+  const row = { state: 'found', found: 1, added: 1, error: false };
+  const totals = await sweepCampusResearch({ port: 3000, token: 'fixture-token',
+    delay: async (ms) => { pauses.push(ms); },
+    fetchBatch: async (_, options) => {
+      const { offset } = JSON.parse(options.body);
+      offsets.push(offset);
+      assert.equal(options.headers.Connection, 'close');
+      if (offset === 0) return Response.json({ report: Array.from({ length: 8 }, () => row), nextOffset: 8 });
+      if (offsets.length === 2) return new Response(null, { status: 503 });
+      if (offsets.length === 3) throw new DOMException('Interrupted by timeout.', 'TimeoutError');
+      return Response.json({ report: [row], nextOffset: null });
+    },
+  });
+  assert.deepEqual(offsets, [0, 8, 8, 8]);
+  assert.deepEqual(pauses, [1_200, 3_000]);
+  assert.deepEqual(totals, { processed: 9, found: 9, added: 9, gap: 0, failures: 0 });
+});
+
+test('sweeps fail closed on authentication or an invalid cursor', async () => {
+  let attempts = 0;
+  await assert.rejects(sweepCampusResearch({ port: 3000, token: 'fixture-token',
+    fetchBatch: async () => { attempts++; return new Response(null, { status: 401 }); },
+  }), /offset 0.*HTTP 401/);
+  assert.equal(attempts, 1);
+  await assert.rejects(sweepCampusResearch({ port: 3000, token: 'fixture-token',
+    fetchBatch: async () => Response.json({ report: [{ state: 'missing_source', added: 0, found: 0 }], nextOffset: 8 }),
+  }), /Invalid campus research cursor/);
+});
+
+test('an active sweep may not be replaced; one expired claim can recover and finish without rewriting history', async () => {
+  const clock = Date.now();
+  const windowUtc = new Date(Math.floor(clock / (6 * 3_600_000)) * 6 * 3_600_000).toISOString();
+  const marker = (suffix) => {
+    const hash = createHash('sha256').update('unieco:campus-research:v1:' + windowUtc + ':' + suffix).digest('hex');
+    return hash.slice(0, 8) + '-' + hash.slice(8, 12) + '-5' + hash.slice(13, 16) + '-8' + hash.slice(17, 20) + '-' + hash.slice(20, 32);
+  };
+  const original = { id: marker('started'), metadata: { run_id: randomUUID() }, created_at: new Date(clock).toISOString() };
+  const events = new Map([[original.id, original]]);
+  const insert = async (row) => {
+    if (events.has(row.id)) return { error: { code: '23505' } };
+    events.set(row.id, { ...row, created_at: new Date().toISOString() });
+    return {};
+  };
+  const db = { from(table) {
+    assert.equal(table, 'audit_logs');
+    return {
+      insert, upsert: (row) => events.has(row.id) ? {} : insert(row),
+      select: () => ({ eq: (_, id) => ({ maybeSingle: async () => ({ data: events.get(id) || null }) }) }),
+    };
+  } };
+  const use = testModules({
+    '@/lib/ai/admin-access': { privateJson: (value, status = 200) => Response.json(value, { status }) },
+    '@/lib/ai/research-service': {
+      createResearchClient: () => db, acquireResearchSlot: () => () => undefined,
+      loadResearchCatalog: async () => [publisher],
+      scanResearchBatch: async () => ({ outcomes: [{ source: publisher, state: 'no_updates', leads: [] }], nextOffset: null, total: 1 }),
+      queueResearchLeads: () => assert.fail('No lead should be inserted.'),
+    },
+  });
+  const { POST } = use('app/api/internal/campus-feed/research/route.ts');
+  const token = 'local-scheduler-test-nonce-only-not-a-real-secret';
+  const originalEnv = [process.env.UNIECO_ENV, process.env.UNIECO_RESEARCH_SCHEDULER_NONCE];
+  process.env.UNIECO_ENV = 'production';
+  process.env.UNIECO_RESEARCH_SCHEDULER_NONCE = token;
+  const request = (runId) => new Request('http://127.0.0.1/api/internal/campus-feed/research', {
+    method: 'POST', body: JSON.stringify({ offset: 0, runId, windowUtc }),
+    headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+  });
+  try {
+    const skip = await (await POST(request(randomUUID()))).json();
+    assert.equal(skip.skipped, true);
+    assert.ok(skip.retryAfterMs > 0);
+    assert.equal(events.size, 1);
+    original.created_at = new Date(clock - 26 * 60_000).toISOString();
+    const recoveredRun = randomUUID();
+    const recovered = await (await POST(request(recoveredRun))).json();
+    assert.equal(recovered.total, 1);
+    assert.equal(events.get(marker('recovery')).metadata.run_id, recoveredRun);
+    assert.equal(events.get(marker('completed')).metadata.source_records, 1);
+    assert.equal(events.get(marker('started')).metadata.run_id, original.metadata.run_id);
+    assert.deepEqual(await (await POST(request(randomUUID()))).json(), { skipped: true });
+    assert.equal(events.size, 3);
+  } finally {
+    for (const [index, key] of ['UNIECO_ENV', 'UNIECO_RESEARCH_SCHEDULER_NONCE'].entries()) {
+      if (originalEnv[index] === undefined) delete process.env[key];
+      else process.env[key] = originalEnv[index];
+    }
+  }
 });
