@@ -17,6 +17,7 @@ import type { AdminVendorDirectoryItem } from '@/lib/types/admin';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Search, Store, Ban, RotateCcw, Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminBusinessesPage() {
   return (
@@ -215,6 +216,7 @@ function Content() {
               </div>
               {canManageVendors && (
                 <div className="space-y-2">
+                  <DecisionReasonPicker id="business-action-reason-preset" value={actionReason} onChange={setActionReason} options={decisionReasonOptions.businessAction} disabled={actionLoading} />
                   <label htmlFor="business-action-reason" className="text-xs font-medium">Reason for this administrative action</label>
                   <Textarea id="business-action-reason" value={actionReason} onChange={(event) => setActionReason(event.target.value)} maxLength={500} rows={3} placeholder="Enter at least 10 characters explaining the decision." />
                 </div>

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getRolePermissions, updateModeratorPermissions } from '@/lib/data/admin-client';
 import { ROLE_LABELS, PERMISSION_LABELS, ROLE_PERMISSIONS } from '@/lib/auth/permissions';
 import { ShieldCheck, Lock } from 'lucide-react';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminRolesPage() {
   return (
@@ -109,6 +110,7 @@ function Content() {
                   </label>
                 ))}
               </div>
+              <DecisionReasonPicker id="permission-change-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.permissionChange} disabled={saving} />
               <label className="block space-y-1 text-sm font-medium">
                 Reason for permission changes (required, at least 10 characters)
                 <Textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={500} rows={2} />

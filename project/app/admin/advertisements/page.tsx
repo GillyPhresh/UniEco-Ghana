@@ -15,6 +15,7 @@ import { getAdminAdvertisements, approveAdvertisement, rejectAdvertisement } fro
 import type { AdminAdvertisement } from '@/lib/types/admin';
 import { Megaphone, Check, X, Star, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminAdvertisementsPage() {
   return (
@@ -143,6 +144,7 @@ function Content() {
                 <p><span className="text-muted-foreground">Duration:</span> {selected.starts_at ? new Date(selected.starts_at).toLocaleDateString('en-GH') : '—'} → {selected.ends_at ? new Date(selected.ends_at).toLocaleDateString('en-GH') : '—'}</p>
               </div>
 
+              <DecisionReasonPicker id="advertisement-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.advertisement} disabled={actionLoading} />
               {rejectMode ? (
                 <div className="space-y-3">
                   <Input aria-label="Reason for rejection" placeholder="Reason for rejection..." value={reason} minLength={10} maxLength={500} onChange={e => setReason(e.target.value)} />

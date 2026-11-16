@@ -15,6 +15,7 @@ import { getAdminEventModerationFlags, getAdminEventOperations, reviewAdminEvent
 import type { AdminEventModerationFlag, AdminEventOperationRow } from '@/lib/types/admin';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminEventsPage() {
   return <AdminRouteGuard><AdminLayout><Content /></AdminLayout></AdminRouteGuard>;
@@ -167,6 +168,7 @@ function Content() {
             <div><h2 className="font-semibold">{selected.event_title}</h2><p className="text-muted-foreground">{selected.university_name || 'Platform-wide'} · {selected.event_start_time ? new Date(selected.event_start_time).toLocaleString('en-GH') : 'Date not set'}</p></div>
             <p className="whitespace-pre-wrap text-muted-foreground">{selected.event_description || 'No event description provided.'}</p>
             <div><p><span className="font-medium">Report:</span> {selected.flag_reason}</p>{selected.flag_details && <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{selected.flag_details}</p>}</div>
+            <DecisionReasonPicker id="event-report-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.eventModeration} disabled={saving} />
             <Textarea value={reason} onChange={event => setReason(event.target.value)} minLength={10} maxLength={1000} placeholder="Required moderation reason (10–1000 characters)" aria-label="Moderation reason" />
           </div>}
           <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
@@ -183,7 +185,7 @@ function Content() {
       <Dialog open={selectedEvent !== null} onOpenChange={open => { if (!open) setSelectedEvent(null); }}>
         <DialogContent>
           <DialogHeader><DialogTitle>{publish ? 'Publish event' : 'Unpublish event'}</DialogTitle></DialogHeader>
-          {selectedEvent && <div className="space-y-3 text-sm"><p>Confirm visibility change for <strong>{selectedEvent.title}</strong>. This does not delete the event.</p><Textarea value={reason} onChange={event => setReason(event.target.value)} minLength={10} maxLength={1000} placeholder="Required reason (10–1000 characters)" aria-label="Event visibility reason" /></div>}
+          {selectedEvent && <div className="space-y-3 text-sm"><p>Confirm visibility change for <strong>{selectedEvent.title}</strong>. This does not delete the event.</p><DecisionReasonPicker id="event-visibility-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.eventVisibility} disabled={saving} /><Textarea value={reason} onChange={event => setReason(event.target.value)} minLength={10} maxLength={1000} placeholder="Required reason (10–1000 characters)" aria-label="Event visibility reason" /></div>}
           <DialogFooter><Button variant="outline" onClick={() => setSelectedEvent(null)} disabled={saving}>Cancel</Button><Button disabled={saving || reason.trim().length < 10} onClick={() => void applyVisibility()}>{saving ? 'Saving…' : publish ? 'Confirm publish' : 'Confirm unpublish'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>

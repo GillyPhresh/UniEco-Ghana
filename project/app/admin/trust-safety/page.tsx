@@ -19,6 +19,7 @@ import {
 import type { AdminModerationCase, AdminModerationCaseEvent, AdminModerationReviewer } from '@/lib/types/admin';
 import { AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 const statusTransitions: Record<AdminModerationCase['status'], AdminModerationCase['status'][]> = {
   open: ['investigating', 'waiting_info', 'dismissed', 'escalated'],
@@ -241,6 +242,7 @@ function Content() {
             </section>
             {statusTransitions[selected.status].length > 0 && <>
               <Select value={nextStatus} onValueChange={setNextStatus}><SelectTrigger aria-label="Select next case status"><SelectValue placeholder="Choose next status" /></SelectTrigger><SelectContent>{statusTransitions[selected.status].map(option => <SelectItem key={option} value={option}>{option.replaceAll('_', ' ')}</SelectItem>)}</SelectContent></Select>
+              <DecisionReasonPicker id="trust-safety-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.trustSafety} disabled={saving} />
               <Textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={1000} placeholder="Required decision reason (10–1000 characters)" aria-label="Decision reason" />
             </>}
           </div>}

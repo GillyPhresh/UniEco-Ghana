@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 interface AdminDeleteConfirmationProps {
   open: boolean;
@@ -67,6 +68,7 @@ export function AdminDeleteConfirmation({
             “{itemName}” will be permanently deleted. This action cannot be undone and will be recorded in the audit history.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <DecisionReasonPicker id="admin-delete-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.deleteAction} disabled={saving} />
         <Textarea
           value={reason}
           onChange={event => setReason(event.target.value)}

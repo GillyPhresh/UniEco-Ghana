@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { ArrowDownToLine, CircleAlert, FileText, Flag, Loader2, RefreshCw, ShieldCheck, Trash2 } from 'lucide-react';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 type ReportStatus = 'open' | 'resolved' | 'dismissed' | 'all';
 type CommunityReport = {
@@ -126,6 +127,7 @@ function CommunityPostsQueue() {
       <Dialog open={Boolean(selected && decision)} onOpenChange={(open) => { if (!open && !saving) { setSelected(null); setDecision(null); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader><DialogTitle>{decision === 'remove' ? 'Remove this campus post?' : 'Keep this campus post?'}</DialogTitle><DialogDescription>The review decision and note are stored in the platform audit log. Enter a clear reason before submitting.</DialogDescription></DialogHeader>
+          <DecisionReasonPicker id="community-post-reason-preset" value={note} onChange={setNote} options={decisionReasonOptions.communityPost} disabled={saving} />
           <label htmlFor="community-moderation-note" className="text-sm font-semibold">Moderation note</label>
           <Textarea id="community-moderation-note" value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} maxLength={500} rows={4} placeholder="Explain the policy reason for this decision (at least 10 characters)." disabled={saving} />
           <div className="flex justify-end text-xs text-muted-foreground">{note.trim().length}/500</div>

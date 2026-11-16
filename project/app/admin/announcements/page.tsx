@@ -16,6 +16,7 @@ import { AdminDeleteConfirmation } from '@/components/admin/admin-delete-confirm
 import { getAdminAnnouncements, getAdminUniversities, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@/lib/data/admin-client';
 import type { Announcement } from '@/lib/types/admin';
 import { Bell, Plus, Edit, Trash2 } from 'lucide-react';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 import { toast } from 'sonner';
 
 export default function AdminAnnouncementsPage() {
@@ -185,7 +186,7 @@ function Content() {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5"><Label>Title</Label><Input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))} /></div>
             <div className="space-y-1.5"><Label>Body</Label><Textarea rows={3} value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} /></div>
-            <div className="space-y-1.5"><Label htmlFor="announcement-reason">Reason (10–500 characters)</Label><Textarea id="announcement-reason" maxLength={500} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} /></div>
+            <div className="space-y-1.5"><DecisionReasonPicker id="announcement-reason-preset" value={form.reason} onChange={(reason) => setForm(p => ({ ...p, reason }))} options={decisionReasonOptions.announcementChange} disabled={saving} /><Label htmlFor="announcement-reason">Reason (10–500 characters)</Label><Textarea id="announcement-reason" maxLength={500} value={form.reason} onChange={e => setForm(p => ({ ...p, reason: e.target.value }))} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Type</Label>
                 <Select value={form.type} onValueChange={v => setForm(p => ({ ...p, type: v, university_id: v === 'university' || p.target_audience === 'specific_university' ? p.university_id : '' }))}>

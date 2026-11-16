@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertTriangle, CheckCircle2, Clock3, History, LockKeyhole, RotateCcw, Save, Settings2, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 import {
   getAdminPlatformSettings, getAdminPlatformSettingHistory, rollbackAdminPlatformSettingChange,
   updateAdminPlatformSetting, type AdminPlatformSetting, type AdminPlatformSettingChange,
@@ -91,7 +92,7 @@ function SettingRow({ setting, onRequestChange }: { setting: AdminPlatformSettin
 }
 
 function ConfirmationPanel({ title, description, reason, setReason, saving, onCancel, onConfirm, action, danger = false }: { title: string; description: string; reason: string; setReason: (value: string) => void; saving: boolean; onCancel: () => void; onConfirm: () => void; action: string; danger?: boolean }) {
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-3 sm:items-center sm:p-6"><Card className="w-full max-w-lg shadow-2xl"><CardHeader><CardTitle className="flex items-center gap-2 text-base">{danger ? <AlertTriangle className="h-5 w-5 text-warning" /> : <ShieldCheck className="h-5 w-5 text-primary" />}{title}</CardTitle><p className="text-sm text-muted-foreground">{description}</p></CardHeader><CardContent className="space-y-3"><div><Label htmlFor="setting-change-reason">Reason required</Label><Textarea id="setting-change-reason" value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Explain why this safe configuration change is needed (at least 10 characters)." rows={3} /></div><div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" onClick={onCancel} disabled={saving}>Cancel</Button><Button onClick={onConfirm} disabled={saving || reason.trim().length < 10}>{saving ? 'Saving…' : action}</Button></div></CardContent></Card></div>;
+  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-3 sm:items-center sm:p-6"><Card className="w-full max-w-lg shadow-2xl"><CardHeader><CardTitle className="flex items-center gap-2 text-base">{danger ? <AlertTriangle className="h-5 w-5 text-warning" /> : <ShieldCheck className="h-5 w-5 text-primary" />}{title}</CardTitle><p className="text-sm text-muted-foreground">{description}</p></CardHeader><CardContent className="space-y-3"><DecisionReasonPicker id="setting-change-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.platformSetting} disabled={saving} /><div><Label htmlFor="setting-change-reason">Reason required</Label><Textarea id="setting-change-reason" value={reason} maxLength={500} onChange={(event) => setReason(event.target.value)} placeholder="Explain why this safe configuration change is needed (at least 10 characters)." rows={3} /></div><div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="outline" onClick={onCancel} disabled={saving}>Cancel</Button><Button onClick={onConfirm} disabled={saving || reason.trim().length < 10}>{saving ? 'Saving…' : action}</Button></div></CardContent></Card></div>;
 }
 
 function formatValue(value: boolean | number | string) {

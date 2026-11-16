@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getAdminStudents, setStudentAccountStatus } from '@/lib/data/admin-client';
 import type { AdminStudentDirectoryItem } from '@/lib/types/admin';
 import { ChevronLeft, ChevronRight, GraduationCap, Search, ShieldAlert, ShoppingBag, Store } from 'lucide-react';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 const PAGE_SIZE = 25;
 
@@ -272,6 +273,7 @@ function Content() {
             <section className="space-y-3 border-t pt-4" aria-label="Student account action">
               <p className="text-sm">This changes the student account&apos;s active status. It does not change student verification or vendor status.</p>
               <div className="space-y-1.5">
+                <DecisionReasonPicker id="student-account-reason-preset" value={actionReason} onChange={setActionReason} options={decisionReasonOptions.studentAccount} disabled={actionLoading} />
                 <Label htmlFor="student-account-action-reason">Reason (required)</Label>
                 <Input id="student-account-action-reason" value={actionReason} maxLength={500} onChange={event => setActionReason(event.target.value)} aria-describedby="student-account-action-reason-help" />
                 <p id="student-account-action-reason-help" className="text-xs text-muted-foreground">10–500 characters. The decision is recorded in the audit history.</p>

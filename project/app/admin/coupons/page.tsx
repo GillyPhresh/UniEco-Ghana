@@ -14,6 +14,7 @@ import { getAdminCoupons, createCoupon, updateCoupon } from '@/lib/data/payment-
 import type { Coupon } from '@/lib/types/payment';
 import { Ticket, Plus, Edit, Percent, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminCouponsPage() {
   return (
@@ -168,6 +169,7 @@ function Content() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))} /> Active</label>
             </div>
             <div className="space-y-1.5">
+              <DecisionReasonPicker id="coupon-change-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.couponChange} disabled={saving} />
               <Label>Reason for coupon configuration change (required)</Label>
               <Textarea rows={2} maxLength={500} value={reason} onChange={e => setReason(e.target.value)} placeholder="At least 10 characters; recorded in the audit log" />
             </div>

@@ -20,6 +20,7 @@ import type { AdminBroadcast, BroadcastStatus } from '@/lib/types/communication'
 import { BROADCAST_STATUS_LABELS, CHANNEL_LABELS } from '@/lib/types/communication';
 import { Megaphone, Plus, Send, Eye, Check, X, Clock, Newspaper } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 const ALL_CHANNELS = ['in_app', 'email', 'push'] as const;
 const AUDIENCES = [
@@ -303,6 +304,7 @@ function Content() {
           </AlertDialogHeader>
           {pendingAction && <div className="max-h-32 overflow-y-auto rounded-md border p-3 text-sm"><p className="font-medium">Message preview</p><p className="mt-1 whitespace-pre-wrap">{pendingAction.broadcast.body}</p></div>}
           <div className="space-y-1.5">
+            <DecisionReasonPicker id="broadcast-action-reason-preset" value={actionReason} onChange={setActionReason} options={decisionReasonOptions.broadcastAction} disabled={actionSaving} />
             <Label htmlFor="broadcast-action-reason">Reason (required, 10–1000 characters)</Label>
             <Textarea id="broadcast-action-reason" rows={3} maxLength={1000} value={actionReason} onChange={event => setActionReason(event.target.value)} />
           </div>

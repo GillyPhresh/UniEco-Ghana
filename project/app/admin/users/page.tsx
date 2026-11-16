@@ -19,6 +19,7 @@ import { ROLE_LABELS } from '@/lib/auth/permissions';
 import { ROLE_IDS, type UserRole } from '@/lib/types';
 import { Search, Ban, CheckCircle, ChevronLeft, ChevronRight, UserPlus } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 function formatAccountStatus(status: string) {
   return status.replaceAll('_', ' ');
@@ -256,6 +257,7 @@ function UsersContent() {
               </div>
 
               <div className="space-y-1.5">
+                <DecisionReasonPicker id="user-action-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.userAction} disabled={actionLoading} />
                 <label htmlFor="user-action-reason" className="text-xs font-semibold text-muted-foreground">Reason for this privileged action</label>
                 <Input id="user-action-reason" value={reason} onChange={event => setReason(event.target.value)} placeholder="At least 10 characters" maxLength={500} />
               </div>

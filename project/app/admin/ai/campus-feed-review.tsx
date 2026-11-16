@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
 import { editorialRequest, type SourceOption } from './editorial-types';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 type ReviewItem = {
   id: string; source_id: string; source_label: string; university_name: string;
@@ -127,6 +128,7 @@ function ReviewCard({ item, onDecision }: { item: ReviewItem; onDecision: () => 
     {(pending || published) && <div className="space-y-2 border-t pt-3">
       {!item.published_at && pending && <p className="text-xs font-medium text-muted-foreground">No publication date was supplied. Make sure this update is still relevant before publishing.</p>}
       {pending && <label className="flex items-start gap-2 text-sm font-medium"><input type="checkbox" className="mt-1" checked={verified} onChange={(event) => setVerified(event.target.checked)} disabled={busy || !source} />I checked the publisher, accuracy, dates and campus.</label>}
+      <DecisionReasonPicker id={'editorial-reason-preset-' + item.id} value={note} onChange={setNote} options={decisionReasonOptions.campusUpdate} disabled={busy} />
       <label htmlFor={'editorial-note-' + item.id} className="block text-sm font-semibold">{pending ? 'Review note' : 'Unpublish note'} <span className="font-normal text-muted-foreground">· private audit record</span></label>
       <textarea id={'editorial-note-' + item.id} value={note} onChange={(event) => setNote(event.target.value)} disabled={busy}
         minLength={10} maxLength={500} className="min-h-20 w-full rounded-lg border bg-background p-2.5 text-sm focus-visible:outline-primary" placeholder="Record what you verified or why this update needs to be removed…" />

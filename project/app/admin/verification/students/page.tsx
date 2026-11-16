@@ -14,6 +14,7 @@ import { getStudentVerificationDocumentUrl, getStudentVerifications, approveStud
 import type { AdminStudentVerification } from '@/lib/types/admin';
 import { Check, X, UserCheck, AlertTriangle, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function StudentVerificationPage() {
   return (
@@ -184,6 +185,7 @@ function Content() {
 
               {selected.verification_status !== 'verified' && (
                 <div className="space-y-3">
+                  <DecisionReasonPicker id="student-verification-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.studentVerification} disabled={actionLoading} />
                   <Textarea rows={3} minLength={10} maxLength={500} placeholder="Reason for this verification decision (10–500 characters)..." value={reason} onChange={event => setReason(event.target.value)} aria-label="Student verification decision reason" />
                   <div className="flex gap-2">
                     <Button className="flex-1" disabled={actionLoading || reason.trim().length < 10 || reason.trim().length > 500} onClick={() => requestDecision('approve')}>

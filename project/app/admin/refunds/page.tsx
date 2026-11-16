@@ -16,6 +16,7 @@ import type { AdminRefund } from '@/lib/types/payment';
 import { REFUND_STATUSES } from '@/lib/types/payment';
 import { RotateCcw, ChevronLeft, ChevronRight, Check, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function AdminRefundsPage() {
   return (
@@ -197,6 +198,7 @@ function Content() {
                 {selected.reason && <div className="mt-2 pt-2 border-t border-border"><span className="text-muted-foreground">Reason: </span><span>{selected.reason}</span></div>}
               </div>
               <div className="space-y-1.5">
+                <DecisionReasonPicker id="refund-reason-preset" value={notes} onChange={setNotes} options={decisionReasonOptions.refund} disabled={processing} />
                 <Label>Review reason (required, at least 10 characters)</Label>
                 <Textarea maxLength={500} placeholder="Explain this refund decision..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
               </div>

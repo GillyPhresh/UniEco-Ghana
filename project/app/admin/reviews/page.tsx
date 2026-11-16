@@ -15,6 +15,7 @@ import { getAdminReviewQueue, moderateAdminReview } from '@/lib/data/admin-clien
 import type { AdminReviewQueueItem } from '@/lib/types/admin';
 import { Check, ChevronLeft, ChevronRight, EyeOff, Flag, Search, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 const PAGE_SIZE = 25;
 const STATUS_FILTERS = [
@@ -221,6 +222,7 @@ function Content() {
             <div className="space-y-4">
               <p className="text-sm">{confirmation === 'published' ? 'Publishing makes this review eligible for public display and reputation aggregation.' : confirmation === 'hidden' ? 'Hiding removes this review from public display and reputation aggregation.' : 'Marking this review removed excludes it from public display and reputation aggregation.'}</p>
               <div className="space-y-2">
+                <DecisionReasonPicker id="review-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.reviewModeration} disabled={saving} />
                 <Label htmlFor="moderation-reason">Reason {confirmation === 'published' ? '(optional)' : '(required, 10–500 characters)'}</Label>
                 <Textarea id="moderation-reason" value={reason} minLength={confirmation === 'published' ? undefined : 10} maxLength={500} onChange={event => setReason(event.target.value)} rows={3} />
               </div>

@@ -17,6 +17,7 @@ import { Check, X, Store, Ban, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 import type { VendorLocationReview } from '@/lib/types/admin';
 import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl } from '@/lib/maps';
+import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 export default function VendorVerificationPage() {
   return (
@@ -192,6 +193,7 @@ function Content() {
                 ) : <p className="text-sm text-muted-foreground">The owner has not submitted a precise location yet.</p>}
               </div>
 
+              <DecisionReasonPicker id="vendor-verification-reason-preset" value={reason} onChange={setReason} options={decisionReasonOptions.vendorVerification} disabled={actionLoading} />
               {rejectMode ? (
                 <div className="space-y-3">
                   <Textarea rows={3} minLength={10} maxLength={500} placeholder="Reason for rejection or verification revocation (10–500 characters)..." value={reason} onChange={e => setReason(e.target.value)} aria-label="Vendor verification decision reason" />
