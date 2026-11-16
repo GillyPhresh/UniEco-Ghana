@@ -35,6 +35,8 @@ test('AI endpoint uses the atomic review pipeline and the admin UI explains both
   assert.match(route, /rpc\('prepare_admin_ai_update'/);
   assert.doesNotMatch(route, /rpc\('create_admin_broadcast_draft'/);
   assert.match(page, /Campus feed review/);
-  assert.match(page, /separate notification draft/);
+  assert.match(page, /Publication and notifications need separate approval/);
+  const review = fs.readFileSync(path.join(root, 'app/admin/ai/campus-feed-review.tsx'), 'utf8');
+  assert.match(review, /Prepare notification draft/);
   assert.match(page, /Queue for review/);
 });

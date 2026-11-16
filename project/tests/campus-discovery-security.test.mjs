@@ -7,7 +7,8 @@ const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 test('campus discovery is bounded to HTTPS pages on each institution official host', async () => {
   const source = await read('../lib/campus-discovery.ts');
   assert.match(source, /safeOfficialWebsite\(university\.website_url\)/);
-  assert.match(source, /redirect:\s*'manual'/);
+  assert.match(source, /fetchPublisher\(url, hosts/);
+  assert.match(source, /allowsPublisherPath/);
   assert.match(source, /MAX_HTML_BYTES\s*=\s*650_000/);
   assert.match(source, /MAX_PAGES_PER_SCAN\s*=\s*5/);
   assert.match(source, /url\.hostname\.toLowerCase\(\)\s*!==\s*root\.hostname\.toLowerCase\(\)/);

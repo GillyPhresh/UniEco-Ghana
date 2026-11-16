@@ -1,142 +1,251 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BrainCircuit, CheckCircle2, ExternalLink, Loader2, LockKeyhole, RefreshCw, Send, Sparkles, Newspaper, ShieldCheck } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { ArrowUpRight, BrainCircuit, ClipboardCheck, FileText, Globe2, Image as PhotoIcon, Loader2, Newspaper, Search, ShieldCheck, Video } from 'lucide-react';
 import { toast } from 'sonner';
+import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { publicSourceUrl } from '@/lib/ai/public-source-url';
+import { updateCategory, updateDate } from '@/lib/ai/update-copy';
 import { CampusFeedReview } from './campus-feed-review';
+import { coverageLabels, editorialRequest, type Candidate, type Coverage, type Outcome, type SourceOption } from './editorial-types';
 
-type Source = { id: string; label: string; url: string; description: string };
-type SchoolOption = { name: string; slug: string; websiteConfigured: boolean };
-type Update = { id: string; sourceId: string; sourceLabel: string; title: string; summary: string; url: string; discoveredAt: string };
-type ChatMessage = { role: 'user' | 'assistant'; content: string; citations?: Array<{ title: string; url: string }>; mode?: 'safe-fallback' };
-type SchoolCoverage = { total: number; withOfficialWebsite: number; directoryAvailable: boolean };
-
-const initialMessage: ChatMessage = {
-  role: 'assistant',
-  content: 'I am UniEco Intelligence, UniEco’s built-in free assistant. I can help inspect aggregate platform health, guide official university news scans, suggest campus content, and prepare source-linked stories for Campus Updates review plus a separate broadcast draft. I never publish or send without human review.',
-};
+const tabs = [['research', 'Research', Search], ['review', 'Review', ClipboardCheck], ['flyers', 'Flyers', FileText], ['coverage', 'Coverage', Globe2], ['assistant', 'Assistant', BrainCircuit]] as const;
+type Tab = (typeof tabs)[number][0];
+const fieldClass = 'min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary';
+const panel = 'min-w-0 space-y-4 rounded-2xl border bg-card p-4 sm:p-6';
+const quiet = 'text-sm leading-6 text-muted-foreground';
 
 export default function UniEcoAiPage() {
-  return <AdminRouteGuard><AdminLayout><Content /></AdminLayout></AdminRouteGuard>;
+  return <AdminRouteGuard><AdminLayout><EditorialDesk /></AdminLayout></AdminRouteGuard>;
 }
 
-function Content() {
-  const [sources, setSources] = useState<Source[]>([]);
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
-  const [schoolCoverage, setSchoolCoverage] = useState<SchoolCoverage | null>(null);
-  const [updates, setUpdates] = useState<Update[]>([]);
-  const [selectedSource, setSelectedSource] = useState('all');
-  const [query, setQuery] = useState('');
-  const [chatInput, setChatInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([initialMessage]);
-  const [busy, setBusy] = useState<'discover' | 'chat' | string | null>(null);
-  const [testingProvider, setTestingProvider] = useState(false);
-  const [providerTest, setProviderTest] = useState<{ ok: boolean; message: string } | null>(null);
-  const [audience, setAudience] = useState<'all' | 'students' | 'vendors'>('all');
+function SourceSelect({ sources, value, onChange, label, disabled = false }: {
+  sources: SourceOption[]; value: string; onChange: (value: string) => void; label: string; disabled?: boolean;
+}) {
+  const schools = sources.filter((source) => source.schoolSlug);
+  const national = sources.filter((source) => !source.schoolSlug);
+  return <label className="grid min-w-0 gap-1 text-sm font-semibold">{label}
+    <select className={fieldClass} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
+      <option value="all">All campuses and opportunities</option>
+      <optgroup label={'Schools (' + schools.length + ')'}>{schools.map((source) => <option key={source.id} value={source.id}>{source.label}{source.state === 'ready' ? '' : ' · ' + coverageLabels[source.state]}</option>)}</optgroup>
+      {national.length > 0 && <optgroup label="National sources">{national.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</optgroup>}
+    </select>
+  </label>;
+}
 
-  const loadStatus = useCallback(async () => {
-    const response = await fetch('/api/admin/ai', { cache: 'no-store' });
-    if (!response.ok) return;
-    const data = await response.json() as { sources?: Source[]; universities?: SchoolOption[]; schoolCoverage?: SchoolCoverage };
-    setSources(data.sources || []);
-    setSchools(data.universities || []);
-    setSchoolCoverage(data.schoolCoverage || null);
+function EditorialDesk() {
+  const [tab, setTab] = useState<Tab>('research');
+  const [sources, setSources] = useState<SourceOption[]>([]);
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const [loadError, setLoadError] = useState('');
+  const [source, setSource] = useState('all');
+  const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});
+  const [scan, setScan] = useState<{ done: number; total: number; active: boolean; status: string } | null>(null);
+  const [resume, setResume] = useState<{ source: string; offset: number } | null>(null);
+  const [filter, setFilter] = useState('');
+  const [limit, setLimit] = useState(12);
+  const [queueBusy, setQueueBusy] = useState('');
+  const [queued, setQueued] = useState<Record<string, boolean>>({});
+  const [coverageFilter, setCoverageFilter] = useState('');
+  const [gapsOnly, setGapsOnly] = useState(false);
+  const [flyerScope, setFlyerScope] = useState('all');
+  const [days, setDays] = useState('30');
+  const controller = useRef<AbortController | null>(null);
+
+  const refresh = useCallback(async () => {
+    try {
+      const response = await fetch('/api/admin/ai', { cache: 'no-store' });
+      const result = await response.json() as { sources?: SourceOption[]; schoolCoverage?: Coverage; error?: string };
+      if (!response.ok) throw new Error(result.error || 'Could not load the editorial desk.');
+      setSources(result.sources || []);
+      setCoverage(result.schoolCoverage || null);
+      setLoadError('');
+    } catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not load the editorial desk.'); }
   }, []);
+  useEffect(() => {
+    void refresh();
+    return () => controller.current?.abort();
+  }, [refresh]);
 
-  useEffect(() => { void loadStatus(); }, [loadStatus]);
-
-  const testProvider = async () => {
-    setTestingProvider(true);
-    setProviderTest(null);
+  const startScan = async (scope = source, start = 0) => {
+    if (controller.current) return;
+    const task = new AbortController();
+    controller.current = task;
+    setSource(scope);
+    setTab('research');
+    setResume(null);
+    setLimit(12);
+    if (start === 0) setOutcomes((previous) => {
+      if (scope === 'all') return {};
+      const next = { ...previous }; delete next[scope]; return next;
+    });
+    let offset = start;
+    let checked = start;
+    let total = scope === 'all' ? sources.length : 1;
+    setScan({ done: checked, total, active: true, status: 'Checking publishers…' });
     try {
-      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'test' }) });
-      const data = await response.json() as { ok?: boolean; message?: string };
-      if (!response.ok || !data.ok) throw new Error(data.message || 'The built-in assistant is unavailable.');
-      setProviderTest({ ok: true, message: data.message || 'The built-in assistant is ready.' });
-      toast.success('Free built-in assistant is ready.');
+      while (!task.signal.aborted) {
+        const data = await editorialRequest<{ outcomes: Outcome[]; total: number; nextOffset: number | null }>('discover',
+          { ...(scope === 'all' ? {} : { sourceId: scope }), offset }, task.signal);
+        if (task.signal.aborted) break;
+        setOutcomes((previous) => ({ ...previous, ...Object.fromEntries(data.outcomes.map((outcome) => [outcome.source.id, outcome])) }));
+        checked += data.outcomes.length;
+        total = data.total;
+        setScan({ done: checked, total, active: true, status: 'Checking publishers…' });
+        if (data.nextOffset === null) break;
+        if (!Number.isSafeInteger(data.nextOffset) || data.nextOffset <= offset) throw new Error('The scan cursor could not advance.');
+        offset = data.nextOffset;
+      }
+      if (task.signal.aborted && scope === 'all' && offset < total) setResume({ source: scope, offset });
+      setScan({ done: checked, total, active: false, status: task.signal.aborted ? 'Paused · completed results kept' : 'Scan complete' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'The built-in assistant could not be checked.';
-      setProviderTest({ ok: false, message });
-      toast.error(message);
-    } finally { setTestingProvider(false); }
+      if (scope === 'all' && offset < total) setResume({ source: scope, offset });
+      setScan({ done: checked, total, active: false, status: task.signal.aborted ? 'Paused · completed results kept' : 'Interrupted · retry from this batch' });
+      if (!task.signal.aborted) toast.error(error instanceof Error ? error.message : 'Could not scan publishers.');
+    } finally { if (controller.current === task) controller.current = null; }
   };
 
-  const scanSources = async () => {
-    setBusy('discover');
+  const queue = async (lead: Candidate) => {
+    if (queueBusy) return;
+    setQueueBusy(lead.proof);
     try {
-      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'discover', sourceId: selectedSource === 'all' ? undefined : selectedSource }) });
-      const data = await response.json() as { updates?: Update[]; error?: string; sourcesChecked?: number };
-      if (!response.ok) throw new Error(data.error || 'Unable to scan trusted sources.');
-      setUpdates(data.updates || []);
-      toast.success(`${data.updates?.length || 0} public leads found across ${data.sourcesChecked || 0} trusted sources.`);
-    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to scan trusted sources.'); }
-    finally { setBusy(null); }
+      const result = await editorialRequest<{ added: number; existing: number }>('queue', { proof: lead.proof });
+      setQueued((previous) => ({ ...previous, [lead.source_item_key]: true }));
+      toast.success(result.added ? 'Added to Campus feed review. Nothing is public yet.' : 'This update is already recorded.');
+      void refresh();
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not queue this update.'); }
+    finally { setQueueBusy(''); }
   };
 
-  const sendMessage = async (preset?: string) => {
-    const content = (preset || chatInput).trim();
-    if (!content || busy === 'chat') return;
-    const nextMessages = [...messages, { role: 'user' as const, content }];
-    setMessages(nextMessages);
-    setChatInput('');
-    setBusy('chat');
-    try {
-      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'chat', message: content, messages: nextMessages }) });
-      const data = await response.json() as { reply?: string; error?: string; citations?: Array<{ title: string; url: string }>; mode?: 'safe-fallback' };
-      if (!response.ok) throw new Error(data.error || 'The private AI assistant is unavailable.');
-      setMessages((current) => [...current, { role: 'assistant', content: data.reply || 'No response was returned.', citations: data.citations || [], mode: data.mode }]);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to reach UniEco Intelligence.';
-      setMessages((current) => [...current, { role: 'assistant', content: `I could not complete that request: ${message}` }]);
-      toast.error(message);
-    }
-    finally { setBusy(null); }
-  };
+  const selected = sources.find((entry) => entry.id === source);
+  const matches = Object.values(outcomes).filter((result) => source === 'all' || result.source.id === source);
+  const leads = matches.flatMap((result) => result.leads.map((lead) => ({ lead, school: result.source })))
+    .filter(({ lead, school }) => (lead.title + ' ' + school.label + ' ' + lead.category).toLowerCase().includes(filter.trim().toLowerCase()))
+    .sort((a, b) => (b.lead.published_at || '').localeCompare(a.lead.published_at || ''));
+  const schoolRows = sources.filter((item) => item.schoolSlug
+    && (!gapsOnly || item.state !== 'ready' || outcomes[item.id]?.state === 'unreachable')
+    && item.label.toLowerCase().includes(coverageFilter.trim().toLowerCase()));
+  const briefingSchool = sources.find((item) => item.id === flyerScope);
+  const canOpenBriefing = flyerScope === 'all' || Boolean(briefingSchool?.registered && briefingSchool.state === 'ready');
+  const bulletinSource = briefingSchool?.feedSourceId || 'all';
+  const briefingLink = '/updates/bulletin?' + new URLSearchParams({ source: bulletinSource, days }).toString();
 
-  const prepareDraft = async (update: Update) => {
-    setBusy(update.id);
-    try {
-      const response = await fetch('/api/admin/ai', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'draft', audience, update }) });
-      const data = await response.json() as { feedItemId?: string; feedStatus?: string; broadcastId?: string; broadcastStatus?: string; error?: string; mode?: 'safe-fallback' };
-      if (!response.ok) throw new Error(data.error || 'Unable to save the draft.');
-      const feedMessage = data.feedStatus === 'approved'
-        ? 'This story is already published on Campus Updates.'
-        : 'The story is now in Campus feed review; approve it there to publish publicly.';
-      const broadcastMessage = data.broadcastStatus === 'sent' || data.broadcastStatus === 'sending'
-        ? 'Its notification broadcast already exists, so no duplicate was created.'
-        : data.broadcastStatus === 'approved'
-          ? 'An approved broadcast already exists; no duplicate notification was queued.'
-          : 'A separate notification draft is in Broadcasts for approval and sending.';
-      toast.success(`${feedMessage} ${broadcastMessage} No paid AI service was used.`);
-    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to save the draft.'); }
-    finally { setBusy(null); }
-  };
-
-  const visibleUpdates = updates.filter((item) => !query.trim() || `${item.title} ${item.summary} ${item.sourceLabel}`.toLowerCase().includes(query.trim().toLowerCase()));
-
-  return <div className="space-y-5 p-4 pb-28 sm:p-6 lg:pb-8">
-    <header className="rounded-2xl border border-primary/20 bg-gradient-to-br from-[#081b2f] via-[#0b2540] to-primary/80 p-4 text-white shadow-sm sm:p-6">
-      <div className="flex items-start gap-3">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20"><Sparkles className="h-6 w-6 text-emerald-200" /></div>
-        <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h1 className="font-display text-xl font-bold sm:text-2xl">UniEco Intelligence</h1><Badge className="border-white/20 bg-white/10 text-white">Super Admin only</Badge></div><p className="mt-1 max-w-2xl text-sm text-white/75">A private operations assistant for trusted news discovery, platform monitoring, and reviewable content drafts.</p></div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/80"><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><LockKeyhole className="h-3.5 w-3.5" /> Management-only</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Human approval required</span><span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5">Built-in · no paid AI provider</span></div>
+  return <div className="mx-auto max-w-7xl space-y-4 px-3 py-4 pb-24 sm:space-y-5 sm:px-6 sm:pb-8">
+    <header className="relative overflow-hidden rounded-2xl border border-emerald-900/50 bg-[#102c25] p-4 text-white sm:p-7">
+      <div className="mb-4 h-1 w-16 rounded bg-gradient-to-r from-red-500 via-amber-300 to-emerald-400" />
+      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200">UniEco Ghana · Editorial desk</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">UniEco AI</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50/85">Research official campus sources, review evidence and media, and create branded updates ready to share.</p>
+      <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-100"><ShieldCheck className="h-4 w-4 shrink-0" />Super-admin only · Publication and notifications need separate approval</p>
     </header>
 
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-      <Card className="overflow-hidden"><CardHeader className="border-b bg-muted/20 pb-4"><CardTitle className="flex items-center gap-2 text-base"><BrainCircuit className="h-5 w-5 text-primary" /> Talk to UniEco Intelligence</CardTitle><p className="text-sm text-muted-foreground">Free built-in help for platform operations, campus updates, and safe content drafts.</p></CardHeader><CardContent className="p-0"><div className="max-h-[28rem] space-y-3 overflow-y-auto p-4" aria-live="polite">{messages.map((message, index) => <div key={`${message.role}-${index}`} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}><div className={`max-w-[90%] rounded-2xl px-3.5 py-3 text-sm ${message.role === 'user' ? 'whitespace-pre-wrap rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-muted text-foreground'}`}><p className="whitespace-pre-wrap">{message.content}</p>{Boolean(message.citations?.length) && <div className="mt-3 border-t border-border/70 pt-2 text-xs"><p className="font-semibold">Sources</p><ul className="mt-1 space-y-1">{message.citations?.map((citation) => <li key={citation.url}><a className="break-all text-primary underline" href={citation.url} target="_blank" rel="noopener noreferrer">{citation.title}</a></li>)}</ul></div>}</div></div>)}{busy === 'chat' && <div className="flex justify-start"><div className="rounded-2xl rounded-bl-md bg-muted px-3.5 py-3 text-sm text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Preparing your answer…</div></div>}</div><div className="border-t p-3 sm:p-4"><p className="mb-3 rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground">No paid AI service is contacted. For current public news, run a trusted-source scan; this chat never presents guesses as live research.</p><div className="mb-2 flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => void testProvider()} disabled={testingProvider || busy === 'chat'}><CheckCircle2 className="mr-1.5 h-4 w-4" />{testingProvider ? 'Checking…' : 'Check assistant'}</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Give me a safe summary of the current platform health.')}>Platform health</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('What public university updates should I review today?')}>Today’s updates</Button><Button variant="outline" size="sm" onClick={() => void sendMessage('Suggest three useful messages for students and vendors.')}>Message ideas</Button></div>{providerTest && <p role="status" className={`mb-2 text-xs ${providerTest.ok ? 'text-emerald-700' : 'text-destructive'}`}>{providerTest.message}</p>}<form className="flex gap-2" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}><Input value={chatInput} onChange={(event) => setChatInput(event.target.value)} maxLength={2000} placeholder="Ask UniEco Intelligence…" aria-label="Ask UniEco Intelligence" /><Button type="submit" disabled={!chatInput.trim() || busy === 'chat'} size="icon" aria-label="Send message"><Send className="h-4 w-4" /></Button></form></div></CardContent></Card>
+    {loadError && <div role="alert" className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-card p-3 text-sm"><span>{loadError}</span><Button size="sm" variant="outline" onClick={() => void refresh()}>Retry</Button></div>}
+    {coverage && <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" aria-label="Campus research coverage">
+      {[[coverage.total, 'Schools in scope'], [coverage.ready, 'Ready to scan'], [coverage.total - coverage.ready, 'Need source review'], [coverage.pending ?? '—', 'Updates pending']].map(([number, label]) => <div className="min-w-0 rounded-xl border bg-card p-2.5 sm:p-4" key={label}><p className="text-xl font-bold sm:text-2xl">{number}</p><p className="text-xs text-muted-foreground">{label}</p></div>)}
+    </div>}
+    <nav aria-label="Editorial workspace" className="flex flex-wrap gap-1 rounded-xl border bg-card p-1.5">
+      {tabs.map(([id, label, Icon]) => <Button key={id} type="button" size="sm" className="min-h-10" variant={tab === id ? 'default' : 'ghost'}
+        aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}><Icon className="mr-1.5 h-4 w-4" />{label}</Button>)}
+    </nav>
 
-      <div className="space-y-5"><Card><CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base"><Newspaper className="h-5 w-5 text-primary" /> Trusted news monitor</CardTitle><p className="text-sm text-muted-foreground">Choose any school in UniEco’s directory or scan all configured official sources. Results are private leads for review, not automatic posts.</p></CardHeader><CardContent className="space-y-3"><div className="grid gap-2 sm:grid-cols-[1fr_auto]"><Select value={selectedSource} onValueChange={setSelectedSource}><SelectTrigger aria-label="Choose a school or trusted news source"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">All configured trusted sources</SelectItem><SelectGroup><SelectLabel>Schools ({schools.length})</SelectLabel>{schools.map((school) => <SelectItem key={school.slug} value={`university-${school.slug}`}>{school.name}{school.websiteConfigured ? '' : ' · official website needed'}</SelectItem>)}</SelectGroup><SelectGroup><SelectLabel>National sources</SelectLabel>{sources.filter((source) => !source.id.startsWith('university-')).map((source) => <SelectItem key={source.id} value={source.id}>{source.label}</SelectItem>)}</SelectGroup></SelectContent></Select><Button onClick={() => void scanSources()} disabled={busy === 'discover'}>{busy === 'discover' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}Scan now</Button></div><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Filter discovered leads…" aria-label="Filter discovered news" /><div className="rounded-xl border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">{schoolCoverage?.directoryAvailable ? <><strong className="text-foreground">University directory:</strong> {schoolCoverage.total} enabled schools; {schoolCoverage.withOfficialWebsite} have a valid official HTTPS website configured. Schools marked “official website needed” must have their official site verified in the directory before they can be scanned. Scans are read-only and create private leads; human review is required before publication.</> : 'The university source directory is unavailable; refresh the page or try again later.'} Website content is untrusted data, never an instruction. No paid AI service is used.</div></CardContent></Card><Card><CardHeader className="pb-3"><CardTitle className="text-base">Safe operating boundaries</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm text-muted-foreground"><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can read aggregate health signals.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can scan official websites in the university directory and trusted sources.</li><li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" /> Can queue public stories and notification drafts for human review.</li><li className="flex gap-2"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-warning" /> Cannot publish, send, delete, refund, or change permissions.</li></ul></CardContent></Card></div>
-    </div>
+    {tab === 'research' && <>
+      <section className={panel} aria-labelledby="editorial-research">
+        <div><h2 id="editorial-research" className="text-lg font-bold">Find campus updates</h2><p className={quiet}>Scan official news, event and notice pages for one school, or work through the entire directory in small batches.</p></div>
+        <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <SourceSelect sources={sources} value={source} onChange={(value) => { setSource(value); setLimit(12); setResume(null); }} label="Publisher to scan" disabled={scan?.active} />
+          {scan?.active ? <Button type="button" className="min-h-11" variant="outline" onClick={() => controller.current?.abort()}>Pause scan</Button>
+            : <Button type="button" className="min-h-11" disabled={!coverage || Boolean(selected && selected.state !== 'ready')} onClick={() => void startScan(source, resume?.source === source ? resume.offset : 0)}><Search className="mr-2 h-4 w-4" />{resume?.source === source ? 'Continue scan' : 'Scan now'}</Button>}
+        </div>
+        {selected && selected.state !== 'ready' && <p className="rounded-lg bg-muted p-3 text-sm">{coverageLabels[selected.state]}. Open Coverage to check the school profile and official links.</p>}
+        {scan && <div className="space-y-1.5 text-sm" role="status">
+          <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold">{scan.status}</span><span className="text-muted-foreground">{scan.done} of {scan.total} source records processed</span></div>
+          <progress className="h-2 w-full accent-primary" value={scan.done} max={Math.max(1, scan.total)} aria-label="Research progress" />
+        </div>}
+        <p className="text-xs leading-5 text-muted-foreground">Scheduled scans send recent, dated leads to review. Manual scans also show undated leads, which need extra checks. No paid AI service is contacted.{coverage?.lastSweep ? ' Last scheduled sweep: ' + updateDate(coverage.lastSweep) + '.' : ''}</p>
+      </section>
+      <section className={panel}>
+        <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Discovered leads</h2><p className={quiet}>Open the publisher, verify the story, then queue it for review.</p></div><Button variant="outline" onClick={() => setTab('review')}>Campus feed review</Button></div>
+        <Input placeholder="Filter these leads by school, title or category" aria-label="Filter discovered leads" value={filter} onChange={(event) => { setFilter(event.target.value); setLimit(12); }} />
+        {!leads.length ? <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">{matches.length ? 'No matching leads are available in this selection. Check Coverage for the publisher outcome.' : 'Run a scan to discover source-linked stories.'}</p>
+          : <div className="grid gap-3 lg:grid-cols-2">{leads.slice(0, limit).map(({ lead, school }) => {
+            const original = publicSourceUrl(lead.canonical_url);
+            return <article className="min-w-0 space-y-2 rounded-xl border p-3.5 sm:p-4" key={school.id + lead.source_item_key}>
+              <p className="text-xs font-semibold text-primary">{school.label} · {updateCategory(lead.category)}</p>
+              <h3 className="break-words font-semibold leading-snug">{lead.title}</h3>
+              <p className="text-xs text-muted-foreground">{updateDate(lead.published_at)} {lead.media_type && <span className="ml-1 inline-flex items-center gap-1">· {lead.media_type === 'video' ? <Video className="h-3.5 w-3.5" /> : <PhotoIcon className="h-3.5 w-3.5" />}{lead.media_type === 'video' ? 'Source video' : 'Source photo'}</span>}</p>
+              {lead.excerpt && <p className={quiet + ' break-words'}>{lead.excerpt}</p>}
+              <div className="flex flex-wrap gap-2 pt-1">
+                {original && <Button asChild size="sm" variant="outline"><a href={original.href} target="_blank" rel="noopener noreferrer">Read source <ArrowUpRight className="ml-1.5 h-4 w-4" /></a></Button>}
+                <Button size="sm" className="min-h-10" disabled={Boolean(queueBusy) || Boolean(queued[lead.source_item_key])} onClick={() => void queue(lead)}>
+                  {queueBusy === lead.proof && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{queued[lead.source_item_key] ? 'Already in review records' : 'Queue for review'}
+                </Button>
+              </div>
+            </article>;
+          })}</div>}
+        {leads.length > limit && <Button variant="outline" onClick={() => setLimit(limit + 12)}>Show more leads ({leads.length - limit})</Button>}
+      </section>
+    </>}
 
-    <CampusFeedReview />
-
-      <Card><CardHeader className="flex flex-col gap-3 border-b sm:flex-row sm:items-center sm:justify-between"><div><CardTitle className="text-base">Discovered update leads</CardTitle><p className="mt-1 text-sm text-muted-foreground">One tap queues the source story for public Campus Updates review and prepares a separate notification draft. Neither is published or sent until you approve it.</p></div><div className="flex items-center gap-2"><span className="text-xs text-muted-foreground">Audience</span><Select value={audience} onValueChange={(value) => setAudience(value as typeof audience)}><SelectTrigger className="w-32" aria-label="Draft audience"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="all">Everyone</SelectItem><SelectItem value="students">Students</SelectItem><SelectItem value="vendors">Vendors</SelectItem></SelectContent></Select></div></CardHeader><CardContent className="p-4">{visibleUpdates.length === 0 ? <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">Run a trusted source scan to see public update leads here.</div> : <div className="grid gap-3 lg:grid-cols-2">{visibleUpdates.map((update) => <article key={update.id} className="rounded-xl border p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-wide text-primary">{update.sourceLabel}</p><h2 className="mt-1 font-semibold leading-snug">{update.title}</h2></div><a className="shrink-0 rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-primary" href={update.url} target="_blank" rel="noreferrer" aria-label={`Open source for ${update.title}`}><ExternalLink className="h-4 w-4" /></a></div><p className="mt-2 line-clamp-3 text-sm text-muted-foreground">{update.summary}</p><Button className="mt-3 w-full sm:w-auto" variant="outline" size="sm" onClick={() => void prepareDraft(update)} disabled={busy === update.id}>{busy === update.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}Queue for review</Button></article>)}</div>}</CardContent></Card>
+    {tab === 'review' && <CampusFeedReview sources={sources} onDecision={() => void refresh()} />}
+    {tab === 'flyers' && <section className={panel}>
+      <div className="rounded-xl border border-emerald-900/10 bg-emerald-50 p-4 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50"><Newspaper className="mb-2 h-6 w-6" /><h2 className="text-lg font-bold">Letterhead flyers and briefings</h2><p className="mt-1 text-sm leading-6">Every approved update has a branded PNG. A briefing combines your selected school’s approved stories into numbered, shareable pages. The original publisher is credited on every item.</p></div>
+      <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <SourceSelect sources={sources} value={flyerScope} onChange={setFlyerScope} label="Briefing source" />
+        <label className="grid gap-1 text-sm font-semibold">Edition<select className={fieldClass} value={days} onChange={(event) => setDays(event.target.value)}><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="all">All updates</option></select></label>
+      </div>
+      {!canOpenBriefing && <p role="status" className={quiet}>This publisher does not have a public UniEco update source yet. Scan and review a sourced story first.</p>}
+      <div className="flex flex-wrap gap-2">{canOpenBriefing && <Button asChild><Link href={briefingLink} target="_blank">Open public briefing <ArrowUpRight className="ml-2 h-4 w-4" /></Link></Button>}<Button variant="outline" onClick={() => setTab('review')}>Preview a draft flyer in Review</Button></div>
+    </section>}
+    {tab === 'coverage' && <section className={panel}>
+      <div><h2 className="text-lg font-bold">School coverage</h2><p className={quiet}>A configured source is not proof of a recent update. Missing, paused and shared sources stay visible and are never replaced by a guess. Confirm the publisher, then add the official HTTPS website under <Link href="/admin/universities" className="font-semibold text-primary underline">Universities</Link>.</p></div>
+      <div className="flex flex-wrap items-center gap-3"><Input className="min-w-40 flex-1" placeholder="Search school names" aria-label="Search campus coverage" value={coverageFilter} onChange={(event) => setCoverageFilter(event.target.value)} /><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={gapsOnly} onChange={(event) => setGapsOnly(event.target.checked)} />Only sources needing attention</label></div>
+      <p className="text-xs text-muted-foreground">{schoolRows.length} school records shown</p>
+      <ul className="divide-y">{schoolRows.map((item) => {
+        const state = outcomes[item.id]?.state || item.state;
+        const publisher = publicSourceUrl(item.website);
+        return <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+          <div className="min-w-0 flex-1"><p className="break-words text-sm font-semibold">{item.label}</p><p className="text-xs leading-5 text-muted-foreground">{coverageLabels[state]}{outcomes[item.id]?.leads.length ? ' · ' + outcomes[item.id].leads.length + ' leads' : ''}</p></div>
+          <div className="flex flex-wrap gap-1.5">{publisher && <Button asChild variant="ghost" size="sm"><a href={publisher.href} target="_blank" rel="noopener noreferrer">Publisher <ArrowUpRight className="ml-1 h-3 w-3" /></a></Button>}{item.state === 'ready' ? <Button size="sm" variant="outline" disabled={scan?.active} onClick={() => void startScan(item.id)}>Scan</Button> : <Button asChild size="sm" variant="outline"><Link href={'/university/' + item.schoolSlug} target="_blank">Profile</Link></Button>}</div>
+        </li>;
+      })}</ul>
+    </section>}
+    {tab === 'assistant' && <EditorialAssistant source={source} onRefresh={refresh} />}
   </div>;
+}
+
+type AssistantMessage = { role: 'assistant' | 'user'; text: string; citations?: { title: string; url: string }[] };
+function EditorialAssistant({ source, onRefresh }: { source: string; onRefresh: () => Promise<void> }) {
+  const [question, setQuestion] = useState('');
+  const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const ask = async (preset?: string) => {
+    const message = (preset || question).trim();
+    if (!message || busy) return;
+    setBusy(true);
+    setQuestion('');
+    setMessages((previous) => [...previous, { role: 'user', text: message }]);
+    try {
+      const result = await editorialRequest<{ reply: string; citations?: AssistantMessage['citations'] }>('chat', { message, sourceId: source });
+      setMessages((previous) => [...previous, { role: 'assistant', text: result.reply, citations: result.citations }]);
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not load assistant evidence.'); }
+    finally { setBusy(false); }
+  };
+  return <section className={panel}>
+    <h2 className="text-lg font-bold">Ask the editorial assistant</h2><p className={quiet}>Get a cited briefing from approved updates, inspect the private review queue, or check aggregate platform health. The assistant cannot publish, broadcast, or change account access.</p>
+    <div className="flex flex-wrap gap-2">
+      {['Latest approved updates', 'Pending review queue', 'School coverage', 'System health'].map((prompt) => <Button key={prompt} size="sm" variant="outline" disabled={busy} onClick={() => void ask(prompt)}>{prompt}</Button>)}
+      <Button size="sm" variant="ghost" disabled={busy} onClick={() => void editorialRequest<{ message: string }>('test').then((result) => { toast.success(result.message); void onRefresh(); }, (error: Error) => toast.error(error.message))}>Check assistant</Button>
+    </div>
+    <div className="max-h-[32rem] space-y-2 overflow-auto" aria-live="polite">{messages.map((entry, index) => <div key={index} className={'min-w-0 rounded-xl px-3.5 py-3 text-sm leading-6 ' + (entry.role === 'assistant' ? 'bg-muted' : 'border border-primary/20 bg-primary/5')}><p className="whitespace-pre-wrap break-words">{entry.text}</p>{entry.citations?.length ? <ul className="mt-2 space-y-1">{entry.citations.flatMap((citation) => {
+      const url = publicSourceUrl(citation.url);
+      return url ? [<li key={url.href}><a href={url.href} target="_blank" rel="noopener noreferrer" className="text-primary underline">{citation.title}</a></li>] : [];
+    })}</ul> : null}</div>)}{busy && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Checking recorded evidence…</p>}</div>
+    <form className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]" onSubmit={(event) => { event.preventDefault(); void ask(); }}>
+      <Input aria-label="Ask a question" placeholder="What campus events have been approved?" value={question} maxLength={800} onChange={(event) => setQuestion(event.target.value)} />
+      <Button type="submit" disabled={busy || !question.trim()}>Ask UniEco AI</Button>
+    </form>
+  </section>;
 }

@@ -365,6 +365,7 @@ export async function getUniversityAnnouncementsByUniversity(universityId: strin
 
 export type CampusProfileUpdate = {
   id: string;
+  source_id: string;
   source_label: string;
   title: string;
   excerpt: string | null;
@@ -389,7 +390,7 @@ export async function getReviewedCampusUpdates(
   )).map(({ source_id }) => source_id);
   if (!sourceIds.length) return [];
   const { data: items, error: itemsError } = await supabase.from('campus_feed_public_items')
-    .select('id,source_label,title,excerpt,canonical_url,published_at,category')
+    .select('id,source_id,source_label,title,excerpt,canonical_url,published_at,category')
     .in('source_id', sourceIds)
     .order('published_at', { ascending: false, nullsFirst: false })
     .order('id')

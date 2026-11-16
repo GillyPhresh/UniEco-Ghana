@@ -39,11 +39,10 @@ test('database exposes only approved public fields and keeps review RPC super-ad
 });
 
 test('admin feed review route verifies authenticated super-admin role and audit note', () => {
-  assert.match(admin, /auth\.getUser\(\)/);
-  assert.match(admin, /current_app_role/);
-  assert.match(admin, /role !== 'super_admin'/);
+  assert.match(admin, /requireResearchAdmin\(\)/);
   assert.match(admin, /moderate_campus_feed_item/);
-  assert.match(admin, /maxReviewBodyBytes/);
+  assert.match(admin, /readJsonLimited\(request, 8 \* 1024\)/);
+  assert.match(admin, /body\.reason\.trim\(\)\.length < 10/);
 });
 
 test('public feed reads the approved-only view and preserves source attribution', () => {
@@ -53,15 +52,18 @@ test('public feed reads the approved-only view and preserves source attribution'
   assert.match(publicPage, /\.order\('id'/);
   assert.match(publicPage, /canonical_url/);
   assert.match(publicPage, /rel="noopener noreferrer"/);
-  assert.match(publicPage, /preload="none"/);
+  const media = read('components/feed/campus-update-media.tsx');
+  assert.match(publicPage, /<CampusUpdateMedia/);
+  assert.match(media, /publisherHost\(source\.hostname\) !== publisherHost\(media\.hostname\)/);
+  assert.doesNotMatch(media, /<iframe|<video|<img/);
 });
 
 test('only private UniEco AI review control can approve; public feed does not auto-publish', () => {
   assert.match(review, /Campus feed review/);
-  assert.match(review, /Approve for Campus Updates/);
-  assert.match(review, /10–500 characters/);
+  assert.match(review, /Publish update/);
+  assert.match(review, /minLength=\{10\} maxLength=\{500\}/);
   assert.match(read('components/layout/site-header.tsx'), /href: '\/updates'/);
-  assert.match(read('app/admin/ai/page.tsx'), /<CampusFeedReview \/>/);
+  assert.match(read('app/admin/ai/page.tsx'), /<CampusFeedReview sources=/);
 });
 
 test('official opportunity sources stay moderated and use a narrow public source directory', () => {
@@ -77,16 +79,21 @@ test('official opportunity sources stay moderated and use a narrow public source
 
 test('branded alert image can only render a public approved feed item', () => {
   assert.match(alertCard, /campus_feed_public_items/);
-  assert.match(alertCard, /ImageResponse/);
-  assert.match(alertCard, /unieco-main-logo\.png/);
-  assert.match(alertCard, /'Content-Disposition': 'inline; filename=/);
+  assert.match(alertCard, /renderUpdateFlyer/);
+  const renderer = read('lib/ai/flyer.tsx');
+  assert.match(renderer, /ImageResponse/);
+  assert.match(renderer, /unieco-main-logo\.png/);
+  assert.match(renderer, /'Content-Disposition'/);
 });
 
-test('scheduled worker uses secrets only and invokes the bounded Python collector', () => {
+test('manual worker uses secrets only and production runs without GitHub scheduling', () => {
   const workflow = fs.readFileSync(path.resolve(project, '..', '.github/workflows/campus-feed-ingest.yml'), 'utf8');
   assert.match(workflow, /refs\/heads\/deploy-main/);
   assert.match(workflow, /environment: "UniEco Ghana - Production \/ production"/);
   assert.match(workflow, /secrets\.UNIECO_FEED_INGEST_TOKEN/);
-  assert.match(workflow, /python feed_worker\/ingest\.py/);
+  assert.match(workflow, /python feed_worker\/run_research\.py/);
   assert.doesNotMatch(workflow, /SUPABASE_SERVICE_ROLE_KEY/);
+  const launcher = read('scripts/run-railway.mjs');
+  assert.match(launcher, /environment === 'production'/);
+  assert.match(launcher, /scheduleCampusResearch\(port, researchNonce\)/);
 });

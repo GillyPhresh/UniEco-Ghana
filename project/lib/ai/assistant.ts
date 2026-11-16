@@ -9,6 +9,18 @@ export type UniEcoAiMode = 'safe-fallback';
 export type UniEcoAiCitation = { title: string; url: string };
 
 const MAX_CONTEXT = 8_000;
+const commonSearchWords = new Set(['a', 'an', 'and', 'any', 'approved', 'are', 'campus', 'could', 'for', 'from', 'give', 'have', 'i', 'in', 'is', 'latest', 'me', 'news', 'of', 'on', 'pending', 'please', 'show', 'the', 'there', 'to', 'uni', 'update', 'updates', 'what', 'which', 'with']);
+
+export function rankEditorialEvidence<T extends { title: string; excerpt: string | null }>(question: string, rows: T[]) {
+  const terms = Array.from(new Set((question.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []).filter((term) => !commonSearchWords.has(term)))).slice(0, 14);
+  const scored = rows.map((row, index) => {
+    const title = row.title.toLowerCase();
+    const snippet = (row.excerpt || '').toLowerCase();
+    return { row, index, score: terms.reduce((score, term) => score + (title.includes(term) ? 3 : snippet.includes(term) ? 1 : 0), 0) };
+  });
+  const matched = scored.filter((entry) => entry.score > 0);
+  return { matched: terms.length === 0 || matched.length > 0, rows: (matched.length ? matched : scored).sort((a, b) => b.score - a.score || a.index - b.index).slice(0, 5).map(({ row }) => row) };
+}
 
 function healthFacts(context: string): string[] {
   try {
@@ -40,10 +52,10 @@ function offlineReply(message: string, context: string): string {
       : 'I could not retrieve the aggregate health snapshot just now. Please refresh System Health and check the relevant queue there. I can still help you plan a safe investigation, but I will not invent a status.';
   }
   if (/\b(news|update|university|universities|today|latest)\b/.test(lower)) {
-    return 'To find current campus updates without any paid AI service, choose a trusted official university source and tap “Scan now”. I will show public leads with their source links; check the original page and date before sharing. Then use “Prepare for approval” to create a draft. I cannot claim what is new until a scan returns results.';
+    return 'Choose a school in Research and tap “Scan now”. Open the sources, verify the dates and story, then queue the item for review. I can brief you on recorded evidence, but I cannot claim what is new at a school that has no verified source.';
   }
   if (/\b(broadcast|announcement|push|email|notify|通知)\b/.test(lower) || (/\bmessage\b/.test(lower) && !/\b(idea|ideas|campaign|content)\b/.test(lower))) {
-    return 'I can help prepare a broadcast draft from a trusted source. Keep it factual, name the relevant campus and date, include the original source link, and choose the right audience. “Prepare for approval” saves it to Broadcasts; a human must review and approve it before anything is delivered.';
+    return 'In Review, open the Published tab and choose “Prepare notification draft” on the update. Check the campus, dates, original source, and audience in Broadcasts. Nothing is delivered until a super admin separately approves and sends it.';
   }
   if (/\b(idea|ideas|campaign|promote|engagement|content|post)\b/.test(lower)) {
     return 'Here are practical, no-cost content ideas for UniEco Ghana:\n\n1. Weekly campus notice round-up with official links and dates.\n2. Student/vendor spotlight, published only with clear consent.\n3. Short marketplace safety tip (meet safely, verify listings, report suspicious activity).\n4. Upcoming campus event reminder, confirmed with the organiser.\n5. Student-made campus moment or useful service, with the creator’s permission.\n\nUse short, mobile-friendly copy, one clear action, and the relevant campus audience. Keep drafts in review until a human verifies them.';

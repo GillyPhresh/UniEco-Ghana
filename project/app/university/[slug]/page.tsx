@@ -188,6 +188,7 @@ export default async function UniversityPage({ params }: PageProps) {
               </ul>}
               {!announcements.length && !updates.length && <ProfileNote>No updates have been published for this campus on UniEco yet.</ProfileNote>}
               {(campus.news || campus.website) && <ExternalAction href={(campus.news || campus.website)!} label={campus.news ? 'Updates from the school' : 'Check the school website'} icon={ArrowUpRight} compact />}
+              {updates[0] && <Link href={'/updates/bulletin?source=' + encodeURIComponent(updates[0].source_id) + '&days=all'} className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-primary hover:underline">Campus briefing <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>}
               <Link href="/updates" className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-primary hover:underline">All campus updates <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
             </section>
 

@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 import { safeOfficialWebsite } from '@/lib/ai/trusted-sources';
+import { fetchPublisher } from '@/lib/ai/publisher-fetch';
+import { publisherHost } from '@/lib/ai/public-source-url';
+import { allowsPublisherPath, loadPublisherPolicy } from '@/lib/ai/publisher-policy';
 
 export type CampusDiscoveryItem = {
   listing_type: 'business' | 'event';
@@ -17,7 +20,6 @@ export type CampusDiscoveryItem = {
 
 type InstitutionSource = { id: string; name: string; website_url: string | null };
 const MAX_HTML_BYTES = 650_000;
-const FETCH_TIMEOUT_MS = 5_000;
 const MAX_PAGES_PER_SCAN = 5;
 
 function plainText(value: unknown, max = 1200): string | null {
@@ -87,31 +89,16 @@ function fingerprint(universityId: string, itemType: string, url: string, title:
   return createHash('sha256').update(`${universityId}\n${itemType}\n${url}\n${title.toLowerCase()}`).digest('hex');
 }
 
-async function fetchOfficialPage(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+async function fetchOfficialPage(url: string, root: string, signal: AbortSignal): Promise<{ url: string; html: string } | null> {
   try {
-    const response = await fetch(url, {
-      headers: { accept: 'text/html,application/xhtml+xml', 'user-agent': 'UniEco-Ghana-Campus-Discovery/1.0' },
-      signal: controller.signal,
-      cache: 'no-store',
-      redirect: 'manual',
+    const hosts = [publisherHost(new URL(root).hostname)];
+    const policy = await loadPublisherPolicy(root, hosts, signal);
+    const page = await fetchPublisher(url, hosts, {
+      signal, mimeTypes: ['text/html', 'application/xhtml+xml'], maxBytes: MAX_HTML_BYTES,
+      allowsPath: (target) => allowsPublisherPath(policy, target),
     });
-    if (!response.ok || !response.headers.get('content-type')?.toLowerCase().includes('text/html')) return null;
-    const reader = response.body?.getReader();
-    if (!reader) return null;
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    while (total < MAX_HTML_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = value.subarray(0, MAX_HTML_BYTES - total);
-      chunks.push(chunk); total += chunk.byteLength;
-      if (chunk.byteLength !== value.byteLength) { await reader.cancel(); break; }
-    }
-    return new TextDecoder().decode(Buffer.concat(chunks));
+    return page.indexable ? { url: page.url, html: page.bytes.toString('utf8') } : null;
   } catch { return null; }
-  finally { clearTimeout(timeout); }
 }
 
 function linksFromPage(html: string, sourceUrl: string): string[] {
@@ -130,12 +117,13 @@ function linksFromPage(html: string, sourceUrl: string): string[] {
 export async function discoverCampusItems(university: InstitutionSource): Promise<CampusDiscoveryItem[]> {
   const website = safeOfficialWebsite(university.website_url);
   if (!website) return [];
-  const rootHtml = await fetchOfficialPage(website);
-  if (!rootHtml) return [];
-  const pages: Array<{ url: string; html: string }> = [{ url: website, html: rootHtml }];
-  for (const link of linksFromPage(rootHtml, website).slice(0, MAX_PAGES_PER_SCAN - 1)) {
-    const html = await fetchOfficialPage(link);
-    if (html) pages.push({ url: link, html });
+  const signal = AbortSignal.timeout(18_000);
+  const root = await fetchOfficialPage(website, website, signal);
+  if (!root) return [];
+  const pages = [root];
+  for (const link of linksFromPage(root.html, root.url).slice(0, MAX_PAGES_PER_SCAN - 1)) {
+    const page = await fetchOfficialPage(link, website, signal);
+    if (page) pages.push(page);
   }
 
   const items = new Map<string, CampusDiscoveryItem>();

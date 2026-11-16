@@ -1,65 +1,65 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { acceptsAdminMutation, privateJson, requireResearchAdmin } from '@/lib/ai/admin-access';
+import { campusFeedUuid, validSourceId } from '@/lib/ai/research-catalog';
+import { createResearchClient } from '@/lib/ai/research-service';
+import { readJsonLimited } from '@/lib/http/read-json-limited';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-const noStore = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff' };
-const maxReviewBodyBytes = 8 * 1024;
-
-function json(body: unknown, status = 200) {
-  return NextResponse.json(body, { status, headers: noStore });
-}
-
-async function requireSuperAdmin() {
-  const supabase = await createClient();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError || !user) return { supabase: null, error: json({ error: 'Authentication required.' }, 401) };
-  const { data: role, error: roleError } = await supabase.rpc('current_app_role');
-  if (roleError) return { supabase: null, error: json({ error: 'Unable to verify management authority.' }, 503) };
-  if (role !== 'super_admin') return { supabase: null, error: json({ error: 'Super administrator access required.' }, 403) };
-  return { supabase, error: null };
-}
+const pageSize = 15;
+const statuses = ['pending', 'approved', 'rejected'];
 
 export async function GET(request: Request) {
-  const auth = await requireSuperAdmin();
-  if (auth.error || !auth.supabase) return auth.error;
-  const requested = new URL(request.url).searchParams.get('status') || 'pending';
-  if (!['pending', 'approved', 'rejected'].includes(requested)) return json({ error: 'Invalid queue filter.' }, 400);
-  const { data, error } = await auth.supabase.rpc('get_campus_feed_review_items', { p_status: requested });
-  if (error) return json({ error: 'Unable to load the campus feed review queue.' }, 503);
-  return json({ items: data || [] });
+  const auth = await requireResearchAdmin();
+  if (!auth.ok) return auth.error;
+  const params = new URL(request.url).searchParams;
+  const status = params.get('status') || 'pending';
+  const source = params.get('source');
+  const page = Number(params.get('page') || '1');
+  if (!statuses.includes(status) || (source && !validSourceId.test(source)) || !Number.isSafeInteger(page) || page < 1 || page > 10_000) {
+    return privateJson({ error: 'Invalid review filter.' }, 400);
+  }
+  const db = createResearchClient();
+  if (!db) return privateJson({ error: 'The campus review queue is not configured.' }, 503);
+  let query = db.from('campus_feed_items')
+    .select('id,source_id,source_label,university_name,title,excerpt,canonical_url,published_at,media_url,media_type,category,status,review_reason,updated_at', { count: 'exact' })
+    .eq('status', status);
+  if (source) query = query.eq('source_id', source);
+  const { data, count, error } = await query
+    .order('published_at', { ascending: false, nullsFirst: false }).order('id')
+    .range((page - 1) * pageSize, page * pageSize - 1);
+  if (error && error.code !== 'PGRST103') return privateJson({ error: 'Unable to load the campus feed review queue.' }, 503);
+  return privateJson({ items: data || [], total: count || 0, pages: Math.max(1, Math.ceil((count ?? 0) / pageSize)) });
 }
 
 export async function POST(request: Request) {
-  const auth = await requireSuperAdmin();
-  if (auth.error || !auth.supabase) return auth.error;
-  if (Number(request.headers.get('content-length') || 0) > maxReviewBodyBytes || !request.body) return json({ error: 'Invalid review request.' }, 400);
-  let body: unknown;
-  try {
-    const reader = request.body.getReader();
-    const chunks: Uint8Array[] = [];
-    let size = 0;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > maxReviewBodyBytes) { await reader.cancel(); return json({ error: 'Invalid review request.' }, 400); }
-      chunks.push(value);
-    }
-    const bytes = new Uint8Array(size);
-    let offset = 0;
-    for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-    body = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
-  } catch { return json({ error: 'Invalid request body.' }, 400); }
-  if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'Invalid review request.' }, 400);
-  const value = body as Record<string, unknown>;
-  if (typeof value.id !== 'string' || !/^[0-9a-f-]{36}$/i.test(value.id)
-    || !['approved', 'rejected'].includes(String(value.decision))
-    || typeof value.reason !== 'string' || value.reason.trim().length < 10 || value.reason.trim().length > 500) {
-    return json({ error: 'A valid item, decision, and 10–500 character review note are required.' }, 400);
+  const auth = await requireResearchAdmin();
+  if (!auth.ok) return auth.error;
+  if (!acceptsAdminMutation(request)) return privateJson({ error: 'This request must come from UniEco management.' }, 403);
+  let body: { id?: unknown; decision?: unknown; reason?: unknown; reviewedVersion?: unknown; sourceConfirmed?: unknown };
+  try { body = await readJsonLimited(request, 8 * 1024); }
+  catch { return privateJson({ error: 'Invalid or oversized review request.' }, 400); }
+  if (!body || typeof body.id !== 'string' || !campusFeedUuid.test(body.id)
+    || (body.decision !== 'approved' && body.decision !== 'rejected')
+    || typeof body.reason !== 'string' || body.reason.trim().length < 10 || body.reason.trim().length > 500
+    || typeof body.reviewedVersion !== 'string' || body.reviewedVersion.length > 64
+    || (body.decision === 'approved' && body.sourceConfirmed !== true)) {
+    return privateJson({ error: 'Select an update, verify the source before publishing, and add a 10–500 character review note.' }, 400);
+  }
+  const db = createResearchClient();
+  if (!db) return privateJson({ error: 'The campus review queue is not configured.' }, 503);
+  const { data: item, error: queueError } = await db.from('campus_feed_items').select('status,updated_at,source_id').eq('id', body.id).maybeSingle();
+  if (queueError) return privateJson({ error: 'Could not verify the review item.' }, 503);
+  if (!item || item.updated_at !== body.reviewedVersion || item.status === 'rejected'
+    || (item.status !== 'pending' && body.decision === 'approved')) {
+    return privateJson({ error: 'The item changed since you opened it. Refresh and review it again.' }, 409);
+  }
+  if (body.decision === 'approved') {
+    const { data: source, error } = await db.from('campus_feed_sources').select('enabled').eq('id', item.source_id).maybeSingle();
+    if (error || !source?.enabled) return privateJson({ error: 'This publisher is paused. No public update was changed.' }, 409);
   }
   const { data, error } = await auth.supabase.rpc('moderate_campus_feed_item', {
-    p_item_id: value.id, p_decision: value.decision, p_reason: value.reason.trim(),
+    p_item_id: body.id, p_decision: body.decision, p_reason: body.reason.trim(),
   });
-  if (error) return json({ error: 'The feed item could not be reviewed.' }, 503);
-  return json({ result: data });
+  if (error) return privateJson({ error: 'The review decision could not be saved.' }, 503);
+  return privateJson({ result: data });
 }

@@ -24,7 +24,7 @@ test('high-cost payment and push endpoints enforce streamed byte limits before J
   assert.match(push, /RequestBodyTooLargeError[\s\S]*status: error instanceof RequestBodyTooLargeError \? 413/);
   assert.doesNotMatch(payment, /request\.json\(\)/);
   assert.doesNotMatch(push, /request\.json\(\)/);
-  assert.match(ai, /readJsonLimited<Record<string, unknown>>\(request, 64 \* 1024\)/);
+  assert.match(ai, /readJsonLimited<unknown>\(request, 16 \* 1024\)/);
   assert.match(ai, /RequestBodyTooLargeError \? 413/);
   assert.match(reconcile, /readJsonLimited<{ reference\?: string }>\(request, 4 \* 1024\)/);
   assert.match(adminReconcile, /readJsonLimited<{ reference\?: string }>\(request, 4 \* 1024\)/);

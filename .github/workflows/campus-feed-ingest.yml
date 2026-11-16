@@ -2,8 +2,11 @@ name: UniEco campus feed ingest
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '17 */6 * * *'
+    inputs:
+      dry_run:
+        description: Scan sources without adding anything to the review queue
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -18,7 +21,7 @@ jobs:
     # Use the existing production environment that holds the ingest secret.
     environment: "UniEco Ghana - Production / production"
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - name: Check out production branch
         uses: actions/checkout@v4
@@ -28,8 +31,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Fetch trusted feeds and queue items for review
+      - name: Research official campus updates and queue recent leads for review
         working-directory: project
         env:
           UNIECO_FEED_INGEST_TOKEN: ${{ secrets.UNIECO_FEED_INGEST_TOKEN }}
-        run: python feed_worker/ingest.py
+          UNIECO_RESEARCH_DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$UNIECO_RESEARCH_DRY_RUN" = "true" ]; then
+            python feed_worker/run_research.py --dry-run
+          else
+            python feed_worker/run_research.py
+          fi

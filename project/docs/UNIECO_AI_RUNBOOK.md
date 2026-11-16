@@ -1,35 +1,63 @@
-# UniEco Intelligence
+# UniEco AI: editorial operations
 
-UniEco Intelligence is a private, super-admin-only operations workspace at `/admin/ai`.
+Open **Management → UniEco AI** as a super administrator.
 
-It can:
+- **Research:** Scan one school, or the full roster in bounded, pausable batches.
+  A result contains an original article, a short excerpt, its reported date, and
+  any identified photo or video. Queue an individual result when appropriate.
+- **Coverage:** Every enabled directory entry appears, including schools with no
+  verified source, shared/ambiguous publishers, paused sources, and sources that
+  could not be reached. Look up the school's official publisher independently;
+  only put an official HTTPS URL into Management → Universities. No search-engine
+  result is automatically treated as an institution's source.
+- **Review:** Verify the institution, article, dates and relevance, then approve
+  with an audit note or reject it. Draft flyer previews are authenticated and
+  watermarked. A published story can be unpublished with a reason.
+- **Flyers:** A published update has a shareable link and a portrait PNG. The
+  public **Campus briefing** groups approved items by school or all campuses and
+  by time range. Choose **All updates** to include undated approved articles.
+  Every numbered page can be printed or downloaded separately.
+- **Assistant:** Ask for cited approved updates, pending leads, school coverage or
+  aggregate platform health. The assistant uses UniEco's recorded evidence and
+  deterministic workflows; no external model or paid API is enabled.
+- **Notifications:** A super admin can separately prepare a draft from a
+  published update. That is not a send or approval.
 
-- scan the server-side allowlist of official public university and UniEco pages;
-- scan enabled university-directory HTTPS websites in bounded batches;
-- optionally search the live public web for an individual admin-chat message when explicitly enabled in the UI;
-- return reviewable update leads with source links;
-- answer operational questions using aggregate system-health context;
-- prepare a draft broadcast that remains in Broadcasts for human review.
+## Research guardrails
 
-It cannot publish, send, delete, refund, change roles, change authentication, or access private user content. A human super administrator must review and use the existing Broadcasts approval and delivery controls.
+The scanner uses the enabled campus directory, already registered publishers,
+and the checked-in profile/branding source inventory. Each official news/notice
+page, advertised RSS/Atom feed and article is limited to its verified publisher.
+Verified pages can reveal their own article photos, direct videos or public
+embedded videos. UniEco links to the publisher on approved releases. Private
+photo previews use a bounded sanitized thumbnail; the app does not rehost an
+external publisher's media or play it automatically.
 
-## Campus Updates feed
+Connections use HTTPS with explicit host validation, pinned public DNS addresses,
+redirect checks, short timeouts, byte limits, and publisher crawl rules. HTML/XML
+are parsed as data, never executed. No external page can choose a tool or write to
+the app. A manual lead has a 30-minute proof bound to the signed-in super admin.
+Queued records are deduplicated and frozen; the scanner cannot approve or alter
+reviewed content. Public pages and flyer APIs read the approved-only view.
+Do not add social feeds, arbitrary redirectors, or shared hosting domains to the
+research inventory without a defined source and publication policy.
 
-The public `/updates` page is a separately moderated campus-news feed. A small standard-library Python worker in `feed_worker/` uses its four checked-in sample feeds for local work without credentials. In production, it loads enabled official sources from the authenticated internal API and discovers only RSS/Atom feeds advertised by those HTTPS websites. The migration `20261107100000_0185_expand_campus_feed_school_sources.sql` adds configured enabled university websites to that source list. Institutions without a configured official website or advertised feed are skipped rather than guessed. The worker submits bounded headlines, excerpts and same-publisher media URLs for human review. Only a super administrator may approve or reject an item in the review panel at `/admin/ai`; approving publishes it to Campus Updates but does not send a push, email or broadcast.
+## Running and checking production
 
-Content is treated as untrusted data. The worker rejects unsafe redirects, non-HTTPS URLs, cross-domain links, entity declarations and oversized XML. The public page shows only approved fields, attributes each item, links to the institution's original page and does not autoplay video. Feed outages are skipped rather than replaced with invented content.
+The existing Railway production start command runs a six-hour sweep, using an
+ephemeral loopback credential. It uses the existing server-only Supabase key and
+campus feed tables; no new migration, third-party account, or billing is required.
+Staging and local deployments do not start the scheduler. Operators can stop
+automatic sweeps by setting `UNIECO_DISABLE_CAMPUS_RESEARCH=true` through the usual
+change-control process. Do not put private credentials in `NEXT_PUBLIC_*`.
 
-See [`feed_worker/README.md`](../feed_worker/README.md) for local tests and production setup. Production automation requires the migration `20261101170000_0174_moderated_campus_feed.sql`, a matching 32+ character `UNIECO_FEED_INGEST_TOKEN` in Railway and GitHub repository secrets, and the scheduled GitHub workflow. Keep `SUPABASE_SERVICE_ROLE_KEY` only in the server's secret store.
+The sweep attempts the full roster and national sources, queues at most two recent
+dated leads per publisher per pass, and reports publisher failures and coverage
+gaps without opening access or sending messages. An append-only audit marker
+prevents overlapping deployments from claiming the same six-hour window. Look
+for `campus_research.sweep_started`, `campus_research.sweep_completed`, and the
+aggregate Railway log. A disconnected run is retried once; subsequent windows can
+fill in safely because ingestion is idempotent.
 
-## Optional provider configuration
-
-The feature works in safe fallback mode without an AI provider. For richer analysis, configure these server-only variables in the production service:
-
-- `UNIECO_AI_API_KEY` — preferred secret name; `OPENAI_API_KEY` is accepted for compatibility.
-- `UNIECO_AI_MODEL` — model name supported by the configured provider.
-- `UNIECO_AI_BASE_URL` — optional OpenAI-compatible API base URL; defaults to `https://api.openai.com/v1`.
-- `UNIECO_AI_TRUSTED_SOURCES` — optional JSON array of `{id,label,url,description}` objects. Only HTTPS URLs are accepted. These are combined with built-in sources and enabled university websites (up to 150 total).
-
-Live worldwide search is available only with the official OpenAI API base URL and only when the super administrator checks “Search the live web for this chat”. It is an interactive answer feature, not an automatic public-content source. OpenAI bills its web-search tool separately from model tokens; check current [API pricing](https://openai.com/api/pricing/) before frequent use. Search citations are returned as links and results remain untrusted until reviewed. No student-facing post or broadcast is published automatically.
-
-Never put any of these values in `NEXT_PUBLIC_*` variables. Rotate the key through the hosting provider if it is exposed.
+The operator worker described in [feed_worker/README.md](../feed_worker/README.md)
+is optional. It is not the production scheduler.
