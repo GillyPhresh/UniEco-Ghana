@@ -1,5 +1,6 @@
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { businessEmail } from '@/lib/constants/business-email';
 
 export const metadata = {
   title: 'Terms of Service | UniEco Ghana',
@@ -19,7 +20,7 @@ export default function TermsOfServicePage() {
           <section><h2 className="font-display text-lg font-semibold text-foreground">Students and vendors</h2><p className="mt-2">Students, vendors, and university administrators must use the role and university information that applies to them. Vendors are responsible for truthful listings, prices, availability, fulfilment, and customer communication.</p></section>
           <section><h2 className="font-display text-lg font-semibold text-foreground">Payments and access</h2><p className="mt-2">A payment becomes successful only after the provider result is verified and matched to the UniEco Ghana payment record. A pending, failed, cancelled, or mismatched payment does not unlock paid access.</p></section>
           <section><h2 className="font-display text-lg font-semibold text-foreground">Safety and enforcement</h2><p className="mt-2">We may review, restrict, or suspend accounts and content to protect users, investigate abuse, resolve payment disputes, or comply with applicable requirements.</p></section>
-          <section><h2 className="font-display text-lg font-semibold text-foreground">Contact</h2><p className="mt-2">Questions can be sent to <a className="text-primary hover:underline" href="mailto:info.uniecoghana@gmail.com">info.uniecoghana@gmail.com</a> or 0249902919.</p></section>
+          <section><h2 className="font-display text-lg font-semibold text-foreground">Contact</h2><p className="mt-2">For help with an account, payment, or order, contact <a className="text-primary hover:underline" href={`mailto:${businessEmail.support}`}>{businessEmail.support}</a>. For general enquiries, email <a className="text-primary hover:underline" href={`mailto:${businessEmail.general}`}>{businessEmail.general}</a>.</p></section>
         </div>
       </main>
       <SiteFooter />

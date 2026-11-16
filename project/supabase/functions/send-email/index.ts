@@ -82,6 +82,27 @@ Deno.serve(async (req: Request) => {
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const brevoKey = Deno.env.get("BREVO_API_KEY");
     const sendgridKey = Deno.env.get("SENDGRID_API_KEY");
+    const senderRole = eventType === "support_ticket_update"
+      ? "support"
+      : eventType && eventType !== "email" ? "notifications" : "noReply";
+    const roleName = senderRole === "noReply" ? "NOREPLY" : senderRole.toUpperCase();
+    const roleDefault = senderRole === "support"
+      ? "support@uniecoghana.com"
+      : senderRole === "notifications"
+        ? "notifications@uniecoghana.com"
+        : "noreply@uniecoghana.com";
+    const roleFrom = senderRole === "support"
+      ? "UniEco Ghana Support <support@uniecoghana.com>"
+      : senderRole === "notifications"
+        ? "UniEco Ghana Notifications <notifications@uniecoghana.com>"
+        : "UniEco Ghana <noreply@uniecoghana.com>";
+    // Authentication mail is sent by Supabase Auth via auth@ SMTP. Do not
+    // reuse the legacy EMAIL_FROM_ADDRESS for application email; it can be
+    // that auth-only identity. Per-role overrides remain server-side.
+    const senderAddress = Deno.env.get(`RESEND_FROM_EMAIL_${roleName}`)
+      || Deno.env.get(`EMAIL_FROM_${roleName}`)
+      || (senderRole === "notifications" ? Deno.env.get("RESEND_FROM_EMAIL") : undefined)
+      || roleFrom;
 
     let provider: string | null = null;
     let providerReference: string | null = null;
@@ -89,8 +110,6 @@ Deno.serve(async (req: Request) => {
     // Try Resend
     if (resendKey) {
       provider = "resend";
-      const fromEmail = Deno.env.get("RESEND_FROM_EMAIL") || Deno.env.get("EMAIL_FROM_ADDRESS") || "UniEco Ghana <noreply@uniecoghana.com>";
-
       const response = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {
@@ -99,9 +118,10 @@ Deno.serve(async (req: Request) => {
           ...(eventId ? { "Idempotency-Key": `unieco-email-${eventId}` } : {}),
         },
         body: JSON.stringify({
-          from: fromEmail,
+          from: senderAddress,
           to: [to],
           subject,
+          ...(senderRole === "noReply" ? {} : { reply_to: ["support@uniecoghana.com"] }),
           html: rendered.html,
           text: rendered.text,
           ...(attachments.length ? { attachments: attachments.map(({ filename, content }) => ({ filename, content })) } : {}),
@@ -126,7 +146,6 @@ Deno.serve(async (req: Request) => {
     // Try Brevo
     else if (brevoKey) {
       provider = "brevo";
-      const fromEmail = Deno.env.get("EMAIL_FROM_ADDRESS") || "noreply@uniecoghana.com";
       const fromName = Deno.env.get("EMAIL_FROM_NAME") || "UniEco Ghana";
 
       const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -136,7 +155,7 @@ Deno.serve(async (req: Request) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          sender: { email: fromEmail, name: fromName },
+          sender: { email: senderAddress.includes("<") ? senderAddress.match(/<([^>]+)>/)?.[1] || roleDefault : senderAddress, name: fromName },
           to: [{ email: to }],
           subject,
           htmlContent: rendered.html,
@@ -162,7 +181,7 @@ Deno.serve(async (req: Request) => {
     // Try SendGrid
     else if (sendgridKey) {
       provider = "sendgrid";
-      const fromEmail = Deno.env.get("EMAIL_FROM_ADDRESS") || "noreply@uniecoghana.com";
+      const fromAddress = senderAddress.includes("<") ? senderAddress.match(/<([^>]+)>/)?.[1] || roleDefault : senderAddress;
 
       const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
@@ -172,7 +191,7 @@ Deno.serve(async (req: Request) => {
         },
         body: JSON.stringify({
           personalizations: [{ to: [{ email: to }] }],
-          from: { email: fromEmail },
+          from: { email: fromAddress },
           subject,
           content: [{ type: "text/html", value: rendered.html }, { type: "text/plain", value: rendered.text }],
           ...(attachments.length ? { attachments: attachments.map(({ filename, content, contentType }) => ({ content, filename, type: contentType, disposition: "attachment" })) } : {}),

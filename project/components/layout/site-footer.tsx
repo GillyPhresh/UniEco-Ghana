@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Twitter, Instagram, Facebook, Mail, ChevronDown } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { footerLinks, siteConfig } from '@/lib/constants/site';
+import { businessEmail, publicBusinessContacts } from '@/lib/constants/business-email';
 
 export function SiteFooter() {
   return (
@@ -24,9 +25,18 @@ export function SiteFooter() {
               <SocialLink href={siteConfig.links.facebook} label="Facebook">
                 <Facebook className="h-4 w-4" />
               </SocialLink>
-              <SocialLink href="mailto:info.uniecoghana@gmail.com" label="Email UniEco Ghana">
+              <SocialLink href={`mailto:${businessEmail.general}`} label="Email UniEco Ghana">
                 <Mail className="h-4 w-4" />
               </SocialLink>
+            </div>
+            <div className="mt-4 grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2 lg:grid-cols-1">
+              {publicBusinessContacts.map(({ role, email, purpose }) => (
+                <a key={email} href={`mailto:${email}`} className="flex min-h-10 min-w-0 flex-col justify-center rounded-md text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                  <span className="font-medium text-foreground">{role}</span>
+                  <span className="break-all">{email}</span>
+                  <span className="text-[11px]">{purpose}</span>
+                </a>
+              ))}
             </div>
           </div>
 

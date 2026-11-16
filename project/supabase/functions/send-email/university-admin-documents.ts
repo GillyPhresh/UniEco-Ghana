@@ -114,7 +114,7 @@ function addLetterhead(page: ReturnType<PDFDocument["addPage"]>, logo: Awaited<R
   const brandX = LEFT + 76;
   page.drawText("UNIECO GHANA", { x: brandX, y: PAGE_HEIGHT - 43, size: 17, font, color: GREEN });
   page.drawText("CAMPUS COMMERCE AND COMMUNITY PLATFORM", { x: brandX, y: PAGE_HEIGHT - 59, size: 6.5, font, color: MUTED });
-  page.drawText("0249902919  |  info.uniecoghana@gmail.com", { x: brandX, y: PAGE_HEIGHT - 73, size: 7.2, font, color: MUTED });
+  page.drawText("0249902919  |  info@uniecoghana.com", { x: brandX, y: PAGE_HEIGHT - 73, size: 7.2, font, color: MUTED });
   page.drawText("www.uniecoghana.com", { x: brandX, y: PAGE_HEIGHT - 86, size: 7.2, font, color: GREEN });
 
   const stripeY = PAGE_HEIGHT - 105;
@@ -277,7 +277,7 @@ export async function createUniversityAdminAppointmentAttachments(meta: Appointm
 
 function addFooter(page: ReturnType<PDFDocument["addPage"]>, font: Awaited<ReturnType<PDFDocument["embedFont"]>>) {
   page.drawLine({ start: { x: LEFT, y: 56 }, end: { x: RIGHT, y: 56 }, thickness: 0.6, color: rgb(0.86, 0.89, 0.91) });
-  const footer = "UniEco Ghana  |  0249902919  |  info.uniecoghana@gmail.com  |  www.uniecoghana.com";
+  const footer = "UniEco Ghana  |  0249902919  |  info@uniecoghana.com  |  www.uniecoghana.com";
   const size = 6.5;
   const width = font.widthOfTextAtSize(footer, size);
   page.drawText(footer, { x: (PAGE_WIDTH - width) / 2, y: 39, size, font, color: MUTED });

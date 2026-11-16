@@ -489,7 +489,7 @@ export function generateInvoicePrintable(invoice: Invoice): string {
   </table>
   <div class="footer">
     <p>UniEco Ghana — This is a computer-generated invoice and does not require a signature.</p>
-    <p>For questions about this invoice, contact support@unieco.gh</p>
+    <p>For questions about this invoice, contact support@uniecoghana.com</p>
   </div>
 </body>
 </html>`;
@@ -555,7 +555,7 @@ export function generateReceiptPrintable(receipt: Receipt): string {
   </div>
   <div class="footer">
     <p>This is a computer-generated receipt and serves as proof of payment.</p>
-    <p>UniEco Ghana — support@unieco.gh</p>
+    <p>UniEco Ghana — support@uniecoghana.com</p>
   </div>
 </body>
 </html>`;

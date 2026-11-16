@@ -1,5 +1,6 @@
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { businessEmail } from '@/lib/constants/business-email';
 
 export const metadata = {
   title: 'Code of Conduct | UniEco Ghana',
@@ -17,7 +18,7 @@ export default function CodeOfConductPage() {
           <section><h2 className="font-display text-lg font-semibold text-foreground">Be respectful</h2><p className="mt-2">Treat students, vendors, university teams, and support staff with honesty and respect. Do not harass, threaten, impersonate, or discriminate against anyone.</p></section>
           <section><h2 className="font-display text-lg font-semibold text-foreground">Be trustworthy</h2><p className="mt-2">Publish accurate business details, use genuine images and offers, honour accepted orders, and do not manipulate reviews, referrals, payments, or platform activity.</p></section>
           <section><h2 className="font-display text-lg font-semibold text-foreground">Keep the community safe</h2><p className="mt-2">Do not post illegal, dangerous, fraudulent, abusive, or privacy-invasive content. Report concerns through support so they can be reviewed.</p></section>
-          <section><h2 className="font-display text-lg font-semibold text-foreground">Report a problem</h2><p className="mt-2">Contact <a className="text-primary hover:underline" href="mailto:info.uniecoghana@gmail.com">info.uniecoghana@gmail.com</a> or 0249902919 when you need help.</p></section>
+          <section><h2 className="font-display text-lg font-semibold text-foreground">Report a problem</h2><p className="mt-2">Contact <a className="text-primary hover:underline" href={`mailto:${businessEmail.support}`}>{businessEmail.support}</a> for help with safety concerns or platform issues.</p></section>
         </div>
       </main>
       <SiteFooter />
