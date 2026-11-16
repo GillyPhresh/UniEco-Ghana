@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RegistrationOptionPicker, registrationStringOptions } from '@/components/registration/registration-option-picker';
+import { ACADEMIC_DEPARTMENTS, ACADEMIC_FACULTIES, ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Switch } from '@/components/ui/switch';
@@ -48,6 +51,7 @@ export default function ProfilePage() {
 function ProfileContent() {
   const { user, signOut, refreshProfile } = useAuth();
   const router = useRouter();
+  const academicYears = Array.from({ length: new Date().getFullYear() + 13 - 1980 }, (_, index) => new Date().getFullYear() + 12 - index);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -394,75 +398,47 @@ function ProfileContent() {
               )}
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="program">Programme of study</Label>
-                  <Input
-                    id="program"
-                    placeholder="e.g. BSc Computer Science"
-                    value={academicForm.program_of_study}
-                    onChange={(e) => setAcademicForm((p) => ({ ...p, program_of_study: e.target.value }))}
-                  />
+                  <RegistrationOptionPicker id="program" label="Programme of study" value={academicForm.program_of_study}
+                    options={registrationStringOptions(ACADEMIC_PROGRAMMES, academicForm.program_of_study)}
+                    placeholder="Choose your programme" searchPlaceholder="Search programmes"
+                    onChange={(value) => setAcademicForm((p) => ({ ...p, program_of_study: value }))} />
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="faculty">Faculty</Label>
-                    <Input
-                      id="faculty"
-                      placeholder="e.g. Faculty of Science"
-                      value={academicForm.faculty}
-                      onChange={(e) => setAcademicForm((p) => ({ ...p, faculty: e.target.value }))}
-                    />
+                    <RegistrationOptionPicker id="faculty" label="Faculty" value={academicForm.faculty}
+                      options={registrationStringOptions(ACADEMIC_FACULTIES, academicForm.faculty)}
+                      placeholder="Choose faculty" searchPlaceholder="Search faculties" optional
+                      onChange={(value) => setAcademicForm((p) => ({ ...p, faculty: value }))} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="department">Department</Label>
-                    <Input
-                      id="department"
-                      placeholder="e.g. Computer Science"
-                      value={academicForm.department}
-                      onChange={(e) => setAcademicForm((p) => ({ ...p, department: e.target.value }))}
-                    />
+                    <RegistrationOptionPicker id="department" label="Department" value={academicForm.department}
+                      options={registrationStringOptions(ACADEMIC_DEPARTMENTS, academicForm.department)}
+                      placeholder="Choose department" searchPlaceholder="Search departments" optional
+                      onChange={(value) => setAcademicForm((p) => ({ ...p, department: value }))} />
                   </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="level">Level</Label>
-                    <select
-                      id="level"
-                      value={academicForm.level}
-                      onChange={(e) => setAcademicForm((p) => ({ ...p, level: e.target.value }))}
-                      className="flex h-10 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <option value="">Select level</option>
-                      <option value="100">Level 100</option>
-                      <option value="200">Level 200</option>
-                      <option value="300">Level 300</option>
-                      <option value="400">Level 400</option>
-                      <option value="500">Level 500</option>
-                      <option value="postgrad">Postgraduate</option>
-                    </select>
+                    <Select value={academicForm.level || 'unset'} onValueChange={(value) => setAcademicForm((p) => ({ ...p, level: value === 'unset' ? '' : value }))}>
+                      <SelectTrigger id="level"><SelectValue placeholder="Select level" /></SelectTrigger>
+                      <SelectContent><SelectItem value="unset">Not set</SelectItem>{['100', '200', '300', '400', '500', '600'].map((level) =>
+                        <SelectItem key={level} value={level}>Level {level}</SelectItem>)}<SelectItem value="postgrad">Postgraduate</SelectItem><SelectItem value="graduate">Graduate</SelectItem></SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="admissionYear">Admission year</Label>
-                    <Input
-                      id="admissionYear"
-                      type="number"
-                      placeholder="e.g. 2023"
-                      min={2000}
-                      max={2030}
-                      value={academicForm.admission_year || ''}
-                      onChange={(e) => setAcademicForm((p) => ({ ...p, admission_year: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    />
+                    <Select value={academicForm.admission_year ? String(academicForm.admission_year) : 'unset'} onValueChange={(value) => setAcademicForm((p) => ({ ...p, admission_year: value === 'unset' ? undefined : Number(value) }))}>
+                      <SelectTrigger id="admissionYear"><SelectValue placeholder="Choose year" /></SelectTrigger>
+                      <SelectContent className="max-h-64"><SelectItem value="unset">Not set</SelectItem>{academicYears.map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="graduationYear">Expected graduation</Label>
-                    <Input
-                      id="graduationYear"
-                      type="number"
-                      placeholder="e.g. 2027"
-                      min={2000}
-                      max={2035}
-                      value={academicForm.graduation_year || ''}
-                      onChange={(e) => setAcademicForm((p) => ({ ...p, graduation_year: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    />
+                    <Select value={academicForm.graduation_year ? String(academicForm.graduation_year) : 'unset'} onValueChange={(value) => setAcademicForm((p) => ({ ...p, graduation_year: value === 'unset' ? undefined : Number(value) }))}>
+                      <SelectTrigger id="graduationYear"><SelectValue placeholder="Choose year" /></SelectTrigger>
+                      <SelectContent className="max-h-64"><SelectItem value="unset">Not set</SelectItem>{academicYears.map((year) => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}</SelectContent>
+                    </Select>
                   </div>
                 </div>
                 {user?.studentProfile && (

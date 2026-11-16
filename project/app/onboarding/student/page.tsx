@@ -10,14 +10,13 @@ import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft }
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { startPaystackCheckout } from '@/lib/data/payment-client';
 import { studentOnboardingSchema } from '@/lib/validation';
-import { ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
+import { ACADEMIC_DEPARTMENTS, ACADEMIC_FACULTIES, ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
+import { RegistrationOptionPicker, registrationStringOptions, type RegistrationOption } from '@/components/registration/registration-option-picker';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
   SelectContent,
@@ -34,75 +33,8 @@ import {
   AlertCircle,
   ArrowRight,
   ArrowLeft,
-  Search,
 } from 'lucide-react';
 
-type AutocompleteOption = { value: string; label: string };
-
-function RegistrationAutocomplete({
-  id,
-  label,
-  value,
-  options,
-  placeholder,
-  searchPlaceholder,
-  optional = false,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  options: AutocompleteOption[];
-  placeholder: string;
-  searchPlaceholder: string;
-  optional?: boolean;
-  onChange: (value: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value);
-
-  return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label} {optional && <span className="font-normal text-muted-foreground">(optional)</span>}</Label>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            id={id}
-            type="button"
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="min-h-12 w-full justify-between text-left font-normal touch-manipulation"
-          >
-            <span className={selected ? 'truncate' : 'truncate text-muted-foreground'}>{selected?.label || placeholder}</span>
-            <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0">
-          <Command>
-            <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
-            <CommandList className="max-h-[min(18rem,calc(100dvh-12rem))]">
-              <CommandEmpty>No matching option found.</CommandEmpty>
-              <CommandGroup>
-                {options.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={option.label}
-                    onSelect={() => { onChange(option.value); setOpen(false); }}
-                    className="min-h-11"
-                  >
-                    <Check className={`mr-2 h-4 w-4 ${value === option.value ? 'opacity-100' : 'opacity-0'}`} />
-                    <span className="truncate">{option.label}</span>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    </div>
-  );
-}
 const STEPS = [
   { id: 'contact', label: 'Contact', hint: 'Phone number', icon: User },
   { id: 'study', label: 'Campus', hint: 'School and study', icon: GraduationCap },
@@ -269,7 +201,7 @@ function StudentOnboarding() {
   };
 
   const selectedUniversity = universities.find((university) => university.id === form.university_id);
-  const universityOptions: AutocompleteOption[] = universities.map((university) => ({
+  const universityOptions: RegistrationOption[] = universities.map((university) => ({
     value: university.id,
     label: `${university.name} (${university.short_name})${university.city ? ` — ${university.city}` : ''}`,
   }));
@@ -530,7 +462,7 @@ function StudentOnboarding() {
               className="space-y-4"
             >
               <div className="space-y-2">
-                <RegistrationAutocomplete
+                <RegistrationOptionPicker
                   id="university"
                   label="University"
                   value={form.university_id}
@@ -544,16 +476,25 @@ function StudentOnboarding() {
                 </p>
               </div>
 
-              <RegistrationAutocomplete
+              <RegistrationOptionPicker
                 id="programme"
                 label="Programme of study"
                 value={form.programme}
-                options={ACADEMIC_PROGRAMMES.map((programme) => ({ value: programme, label: programme }))}
+                options={registrationStringOptions(ACADEMIC_PROGRAMMES, form.programme)}
                 placeholder="Start typing your programme"
                 searchPlaceholder="Type programme name"
                 optional
                 onChange={(value) => updateForm('programme', value)}
               />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <RegistrationOptionPicker id="faculty" label="Faculty" value={form.faculty}
+                  options={registrationStringOptions(ACADEMIC_FACULTIES)} placeholder="Choose your faculty"
+                  searchPlaceholder="Search faculty" optional onChange={(value) => updateForm('faculty', value)} />
+                <RegistrationOptionPicker id="department" label="Department" value={form.department}
+                  options={registrationStringOptions(ACADEMIC_DEPARTMENTS)} placeholder="Choose your department"
+                  searchPlaceholder="Search department" optional onChange={(value) => updateForm('department', value)} />
+              </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -577,14 +518,11 @@ function StudentOnboarding() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="admission_year">Admission year</Label>
-                  <Input
-                    id="admission_year"
-                    type="number"
-                    min="2000"
-                    max={new Date().getFullYear() + 1}
-                    value={form.admission_year}
-                    onChange={(e) => updateForm('admission_year', parseInt(e.target.value) || 0)}
-                  />
+                  <Select value={String(form.admission_year)} onValueChange={(value) => updateForm('admission_year', Number(value))}>
+                    <SelectTrigger id="admission_year"><SelectValue placeholder="Choose year" /></SelectTrigger>
+                    <SelectContent className="max-h-64">{Array.from({ length: new Date().getFullYear() + 2 - 1980 }, (_, index) => new Date().getFullYear() + 1 - index).map((year) =>
+                      <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
               </div>
 

@@ -96,11 +96,12 @@ test('student academic details are optional and selected from the mobile catalog
     read('supabase/migrations/20261029120000_0159_optional_student_academic_fields.sql'),
     read('lib/data/payment-client.ts'),
   ]);
+  const picker = await read('components/registration/registration-option-picker.tsx');
   assert.match(schema, /programme: z\.string\(\)\.max\(120[\s\S]*optional\(\)/);
   assert.match(schema, /index_number: z\.string\(\)\.max\(80[\s\S]*optional\(\)/);
   assert.match(onboarding, /ACADEMIC_PROGRAMMES/);
-  assert.match(onboarding, /RegistrationAutocomplete/);
-  assert.match(onboarding, /CommandInput/);
+  assert.match(onboarding, /RegistrationOptionPicker/);
+  assert.match(picker, /CommandInput/);
   assert.match(onboarding, /Search and choose your school/);
   assert.doesNotMatch(onboarding, /id="index_number"|Index \/ Student number|Student ID card photo/);
   assert.doesNotMatch(onboarding, /student_id_number, program_of_study|student_id_document_url/);
@@ -108,11 +109,27 @@ test('student academic details are optional and selected from the mobile catalog
   assert.match(onboarding, /p_student_document_path: null/);
   assert.match(onboarding, /studentIdNumber: null/);
   assert.match(onboarding, /studentDocumentPath: null/);
-  assert.match(onboarding, /max-w-\[calc\(100vw-2rem\)\]/);
+  assert.match(picker, /max-w-\[calc\(100vw-2rem\)\]/);
   assert.match(catalogue, /Other \/ not listed yet/);
+  assert.match(onboarding, /ACADEMIC_FACULTIES/);
+  assert.match(onboarding, /ACADEMIC_DEPARTMENTS/);
+  assert.match(onboarding, /Choose year/);
   assert.match(migration, /NULLIF\(trim\(p_student_id_number\),''\)/);
   assert.match(migration, /NULLIF\(trim\(p_program\),''\)/);
   assert.match(migration, /NULLIF\(trim\(p_faculty\),''\)/);
   assert.match(migration, /NULLIF\(trim\(p_department\),''\)/);
   assert.match(paymentClient, /studentIdNumber\?: string \| null/);
+});
+
+test('academic profile data is selected from the same searchable catalogue with saved values preserved', async () => {
+  const [profile, picker] = await Promise.all([
+    read('app/profile/page.tsx'),
+    read('components/registration/registration-option-picker.tsx'),
+  ]);
+  assert.match(profile, /RegistrationOptionPicker/);
+  assert.match(profile, /ACADEMIC_PROGRAMMES/);
+  assert.match(profile, /ACADEMIC_FACULTIES/);
+  assert.match(profile, /ACADEMIC_DEPARTMENTS/);
+  assert.match(profile, /Choose year/);
+  assert.match(picker, /currentValue && !options.some/);
 });

@@ -18,12 +18,12 @@ test('student signup does not request or retain student ID numbers or ID-card fi
 });
 
 test('school search fits narrow phones and offers a searchable selection control', async () => {
-  const onboarding = await read('app/onboarding/student/page.tsx');
-  assert.match(onboarding, /RegistrationAutocomplete/);
+  const [onboarding, picker] = await Promise.all([read('app/onboarding/student/page.tsx'), read('components/registration/registration-option-picker.tsx')]);
+  assert.match(onboarding, /RegistrationOptionPicker/);
   assert.match(onboarding, /Search and choose your school/);
   assert.match(onboarding, /Type a school name or abbreviation/);
-  assert.match(onboarding, /max-w-\[calc\(100vw-2rem\)\]/);
-  assert.match(onboarding, /max-h-\[min\(18rem,calc\(100dvh-12rem\)\)\]/);
+  assert.match(picker, /max-w-\[calc\(100vw-2rem\)\]/);
+  assert.match(picker, /max-h-\[min\(18rem,calc\(100dvh-12rem\)\)\]/);
 });
 
 test('mobile footer links collapse into accessible groups while remaining expanded on desktop', async () => {
