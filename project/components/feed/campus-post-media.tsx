@@ -188,6 +188,7 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
   const [preparing, setPreparing] = useState(false);
   const attemptedPreparation = useRef(false);
   const manualPause = useRef(false);
+  const heldPlaybackFocus = useRef(false);
   const retryCount = useRef(0);
   const retryTimer = useRef<number | undefined>(undefined);
   const live = useRef(true);
@@ -213,7 +214,14 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    if (!active) { video.pause(); setBuffering(false); if (!video.muted) { video.muted = true; setMuted(true); } return; }
+    if (!active) {
+      video.pause();
+      setBuffering(false);
+      if (heldPlaybackFocus.current && !video.muted) { video.muted = true; setMuted(true); }
+      heldPlaybackFocus.current = false;
+      return;
+    }
+    heldPlaybackFocus.current = true;
     if (!mediaUrl || failed || preparing || manualPause.current || (conserve && !manual)) return;
     video.muted = muted;
     if (video.error && video.getAttribute('src')) video.load();
@@ -261,12 +269,12 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
     setFailed(true);
   };
 
-  const startVideo = (video: HTMLVideoElement) => {
+  const startVideo = (video: HTMLVideoElement, playMuted = muted) => {
     requestPlayback();
     manualPause.current = false;
     setManual(true);
     if (mediaUrl && !video.getAttribute('src')) video.src = mediaUrl;
-    video.muted = muted;
+    video.muted = playMuted;
     void video.play().catch(() => { if (!video.error) setBuffering(false); });
   };
 
@@ -275,6 +283,20 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
     if (!video || !mediaUrl) return;
     if (!video.paused) { manualPause.current = true; video.pause(); setBuffering(false); }
     else startVideo(video);
+  };
+
+  const toggleMuted = () => {
+    const nextMuted = !muted;
+    const video = videoRef.current;
+    if (!video) return;
+    setMuted(nextMuted);
+    if (!nextMuted && video.paused && !manualPause.current && mediaUrl) {
+      // A sound tap is an explicit playback gesture; keep it on this clip.
+      startVideo(video, nextMuted);
+    } else {
+      if (!nextMuted) requestPlayback();
+      video.muted = nextMuted;
+    }
   };
 
   const retry = () => {
@@ -302,7 +324,7 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
           className={playing ? 'absolute bottom-3 left-3 rounded-full opacity-100 transition sm:opacity-0 sm:focus-within:opacity-100 sm:group-hover/video:opacity-100' : 'absolute inset-0 grid place-items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white'}>
           <span className={`${videoButton} ${playing ? '' : 'h-14 w-14'}`}>{playing ? <Pause className="h-5 w-5" /> : <Play className="ml-0.5 h-6 w-6 fill-current" />}</span>
         </button>
-        <button type="button" onClick={() => { const video = videoRef.current; if (video) video.muted = !muted; setMuted(!muted); }}
+        <button type="button" onClick={toggleMuted}
           aria-label={muted ? 'Unmute video' : 'Mute video'} className={`absolute bottom-3 right-3 ${videoButton}`}>
           {muted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
         </button>

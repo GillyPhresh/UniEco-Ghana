@@ -11,8 +11,12 @@ const nearby = new Set<HTMLElement>();
 let intersect: IntersectionObserver | null = null;
 let requestedFrame = 0;
 let manuallySelected: HTMLElement | null = null;
+let manualScrollPosition = 0;
 
 function measure() {
+  // Keep tap focus through small layout shifts, but let an intentional scroll
+  // hand off to the next clip even when two clips still fit on a large screen.
+  if (manuallySelected && Math.abs(window.scrollY - manualScrollPosition) >= 80) manuallySelected = null;
   const navigation = document.querySelector<HTMLElement>('[aria-label="Mobile bottom navigation"]');
   const viewport = { top: 68, bottom: Math.max(69, window.innerHeight - (navigation?.offsetHeight ?? 0)) };
   const bounds = Array.from(nearby).flatMap((node) => {
@@ -111,6 +115,7 @@ export function useFeedMediaViewport(enabled: boolean, playable: boolean) {
   const requestPlayback = useCallback(() => {
     if (!ref.current) return;
     manuallySelected = ref.current;
+    manualScrollPosition = window.scrollY;
     // A manual tap can precede the IntersectionObserver's first notification.
     if (entries.has(ref.current)) nearby.add(ref.current);
     measure();

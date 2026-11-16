@@ -148,7 +148,8 @@ test('inline playback uses custom controls, bounded recovery, and a tap fallback
   assert.match(media, /aria-label=\{muted \? 'Unmute video' : 'Mute video'\}/);
   assert.match(media, /absolute bottom-3 right-3/);
   assert.match(media, /video\.play\(\)\.catch/);
-  assert.match(media, /if \(!active\) \{ video\.pause\(\)/);
+  assert.match(media, /if \(!active\) \{\s*video\.pause\(\)/);
+  assert.match(media, /const toggleMuted = \(\) => \{[\s\S]*startVideo\(video, nextMuted\)[\s\S]*if \(!nextMuted\) requestPlayback\(\)/);
   assert.match(media, /code === 2 && !prepared && \(active \|\| manual\) && retryCount\.current < retryDelays\.length/);
   assert.match(media, /\[700, 1600, 3200\]/);
   assert.match(media, /\(code === 3 \|\| code === 4\) && !prepared/);
