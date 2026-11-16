@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Twitter, Instagram, Facebook, Mail, ChevronDown } from 'lucide-react';
+import { Twitter, Instagram, Facebook, Mail, ChevronDown, ArrowUpRight } from 'lucide-react';
 import { Logo } from '@/components/layout/logo';
 import { footerLinks, siteConfig } from '@/lib/constants/site';
 import { businessEmail, publicBusinessContacts } from '@/lib/constants/business-email';
@@ -12,8 +12,12 @@ export function SiteFooter() {
           <div className="lg:col-span-2">
             <Logo />
             <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-              {siteConfig.tagline} The campus marketplace built for every tertiary
-              institution in Ghana.
+              {siteConfig.tagline} Find campus businesses and services, explore events and published
+              updates, and connect with tertiary communities across Ghana.
+            </p>
+            <p className="mt-2 max-w-sm text-xs leading-5 text-muted-foreground">
+              School listings and updates grow as each community joins. Choose your institution to
+              see what is available.
             </p>
             <div className="mt-4 flex items-center gap-2.5">
               <SocialLink href={siteConfig.links.twitter} label="Twitter">
@@ -63,12 +67,41 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-6 flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-center sm:mt-10 sm:flex-row sm:gap-4 sm:pt-6 sm:text-left">
+        <div className="mt-7 flex flex-col gap-4 border-t border-border pt-5 sm:mt-10 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:pt-6">
+          <div className="max-w-xl">
+            <h3 className="text-sm font-semibold text-foreground">Find your place on UniEco</h3>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground sm:text-sm">
+              Choose your institution to discover its campus community, businesses and opportunities.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
+            <Link
+              href="/universities"
+              className="flex min-h-11 items-center justify-center rounded-lg border border-border px-3 text-center text-sm font-medium text-foreground transition-colors hover:border-primary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Explore institutions
+            </Link>
+            <Link
+              href="/signup"
+              className="flex min-h-11 items-center justify-center gap-1 rounded-lg bg-primary px-3 text-center text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Join UniEco <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-5 flex flex-col items-center justify-between gap-2 border-t border-border pt-4 text-center sm:mt-6 sm:flex-row sm:gap-4 sm:pt-5 sm:text-left">
           <p className="text-xs text-muted-foreground sm:text-sm">
             &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
           <p className="text-xs text-muted-foreground sm:text-sm">
-            Built for students, by students. Made in Ghana.
+            Need help?{' '}
+            <a
+              href={`mailto:${businessEmail.support}`}
+              className="font-medium text-foreground underline decoration-border underline-offset-4 transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              Contact UniEco support
+            </a>
           </p>
         </div>
       </div>

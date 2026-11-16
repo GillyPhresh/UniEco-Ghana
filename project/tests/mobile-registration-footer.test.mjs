@@ -34,6 +34,16 @@ test('mobile footer links collapse into accessible groups while remaining expand
   assert.match(footer, /container py-7 sm:py-12 lg:py-16/);
 });
 
+test('public footer replaces the student-built slogan with useful onboarding and support cues', async () => {
+  const footer = await read('components/layout/site-footer.tsx');
+  assert.doesNotMatch(footer, /Built for students, by students\. Made in Ghana\./);
+  assert.match(footer, /Choose your institution to\s+see what is available/);
+  assert.match(footer, /Find your place on UniEco/);
+  assert.match(footer, /href="\/universities"[\s\S]*Explore institutions/);
+  assert.match(footer, /href="\/signup"[\s\S]*Join UniEco/);
+  assert.match(footer, /Contact UniEco support/);
+});
+
 test('mobile account shortcuts share the single scrollable navigation region', async () => {
   const header = await read('components/layout/site-header.tsx');
   assert.match(header, /nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4"[\s\S]*?aria-label="Account shortcuts"[\s\S]*?My dashboard[\s\S]*?<\/nav>/);
