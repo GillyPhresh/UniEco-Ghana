@@ -30,7 +30,8 @@ test('tertiary directory pages identify institution types and link accreditation
 
   assert.match(directory, /Ghana tertiary institution directory/i);
   assert.match(profile, /View institution record at GTEC/);
-  assert.match(profile, /accreditation_valid_until/);
+  assert.match(profile, /getCampusRegulatorNotice/);
+  assert.match(query, /accreditation_valid_until/);
   assert.match(query, /accreditation_source_url/);
   assert.match(query, /accreditation_checked_at/);
 });

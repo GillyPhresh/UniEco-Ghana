@@ -1,0 +1,2444 @@
+{
+  "abetifi-college-of-education-abetifi": {
+    "institutionId": "726",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "accra-college-of-education-accra": {
+    "institutionId": "727",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "ada-college-of-education-ada": {
+    "institutionId": "728",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "adventist-college-of-health-sciences": {
+    "institutionId": "983",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Environmental Health",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Human Nutrition",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Medical Laboratory Technology",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "agogo-presbyterian-college-of-education-agogo": {
+    "institutionId": "729",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "akatsi-college-of-education-akatsi": {
+    "institutionId": "730",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "akrokerri-college-of-education-akrokerri": {
+    "institutionId": "731",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History & RME",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Physical Education & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "al-faruq-college-of-education": {
+    "institutionId": "732",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Basic Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "assinman-nursing-and-midwifrey-training-college-assin-fosu": {
+    "institutionId": "914",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "atebubu-college-of-education-atebubu": {
+    "institutionId": "733",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "bagabaga-college-of-education-bagabaga": {
+    "institutionId": "734",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "berekum-college-of-education-berekum": {
+    "institutionId": "735",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "bia-lamplighter-college-of-education": {
+    "institutionId": "736",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "bibiani-college-of-health-sciences": {
+    "institutionId": "777",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-11-30"
+      }
+    ]
+  },
+  "christ-the-teacher-college-of-education-kumasi": {
+    "institutionId": "862",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "J.H.S. Education",
+        "validUntil": "2029-07-11"
+      },
+      {
+        "award": "BEd",
+        "programme": "Junior High School Education",
+        "validUntil": "2029-07-11"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2029-07-11"
+      }
+    ]
+  },
+  "college-of-community-health-nursing-winneba": {
+    "institutionId": "932",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2028-05-31"
+      }
+    ]
+  },
+  "college-of-health-and-well-being": {
+    "institutionId": "778",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "APPLIED EPIDEMIOLOGY AND DISEASE CONTROL",
+        "validUntil": "2030-06-23"
+      },
+      {
+        "award": "BSc",
+        "programme": "Dental Surgery Assistantship",
+        "validUntil": "2028-05-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Health Promotion",
+        "validUntil": "2028-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Health Promotion",
+        "validUntil": "2028-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Medical Laboratory Technology",
+        "validUntil": "2030-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Medical Laboratory Technology",
+        "validUntil": "2031-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Nutrition",
+        "validUntil": "2030-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Physician Assistantship (Dental)",
+        "validUntil": "2030-05-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Physician Assistantship (Dental Therapy)",
+        "validUntil": "2029-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Physician Assistantship (Medical)",
+        "validUntil": "2029-08-31"
+      }
+    ]
+  },
+  "college-of-health-sefwi-asafo": {
+    "institutionId": "821",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Community Nutrition",
+        "validUntil": "2028-10-11"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Health Information Management",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Midwifery",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "college-of-health-yamfo": {
+    "institutionId": "779",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Community Health Nutrition",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Community Mental Health",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Disease Control and Epidemiology",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "BSc",
+        "programme": "Health Information Management",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Health Promotion",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "BSc",
+        "programme": "Medical Laboratory Science",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "BSc",
+        "programme": "Physician Assisantship",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "college-of-nursing-and-midwifery-kubori": {
+    "institutionId": "954",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Midwifery",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "college-of-nursing-and-midwifery-sampa": {
+    "institutionId": "811",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2030-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2030-08-31"
+      }
+    ]
+  },
+  "college-of-nursing-and-midwifery-walewale": {
+    "institutionId": "979",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "college-of-nursing-ntotroso": {
+    "institutionId": "917",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "community-health-nurses-training-college-tamale": {
+    "institutionId": "780",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Opthalmic Nursing",
+        "validUntil": "2027-05-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Public Health Nursing",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "community-health-nursing-training-college-jirapa": {
+    "institutionId": "1005",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "in Registered Community Health Nursing",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "dambai-college-of-education-dambai": {
+    "institutionId": "737",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography and Social Studies",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History and Social Studies",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics and Agriculture",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics, ICT",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "e-p-college-of-education-amedzofe": {
+    "institutionId": "738",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "e-p-college-of-education-bimbilla": {
+    "institutionId": "739",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "enchi-college-of-education-enchi": {
+    "institutionId": "740",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & English",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography / RME & History",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "fosu-college-of-education-assin-fosu": {
+    "institutionId": "741",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "gbewaa-college-of-education-gbewaa": {
+    "institutionId": "743",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & English",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "holy-child-college-of-education-takoradi": {
+    "institutionId": "744",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "holy-family-nurses-and-midwifery-training-college-berekum": {
+    "institutionId": "784",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing (Berekum Campus)",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing (St. Mary's Campus, Drobo)",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery (Berekum Campus)",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery (St. Mary's Campus, Drobo)",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "holy-family-nurses-and-midwifery-training-college-drobo": {
+    "institutionId": "945",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "holy-family-nurses-training-college-nkawkaw": {
+    "institutionId": "785",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Midwifery",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "holy-spirit-college-of-education": {
+    "institutionId": "861",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "jasikan-college-of-education-jasikan": {
+    "institutionId": "745",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "kibi-college-of-education-kibi": {
+    "institutionId": "746",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "kokofu-nursing-training-college": {
+    "institutionId": "788",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "in Registered General Nursing",
+        "validUntil": "2030-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "komenda-college-of-education-komenda": {
+    "institutionId": "747",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Science & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "mampong-technical-college-of-education-ashanti-mampong": {
+    "institutionId": "748",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Science & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "martin-luther-health-training-school-kintampo": {
+    "institutionId": "991",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "mccoy-college-of-education": {
+    "institutionId": "749",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "methodist-college-of-education-asene-oda": {
+    "institutionId": "750",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "methodist-health-training-institute-afosu-nursing-and-midwifery-training-college-afosu": {
+    "institutionId": "849",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2031-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2031-03-31"
+      }
+    ]
+  },
+  "midwifery-training-college-bolgatanga": {
+    "institutionId": "791",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "mount-mary-college-of-education-somanya": {
+    "institutionId": "751",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & English",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "French & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "n-j-ahmadiyya-college-of-education": {
+    "institutionId": "752",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "narh-bita-college": {
+    "institutionId": "856",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2028-09-14"
+      },
+      {
+        "award": "BSc",
+        "programme": "Physician Assistantship",
+        "validUntil": "2029-11-30"
+      }
+    ]
+  },
+  "nsawkaw-college-of-education-nsawkaw": {
+    "institutionId": "956",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "nurses-and-midwives-training-college-tamale": {
+    "institutionId": "925",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-07-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2030-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2030-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-adansi-fomena": {
+    "institutionId": "949",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-agogo": {
+    "institutionId": "799",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nursing-and-midwifery-training-college-atibie-kwahu": {
+    "institutionId": "790",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Mental Health Nursing",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "BSc",
+        "programme": "Midwifery",
+        "validUntil": "2028-05-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2028-05-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-bole": {
+    "institutionId": "801",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-cape-coast": {
+    "institutionId": "802",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2028-05-10"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-05-10"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-dadiesoaba": {
+    "institutionId": "855",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2029-03-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-damongo": {
+    "institutionId": "905",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2028-10-11"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-10-11"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-dunkwa-on-offin": {
+    "institutionId": "803",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Midwifery",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Public Health",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-goaso": {
+    "institutionId": "853",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nursing-and-midwifery-training-college-hohoe": {
+    "institutionId": "792",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-kath-kumasi": {
+    "institutionId": "797",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "CARDIOLOGY NURSING",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "CRITICAL CARE NURSING",
+        "validUntil": "2030-12-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "ENDOCRINOLOGY NURSING",
+        "validUntil": "2029-03-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-koforidua": {
+    "institutionId": "787",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2029-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2029-06-30"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-korle-bu": {
+    "institutionId": "804",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "ENDOCRINOLOGY NURSING",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "NEPHROLOGY NURSING",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "NURSING",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "ONCOLOGY NURSING",
+        "validUntil": "2029-03-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-kpembe": {
+    "institutionId": "805",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-mampong-ashanti": {
+    "institutionId": "906",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2028-10-11"
+      },
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2029-03-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-nandom": {
+    "institutionId": "795",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-odumase-krobo": {
+    "institutionId": "984",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Midwifery",
+        "validUntil": "2028-05-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2028-05-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-seikwa": {
+    "institutionId": "851",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-sekondi": {
+    "institutionId": "822",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Critical Care Nursing",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2029-01-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Peri-Operative Nursing",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-sunyani": {
+    "institutionId": "806",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nursing-and-midwifery-training-college-tepa": {
+    "institutionId": "789",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "JHS Education",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-08-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-teshie": {
+    "institutionId": "808",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-03-31"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-twifo-praso": {
+    "institutionId": "850",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "PUBLIC HEALTH NURSING",
+        "validUntil": "2028-05-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2026-12-16"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-yeji": {
+    "institutionId": "938",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-06-30"
+      }
+    ]
+  },
+  "nursing-and-midwifery-training-college-zuarungu": {
+    "institutionId": "796",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Midwifery",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-08-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2026-12-31"
+      }
+    ]
+  },
+  "nursing-training-college-bolgatanga": {
+    "institutionId": "976",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nursing-training-college-ho": {
+    "institutionId": "809",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "nursing-training-college-pantang": {
+    "institutionId": "815",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Community Mental health Nursing",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "nursing-training-college-sefwi-wiawso": {
+    "institutionId": "907",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "nursing-training-college-wa": {
+    "institutionId": "812",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "REGISTERED GENERAL NURSING",
+        "validUntil": "2030-08-31"
+      }
+    ]
+  },
+  "nursinig-and-midwifery-training-college-keta": {
+    "institutionId": "813",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nursinig-and-midwifery-training-college-kete-krachi": {
+    "institutionId": "814",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "nusing-and-midwifery-training-school-gushegu": {
+    "institutionId": "794",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2029-07-11"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2029-07-11"
+      }
+    ]
+  },
+  "offinso-college-of-education": {
+    "institutionId": "753",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "Bed",
+        "programme": "Geography& History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "ola-college-of-education": {
+    "institutionId": "754",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "peki-college-of-education": {
+    "institutionId": "755",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Grade Education",
+        "validUntil": "2031-05-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Geography & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "JHS Education (Home Economics and Visual Arts)",
+        "validUntil": "2031-05-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "JHS. Education (Mathematics and ICT)",
+        "validUntil": "2031-05-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "potters-college-school-of-nursing": {
+    "institutionId": "847",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "premier-nurses-training-college": {
+    "institutionId": "846",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-06-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Nursing",
+        "validUntil": "2030-08-31"
+      }
+    ]
+  },
+  "presbyterian-college-of-education-akropong-akuapem": {
+    "institutionId": "756",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Science & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "presbyterian-midwifery-training-college-duayaw-nkwanta": {
+    "institutionId": "816",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "REGISTERED GENERAL NURSING",
+        "validUntil": "2030-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "REGISTERED MIDWIFERY",
+        "validUntil": "2030-12-31"
+      }
+    ]
+  },
+  "presbyterian-nursing-and-midwifery-training-college-dormaa-ahenkro": {
+    "institutionId": "958",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "presbyterian-women-s-college-of-education-aburi": {
+    "institutionId": "757",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "psychiatric-nurses-training-college-ankaful": {
+    "institutionId": "818",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Community Psychiatric Nursing",
+        "validUntil": "2030-12-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Mental Health Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Mental Health Nursing",
+        "validUntil": "2028-03-31"
+      }
+    ]
+  },
+  "public-health-nurses-school-korle-bu": {
+    "institutionId": "916",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Public Health Nursing",
+        "validUntil": "2029-09-30"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Public Health Nursing",
+        "validUntil": "2029-09-30"
+      }
+    ]
+  },
+  "rans-elliot-school-of-nursing": {
+    "institutionId": "926",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "royal-ann-college-of-health": {
+    "institutionId": "845",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "HND",
+        "programme": "Dispensing Technology",
+        "validUntil": "2030-09-10"
+      },
+      {
+        "award": "BSc",
+        "programme": "Medical Laboratory Science",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "HND",
+        "programme": "Medical Laboratory Technology",
+        "validUntil": "2030-10-15"
+      },
+      {
+        "award": "BSc",
+        "programme": "Midwifery",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Nursing",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2028-12-20"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2028-12-20"
+      }
+    ]
+  },
+  "savannah-college-of-education": {
+    "institutionId": "776",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "BEd",
+        "programme": "J.H.S. Education",
+        "validUntil": "2027-09-30"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2027-09-30"
+      }
+    ]
+  },
+  "saviour-church-nursing-and-midwifery-training-college": {
+    "institutionId": "844",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2028-05-10"
+      }
+    ]
+  },
+  "school-of-anaesthesia-and-critical-care-ridge-accra": {
+    "institutionId": "710",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Anaesthesia",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "school-of-peri-operative-and-critical-care-nursing": {
+    "institutionId": "944",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "CARDIOLOGY NURSING",
+        "validUntil": "2029-03-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "Critical Care Nursing",
+        "validUntil": "2031-08-31"
+      },
+      {
+        "award": "BSc",
+        "programme": "EMERGENCY NURSING",
+        "validUntil": "2029-03-31"
+      }
+    ]
+  },
+  "sda-college-of-education-agona-ashanti": {
+    "institutionId": "758",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "sda-college-of-education-asokore-koforidua": {
+    "institutionId": "759",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "sda-college-of-health-barekese": {
+    "institutionId": "962",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Nursing",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "sda-college-of-nursing-and-midwifery-anyinasu": {
+    "institutionId": "959",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "sda-midwifery-health-assistant-training-school-axim-asanta": {
+    "institutionId": "843",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2026-12-16"
+      }
+    ]
+  },
+  "sda-nursing-and-midwifery-training-college-kwadaso": {
+    "institutionId": "820",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "st-ambrose-college-of-education-dormaa-akwamu": {
+    "institutionId": "760",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-francis-college-of-education-hohoe": {
+    "institutionId": "761",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-john-bosco-college-of-education-navrongo": {
+    "institutionId": "762",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "ICT & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-john-of-god-college-of-health-duayaw-nkwanta": {
+    "institutionId": "999",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Diploma in Physiotherapy",
+        "validUntil": "2028-12-14"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Physiotherapy",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-joseph-s-college-of-education-bechem": {
+    "institutionId": "763",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "(English & Ghanaian Language)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(History & Geography)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(ICT & Mathematics)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Mathematics & Science)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(RME & Music)",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-karol-school-of-nursing": {
+    "institutionId": "842",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "st-louis-college-of-education-kumasi": {
+    "institutionId": "764",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "st-michael-nursing-and-midwifery-training-college-jaachie-pramso": {
+    "institutionId": "909",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2029-05-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2029-05-16"
+      }
+    ]
+  },
+  "st-monica-s-college-of-education-ashanti-mampong": {
+    "institutionId": "765",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "(English & Ghanaian Language)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Geography & History)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Home Economics)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Primary Education)",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-patrick-s-nursing-and-midwifery-training-college-maase-offinso": {
+    "institutionId": "841",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "MENTAL HEALTH NURSING",
+        "validUntil": "2030-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "PUBLIC HEALTH NURSING",
+        "validUntil": "2030-03-31"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered General Nursing",
+        "validUntil": "2026-12-16"
+      },
+      {
+        "award": "Diploma",
+        "programme": "Registered Midwifery",
+        "validUntil": "2026-12-16"
+      }
+    ]
+  },
+  "st-teresa-s-college-of-education-hohoe": {
+    "institutionId": "766",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "(Early Childhood Education)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Home Economics)",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "(Primary Education)",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "st-vincent-college-of-education": {
+    "institutionId": "767",
+    "checkedAt": "2026-11-15",
+    "programmes": []
+  },
+  "st-williams-nursing-and-allied-health-sciences-college-wamfie": {
+    "institutionId": "961",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "Diploma",
+        "programme": "Community Mental Health",
+        "validUntil": "2027-12-31"
+      },
+      {
+        "award": "HND",
+        "programme": "Health Information Management",
+        "validUntil": "2027-06-30"
+      },
+      {
+        "award": "HND",
+        "programme": "Medical Laboratory Technology",
+        "validUntil": "2027-12-31"
+      }
+    ]
+  },
+  "tamale-college-of-education": {
+    "institutionId": "768",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "History & Geography",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Physical Education & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & Music",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "tumu-college-of-education": {
+    "institutionId": "769",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Early Childhood Education",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "English & Ghanaian Language",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "JHS Education",
+        "validUntil": "2029-06-30"
+      },
+      {
+        "award": "BEd",
+        "programme": "Primary Education",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "wesley-college-of-education": {
+    "institutionId": "770",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Mathematics & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Physical Education & Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "RME & History",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "wiawso-college-of-education": {
+    "institutionId": "771",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BEd",
+        "programme": "Agricultural Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Home Economics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Science & Mathematics",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Technical / Science",
+        "validUntil": "2028-08-31"
+      },
+      {
+        "award": "BEd",
+        "programme": "Visual Arts",
+        "validUntil": "2028-08-31"
+      }
+    ]
+  },
+  "withrow-college": {
+    "institutionId": "724",
+    "checkedAt": "2026-11-15",
+    "programmes": [
+      {
+        "award": "BSc",
+        "programme": "Public Health",
+        "validUntil": "2028-11-22"
+      }
+    ]
+  }
+}

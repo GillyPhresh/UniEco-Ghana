@@ -17,7 +17,7 @@ const faqs = [
   {
     question: 'Do I need to be a UENR student to use it?',
     answer:
-      'UniEco Ghana is rolling out university by university. UENR is the first enabled campus. As more institutions come online, students from those universities will be able to join. External vendors near an enabled campus can also register.',
+      'Use the tertiary directory to find your school. Eligible students can select an enabled institution during registration. Nearby vendors can register and submit a business listing for review.',
   },
   {
     question: 'Is it free to create an account?',

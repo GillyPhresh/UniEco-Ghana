@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,9 @@ import {
 } from '@/lib/data/admin-client';
 import { useAuth } from '@/lib/auth/auth-context';
 import { supabase } from '@/lib/supabase/client';
-import { getLocalUniversityBranding } from '@/lib/data/university-branding';
-import { getUniversityLogoObjectPosition } from '@/lib/data/university-branding';
-import { UniversityLogo } from '@/components/universities/university-media';
+import { presentCampus } from '@/lib/data/campus-presentation';
+import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
+import type { University } from '@/lib/types';
 import { GraduationCap, Plus, Edit, Power, Upload, Trash2, Image as ImageIcon, Loader2, Search, ShieldCheck, Globe2, UserPlus, UserX, MapPin, Filter, ExternalLink, CheckCircle2, CircleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -29,6 +29,9 @@ type Uni = {
   id: string; name: string; short_name: string; slug: string;
   city: string | null; region: string | null; country: string;
   logo_url: string | null; hero_image_url: string | null;
+  official_name?: string; abbreviation?: string | null; landmark_image_url?: string | null;
+  institution_type?: University['institution_type']; ownership_type?: University['ownership_type'];
+  campus_launch_status?: University['campus_launch_status'];
   logo_alt_text: string | null; hero_alt_text: string | null;
   image_credit: string | null; image_source: string | null;
   website_url: string | null; description: string | null;
@@ -334,26 +337,30 @@ function Content() {
     loadUniversities();
   }
 
+  const brandingByUniversity = useMemo(() => new Map(universities.map((uni) => [uni.id, presentCampus({
+    ...uni,
+    official_name: uni.official_name || uni.name,
+    abbreviation: uni.abbreviation || null,
+    landmark_image_url: uni.landmark_image_url || null,
+    institution_type: uni.institution_type || null,
+    ownership_type: uni.ownership_type || null,
+    campus_launch_status: uni.campus_launch_status || 'planned',
+  })])), [universities]);
+  const needsBranding = (id: string) => {
+    const campus = brandingByUniversity.get(id);
+    return !campus?.logo || !campus.photos.length;
+  };
   const visibleUniversities = universities.filter(uni => {
     const haystack = `${uni.name} ${uni.short_name} ${uni.city || ''} ${uni.region || ''}`.toLowerCase();
-    const localBranding = getLocalUniversityBranding(uni.slug);
-    const hasLogo = Boolean(uni.logo_url || localBranding.logoUrl);
-    const hasCampus = Boolean(uni.hero_image_url || localBranding.campusUrl);
     const matchesStatus = statusFilter === 'all'
       || (statusFilter === 'active' && uni.is_enabled)
       || (statusFilter === 'disabled' && !uni.is_enabled)
-      || (statusFilter === 'needs_branding' && (!hasLogo || !hasCampus));
+      || (statusFilter === 'needs_branding' && needsBranding(uni.id));
     return haystack.includes(search.trim().toLowerCase()) && matchesStatus;
   });
-  const brandedCount = universities.filter(uni => {
-    const localBranding = getLocalUniversityBranding(uni.slug);
-    return Boolean((uni.logo_url || localBranding.logoUrl) && (uni.hero_image_url || localBranding.campusUrl));
-  }).length;
-  const activeCount = universities.filter(uni => uni.is_enabled).length;
-  const needsBrandingCount = universities.filter(uni => {
-    const localBranding = getLocalUniversityBranding(uni.slug);
-    return !uni.logo_url && !localBranding.logoUrl || !uni.hero_image_url && !localBranding.campusUrl;
-  }).length;
+  const enabledCount = universities.filter(uni => uni.is_enabled).length;
+  const needsBrandingCount = universities.filter(uni => needsBranding(uni.id)).length;
+  const brandedCount = universities.length - needsBrandingCount;
 
   return (
     <div className="mx-auto w-full max-w-[1440px] space-y-5 p-3 sm:p-6 lg:p-8">
@@ -371,7 +378,7 @@ function Content() {
         </div>
         <div className="relative mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-xl font-bold">{universities.length}</p><p className="mt-1 text-[11px] text-white/55">Institutions</p></div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-xl font-bold text-emerald-300">{activeCount}</p><p className="mt-1 text-[11px] text-white/55">Active</p></div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-xl font-bold text-emerald-300">{enabledCount}</p><p className="mt-1 text-[11px] text-white/55">Public listings</p></div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-xl font-bold text-sky-300">{brandedCount}</p><p className="mt-1 text-[11px] text-white/55">Fully branded</p></div>
           <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-3"><p className="text-xl font-bold text-amber-300">{needsBrandingCount}</p><p className="mt-1 text-[11px] text-white/55">Needs attention</p></div>
         </div>
@@ -386,7 +393,7 @@ function Content() {
           <Filter className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <select aria-label="Filter universities" value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)} className="h-11 w-full appearance-none rounded-lg border border-border bg-background pl-9 pr-3 text-sm font-medium outline-none focus:ring-2 focus:ring-primary/30">
             <option value="all">All institutions</option>
-            <option value="active">Active only</option>
+            <option value="active">Public listings only</option>
             <option value="needs_branding">Needs branding</option>
             <option value="disabled">Disabled only</option>
           </select>
@@ -401,23 +408,22 @@ function Content() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleUniversities.map(uni => {
-            const localBranding = getLocalUniversityBranding(uni.slug);
-            const logoUrl = uni.logo_url || localBranding.logoUrl;
-            const campusUrl = uni.hero_image_url || localBranding.campusUrl;
-            const fullyBranded = Boolean(logoUrl && campusUrl);
+            const campus = brandingByUniversity.get(uni.id);
+            const cover = campus?.photos[0];
+            const fullyBranded = !needsBranding(uni.id);
 
             return <Card key={uni.id} className="group overflow-hidden border-border/80 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg">
                 <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary/20 via-slate-100 to-sky-100">
-                  {campusUrl ? <img src={campusUrl} alt={uni.hero_alt_text || `${uni.name} campus`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-primary/25" /></div>}
+                  {cover ? <UniversityMedia kind="campus" src={cover.src} alt={cover.alt} name={uni.name} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center"><ImageIcon className="h-10 w-10 text-primary/25" /></div>}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/65 via-slate-950/10 to-transparent" />
-                  <div className="absolute left-3 top-3 flex items-center gap-2"><Badge className={uni.is_enabled ? 'border-emerald-200/30 bg-emerald-500/90 text-white' : 'border-white/20 bg-slate-900/70 text-white'}>{uni.is_enabled ? 'Active' : 'Disabled'}</Badge>{fullyBranded && <Badge className="border-white/20 bg-slate-900/70 text-white"><CheckCircle2 className="mr-1 h-3 w-3 text-emerald-300" /> Branded</Badge>}</div>
+                  <div className="absolute left-3 top-3 flex items-center gap-2"><Badge className={uni.is_enabled ? 'border-emerald-200/30 bg-emerald-500/90 text-white' : 'border-white/20 bg-slate-900/70 text-white'}>{uni.is_enabled ? 'Listed' : 'Disabled'}</Badge>{fullyBranded && <Badge className="border-white/20 bg-slate-900/70 text-white"><CheckCircle2 className="mr-1 h-3 w-3 text-emerald-300" /> Branded</Badge>}</div>
                 </div>
                 <CardContent className="p-4 pt-0">
                   <div className="-mt-8 flex items-end gap-3">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-white p-1.5 shadow-md">{logoUrl ? <UniversityLogo src={logoUrl} name={uni.name} shortName={uni.short_name} logoObjectPosition={getUniversityLogoObjectPosition(uni.slug)} alt={uni.logo_alt_text || `${uni.name} official logo`} /> : <GraduationCap className="h-7 w-7 text-primary" />}</div>
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border-4 border-card bg-white p-1.5 shadow-md">{campus?.logo ? <UniversityLogo src={campus.logo} fallbackSrc={campus.fallbackLogo} name={uni.name} shortName={uni.short_name} alt={campus.logoAlt} /> : <GraduationCap className="h-7 w-7 text-primary" />}</div>
                     <div className="min-w-0 pb-1"><p className="truncate text-base font-bold text-foreground">{uni.name}</p><p className="truncate text-xs font-medium text-primary">{uni.short_name}</p></div>
                   </div>
-                  <div className="mt-3 space-y-1 text-xs text-muted-foreground"><p className="flex items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />{[uni.city, uni.region].filter(Boolean).join(', ') || 'Ghana'}</p>{uni.website_url ? <a href={uni.website_url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 truncate hover:text-primary"><Globe2 className="h-3.5 w-3.5 shrink-0" />{uni.website_url.replace(/^https?:\/\//, '').replace(/\/$/, '')}<ExternalLink className="h-3 w-3 shrink-0" /></a> : <p className="flex items-center gap-1.5 text-amber-600"><CircleAlert className="h-3.5 w-3.5 shrink-0" />Official website not added</p>}</div>
+                  <div className="mt-3 space-y-1 text-xs text-muted-foreground"><p className="flex items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />{[uni.city, uni.region].filter(Boolean).join(', ') || 'Ghana'}</p>{campus?.website ? <a href={campus.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 truncate hover:text-primary"><Globe2 className="h-3.5 w-3.5 shrink-0" />{new URL(campus.website).hostname}<ExternalLink className="h-3 w-3 shrink-0" /></a> : <p className="flex items-center gap-1.5 text-amber-600"><CircleAlert className="h-3.5 w-3.5 shrink-0" />Official website not added</p>}</div>
                   <div className="mt-4 grid gap-2 sm:grid-cols-2">
                     <Button size="sm" variant="outline" className="h-10" onClick={() => openEdit(uni)}><Edit className="mr-1.5 h-3.5 w-3.5" /> {isUniversityAdmin ? 'Update branding' : 'Edit record'}</Button>
                     {!isUniversityAdmin && <Button size="sm" variant="ghost" className="h-10" onClick={() => handleToggle(uni)}><Power className="mr-1.5 h-3.5 w-3.5" /> {uni.is_enabled ? 'Disable' : 'Enable'}</Button>}

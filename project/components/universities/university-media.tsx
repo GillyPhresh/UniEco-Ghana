@@ -2,9 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Building2, CalendarDays, ChevronRight, Megaphone, Pause, Play } from 'lucide-react';
-
-type MediaKind = 'logo' | 'campus';
+import { ArrowUpRight, ChevronLeft, ChevronRight, GraduationCap, Images, Pause, Play } from 'lucide-react';
+import type { CampusPhoto } from '@/lib/data/campus-presentation';
 
 interface UniversityMediaProps {
   src?: string | null;
@@ -12,300 +11,200 @@ interface UniversityMediaProps {
   alt: string;
   name: string;
   shortName?: string | null;
-  kind: MediaKind;
+  kind: 'logo' | 'campus';
   className?: string;
   loading?: 'eager' | 'lazy';
   logoObjectPosition?: 'left' | 'center' | 'right';
+  priority?: boolean;
+  onUnavailable?: (src: string) => void;
 }
 
 function getInitials(name: string, shortName?: string | null) {
   const value = shortName?.trim() || name.trim();
-  const words = value.split(/\s+/).filter(Boolean);
-  const initials = words.length > 1 ? words.slice(0, 3).map((word) => word[0]).join('') : value.slice(0, 3);
-  return initials.toUpperCase();
+  const words = value.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return (words.length > 1 ? words.slice(0, 4).map((word) => word[0]).join('') : value.slice(0, 4)).toUpperCase();
 }
 
 function FallbackMedia({ name, shortName, kind, className = '' }: Pick<UniversityMediaProps, 'name' | 'shortName' | 'kind' | 'className'>) {
   if (kind === 'logo') {
-    return (
-      <span className={`flex h-full w-full items-center justify-center rounded-[inherit] bg-gradient-to-br from-primary/15 via-white to-accent/20 text-center text-xs font-bold tracking-wide text-primary ${className}`} aria-label={`${name} logo placeholder`}>
-        <span className="flex h-9 w-9 items-center justify-center rounded-full border border-primary/20 bg-white/80 px-1 text-[10px] font-extrabold shadow-sm">
-          {getInitials(name, shortName)}
-        </span>
-      </span>
-    );
+    return <span className={`flex h-full w-full items-center justify-center rounded-[inherit] bg-emerald-950 text-center text-xs font-bold tracking-wide text-emerald-100 ${className}`} aria-hidden="true">
+      {getInitials(name, shortName)}
+    </span>;
   }
 
-  return (
-    <span className={`relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_18%_20%,rgba(255,255,255,.9),transparent_30%),linear-gradient(135deg,#d1fae5,#dbeafe_52%,#fef3c7)] ${className}`} aria-label={`${name} campus image placeholder`}>
-      <span className="absolute -right-8 -top-10 select-none text-[10rem] font-black leading-none text-primary/10">{getInitials(name, shortName)}</span>
-      <span className="relative flex max-w-[86%] flex-col items-center gap-2 text-center text-primary">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/80 bg-white/75 shadow-sm backdrop-blur-sm">
-          <Building2 className="h-7 w-7" aria-hidden="true" />
-        </span>
-        <span className="rounded-full border border-white/80 bg-white/85 px-3 py-1 text-xs font-bold shadow-sm backdrop-blur-sm">
-          {shortName || name} campus profile
-        </span>
-        <span className="text-[11px] font-medium text-slate-600">Campus photo coming soon</span>
-      </span>
-    </span>
-  );
+  return <div className={`relative isolate flex h-full w-full items-center justify-center overflow-hidden bg-[#082b27] text-white ${className}`}>
+    <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_10%_5%,#176456,transparent_67%),repeating-linear-gradient(140deg,transparent_0_32px,#ffffff09_33px_34px)]" />
+    <span aria-hidden="true" className="pointer-events-none absolute -bottom-6 right-3 select-none text-[clamp(4.5rem,15vw,9rem)] font-black leading-none tracking-tighter text-white/[0.085]">{getInitials(name, shortName)}</span>
+    <div className="relative flex max-w-[80%] flex-col items-center gap-3 text-center">
+      <span className="grid h-12 w-12 place-items-center rounded-2xl border border-white/20 bg-white/10"><GraduationCap className="h-6 w-6" aria-hidden="true" /></span>
+      <span className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-100">Campus directory</span>
+    </div>
+  </div>;
 }
 
-export function UniversityMedia({ src, fallbackSrc, alt, name, shortName, kind, className, loading = 'lazy', logoObjectPosition = 'left' }: UniversityMediaProps) {
-  const candidates = useMemo(() => Array.from(new Set([src, fallbackSrc].filter((value): value is string => Boolean(value)))), [src, fallbackSrc]);
-  const [candidateIndex, setCandidateIndex] = useState(0);
-  const [isWideLogo, setIsWideLogo] = useState(false);
+export function UniversityMedia({ src, fallbackSrc, ...props }: UniversityMediaProps) {
+  // Reset failed-source tracking when the gallery or a filtered card changes.
+  return <MediaImage key={JSON.stringify([src, fallbackSrc])} src={src} fallbackSrc={fallbackSrc} {...props} />;
+}
 
-  useEffect(() => {
-    setCandidateIndex(0);
-    setIsWideLogo(false);
-  }, [candidates]);
-
-  const currentSrc = candidates[candidateIndex];
+function MediaImage({ src, fallbackSrc, alt, name, shortName, kind, className, loading = 'lazy', logoObjectPosition, priority, onUnavailable }: UniversityMediaProps) {
+  const [failed, setFailed] = useState(0);
+  const [wide, setWide] = useState(false);
+  const candidates = Array.from(new Set([src, fallbackSrc].filter(Boolean)));
+  const currentSrc = candidates[failed];
   if (!currentSrc) return <FallbackMedia name={name} shortName={shortName} kind={kind} className={className} />;
-
-  const logoStyle = kind === 'logo'
-    ? {
-        objectFit: isWideLogo ? 'cover' as const : 'contain' as const,
-        objectPosition: isWideLogo ? logoObjectPosition : 'center',
-        transform: 'scale(1.12)',
-        transformOrigin: 'center',
-      }
-    : undefined;
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
+      key={currentSrc}
       src={currentSrc}
       alt={alt}
-      loading={loading}
+      loading={priority ? 'eager' : loading}
+      fetchPriority={priority ? 'high' : undefined}
       className={className}
       decoding="async"
-      style={logoStyle}
+      referrerPolicy="no-referrer"
+      style={kind === 'logo' ? {
+        objectFit: wide && logoObjectPosition ? 'cover' : 'contain',
+        objectPosition: logoObjectPosition || 'center',
+      } : undefined}
       onLoad={(event) => {
-        if (kind === 'logo') setIsWideLogo(event.currentTarget.naturalWidth / Math.max(event.currentTarget.naturalHeight, 1) > 1.7);
+        if (kind === 'logo' && logoObjectPosition) setWide(event.currentTarget.naturalWidth / Math.max(event.currentTarget.naturalHeight, 1) > 1.7);
       }}
-      onError={() => setCandidateIndex((index) => index + 1)}
+      onError={() => {
+        if (failed + 1 >= candidates.length) onUnavailable?.(currentSrc);
+        setWide(false);
+        setFailed((index) => index + 1);
+      }}
     />
   );
 }
 
-export function UniversityLogo({ src, fallbackSrc, name, shortName, alt, className = '', logoObjectPosition }: Omit<UniversityMediaProps, 'kind'>) {
-  return <UniversityMedia src={src} fallbackSrc={fallbackSrc} alt={alt} name={name} shortName={shortName} kind="logo" logoObjectPosition={logoObjectPosition} className={`block h-full w-full ${className}`} />;
+export function UniversityLogo({ className = '', ...props }: Omit<UniversityMediaProps, 'kind'>) {
+  return <UniversityMedia {...props} kind="logo" className={`block h-full w-full ${className}`} />;
 }
 
-export function CampusCardCarousel({ images, name, shortName }: { images: Array<{ src: string; alt: string; fallbackSrc?: string | null }>; name: string; shortName: string }) {
-  const slides = useMemo(() => Array.from(new Map(images.filter((image) => image.src).map((image) => [image.src, image])).values()), [images]);
-  const slideKey = slides.map((slide) => slide.src).join('|');
-  const [active, setActive] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isPageVisible, setIsPageVisible] = useState(true);
-  const carouselRef = useRef<HTMLDivElement>(null);
+const galleryButton = 'grid h-11 w-11 shrink-0 place-items-center rounded-full text-white transition hover:bg-white/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-white';
+
+export function CampusPhotoGallery({ photos: suppliedPhotos, name, shortName, href, variant = 'profile', priority = false }: {
+  photos: CampusPhoto[];
+  name: string;
+  shortName: string;
+  href?: string;
+  variant?: 'profile' | 'card';
+  priority?: boolean;
+}) {
+  const [index, setIndex] = useState(0);
+  const [motionOverride, setMotionOverride] = useState<boolean | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(true);
+  const [isInView, setIsInView] = useState(false);
+  const [isTabVisible, setIsTabVisible] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const [announcement, setAnnouncement] = useState('');
+  const [unavailable, setUnavailable] = useState<string[]>([]);
+  const galleryRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const photos = useMemo(() => suppliedPhotos.filter((photo) => !unavailable.includes(photo.src)), [suppliedPhotos, unavailable]);
+  const moreThanOne = photos.length > 1;
+  const activeIndex = index % (photos.length || 1);
+  const activePhoto = photos[activeIndex];
+  const autoRotate = motionOverride ?? !reduceMotion;
 
   useEffect(() => {
-    const update = () => setIsPageVisible(!document.hidden);
-    update();
-    document.addEventListener('visibilitychange', update);
-    return () => document.removeEventListener('visibilitychange', update);
-  }, []);
+    if (!moreThanOne) return;
+    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const syncPreference = () => setReduceMotion(preference.matches);
+    const syncVisibility = () => setIsTabVisible(!document.hidden);
+    syncPreference();
+    syncVisibility();
+    preference.addEventListener?.('change', syncPreference);
+    document.addEventListener('visibilitychange', syncVisibility);
+    return () => {
+      preference.removeEventListener?.('change', syncPreference);
+      document.removeEventListener('visibilitychange', syncVisibility);
+    };
+  }, [moreThanOne]);
 
   useEffect(() => {
-    const element = carouselRef.current;
-    if (!element || !('IntersectionObserver' in window)) {
-      setIsVisible(true);
-      return;
-    }
-    const observer = new IntersectionObserver(([entry]) => setIsVisible(entry.isIntersecting), { rootMargin: '120px' });
-    observer.observe(element);
+    if (!moreThanOne || !galleryRef.current) return;
+    // Without visibility events, leave manual browsing available.
+    if (!('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver(([entry]) => setIsInView(entry.intersectionRatio >= 0.3), { threshold: [0, 0.3] });
+    observer.observe(galleryRef.current);
     return () => observer.disconnect();
-  }, []);
+  }, [moreThanOne]);
 
   useEffect(() => {
-    if (slides.length < 2 || !isVisible || isPaused || !isPageVisible) return;
-    const timer = window.setInterval(() => setActive((current) => (current + 1) % slides.length), 4800);
-    return () => window.clearInterval(timer);
-  }, [isPageVisible, isPaused, isVisible, slides.length]);
+    if (!moreThanOne || !autoRotate || !isInView || !isTabVisible || isHovered || isFocused) return;
+    const offset = variant === 'card' ? Array.from(name).reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % 1300 : 0;
+    const next = photos[(activeIndex + 1) % photos.length];
+    const preloader = new window.Image();
+    preloader.referrerPolicy = 'no-referrer';
+    preloader.src = next.src;
+    const timer = window.setTimeout(() => setIndex((activeIndex + 1) % photos.length), 6500 + offset);
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, autoRotate, isFocused, isHovered, isInView, isTabVisible, moreThanOne, name, photos, variant]);
 
-  useEffect(() => { setActive(0); }, [slideKey]);
-  useEffect(() => {
-    if (!isVisible || slides.length < 2) return;
-    const next = new window.Image();
-    next.src = slides[(active + 1) % slides.length].src;
-  }, [active, isVisible, slides]);
-  const current = slides[active];
-  if (!current) return <UniversityMedia alt={`${name} campus`} name={name} shortName={shortName} kind="campus" className="h-44 w-full object-cover sm:h-48" />;
-
-  return <div ref={carouselRef} className="relative" role="group" aria-roledescription="carousel" aria-label={`${shortName} campus photos`}>
-    <UniversityMedia key={current.src} src={current.src} fallbackSrc={current.fallbackSrc} alt={current.alt} name={name} shortName={shortName} kind="campus" loading="lazy" className="h-44 w-full object-cover sm:h-48" />
-    {slides.length > 1 && <div className="absolute inset-x-2 bottom-2 flex items-center justify-between rounded-full bg-slate-950/65 p-1 text-white backdrop-blur-sm sm:inset-x-3 sm:bottom-3">
-      <button type="button" onClick={() => setActive((index) => (index - 1 + slides.length) % slides.length)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={`Previous ${shortName} photo`}><ArrowLeft className="h-4 w-4" /></button>
-      <div className="flex min-w-0 items-center justify-center gap-1" aria-label="Choose campus photo">{slides.map((slide, index) => <button key={slide.src} type="button" onClick={() => setActive(index)} className={`h-1.5 rounded-full transition-[width,background-color] motion-reduce:transition-none ${active === index ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'}`} aria-label={`Show ${shortName} photo ${index + 1} of ${slides.length}`} aria-current={active === index ? 'true' : undefined} />)}</div>
-      <button type="button" onClick={() => setIsPaused((paused) => !paused)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={isPaused ? 'Play campus photo rotation' : 'Pause campus photo rotation'}>{isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}</button>
-      <button type="button" onClick={() => setActive((index) => (index + 1) % slides.length)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" aria-label={`Next ${shortName} photo`}><ArrowRight className="h-4 w-4" /></button>
-    </div>}
-    {slides.length > 1 && <span className="sr-only" aria-live="polite">Photo {active + 1} of {slides.length}: {current.alt}</span>}
-  </div>;
-}
-
-export type CampusStory = {
-  id: string;
-  kind: 'campus' | 'event' | 'news';
-  title: string;
-  description?: string | null;
-  imageUrl?: string | null;
-  href?: string | null;
-  sourceUrl?: string | null;
-  label?: string;
-  dateLabel?: string | null;
-};
-
-interface CampusShowcaseProps {
-  universityName: string;
-  universityShortName: string;
-  campusImageUrl?: string | null;
-  localCampusImageUrl?: string | null;
-  campusGallery?: Array<{ src: string; alt: string; sourcePage?: string | null }>;
-  stories: CampusStory[];
-}
-
-function storyLabel(story: CampusStory) {
-  if (story.label) return story.label;
-  if (story.kind === 'event') return 'Campus event';
-  if (story.kind === 'news') return 'Campus news';
-  return 'Campus spotlight';
-}
-
-export function CampusShowcase({ universityName, universityShortName, campusImageUrl, localCampusImageUrl, campusGallery = [], stories }: CampusShowcaseProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-  const touchEndX = useRef<number | null>(null);
-
-  const campusStories: CampusStory[] = campusGallery
-    .filter((image) => Boolean(image.src))
-    .map((image, index) => ({
-      id: `official-campus-${index + 1}`,
-      kind: 'campus',
-      title: `${universityShortName} campus life`,
-      description: `A photo from ${universityName}'s official campus gallery.`,
-      imageUrl: image.src,
-      label: 'Official campus gallery',
-      sourceUrl: image.sourcePage || null,
-    }));
-  if (campusImageUrl || localCampusImageUrl || campusStories.length === 0) {
-    campusStories.unshift({
-      id: 'campus-spotlight',
-      kind: 'campus',
-      title: `${universityShortName} campus life`,
-      description: `Explore what is happening around ${universityName}.`,
-      imageUrl: campusImageUrl || localCampusImageUrl,
-      label: 'Campus spotlight',
-    });
+  function move(direction: -1 | 1) {
+    if (!moreThanOne) return;
+    const next = (activeIndex + direction + photos.length) % photos.length;
+    setIndex(next);
+    setMotionOverride(false);
+    setAnnouncement(`Photo ${next + 1} of ${photos.length}: ${photos[next].alt}`);
   }
-  const slides = [...campusStories, ...stories].slice(0, 12);
-  const activeStory = slides[activeIndex] || slides[0];
-  const hasMultipleSlides = slides.length > 1;
 
-  useEffect(() => {
-    if (!hasMultipleSlides || paused) return;
-    const timer = window.setInterval(() => setActiveIndex((index) => (index + 1) % slides.length), 5600);
-    return () => window.clearInterval(timer);
-  }, [hasMultipleSlides, paused, slides.length]);
-
-  const move = (direction: 1 | -1) => {
-    setActiveIndex((index) => (index + direction + slides.length) % slides.length);
-  };
-
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    touchStartX.current = event.changedTouches[0]?.clientX ?? null;
-    touchEndX.current = null;
-  };
-
-  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    touchEndX.current = event.changedTouches[0]?.clientX ?? null;
-    if (touchStartX.current === null || touchEndX.current === null) return;
-    const distance = touchStartX.current - touchEndX.current;
-    if (Math.abs(distance) < 42 || !hasMultipleSlides) return;
-    move(distance > 0 ? 1 : -1);
-  };
-
-  if (!activeStory) return null;
-
-  return (
-    <div
-      className="relative overflow-hidden rounded-[1.75rem] border border-white/15 bg-slate-950 shadow-xl shadow-primary/10"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocus={() => setPaused(true)}
-      onBlur={() => setPaused(false)}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      aria-roledescription="carousel"
-      aria-label={`${universityShortName} campus stories`}
-    >
-      <div className="relative aspect-[16/11] min-h-[260px] sm:aspect-[16/9]">
-        <UniversityMedia
-          key={`${activeStory.id}-${activeIndex}`}
-          src={activeStory.imageUrl}
-          fallbackSrc={localCampusImageUrl}
-          alt={activeStory.title}
-          name={universityName}
-          shortName={universityShortName}
-          kind="campus"
-          loading="eager"
-          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/35 to-slate-950/5" />
-
-        <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-white/20 bg-slate-950/45 px-3 py-1.5 text-[11px] font-semibold text-white backdrop-blur-md">
-          {activeStory.kind === 'event' ? <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" /> : activeStory.kind === 'news' ? <Megaphone className="h-3.5 w-3.5" aria-hidden="true" /> : <Building2 className="h-3.5 w-3.5" aria-hidden="true" />}
-          {storyLabel(activeStory)}
-        </div>
-
-        {hasMultipleSlides && (
-          <div className="absolute right-4 top-4 flex gap-2">
-            <button type="button" onClick={() => move(-1)} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-slate-950/45 text-white backdrop-blur-md transition hover:bg-slate-950/70" aria-label="Previous campus story">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={() => move(1)} className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-slate-950/45 text-white backdrop-blur-md transition hover:bg-slate-950/70" aria-label="Next campus story">
-              <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-        <div className="absolute inset-x-4 bottom-4 pr-2 text-white sm:bottom-5 sm:inset-x-6">
-          {activeStory.dateLabel && <p className="mb-1 text-xs font-medium text-white/75">{activeStory.dateLabel}</p>}
-          <h2 className="max-w-xl text-xl font-bold tracking-tight sm:text-2xl">{activeStory.title}</h2>
-          {activeStory.description && <p className="mt-1 line-clamp-2 max-w-xl text-sm text-white/80">{activeStory.description}</p>}
-          {activeStory.href && (
-            <Link href={activeStory.href} className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-white underline-offset-4 hover:underline">
-              View details <ChevronRight className="h-4 w-4" />
-            </Link>
-          )}
-          {activeStory.sourceUrl && (
-            <a href={activeStory.sourceUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-white underline-offset-4 hover:underline">
-              View source <ChevronRight className="h-4 w-4" />
-            </a>
-          )}
-          {hasMultipleSlides && (
-            <div className="mt-4 flex items-center gap-1.5" role="tablist" aria-label="Campus stories">
-              {slides.map((slide, index) => (
-                <button
-                  key={slide.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={index === activeIndex}
-                  aria-label={`Show ${storyLabel(slide)} ${index + 1}`}
-                  onClick={() => setActiveIndex(index)}
-                  className={`h-1.5 rounded-full transition-all ${index === activeIndex ? 'w-7 bg-white' : 'w-1.5 bg-white/45'}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+  const card = variant === 'card';
+  return <div
+    ref={galleryRef}
+    role="group"
+    aria-roledescription={moreThanOne ? 'carousel' : undefined}
+    aria-label={`${shortName} campus photos`}
+    className={`relative isolate overflow-hidden bg-[#082b27] ${card ? 'aspect-[2/1]' : 'aspect-[5/3] max-h-[420px] sm:aspect-[2.2/1] lg:aspect-[3/1]'}`}
+    onMouseEnter={() => setIsHovered(true)}
+    onMouseLeave={() => setIsHovered(false)}
+    onFocusCapture={() => setIsFocused(true)}
+    onBlurCapture={(event) => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setIsFocused(false);
+    }}
+    onTouchStart={(event) => {
+      const touch = event.touches[0];
+      touchStart.current = !card && touch ? { x: touch.clientX, y: touch.clientY } : null;
+    }}
+    onTouchEnd={(event) => {
+      if (!touchStart.current || !moreThanOne) return;
+      const start = touchStart.current;
+      touchStart.current = null;
+      const touch = event.changedTouches[0];
+      if (!touch) return;
+      const distance = start.x - touch.clientX;
+      if (Math.abs(distance) > 45 && Math.abs(distance) > Math.abs(start.y - touch.clientY) * 1.3) move(distance > 0 ? 1 : -1);
+    }}
+  >
+    <UniversityMedia
+      src={activePhoto?.src}
+      onUnavailable={(src) => setUnavailable((current) => current.includes(src) ? current : [...current, src])}
+      alt={activePhoto?.alt || `${name} campus`}
+      name={name}
+      shortName={shortName}
+      kind="campus"
+      priority={priority && activeIndex === 0}
+      loading={activeIndex ? 'eager' : 'lazy'}
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+    {href && <Link href={href} prefetch={false} tabIndex={-1} aria-hidden="true" className="absolute inset-0 z-10" />}
+    {activePhoto && (!card || moreThanOne) && <>
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent" />
+      {!card && <span className="absolute left-3 top-3 z-20 inline-flex items-center gap-1.5 rounded-full bg-slate-950/90 px-3 py-1.5 text-xs font-semibold text-white sm:left-5 sm:top-5"><Images className="h-4 w-4" aria-hidden="true" /> Campus in pictures</span>}
+      {!card && activePhoto.sourceUrl && <a href={activePhoto.sourceUrl} target="_blank" rel="noopener noreferrer" className="absolute right-3 top-3 z-20 inline-flex min-h-11 items-center gap-1 rounded-full bg-slate-950/90 px-3 text-xs font-semibold text-white hover:bg-slate-900 sm:right-5 sm:top-5" aria-label="View the original photo source">Source <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>}
+      {moreThanOne && <div className={`absolute z-20 flex items-center gap-0.5 rounded-full border border-white/25 bg-slate-950/90 p-0.5 shadow-lg ${card ? 'bottom-2 right-2' : 'bottom-3 right-3 sm:bottom-5 sm:right-5'}`}>
+        <button type="button" onClick={() => move(-1)} className={galleryButton} aria-label="Previous campus photo"><ChevronLeft className="h-5 w-5" /></button>
+        <span className="min-w-8 select-none text-center text-xs font-semibold tabular-nums text-white" aria-hidden="true">{activeIndex + 1}/{photos.length}</span>
+        <button type="button" onClick={() => move(1)} className={galleryButton} aria-label="Next campus photo"><ChevronRight className="h-5 w-5" /></button>
+        <button type="button" onClick={() => setMotionOverride(!autoRotate)} className={galleryButton} aria-label={autoRotate ? 'Pause campus photo rotation' : 'Play campus photo rotation'}>{autoRotate ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}</button>
+      </div>}
+      {!card && <span className="sr-only" role="status">{announcement}</span>}
+    </>}
+  </div>;
 }

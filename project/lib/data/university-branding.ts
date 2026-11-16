@@ -1,4 +1,5 @@
 import manifest from '@/data/university-branding.json';
+import profiles from '@/data/campus-profiles.json';
 
 export type UniversityBrandingAsset = {
   path: string;
@@ -23,6 +24,26 @@ type UniversityBrandingRecord = {
 };
 
 const records = manifest as Record<string, UniversityBrandingRecord>;
+
+type CuratedAsset = { url: string; source: string; alt?: string };
+type CampusProfileSource = {
+  website?: string;
+  shortName?: string;
+  about?: string;
+  overview?: string;
+  news?: string;
+  gallery?: string;
+  cover?: string;
+  coverCredit?: string;
+  excludedPhotos?: string[];
+  crest?: CuratedAsset;
+  photos?: CuratedAsset[];
+};
+const profileSources: Record<string, CampusProfileSource> = profiles;
+
+export function getCuratedCampusProfile(slug: string) {
+  return Object.hasOwn(profileSources, slug) ? profileSources[slug] : undefined;
+}
 
 // The database uses descriptive slugs, while the verified asset manifest keeps
 // the institutions' familiar abbreviations. Keep this mapping in one place so
@@ -106,17 +127,33 @@ const officialSourcePages: Record<string, string> = {
  * the existing protected branding workflow without changing frontend code.
  */
 export function getLocalUniversityBranding(slug: string) {
-  const record = records[brandingSlugAliases[slug] || slug];
+  const key = Object.hasOwn(brandingSlugAliases, slug) ? brandingSlugAliases[slug] : slug;
+  const record = Object.hasOwn(records, key) ? records[key] : undefined;
+  const profile = getCuratedCampusProfile(slug);
+  const officialSource = Object.hasOwn(officialSourcePages, slug) ? officialSourcePages[slug] : undefined;
+  const logoOverride = Object.hasOwn(officialLogoOverrides, slug) ? officialLogoOverrides[slug] : undefined;
+  const campusOverride = Object.hasOwn(officialCampusOverrides, slug) ? officialCampusOverrides[slug] : undefined;
+  const curatedGallery = (profile?.photos || []).map((photo, index) => ({
+    path: `/assets/universities/${slug}/profile/photo-${index + 1}.webp`,
+    sourcePage: photo.source,
+    sourceUrl: photo.url,
+    alt: photo.alt,
+  }));
   return {
-    logoUrl: officialLogoOverrides[slug] || record?.logo?.path || null,
-    logoSourcePage: officialSourcePages[slug] || (record?.logo?.sourcePage ?? null),
-    campusUrl: officialCampusOverrides[slug] || record?.campus?.path || null,
-    campusSourcePage: officialSourcePages[slug] || (record?.campus?.sourcePage ?? null),
-    campusGallery: (record?.campusGallery || []).filter((asset) => Boolean(asset?.path)).map((asset) => ({ ...asset })),
-    status: record?.status ?? null,
+    website: profile?.website || officialSource || record?.sourceUrl || null,
+    logoUrl: profile?.crest ? `/assets/universities/${slug}/profile/logo.webp` : logoOverride || record?.logo?.path || null,
+    logoSourcePage: profile?.crest?.source || (logoOverride ? officialSource : record?.logo?.sourcePage) || null,
+    campusUrl: profile?.cover || curatedGallery[0]?.path || campusOverride || record?.campus?.path || null,
+    campusSourcePage: profile?.coverCredit || curatedGallery[0]?.sourcePage || (campusOverride ? officialSource : record?.campus?.sourcePage) || null,
+    campusOriginalUrl: profile?.cover || campusOverride ? null : curatedGallery[0]?.sourceUrl || record?.campus?.sourceUrl || null,
+    campusGallery: [
+      ...curatedGallery,
+      ...(record?.campusGallery || []).filter((asset) => Boolean(asset?.path)).map((asset) => ({ ...asset, alt: undefined })),
+    ],
+    status: profile?.crest || curatedGallery.length ? 'verified_assets_downloaded' : record?.status ?? null,
   };
 }
 
 export function getUniversityLogoObjectPosition(slug: string) {
-  return wideLogoPositions[slug] || 'left';
+  return Object.hasOwn(wideLogoPositions, slug) ? wideLogoPositions[slug] : undefined;
 }

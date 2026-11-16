@@ -1,5 +1,8 @@
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createPublicServerClient } from '@/lib/supabase/public-server';
+import type { DirectoryRecord } from '@/lib/data/campus-presentation';
+import { campusSearchText } from '@/lib/utils/campuses';
 import type {
   Vendor,
   Business,
@@ -107,14 +110,15 @@ export async function getPublicServiceSeoById(id: string) {
   return data as { id: string; name: string; description: string | null; price: number; currency: string; duration_estimate: string | null; image_url: string | null; updated_at: string | null } | null;
 }
 
-export async function getUniversityDirectory() {
+export async function getUniversityDirectory(): Promise<DirectoryRecord[]> {
   const supabase = createPublicServerClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('universities')
-    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, landmark_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, is_verified, accreditation_status, accreditation_valid_until, accreditation_source_url, accreditation_checked_at, university_aliases(alias)')
+    .select('id, name, official_name, short_name, abbreviation, slug, city, region, logo_url, hero_image_url, landmark_image_url, logo_alt_text, hero_alt_text, institution_type, ownership_type, campus_launch_status, university_aliases(alias)')
     .eq('is_enabled', true)
     .order('name');
-    return (data || []) as Array<Pick<University, 'id' | 'name' | 'official_name' | 'short_name' | 'abbreviation' | 'slug' | 'city' | 'region' | 'logo_url' | 'hero_image_url' | 'landmark_image_url' | 'logo_alt_text' | 'hero_alt_text' | 'institution_type' | 'ownership_type' | 'campus_launch_status' | 'is_verified' | 'accreditation_status' | 'accreditation_valid_until' | 'accreditation_source_url' | 'accreditation_checked_at'> & { university_aliases: Array<{ alias: string }> }>;
+  if (error) throw new Error('Campus directory could not be loaded.');
+  return (data || []) as DirectoryRecord[];
 }
 
 export async function getTotalUniversityCount() {
@@ -126,16 +130,20 @@ export async function getTotalUniversityCount() {
   return count || 0;
 }
 
-export async function getUniversityBySlug(slug: string) {
-  const supabase = await createClient();
-  const { data } = await supabase
+type PublicCampusProfile = Omit<University, 'created_at' | 'updated_at' | 'accreditation_valid_from' | 'is_verified'>;
+
+export const getUniversityBySlug = cache(async (slug: string): Promise<PublicCampusProfile | null> => {
+  if (slug.length > 160 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return null;
+  const supabase = createPublicServerClient();
+  const { data, error } = await supabase
     .from('universities')
-    .select('*')
+    .select('id,name,official_name,short_name,abbreviation,slug,city,region,country,logo_url,hero_image_url,logo_alt_text,hero_alt_text,image_credit,image_source,landmark_image_url,website_url,description,institution_type,ownership_type,accreditation_status,accreditation_valid_until,accreditation_source_url,accreditation_checked_at,campus_launch_status,is_enabled')
     .eq('slug', slug)
     .eq('is_enabled', true)
     .maybeSingle();
-  return data as University | null;
-}
+  if (error) throw new Error('Campus profile could not be loaded.');
+  return data as PublicCampusProfile | null;
+});
 
 export async function getFeaturedVendors(limit = 8) {
   const supabase = await createClient();
@@ -270,7 +278,8 @@ export async function getPublishedEvents(limit = 6, universityId?: string) {
       *,
       university:universities(id, name, short_name, slug)
     `)
-    .eq('is_published', true);
+    .eq('is_published', true)
+    .gte('start_time', new Date().toISOString());
   if (universityId) query = query.eq('university_id', universityId);
   const { data } = await query.order('start_time', { ascending: true }).limit(limit);
   return (data || []) as unknown as (EventItem & { university: Pick<University, 'id' | 'name' | 'short_name' | 'slug'> | null })[];
@@ -289,6 +298,19 @@ export async function getEventsByUniversity(universityId: string, limit = 6) {
     .order('start_time', { ascending: true })
     .limit(limit);
   return (data || []) as unknown as (EventItem & { university: Pick<University, 'id' | 'name' | 'short_name' | 'slug'> | null })[];
+}
+
+export async function getUpcomingCampusEvents(universityId: string, limit = 6) {
+  const supabase = createPublicServerClient();
+  const { data, error } = await supabase
+    .from('events')
+    .select('id,title,slug,description,start_time,location,is_virtual,cover_image_url')
+    .eq('is_published', true)
+    .eq('university_id', universityId)
+    .gte('start_time', new Date().toISOString())
+    .order('start_time', { ascending: true })
+    .limit(limit);
+  return error ? null : (data || []) as Array<Pick<EventItem, 'id' | 'title' | 'slug' | 'description' | 'start_time' | 'location' | 'is_virtual' | 'cover_image_url'>>;
 }
 
 export type CampusDiscoveryListing = {
@@ -339,6 +361,40 @@ export async function getUniversityAnnouncementsByUniversity(universityId: strin
     is_pinned: boolean;
     created_at: string;
   }>;
+}
+
+export type CampusProfileUpdate = {
+  id: string;
+  source_label: string;
+  title: string;
+  excerpt: string | null;
+  canonical_url: string;
+  published_at: string | null;
+  category: string;
+};
+
+export async function getReviewedCampusUpdates(
+  university: Pick<University, 'id' | 'slug' | 'name' | 'official_name'>,
+  limit = 3,
+): Promise<CampusProfileUpdate[]> {
+  const supabase = createPublicServerClient();
+  const { data: sources, error } = await supabase.from('campus_feed_public_sources')
+    .select('source_id,university_name')
+    .eq('source_kind', 'campus');
+  if (error || !sources) return [];
+  const names = new Set([university.name, university.official_name].filter(Boolean).map(campusSearchText));
+  const automaticId = `uni-${university.id.replaceAll('-', '').slice(0, 20)}`;
+  const sourceIds = sources.filter(({ source_id, university_name }) => (
+    source_id === automaticId || names.has(campusSearchText(university_name))
+  )).map(({ source_id }) => source_id);
+  if (!sourceIds.length) return [];
+  const { data: items, error: itemsError } = await supabase.from('campus_feed_public_items')
+    .select('id,source_label,title,excerpt,canonical_url,published_at,category')
+    .in('source_id', sourceIds)
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .order('id')
+    .limit(limit);
+  return itemsError ? [] : (items || []) as CampusProfileUpdate[];
 }
 
 export async function getEventBySlug(slug: string) {

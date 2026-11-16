@@ -1,0 +1,278 @@
+{
+  "abetifi-college-of-education-abetifi": {
+    "website": "https://abeticoe.edu.gh/",
+    "overview": "Abetifi Presbyterian College of Education is a public teacher-training college in Abetifi in the Eastern Region.",
+    "crest": {
+      "url": "https://abeticoe.edu.gh/wp-content/uploads/2022/08/cropped-ABCE.jpg",
+      "source": "https://abeticoe.edu.gh/",
+      "localSource": "campus-gallery-1.optimized.webp",
+      "crop": { "left": 0, "top": 0, "width": 350, "height": 370 }
+    },
+    "excludedPhotos": [
+      "https://abeticoe.edu.gh/wp-content/uploads/2022/08/cropped-ABCE.jpg",
+      "https://abeticoe.edu.gh/wp-content/uploads/2022/08/NEWS.jpg",
+      "https://abeticoe.edu.gh/wp-content/uploads/2022/05/WhatsApp-Image-2022-05-18-at-11.21.52-AM.jpeg"
+    ]
+  },
+  "academic-city-university": {
+    "website": "https://acity.edu.gh/",
+    "cover": "/assets/homepage/academic-city-campus-1200.webp",
+    "coverCredit": "https://commons.wikimedia.org/wiki/File:Academic_City_University_main_administrative_building_exterior_view.jpg",
+    "excludedPhotos": [
+      "/assets/universities/academic-city-university/campus.jpg",
+      "https://acity.edu.gh/wp-content/uploads/2026/08/cover-photo-300x167.jpg",
+      "https://acity.edu.gh/wp-content/uploads/2025/09/ACity-Tech-Expo-2023-The-Role-of-Technology-in-Sustainable-Agriculture.jpg"
+    ]
+  },
+  "accra-college-of-education-accra": {
+    "website": "https://acce.edu.gh/",
+    "overview": "Accra College of Education is a public teacher-training college in Accra, serving students preparing to teach in Ghana’s schools.",
+    "excludedPhotos": [
+      "https://acce.edu.gh/wp-content/uploads/2021/03/Principal.jpg",
+      "https://acce.edu.gh/wp-content/uploads/2026/09/Kentera-Abongo-Justice-Jnr.webp"
+    ]
+  },
+  "accra-institute-of-technology": {
+    "excludedPhotos": [
+      "/assets/universities/ait/campus-official.jpg",
+      "/assets/universities/accra-institute-of-technology/campus.jpg",
+      "https://ait.edu.gh/wp-content/uploads/2024/02/WhatsApp-Image-2024-01-12-at-15.51.26_2c4835d9-768x512.jpg",
+      "https://ait.edu.gh/wp-content/uploads/2025/07/WhatsApp-Image-2025-07-07-at-11.49.19_6a264afb-737x1024.jpg",
+      "https://ait.edu.gh/wp-content/uploads/2024/02/workaholics-focused-multi-ethnic-businesspeople-overworking-company-office-meeting-room-brainstorming-ideas-late-night_482257-2173.jpg"
+    ]
+  },
+  "accra-metropolitan-university": {
+    "excludedPhotos": [
+      "/assets/universities/accra-metropolitan-university/campus.jpg",
+      "https://web.accramet.edu.gh/wp-content/uploads/slider/cache/4c4dcb1e98b13a2b44b28180be016297/PRE_-_BAR_COURSE_II.jpg.jpg",
+      "https://web.accramet.edu.gh/wp-content/uploads/2024/12/cropped-ACCRA-MET-LOGO-3-e1734601385892.png"
+    ]
+  },
+  "accra-technical-university": {
+    "excludedPhotos": [
+      "https://atu.edu.gh/wp-content/uploads/2026/11/WhatsApp-Image-2026-10-27-at-5.32.08-PM-250x300.jpeg"
+    ]
+  },
+  "african-university-of-communication-and-business": {
+    "excludedPhotos": [
+      "/assets/universities/african-university-of-communication-and-business/campus.jpg",
+      "https://aucb.edu.gh/wp-content/uploads/2026/06/aucb-default-social-share-image.jpg",
+      "https://aucb.edu.gh/wp-content/uploads/2025/01/website-2.png"
+    ]
+  },
+  "agogo-presbyterian-college-of-education-agogo": {
+    "website": "https://apwce.edu.gh/"
+  },
+  "atebubu-college-of-education-atebubu": {
+    "website": "https://atecoe.edu.gh/",
+    "about": "https://atecoe.edu.gh/about-us-2/",
+    "overview": "Atebubu College of Education is a public teacher-training institution based in Atebubu in the Bono East Region.",
+    "crest": { "url": "https://atecoe.edu.gh/wp-content/uploads/2024/07/cropped-logo-1-modified-1-192x192.png", "source": "https://atecoe.edu.gh/" },
+    "excludedPhotos": [
+      "/assets/universities/atebubu-college-of-education-atebubu/campus.jpg",
+      "https://atecoe.edu.gh/wp-content/uploads/2023/05/SRC_orientation-870x341.jpg",
+      "https://atecoe.edu.gh/wp-content/uploads/slider/cache/7ff9a1c50cdaaf94a093ad9b18981d37/admisin266.jpg",
+      "https://atecoe.edu.gh/wp-content/uploads/slider/cache/a15931b5b2793e2a94e11abe7f795954/gra2.jpg",
+      "https://atecoe.edu.gh/wp-content/uploads/slider/cache/f214c4c28e32d6403b7f2436f0f420e1/ECE.jpg",
+      "https://atecoe.edu.gh/wp-content/uploads/slider/cache/1c09c9901d58bfb23b1deffcfc39d518/award.png1-min.jpg"
+    ]
+  },
+  "college-of-health-yamfo": {
+    "website": "https://www.cohy.edu.gh/",
+    "about": "https://www.cohy.edu.gh/about/mission-and-vision",
+    "gallery": "https://www.cohy.edu.gh/gallery/",
+    "news": "https://www.cohy.edu.gh/news/",
+    "overview": "College of Health, Yamfo is a health training institution in the Ahafo Region. The college includes departments in physician assistantship, medical laboratory sciences, health promotion, health information management, and disease control and epidemiology.",
+    "cover": "/assets/universities/college-of-health-yamfo/campus-gallery-5.optimized.webp",
+    "coverCredit": "https://www.cohy.edu.gh/gallery/",
+    "photos": [
+      { "url": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8661.jpg", "source": "https://www.cohy.edu.gh/gallery/", "alt": "Laboratory facilities at College of Health, Yamfo" },
+      { "url": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8678.jpg", "source": "https://www.cohy.edu.gh/gallery/", "alt": "A teaching facility pictured in the College of Health, Yamfo gallery" },
+      { "url": "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8503.jpg", "source": "https://www.cohy.edu.gh/gallery/", "alt": "Buildings and grounds at College of Health, Yamfo" }
+    ],
+    "excludedPhotos": [
+      "/assets/universities/college-of-health-yamfo/campus.jpg",
+      "https://cohy.edu.gh/uploads/posts/be0cfd618549237dbca8a41e35b85488.jpeg",
+      "https://www.cohy.edu.gh/uploads/posts/be7fbd76e9f8ecccd442dfd9b4ff11ad.jpg",
+      "https://www.cohy.edu.gh/uploads/d2113d05fd89242c6030d628d6688af7_MG_8467.jpg"
+    ]
+  },
+  "college-of-nursing-ntotroso": {
+    "website": "https://conm-ntotroso.edu.gh/",
+    "overview": "The College of Nursing and Midwifery in Ntotroso trains nurses and midwives in the Ahafo Region, combining classroom education with supervised clinical and simulation training.",
+    "crest": { "url": "https://conm-ntotroso.edu.gh/uploads/images/85e73743b31933b9ed2565174a3ccd2d.jpg", "source": "https://conm-ntotroso.edu.gh/" },
+    "photos": [
+      { "url": "https://conm-ntotroso.edu.gh/uploads/images/0aee204dfc0e3f0554f8ac6581c23b6a.jpg", "source": "https://conm-ntotroso.edu.gh/", "alt": "Students on the College of Nursing and Midwifery campus in Ntotroso" },
+      { "url": "https://conm-ntotroso.edu.gh/uploads/images/52e2aaeabf4fff379b333a070bb7f85e.jpg", "source": "https://conm-ntotroso.edu.gh/", "alt": "Supervised clinical simulation at the College of Nursing and Midwifery in Ntotroso" }
+    ]
+  },
+  "dambai-college-of-education-dambai": {
+    "website": "https://www.dace.edu.gh/",
+    "about": "https://www.dace.edu.gh/about-us/",
+    "news": "https://www.dace.edu.gh/news-events/",
+    "overview": "Dambai College of Education is a public teacher-training institution based in Dambai in the Oti Region.",
+    "crest": { "url": "https://www.dace.edu.gh/wp-content/uploads/2021/04/cropped-dace-2-192x192.png", "source": "https://www.dace.edu.gh/" },
+    "excludedPhotos": [
+      "https://www.dace.edu.gh/wp-content/uploads/2021/06/WhatsApp-Image-2021-06-03-at-05.38.29.jpeg"
+    ]
+  },
+  "holy-family-nurses-and-midwifery-training-college-berekum": {
+    "website": "https://nmtcberekum.edu.gh/",
+    "news": "https://nmtcberekum.edu.gh/index.php/academics/academic-news-events",
+    "overview": "Holy Family Nursing and Midwifery Training College is a Catholic health training institution in Berekum. Its website publishes information for applicants and reports on students’ clinical education.",
+    "about": "https://www.nmtcberekum.edu.gh/index.php/midwifery",
+    "photos": [
+      { "url": "https://nmtcberekum.edu.gh/images/2024/11/16/practicals_donation.jpg", "source": "https://nmtcberekum.edu.gh/", "alt": "A clinical training equipment donation at Holy Family NMTC Berekum" }
+    ]
+  },
+  "holy-family-nurses-training-college-nkawkaw": {
+    "website": "https://holyfamilycatholicnmtcnkawkaw.edu.gh/",
+    "overview": "Holy Family Catholic Nursing and Midwifery Training College is based in Nkawkaw. The college publishes information on nursing and midwifery programmes, admissions and training facilities."
+  },
+  "jasikan-college-of-education-jasikan": {
+    "about": "https://ioe.ucc.edu.gh/college/jasikan-college-education",
+    "overview": "Jasikan College of Education is a public teacher-training college in Jasikan in the Oti Region. The University of Cape Coast’s Institute of Education maintains a page for the college.",
+    "photos": [
+      { "url": "https://ioe.ucc.edu.gh/sites/default/files/styles/normal_size/public/2019-12/Jasikan-6a80eabd.jpg?itok=-YdnQmII", "source": "https://ioe.ucc.edu.gh/college/jasikan-college-education", "alt": "Jasikan College of Education, pictured by the University of Cape Coast" }
+    ]
+  },
+  "narh-bita-college": {
+    "website": "https://narhbitacollege.edu.gh/",
+    "about": "https://narhbitacollege.edu.gh/about-narh/",
+    "overview": "Narh-Bita College is a private health training college in Tema. It publishes information on its nursing and allied health programmes and student services.",
+    "crest": { "url": "https://narhbitacollege.edu.gh/wp-content/uploads/2023/08/cropped-NARH-BITA-LOGO-01-192x192.png", "source": "https://narhbitacollege.edu.gh/" }
+  },
+  "nursing-and-midwifery-training-college-agogo": {
+    "website": "https://pnmtc.edu.gh/",
+    "overview": "Presbyterian Nursing and Midwifery Training College in Agogo trains nurses and midwives in the Ashanti Region."
+  },
+  "nursing-training-college-ho": {
+    "website": "https://ntcho.edu.gh/",
+    "overview": "Nursing Training College, Ho is a public health training institution in the Volta Region. Its website provides school information, student resources and links to the government health training admissions portal."
+  },
+  "nursing-and-midwifery-training-college-kath-kumasi": {
+    "website": "https://www.nmtckumasi.edu.gh/",
+    "about": "https://www.nmtckumasi.edu.gh/about",
+    "news": "https://www.nmtckumasi.edu.gh/media/news",
+    "overview": "Nursing and Midwifery Training College, Kumasi is a public health training college whose official site provides programme details, an academic calendar and campus news.",
+    "crest": { "url": "https://www.nmtckumasi.edu.gh/_next/static/media/logo-large.14cb1cb0.webp", "source": "https://www.nmtckumasi.edu.gh/" },
+    "photos": [
+      { "url": "https://www.nmtckumasi.edu.gh/_next/static/media/header.8b3c65e0.webp", "source": "https://www.nmtckumasi.edu.gh/", "alt": "Nursing and Midwifery Training College, Kumasi, as pictured on the school website" }
+    ]
+  },
+  "nursing-and-midwifery-training-college-korle-bu": {
+    "website": "https://www.nmtckb.edu.gh/",
+    "about": "https://www.nmtckb.edu.gh/about/history.php",
+    "news": "https://www.nmtckb.edu.gh/media/news.php",
+    "overview": "Nursing and Midwifery Training College, Korle Bu is a public health training college in Accra. The college trains nursing and midwifery students and publishes admissions notices and campus news on its official site.",
+    "crest": { "url": "https://www.nmtckb.edu.gh/assets/images/logo.png", "source": "https://www.nmtckb.edu.gh/" },
+    "photos": [
+      { "url": "https://www.nmtckb.edu.gh/assets/images/about-campus.jpg", "source": "https://www.nmtckb.edu.gh/", "alt": "Nursing and Midwifery Training College, Korle Bu campus and students" }
+    ]
+  },
+  "presbyterian-women-s-college-of-education-aburi": {
+    "website": "https://pwce.edu.gh/",
+    "overview": "Presbyterian Women’s College of Education is a teacher-training college in Aburi. Its official site shares information on early-grade and primary education, admissions and college activities.",
+    "crest": { "url": "https://pwce.edu.gh/wp-content/uploads/2023/05/cropped-cropped-PWCE_NewLogo-copy-1-192x192.png", "source": "https://pwce.edu.gh/" },
+    "photos": [
+      { "url": "https://pwce.edu.gh/wp-content/uploads/2026/08/ap9-435x280.jpeg", "source": "https://pwce.edu.gh/", "alt": "A college news photo from Presbyterian Women’s College of Education" }
+    ]
+  },
+  "royal-ann-college-of-health": {
+    "website": "https://www.racoh.edu.gh/",
+    "overview": "Royal Ann College of Health is a private college in Abuakwa Manhyia, Kumasi. It publishes information about its nursing and allied health training, including medical laboratory and dispensing programmes.",
+    "crest": { "url": "https://www.racoh.edu.gh/wp-content/uploads/2025/06/cropped-RACOH-Logo-192x192.png", "source": "https://www.racoh.edu.gh/" },
+    "photos": [
+      { "url": "https://www.racoh.edu.gh/wp-content/uploads/2025/07/mlt-5.jpg", "source": "https://www.racoh.edu.gh/", "alt": "Medical laboratory studies shown by Royal Ann College of Health" },
+      { "url": "https://www.racoh.edu.gh/wp-content/uploads/2025/07/nursing-3.jpg", "source": "https://www.racoh.edu.gh/", "alt": "A nursing programme photo from Royal Ann College of Health" }
+    ]
+  },
+  "nursing-and-midwifery-training-college-twifo-praso": {
+    "website": "https://prasonmtc.org/",
+    "news": "https://prasonmtc.org/?page=news",
+    "gallery": "https://prasonmtc.org/?page=gallery",
+    "overview": "Nursing and Midwifery Training College, Twifo Praso is a public health training institution in Ghana’s Central Region. The school publishes guidance for applicants, notices and news about college activities.",
+    "crest": { "url": "https://prasonmtc.org/assets/images/logo.svg", "source": "https://prasonmtc.org/" }
+  },
+  "sda-nursing-and-midwifery-training-college-kwadaso": {
+    "website": "https://sdanmtckwadaso.edu.gh/",
+    "about": "https://sdanmtckwadaso.edu.gh/about-us/",
+    "news": "https://sdanmtckwadaso.edu.gh/category/news/",
+    "overview": "SDA Nursing and Midwifery Training College in Kwadaso provides nursing and midwifery training. The institution’s site includes programme information, library resources and campus news.",
+    "crest": { "url": "https://sdanmtckwadaso.edu.gh/wp-content/uploads/2025/04/cropped-crest-512x512-1-192x192.png", "source": "https://sdanmtckwadaso.edu.gh/" }
+  },
+  "sda-college-of-education-agona-ashanti": {
+    "website": "https://www.sdacoe.edu.gh/",
+    "about": "https://www.sdacoe.edu.gh/programs/",
+    "overview": "Seventh-day Adventist College of Education, Agona-Ashanti is a teacher-training college. Its official site provides programme information and publishes campus news."
+  },
+  "st-john-bosco-college-of-education-navrongo": {
+    "website": "https://bosco.edu.gh/",
+    "about": "https://bosco.edu.gh/about-us/",
+    "gallery": "https://bosco.edu.gh/our-gallery/",
+    "overview": "St. John Bosco’s College of Education is a public teacher-training college in Navrongo, in the Kassena-Nankana area of the Upper East Region.",
+    "crest": {
+      "url": "https://bosco.edu.gh/wp-content/uploads/2026/01/cropped-Trans-192x192.png",
+      "source": "https://bosco.edu.gh/",
+      "crop": { "left": 0, "top": 0, "width": 158, "height": 192 }
+    },
+    "photos": [
+      { "url": "https://bosco.edu.gh/wp-content/uploads/2026/01/CULTURE-224-1.jpg", "source": "https://bosco.edu.gh/", "alt": "A college cultural activity at St. John Bosco’s College of Education" },
+      { "url": "https://bosco.edu.gh/wp-content/uploads/2026/01/IMG_2826-1.jpg", "source": "https://bosco.edu.gh/", "alt": "Campus life at St. John Bosco’s College of Education" }
+    ]
+  },
+  "st-ambrose-college-of-education-dormaa-akwamu": {
+    "website": "https://www.sace.edu.gh/",
+    "overview": "St. Ambrose College of Education is a public teacher-training college in Dormaa Akwamu. The college’s official site shares information on its early-grade, primary and junior high education programmes.",
+    "crest": { "url": "https://www.sace.edu.gh/_webfilx/_visualx/img/logo-transparent.png", "source": "https://www.sace.edu.gh/" },
+    "photos": [
+      { "url": "https://www.sace.edu.gh/_webfilx/_visualx/images/extras/life.jpg", "source": "https://www.sace.edu.gh/", "alt": "Campus life at St. Ambrose College of Education, pictured by the college" }
+    ]
+  },
+  "st-john-of-god-college-of-health-duayaw-nkwanta": {
+    "website": "https://www.sjgcoh.edu.gh/",
+    "about": "https://www.sjgcoh.edu.gh/visit.html",
+    "overview": "St. John of God College of Health is based in Duayaw Nkwanta. The college website provides admissions and campus visit information for prospective health training students."
+  },
+  "st-karol-school-of-nursing": {
+    "website": "https://www.stkarol.com/",
+    "about": "https://www.stkarol.com/about.html",
+    "news": "https://www.stkarol.com/newslist.html",
+    "gallery": "https://www.stkarol.com/photogallery.html",
+    "overview": "St. Karol School of Nursing is a private nursing school in Greater Accra. Its site provides programme, student life and facilities information.",
+    "crest": { "url": "https://www.stkarol.com/assets/img/logo.jpg", "source": "https://www.stkarol.com/" },
+    "photos": [
+      { "url": "https://www.stkarol.com/assets/img/slide3.jpg", "source": "https://www.stkarol.com/", "alt": "A view of training at St. Karol School of Nursing" }
+    ]
+  },
+  "st-louis-college-of-education-kumasi": {
+    "website": "https://slce.edu.gh/",
+    "about": "https://slce.edu.gh/history/",
+    "overview": "St. Louis College of Education is a public teacher-training college in Kumasi. Its website shares the college’s history and information on student life.",
+    "crest": {
+      "url": "https://slce.edu.gh/wp-content/uploads/2024/03/Artboard-1@2x.png",
+      "source": "https://slce.edu.gh/",
+      "crestWidth": 0.214
+    }
+  },
+  "tumu-college-of-education": {
+    "website": "https://tuce.edu.gh/index.php",
+    "about": "https://tuce.edu.gh/about_tuce.php",
+    "overview": "Tumu College of Education is a public teacher-training college in Tumu in the Upper West Region. Its website publishes programme information and notices on college life and student activities.",
+    "crest": { "url": "https://tuce.edu.gh/assets/images/logo.png", "source": "https://tuce.edu.gh/index.php", "background": "#123836" },
+    "photos": [
+      { "url": "https://tuce.edu.gh/assets/images/students2.jpeg", "source": "https://tuce.edu.gh/index.php", "alt": "Students of Tumu College of Education, pictured by the college" },
+      { "url": "https://tuce.edu.gh/assets/images/students3.jpeg", "source": "https://tuce.edu.gh/index.php", "alt": "A second student life photo from Tumu College of Education" }
+    ]
+  },
+  "wiawso-college-of-education": {
+    "website": "https://wcoe.edu.gh/",
+    "news": "https://wcoe.edu.gh/news/",
+    "gallery": "https://wcoe.edu.gh/gallery/",
+    "overview": "Wiawso College of Education trains teachers in the Western North Region. The school publishes campus news and photos and provides student resources through its official website.",
+    "crest": { "url": "https://wcoe.edu.gh/wp-content/uploads/2025/04/cropped-schoolLogo-1-192x192.png", "source": "https://wcoe.edu.gh/" },
+    "photos": [
+      { "url": "https://wcoe.edu.gh/wp-content/uploads/2025/04/IMG_7879-scaled.jpg", "source": "https://wcoe.edu.gh/", "alt": "Wiawso College of Education, pictured on its official website" }
+    ]
+  }
+}

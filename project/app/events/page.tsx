@@ -36,8 +36,7 @@ export default async function EventsPage({ searchParams }: EventsPageProps) {
             {campus ? `Events at ${campus.short_name}` : 'Campus events'}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Tech fairs, food festivals, career fairs, sports galas — see what is
-            {campus ? `Verified upcoming events published for ${campus.name}.` : 'happening at universities across Ghana.'}
+            {campus ? `Upcoming events listed for ${campus.name}.` : 'Find career fairs, festivals, sports and other upcoming events across Ghana’s campuses.'}
           </p>
         </div>
 

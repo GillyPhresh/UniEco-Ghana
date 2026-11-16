@@ -7,13 +7,15 @@ const root = path.resolve(process.cwd());
 const directory = fs.readFileSync(path.join(root, 'components/universities/university-directory.tsx'), 'utf8');
 const landing = fs.readFileSync(path.join(root, 'components/landing/university-section.tsx'), 'utf8');
 const detail = fs.readFileSync(path.join(root, 'app/university/[slug]/page.tsx'), 'utf8');
+const presentation = fs.readFileSync(path.join(root, 'lib/data/campus-presentation.ts'), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'data/university-branding.json'), 'utf8'));
 const showcase = fs.readFileSync(path.join(root, 'components/universities/university-media.tsx'), 'utf8');
 
 test('verified local university branding takes priority over stale remote wordmarks', () => {
-  assert.match(directory, /localBranding\.logoUrl \|\| university\.logo_url/);
+  assert.match(directory, /src=\{campus\.logo\}/);
   assert.match(landing, /localBranding\.logoUrl \|\| uni\.logo_url/);
-  assert.match(detail, /localBranding\.logoUrl \|\| university\.logo_url/);
+  assert.match(detail, /const campus = presentCampus\(university\)/);
+  assert.match(presentation, /isBrandingUpload\(databaseLogo\) \? databaseLogo : localLogo\) \?\? databaseLogo/);
 });
 
 test('visible problematic universities use square official asset records', () => {
@@ -85,10 +87,12 @@ test('UEW and Central University use images from their official campus galleries
 });
 
 test('school profile carousel receives and rotates verified official gallery photos', () => {
-  assert.match(detail, /campusGallery=\{localBranding\.campusGallery\.map/);
-  assert.match(showcase, /campusGallery = \[\]/);
-  assert.match(showcase, /Official campus gallery/);
-  assert.match(showcase, /const slides = \[\.\.\.campusStories, \.\.\.stories\]\.slice\(0, 12\)/);
+  assert.match(detail, /CampusPhotoGallery photos=\{campus\.photos\}/);
+  assert.match(presentation, /for \(const photo of local\.campusGallery\) addPhoto/);
+  assert.match(showcase, /window\.matchMedia\('\(prefers-reduced-motion: reduce\)'\)/);
+  assert.match(showcase, /new IntersectionObserver/);
+  assert.match(showcase, /!isInView \|\| !isTabVisible/);
+  assert.match(showcase, /onUnavailable/);
   const yamfo = manifest['college-of-health-yamfo'];
   assert.ok(yamfo.logo?.path, 'Yamfo has its official local emblem');
   assert.ok(yamfo.campusGallery.length >= 6, 'Yamfo has several official gallery photos');
