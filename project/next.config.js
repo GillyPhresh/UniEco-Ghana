@@ -22,7 +22,7 @@ const nextConfig = {
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       { key: 'X-Frame-Options', value: 'DENY' },
-      { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self), payment=(), usb=()' },
+      { key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=(self), payment=(), usb=()' },
     ];
 
     if (production) {
@@ -42,7 +42,7 @@ const nextConfig = {
             "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
-            "media-src 'self' blob: https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
+            "media-src 'self' blob: https://*.supabase.co/storage/v1/object/sign/message-attachments/ https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
             "font-src 'self' data:",
             "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
             "frame-src 'self' https://www.google.com https://maps.google.com",

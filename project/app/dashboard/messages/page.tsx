@@ -25,7 +25,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
   MessageSquare, Send, ArrowLeft, Search, Paperclip, MoreVertical,
-  Flag, Ban, CheckCheck, X, Image as ImageIcon, FileText, Link2, Trash2,
+  Flag, Ban, CheckCheck, X, Image as ImageIcon, FileText, Link2, Trash2, Mic, MapPin, Store, Square,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import {
@@ -67,7 +67,14 @@ function formatMessageDate(dateString: string): string {
 }
 
 function conversationPreview(conv: ConversationWithDetails): string {
-  if (conv.last_message?.body) return conv.last_message.body;
+  if (conv.last_message?.body) {
+    try {
+      const payload = JSON.parse(conv.last_message.body) as { latitude?: number; title?: string };
+      if (typeof payload.latitude === 'number') return 'Shared a location';
+      if (payload.title === 'UniEco Ghana Marketplace' || payload.title === 'UniEco business catalogue') return 'Shared a catalogue';
+    } catch { /* regular message text */ }
+    return conv.last_message.body;
+  }
   return conv.last_message ? 'Attachment' : 'Start a conversation';
 }
 
@@ -90,12 +97,43 @@ function ProtectedAttachment({ reference, messageType }: { reference: string; me
   if (messageType === 'image') {
     return <img src={url} alt="Attachment" className="mt-2 max-w-full rounded-lg" style={{ maxHeight: '240px' }} />;
   }
+  if (messageType === 'audio') {
+    return <audio controls preload="metadata" src={url} className="mt-2 max-w-full" aria-label="Voice message" />;
+  }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-lg bg-background/20 px-3 py-2 text-xs font-medium underline">
       <FileText className="h-4 w-4" />
       View document
     </a>
   );
+}
+
+function SharedMessageCard({ body, type }: { body: string; type: 'location' | 'product' }) {
+  try {
+    const data = JSON.parse(body) as { title?: unknown; url?: unknown; latitude?: unknown; longitude?: unknown };
+    let url: URL;
+    let title: string;
+    if (type === 'location') {
+      if (typeof data.latitude !== 'number' || !Number.isFinite(data.latitude) || Math.abs(data.latitude) > 90
+        || typeof data.longitude !== 'number' || !Number.isFinite(data.longitude) || Math.abs(data.longitude) > 180) throw new Error('Invalid coordinates');
+      url = new URL('https://www.google.com/maps/search/');
+      url.searchParams.set('api', '1');
+      url.searchParams.set('query', data.latitude + ',' + data.longitude);
+      title = 'Shared location';
+    } else {
+      url = new URL(typeof data.url === 'string' ? data.url : '');
+      if (url.origin !== window.location.origin || !(url.pathname === '/marketplace' || /^\/business\/[a-z0-9][a-z0-9_-]*\/?$/i.test(url.pathname))) throw new Error('Invalid catalogue');
+      url = new URL(url.pathname, url.origin);
+      title = url.pathname === '/marketplace' ? 'UniEco Ghana Marketplace' : 'UniEco business catalogue';
+    }
+    return <a href={url.toString()} target="_blank" rel="noopener noreferrer" className="mt-1 block min-w-[190px] rounded-xl border border-border/60 bg-background/60 p-3 hover:bg-background">
+      <span className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{type === 'location' ? '📍 Location' : '🛍 UniEco catalogue'}</span>
+      <span className="mt-1 block text-sm font-semibold">{title}</span>
+      <span className="mt-1 block text-xs underline">{type === 'location' ? 'Open in Maps' : 'Browse marketplace'}</span>
+    </a>;
+  } catch {
+    return <p className="text-sm">{type === 'location' ? 'Location shared' : 'Marketplace shared'}</p>;
+  }
 }
 
 export default function MessagesPage() {
@@ -142,14 +180,25 @@ function MessagesContent() {
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [sending, setSending] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [requestingMicrophone, setRequestingMicrophone] = useState(false);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [sharingLocation, setSharingLocation] = useState(false);
+  const [locationDraft, setLocationDraft] = useState<{ conversationId: string; latitude: number; longitude: number } | null>(null);
+  const [showCatalogShare, setShowCatalogShare] = useState(false);
+  const [catalogShareUrl, setCatalogShareUrl] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const composerGeneration = useRef(0);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingChannelRef = useRef<RealtimeChannel | null>(null);
   const conversationRequestRef = useRef(0);
   const recipientSearchRequestRef = useRef(0);
   const conversationsRef = useRef<ConversationWithDetails[]>([]);
   const activeConversationIdRef = useRef<string | null>(activeConvId);
+  const openedNotificationRef = useRef<string | null>(null);
 
   useEffect(() => {
     conversationsRef.current = conversations;
@@ -169,9 +218,36 @@ function MessagesContent() {
     }
   }, []);
 
+  const discardRecording = useCallback(() => {
+    const recorder = mediaRecorderRef.current;
+    mediaRecorderRef.current = null;
+    if (recorder) {
+      recorder.onstop = recorder.ondataavailable = recorder.onerror = null;
+      if (recorder.state !== 'inactive') recorder.stop();
+    }
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    mediaStreamRef.current = null;
+  }, []);
+
+  const resetRichComposer = useCallback(() => {
+    composerGeneration.current++;
+    discardRecording();
+    setRecording(false);
+    setRequestingMicrophone(false);
+    setVoiceBlob(null);
+    setSharingLocation(false);
+    setLocationDraft(null);
+    setShowCatalogShare(false);
+  }, [discardRecording]);
+
+  useEffect(() => () => {
+    composerGeneration.current++;
+    discardRecording();
+  }, [discardRecording]);
+
   const refreshMessages = useCallback(async (conversationId: string) => {
     const latest = await getMessages(conversationId);
-    setMessages(latest);
+    if (activeConversationIdRef.current === conversationId) setMessages(latest);
   }, []);
 
   useEffect(() => {
@@ -242,6 +318,8 @@ function MessagesContent() {
           if (conv) {
             openConversation(conv);
           } else {
+            resetRichComposer();
+            activeConversationIdRef.current = convId;
             setActiveConvId(convId);
             setLoadingMessages(true);
             const [otherUser, existingMessages] = await Promise.all([
@@ -383,6 +461,13 @@ function MessagesContent() {
 
   const openConversation = useCallback(async (conv: ConversationWithDetails) => {
     const requestId = ++conversationRequestRef.current;
+    if (activeConversationIdRef.current !== conv.id) {
+      resetRichComposer();
+      setAttachment(null);
+      setAttachmentPreview(null);
+      setNewMessage('');
+    }
+    activeConversationIdRef.current = conv.id;
     setActiveConvId(conv.id);
     setActiveOtherUser(conv.other_participant);
     setActiveConv(conv);
@@ -402,20 +487,23 @@ function MessagesContent() {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
-  }, []);
+  }, [resetRichComposer]);
 
   // Open notification links only when the conversation appears in the
   // signed-in user's membership-scoped inbox. A URL ID never grants access.
   useEffect(() => {
-    if (!conversationParam || loading || activeConvId === conversationParam) return;
+    if (!conversationParam) { openedNotificationRef.current = null; return; }
+    if (loading || openedNotificationRef.current === conversationParam) return;
+    openedNotificationRef.current = conversationParam;
     const conversation = conversations.find((item) => item.id === conversationParam);
     if (conversation) {
       void openConversation(conversation);
+      router.replace('/dashboard/messages', { scroll: false });
       return;
     }
     toast({ title: 'Message unavailable', description: 'This conversation is unavailable or you no longer have access to it.' });
     router.replace('/dashboard/messages');
-  }, [conversationParam, conversations, activeConvId, loading, openConversation, router, toast]);
+  }, [conversationParam, conversations, loading, openConversation, router, toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -425,6 +513,7 @@ function MessagesContent() {
       toast({ title: 'File rejected', description: validation.error, variant: 'destructive' });
       return;
     }
+    setVoiceBlob(null);
     setAttachment(file);
     // Permit choosing the same file again after it is removed or sent.
     e.currentTarget.value = '';
@@ -437,9 +526,129 @@ function MessagesContent() {
     }
   };
 
+  const handleVoiceNote = async () => {
+    if (recording) { mediaRecorderRef.current?.stop(); return; }
+    if (!activeConvId || requestingMicrophone || blocked || loadingMessages) return;
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      toast({ title: 'Voice recording unavailable', description: 'Use a supported browser and allow microphone access.', variant: 'destructive' });
+      return;
+    }
+    let stream: MediaStream | undefined;
+    const generation = composerGeneration.current;
+    setRequestingMicrophone(true);
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = mediaStream;
+      if (generation !== composerGeneration.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return;
+      }
+      const preferred = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/mp4'].find(type => MediaRecorder.isTypeSupported(type));
+      const recorder = new MediaRecorder(mediaStream, preferred ? { mimeType: preferred } : undefined);
+      const chunks: Blob[] = [];
+      let bytes = 0;
+      recorder.ondataavailable = event => {
+        if (event.data.size) { chunks.push(event.data); bytes += event.data.size; }
+        if (bytes > 10 * 1024 * 1024 && recorder.state === 'recording') recorder.stop();
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: recorder.mimeType || chunks[0]?.type || 'audio/webm' });
+        mediaStream.getTracks().forEach(track => track.stop());
+        if (generation !== composerGeneration.current || mediaRecorderRef.current !== recorder) return;
+        mediaRecorderRef.current = null;
+        mediaStreamRef.current = null;
+        setRecording(false);
+        if (blob.size > 10 * 1024 * 1024) {
+          toast({ title: 'Voice note too large', description: 'Keep voice notes under 10 MB.', variant: 'destructive' });
+          return;
+        }
+        if (blob.size) setVoiceBlob(blob);
+      };
+      recorder.onerror = () => {
+        discardRecording();
+        setRecording(false);
+        toast({ title: 'Could not record voice note', description: 'Please try again.', variant: 'destructive' });
+      };
+      mediaRecorderRef.current = recorder;
+      mediaStreamRef.current = mediaStream;
+      recorder.start(1000);
+      setAttachment(null);
+      setAttachmentPreview(null);
+      setVoiceBlob(null);
+      setRecording(true);
+    } catch {
+      stream?.getTracks().forEach(track => track.stop());
+      if (generation === composerGeneration.current) {
+        discardRecording();
+        toast({ title: 'Could not start recording', description: 'Check microphone permissions and try again.', variant: 'destructive' });
+      }
+    } finally {
+      if (generation === composerGeneration.current) setRequestingMicrophone(false);
+    }
+  };
+
+  const sendCurrentLocation = () => {
+    if (!activeConvId || !activeOtherUser || sending || blocked || loadingMessages) return;
+    if (!navigator.geolocation) {
+      toast({ title: 'Location is unavailable in this browser', variant: 'destructive' });
+      return;
+    }
+    const generation = composerGeneration.current;
+    setSharingLocation(true);
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      if (generation !== composerGeneration.current || activeConversationIdRef.current !== activeConvId) return;
+      setSharingLocation(false);
+      setLocationDraft({ conversationId: activeConvId, latitude: coords.latitude, longitude: coords.longitude });
+    }, () => {
+      if (generation !== composerGeneration.current) return;
+      setSharingLocation(false);
+      toast({ title: 'Location unavailable', description: 'Allow location access, then try again.', variant: 'destructive' });
+    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 30000 });
+  };
+
+  const confirmLocationShare = async () => {
+    if (!locationDraft || locationDraft.conversationId !== activeConvId || !activeOtherUser || sending || blocked) return;
+    const map = new URL('https://www.google.com/maps/search/');
+    map.searchParams.set('api', '1');
+    map.searchParams.set('query', locationDraft.latitude + ',' + locationDraft.longitude);
+    const payload = JSON.stringify({ title: 'Shared location', latitude: locationDraft.latitude, longitude: locationDraft.longitude, url: map.toString() });
+    setSending(true);
+    const result = await sendMessage(activeConvId, activeOtherUser.id, payload, 'location', undefined, activeConv?.order_id ?? undefined);
+    setSending(false);
+    if (result.error) toast({ title: 'Could not share location', description: result.error, variant: 'destructive' });
+    else {
+      setLocationDraft(null);
+      if (result.messageId) await refreshMessages(activeConvId);
+    }
+  };
+
+  const shareCatalog = async () => {
+    if (!activeConvId || !activeOtherUser || sending || blocked) return;
+    let shared: URL;
+    try { shared = new URL(catalogShareUrl.trim()); } catch {
+      toast({ title: 'Add a catalogue or shop link', description: 'Paste a UniEco shop or marketplace link first.', variant: 'destructive' });
+      return;
+    }
+    if (shared.origin !== window.location.origin || !(shared.pathname === '/marketplace' || /^\/business\/[a-z0-9][a-z0-9_-]*\/?$/i.test(shared.pathname))) {
+      toast({ title: 'Link not supported', description: 'Choose a UniEco Marketplace or business catalogue link.', variant: 'destructive' });
+      return;
+    }
+    setSending(true);
+    const result = await sendMessage(activeConvId, activeOtherUser.id,
+      JSON.stringify({ title: shared.pathname === '/marketplace' ? 'UniEco Ghana Marketplace' : 'UniEco business catalogue', url: new URL(shared.pathname, shared.origin).toString() }),
+      'product', undefined, activeConv?.order_id ?? undefined);
+    setSending(false);
+    if (result.error) toast({ title: 'Could not share catalogue', description: result.error, variant: 'destructive' });
+    else {
+      setShowCatalogShare(false);
+      setCatalogShareUrl('');
+      if (result.messageId) await refreshMessages(activeConvId);
+    }
+  };
+
   const handleSend = async () => {
-    if (!activeConvId || !activeOtherUser || sending) return;
-    if (!newMessage.trim() && !attachment) return;
+    if (!activeConvId || !activeOtherUser || sending || blocked || loadingMessages || recording || requestingMicrophone) return;
+    if (!newMessage.trim() && !attachment && !voiceBlob) return;
 
     setSending(true);
     const msgText = newMessage.trim();
@@ -450,21 +659,23 @@ function MessagesContent() {
     let attachmentUrl: string | undefined;
     let msgType: MessageType = 'text';
 
-    if (attachment) {
-      const uploadResult = await uploadMessageAttachment(activeConvId, attachment);
+    const voiceMime = voiceBlob?.type.split(';')[0] ?? '';
+    const outgoingFile = attachment ?? (voiceBlob ? new File([voiceBlob], 'voice-note.' + (voiceMime.includes('ogg') ? 'ogg' : voiceMime.includes('mp4') ? 'mp4' : 'webm'), { type: voiceMime }) : null);
+    if (outgoingFile) {
+      const uploadResult = await uploadMessageAttachment(activeConvId, outgoingFile);
       if (uploadResult.url) {
         attachmentUrl = uploadResult.url;
-        msgType = attachment.type.startsWith('image/') ? 'image' : 'document';
+        msgType = outgoingFile.type.startsWith('image/') ? 'image' : outgoingFile.type.startsWith('audio/') ? 'audio' : 'document';
       } else {
         toast({ title: 'Upload failed', description: uploadResult.error, variant: 'destructive' });
-        setNewMessage(msgText);
+        if (activeConversationIdRef.current === activeConvId) setNewMessage(msgText);
         setSending(false);
         return;
       }
     }
 
     // Keep the composer responsive while the secure RPC persists the message.
-    if (user) {
+    if (user && activeConversationIdRef.current === activeConvId) {
       setMessages((prev) => [...prev, {
         id: tempId,
         sender_id: user.id,
@@ -495,7 +706,7 @@ function MessagesContent() {
     if (result.error) {
       toast({ title: 'Failed to send', description: result.error, variant: 'destructive' });
       setMessages((prev) => prev.filter((message) => message.id !== tempId));
-      setNewMessage((current) => current || msgText);
+      if (activeConversationIdRef.current === activeConvId) setNewMessage((current) => current || msgText);
     } else {
       // The RPC acknowledgement is enough to reconcile the optimistic bubble;
       // avoid a second message fetch and a full inbox reload after every send.
@@ -504,9 +715,12 @@ function MessagesContent() {
           ? { ...message, id: result.messageId! }
           : message));
       }
-      setAttachment(null);
-      setAttachmentPreview(null);
-      const preview = msgText || (msgType === 'image' ? 'Photo' : 'Attachment');
+      if (activeConversationIdRef.current === activeConvId) {
+        setAttachment(null);
+        setAttachmentPreview(null);
+        setVoiceBlob(null);
+      }
+      const preview = msgText || (msgType === 'image' ? 'Photo' : msgType === 'audio' ? 'Voice note' : 'Attachment');
       const sentAt = new Date().toISOString();
       setConversations((current) => current
         .map((conversation) => conversation.id === activeConvId ? {
@@ -711,7 +925,7 @@ function MessagesContent() {
               {activeConvId && activeOtherUser ? (
                 <>
                   <div className="z-10 flex shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-4">
-                    <button type="button" onClick={() => setMobileShowChat(false)} aria-label="Back to conversations" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted lg:hidden">
+                    <button type="button" onClick={() => { resetRichComposer(); setMobileShowChat(false); }} aria-label="Back to conversations" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted lg:hidden">
                       <ArrowLeft className="h-5 w-5" />
                     </button>
                     <Avatar className="h-10 w-10 shrink-0">
@@ -751,7 +965,10 @@ function MessagesContent() {
                               {showDate && <div className="my-3 text-center"><span className="rounded-full bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">{formatMessageDate(msg.created_at)}</span></div>}
                               <div className={`group flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[88%] break-words px-3.5 py-2 text-sm shadow-sm sm:max-w-[75%] ${isMine ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground' : 'rounded-2xl rounded-bl-md bg-background text-foreground'}`}>
-                                  {msg.message_type === 'link' && msg.body ? <a href={msg.body} target="_blank" rel="noopener noreferrer" className="underline">{msg.body}</a> : msg.body ? <p className="whitespace-pre-wrap leading-5">{msg.body}</p> : null}
+                                  {msg.message_type === 'location' && msg.body ? <SharedMessageCard body={msg.body} type="location" />
+                                    : msg.message_type === 'product' && msg.body ? <SharedMessageCard body={msg.body} type="product" />
+                                      : msg.message_type === 'link' && msg.body ? <a href={msg.body} target="_blank" rel="noopener noreferrer" className="underline">{msg.body}</a>
+                                        : msg.body ? <p className="whitespace-pre-wrap leading-5">{msg.body}</p> : null}
                                   {renderAttachment(msg)}
                                   <div className={`mt-1 flex items-center justify-end gap-1 ${isMine ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
                                     <span className="text-[10px]">{formatTime(msg.created_at)}</span>
@@ -772,13 +989,19 @@ function MessagesContent() {
 
                   {attachmentPreview && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="relative inline-block rounded-xl border border-border bg-muted p-1"><img src={attachmentPreview} alt="Selected image preview" className="h-20 max-w-[12rem] rounded-lg object-cover" /><button type="button" aria-label="Remove selected attachment" onClick={() => { setAttachment(null); setAttachmentPreview(null); }} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground"><X className="h-3 w-3" /></button></div></div>}
                   {attachment && !attachmentPreview && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{attachment.name}</span><button type="button" aria-label="Remove selected attachment" onClick={() => setAttachment(null)} className="ml-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button></div></div>}
+                  {voiceBlob && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"><Mic className="h-4 w-4 text-primary" /><span>Voice note ready · {Math.max(1, Math.round(voiceBlob.size / 1024))} KB</span><button type="button" aria-label="Remove voice note" onClick={() => setVoiceBlob(null)} className="text-muted-foreground"><X className="h-3.5 w-3.5" /></button></div></div>}
 
                   <div className="shrink-0 border-t border-border bg-background/95 px-3 pt-2 backdrop-blur sm:px-4 sm:pb-3" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
-                    {blocked ? <div className="rounded-xl bg-muted p-3 text-center text-sm text-muted-foreground">You have blocked this user. Unblock them from the menu above to send messages.</div> : <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2">
+                    {blocked ? <div className="rounded-xl bg-muted p-3 text-center text-sm text-muted-foreground">You have blocked this user. Unblock them from the menu above to send messages.</div> : <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex flex-wrap items-center gap-2">
                       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.txt" />
-                      <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach a file" title="Attach an image or document (maximum 10 MB)" disabled={sending} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-5 w-5" /></button>
-                      <Input type="text" value={newMessage} onChange={(e) => handleMessageChange(e.target.value)} placeholder="Type a message" aria-label="Message" className="h-11 rounded-full bg-muted/30 px-4" disabled={sending} />
-                      <Button type="submit" size="icon" aria-label="Send message" title="Send message" className="h-11 w-11 shrink-0 rounded-full" disabled={(!newMessage.trim() && !attachment) || sending}><Send className="h-5 w-5" /></Button>
+                      <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach a file" title="Attach a photo or document" disabled={sending || recording} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => void handleVoiceNote()} aria-label={recording ? 'Stop voice recording' : 'Record voice note'} title={recording ? 'Stop recording' : 'Record voice note'} disabled={sending || requestingMicrophone || loadingMessages || Boolean(attachment)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border transition-colors hover:bg-muted disabled:opacity-50 ${recording ? 'border-red-500 text-red-600' : 'text-muted-foreground'}`}>{recording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}</button>
+                      <button type="button" onClick={sendCurrentLocation} aria-label="Share current location" title="Share current location" disabled={sending || recording || sharingLocation} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted disabled:opacity-50"><MapPin className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => { setCatalogShareUrl(window.location.origin + '/marketplace'); setShowCatalogShare(true); }} aria-label="Share UniEco catalogue" title="Share marketplace or shop catalogue" disabled={sending || recording} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted disabled:opacity-50"><Store className="h-5 w-5" /></button>
+                      <div className="flex min-w-0 basis-full items-center gap-2 sm:flex-1">
+                        <Input type="text" value={newMessage} onChange={(e) => handleMessageChange(e.target.value)} placeholder="Type a message" aria-label="Message" className="h-11 min-w-0 rounded-full bg-muted/30 px-4" disabled={sending || loadingMessages} />
+                        <Button type="submit" size="icon" aria-label="Send message" title="Send message" className="h-11 w-11 shrink-0 rounded-full" disabled={(!newMessage.trim() && !attachment && !voiceBlob) || sending || recording || requestingMicrophone || loadingMessages}><Send className="h-5 w-5" /></Button>
+                      </div>
                     </form>}
                     <p className="mt-1.5 hidden text-[11px] text-muted-foreground sm:block">Images, PDF, Word, or text files up to 10 MB.</p>
                   </div>
@@ -788,6 +1011,36 @@ function MessagesContent() {
           </div>
         </Card>
       </main>
+
+      <Dialog open={Boolean(locationDraft)} onOpenChange={open => { if (!open) setLocationDraft(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share your current location?</DialogTitle>
+            <DialogDescription>Your location will be visible to the other person in this chat. It is not live tracking.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setLocationDraft(null)}>Cancel</Button>
+            <Button type="button" disabled={sending || blocked} onClick={() => void confirmLocationShare()}>Share location</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCatalogShare} onOpenChange={setShowCatalogShare}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Share a UniEco catalogue</DialogTitle>
+            <DialogDescription>Share the Marketplace or a UniEco business page in this private chat.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="catalog-share-url">Marketplace or shop link</Label>
+            <Input id="catalog-share-url" type="url" inputMode="url" value={catalogShareUrl} onChange={event => setCatalogShareUrl(event.target.value)} placeholder="https://www.uniecoghana.com/business/…" className="min-h-[44px]" />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setShowCatalogShare(false)}>Cancel</Button>
+            <Button type="button" disabled={sending || !catalogShareUrl.trim()} onClick={() => void shareCatalog()}><Store className="mr-2 h-4 w-4" />Share catalogue</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Report Dialog */}
       <Dialog open={showReport} onOpenChange={setShowReport}>

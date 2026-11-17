@@ -65,7 +65,7 @@ export type CommunicationEventType =
 // Messaging
 // ============================================================
 
-export type MessageType = 'text' | 'image' | 'document' | 'link';
+export type MessageType = 'text' | 'image' | 'document' | 'link' | 'audio' | 'location' | 'product';
 
 export interface MessageAttachment {
   id: string;
@@ -570,6 +570,10 @@ export const ALLOWED_ATTACHMENT_TYPES = [
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
+  'audio/webm',
+  'audio/ogg',
+  'audio/mp4',
+  'audio/mpeg',
 ];
 
 export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10MB
