@@ -25,7 +25,7 @@ export function AuthLayout({
   wide?: boolean;
 }) {
   return (
-    <div className="workspace-page flex min-h-screen flex-col lg:flex-row">
+    <div className="workspace-page flex min-h-[100dvh] flex-col lg:flex-row">
       {/* Brand panel — hidden on mobile, visible on large screens */}
       <div className={`relative hidden flex-col justify-between overflow-hidden border-r border-border bg-[#0e3b32] p-8 text-white lg:flex ${wide ? 'lg:flex-[0.85] lg:p-10' : 'flex-1 lg:p-12'}`}>
         <div className="absolute inset-x-0 top-0 h-1 ghana-stripe" />
@@ -80,10 +80,10 @@ export function AuthLayout({
           </div>
         </div>
 
-        <div className="flex flex-1 items-center justify-center px-4 pb-12 sm:px-6">
-          <div className={`workspace-card w-full p-5 sm:p-8 ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
+        <div className="flex flex-1 items-start justify-center px-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 sm:items-center sm:px-6 sm:py-8">
+          <div className={`workspace-card min-w-0 w-full p-4 sm:p-8 ${wide ? 'max-w-3xl' : 'max-w-md'}`}>
             {title && (
-              <div className={`mb-8 ${wide ? 'text-center lg:text-left' : 'text-center'}`}>
+              <div className={`mb-5 sm:mb-7 ${wide ? 'text-center lg:text-left' : 'text-center'}`}>
                 <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
                   {title}
                 </h1>

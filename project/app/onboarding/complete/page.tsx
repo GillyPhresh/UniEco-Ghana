@@ -1,166 +1,87 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { safeInternalPath } from '@/lib/auth/redirects';
-import { motion } from 'framer-motion';
+import { parseRegistrationAccess, SELLER_UPGRADE_PATH, type RegistrationAccess } from '@/lib/auth/registration-access';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { useAuth } from '@/lib/auth/auth-context';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, GraduationCap, Store, ArrowRight } from 'lucide-react';
 import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { supabase } from '@/lib/supabase/client';
-import { Loader2 } from 'lucide-react';
 
 export default function OnboardingCompletePage() {
-  return (
-    <RouteGuard requireAuth>
-      <CompleteScreen />
-    </RouteGuard>
-  );
+  return <RouteGuard requireAuth><CompleteScreen /></RouteGuard>;
 }
 
 function CompleteScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [access, setAccess] = useState<RegistrationAccess | null>(null);
   const [checkFailed, setCheckFailed] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [retry, setRetry] = useState(0);
+  const userId = user?.id;
 
   useEffect(() => {
-    let cancelled = false;
-    const registration = new URLSearchParams(window.location.search).get('registration');
-    if (!user || !['paid', 'cash'].includes(registration || '')) {
-      router.replace('/onboarding');
-      return () => { cancelled = true; };
-    }
-
-    setCheckingAccess(true);
+    if (!userId) return;
+    let active = true;
     setCheckFailed(false);
-    let timeout: ReturnType<typeof setTimeout>;
-    const timedOut = new Promise<never>((_, reject) => {
-      timeout = setTimeout(() => reject(new Error('Registration check timed out')), 12_000);
-    });
-    void Promise.race([supabase.rpc('get_my_registration_access'), timedOut]).then(({ data, error }) => {
-      if (cancelled) return;
-      if (error || !data || data.allowed !== true) {
-        router.replace('/onboarding');
+    setAccess(null);
+    void (async () => {
+      const { data, error } = await supabase.rpc('get_my_registration_access').abortSignal(AbortSignal.timeout(10_000));
+      if (!active) return;
+      const state = error ? null : parseRegistrationAccess(data);
+      if (!state) { setCheckFailed(true); return; }
+      if (state.allowed !== true || !['paid', 'cash_verified', 'free_buyer'].includes(state.status)) {
+        setCheckFailed(true);
         return;
       }
-      setCheckingAccess(false);
-    }).catch(() => {
-      if (!cancelled) {
-        setCheckFailed(true);
-        setCheckingAccess(false);
-      }
-    }).finally(() => clearTimeout(timeout!));
+      // A callback query parameter is a navigation hint, not proof of payment.
+      setAccess(state);
+    })().catch(() => { if (active) setCheckFailed(true); });
+    return () => { active = false; };
+  }, [userId, retry]);
 
-    return () => { cancelled = true; clearTimeout(timeout!); };
-  }, [router, user, retryCount]);
+  if (!access) return <AuthLayout title={checkFailed ? 'Couldn’t confirm access' : 'Checking your account'} showBackLink={false}>
+    <div className="space-y-4 text-center text-sm text-muted-foreground">
+      {checkFailed ? <>
+        <p role="alert">If you already paid, don’t pay again. Retry this check or contact support.</p>
+        <Button type="button" className="min-h-12 w-full" onClick={() => setRetry((count) => count + 1)}>Check again</Button>
+        <Button variant="outline" asChild className="min-h-11 w-full"><Link href="mailto:support@uniecoghana.com">Contact support</Link></Button>
+        <Button variant="ghost" asChild className="min-h-11 w-full"><Link href="/onboarding">Go to my account</Link></Button>
+      </> : <Loader2 role="status" aria-label="Checking your account" className="mx-auto size-6 animate-spin text-primary" />}
+    </div>
+  </AuthLayout>;
 
-  const isStudent = user?.role === 'student' || user?.role === 'student_vendor';
-  const isVendor = user?.role === 'external_vendor' || user?.role === 'student_vendor';
-
-  if (checkingAccess) {
-    return (
-      <AuthLayout title={checkFailed ? 'Connection interrupted' : 'Checking your registration'} showBackLink={false}>
-        <div className="py-12 text-center text-sm text-muted-foreground">
-          {checkFailed ? <><p>Your payment and account are unchanged. We couldn’t verify access just now.</p><Button className="mt-5 w-full" onClick={() => setRetryCount((count) => count + 1)}>Try again</Button></> : <><Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />Confirming your payment and account access…</>}
-        </div>
-      </AuthLayout>
-    );
+  const buyer = access.status === 'free_buyer';
+  const vendor = !buyer && (access.role === 'external_vendor' || access.role === 'student_vendor');
+  const defaultDestination = vendor ? '/vendor-dashboard' : '/';
+  function continueToAccount() {
+    const next = safeInternalPath(new URLSearchParams(window.location.search).get('next'), defaultDestination);
+    window.sessionStorage.removeItem('unieco_registration_next');
+    router.replace(next.startsWith('/onboarding') ? defaultDestination : next);
   }
 
-  return (
-    <AuthLayout title="You're all set!" showBackLink={false}>
-      <div className="space-y-8 text-center">
-        <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', duration: 0.8 }}
-          className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success/10"
-        >
-          <CheckCircle2 className="h-10 w-10 text-success" />
-        </motion.div>
-
-        <div className="space-y-2">
-          <h2 className="font-display text-2xl font-bold text-foreground">
-            Welcome to UniEco Ghana!
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Your profile has been created successfully. Here is what happens next:
-          </p>
-        </div>
-
-        <div className="space-y-3 text-left">
-          {isStudent && (
-            <StatusCard
-              icon={GraduationCap}
-              title="Student verification in review"
-              description="Our team is reviewing your student details. You can start exploring UniEco Ghana while we verify your account. Some features need a verified student status."
-              status="pending"
-            />
-          )}
-          {isVendor && (
-            <StatusCard
-              icon={Store}
-              title="Business approval in review"
-              description="Your business registration is being reviewed. Once approved, your business will go live and you can start listing products and receiving orders."
-              status="pending"
-            />
-          )}
-        </div>
-
-        <div className="space-y-2 text-left">
-          <p className="px-1 text-sm font-semibold text-foreground">Stay up to date</p>
-          <p className="px-1 text-sm text-muted-foreground">Turn on UniEco notifications now to receive messages, order updates, and important campus alerts on this device.</p>
-          <PushPermissionCard onboarding />
-        </div>
-
-        <Button onClick={() => {
-          const defaultDashboard = user?.role === 'external_vendor' ? '/vendor-dashboard'
-            : user?.role === 'university_admin' ? '/university-admin'
-              : user?.role === 'super_admin' ? '/admin' : '/dashboard';
-          const destination = safeInternalPath(new URLSearchParams(window.location.search).get('next'), defaultDashboard);
-          window.sessionStorage.removeItem('unieco_registration_next');
-          router.replace(destination);
-        }} size="lg" className="w-full">
-          Go to dashboard
-          <ArrowRight className="ml-2 h-4 w-4" />
-        </Button>
-      </div>
-    </AuthLayout>
-  );
-}
-
-function StatusCard({
-  icon: Icon,
-  title,
-  description,
-  status,
-}: {
-  icon: typeof GraduationCap;
-  title: string;
-  description: string;
-  status: string;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-muted/30 p-4">
-      <div className="flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-5 w-5" />
-        </span>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <p className="font-semibold text-foreground">{title}</p>
-            <span className="rounded-full bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-              {status}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-        </div>
-      </div>
+  return <AuthLayout title={buyer ? 'Your buyer account is ready' : vendor ? 'Business setup complete' : 'Student seller setup complete'} showBackLink={false}>
+    <div className="space-y-4 text-center">
+      <span className="mx-auto grid size-14 place-items-center rounded-full bg-success/10 text-success"><CheckCircle2 className="size-8" aria-hidden="true" /></span>
+      <p className="text-sm text-muted-foreground">{buyer
+        ? 'Shop, message sellers and explore your campus. No registration payment was needed.'
+        : vendor ? 'Open your dashboard to manage your business. Listings still need approval before going live.'
+          : access.can_publish ? 'You can now publish campus posts. Verify your student details to register a student business.'
+            : 'Your account is active. Check your profile for any remaining verification steps.'}</p>
+      <Button type="button" onClick={continueToAccount} className="min-h-12 w-full">
+        {vendor ? 'Open business dashboard' : 'Continue to UniEco'}<ArrowRight className="ml-2 size-4" />
+      </Button>
+      {buyer && <Button asChild variant="ghost" className="min-h-11 w-full"><Link href={SELLER_UPGRADE_PATH}>See seller options</Link></Button>}
+      {!buyer && !vendor && access.can_student_referral && <Button asChild variant="ghost" className="min-h-11 w-full"><Link href="/dashboard/referrals">View your referral link</Link></Button>}
+      <details className="rounded-xl border px-3 py-2 text-left">
+        <summary className="cursor-pointer py-1 text-sm font-medium">Notifications (optional)</summary>
+        <div className="mt-2"><PushPermissionCard onboarding /></div>
+      </details>
     </div>
-  );
+  </AuthLayout>;
 }

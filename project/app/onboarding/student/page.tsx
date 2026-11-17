@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { registrationFeeLabel } from '@/lib/auth/registration-access';
 import { supabase } from '@/lib/supabase/client';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
@@ -55,28 +57,26 @@ interface FormData {
 }
 
 export default function StudentOnboardingPage() {
-  const { user, loading } = useAuth();
+  return <RouteGuard requireAuth><StudentRegistrationGate /></RouteGuard>;
+}
+
+function StudentRegistrationGate() {
+  const { registrationAccess } = useAuth();
   const router = useRouter();
-
   useEffect(() => {
-    if (!loading && user?.role === 'external_vendor') {
-      router.replace('/onboarding/vendor');
-    }
-  }, [loading, router, user?.role]);
-
-  if (user?.role === 'external_vendor') return null;
-
-  return (
-    <RouteGuard requireAuth>
-      <StudentOnboarding />
-    </RouteGuard>
-  );
+    if (registrationAccess?.can_pay_student_registration) return;
+    router.replace(withNext('/onboarding', new URLSearchParams(window.location.search).get('next')));
+  }, [registrationAccess, router]);
+  if (!registrationAccess?.can_pay_student_registration) {
+    return <AuthLayout title="Checking your registration" showBackLink={false}><Loader2 role="status" aria-label="Checking your registration" className="mx-auto animate-spin text-primary" /></AuthLayout>;
+  }
+  return <StudentOnboarding />;
 }
 
 function StudentOnboarding() {
   // Legacy complete_student_registration is retained server-side for older
   // clients; this screen always starts the verified Paystack flow instead.
-  const { user, signOut } = useAuth();
+  const { user, signOut, registrationAccess } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -85,8 +85,12 @@ function StudentOnboarding() {
   const [cashInviteLoading, setCashInviteLoading] = useState(false);
   const [universities, setUniversities] = useState<{ id: string; name: string; short_name: string; city: string | null; region: string | null; institution_type: string | null; campus_launch_status: string }[]>([]);
   const [unisLoaded, setUnisLoaded] = useState(false);
+  const [schoolRetry, setSchoolRetry] = useState(0);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
+  const submitLock = useRef(false);
+  const upgradingBuyer = registrationAccess?.buyer_restricted === true;
+  const feeLabel = registrationFeeLabel(registrationAccess?.student_fee);
   const [form, setForm] = useState<FormData>({
     phone: '',
     university_id: '',
@@ -143,7 +147,7 @@ function StudentOnboarding() {
           admission_year: student?.admission_year || current.admission_year,
           graduation_year: student?.graduation_year || current.graduation_year,
         }));
-        if (student?.university_id || profile?.university_id) setStep(STEPS.length - 1);
+        if (student?.university_id && student.level && isValidGhanaPhone(profile?.phone || '')) setStep(STEPS.length - 1);
         setDraftRestored(true);
       }
     }).catch(() => {
@@ -161,6 +165,7 @@ function StudentOnboarding() {
   }, [draftReady, form, step, user?.id]);
 
   useEffect(() => {
+    if (upgradingBuyer) return;
     const params = new URLSearchParams(window.location.search);
     const token = params.get('invite') || window.sessionStorage.getItem('unieco_pending_registration_invite');
     if (!token) return;
@@ -175,7 +180,7 @@ function StudentOnboarding() {
       }
       setCashInviteLoading(false);
     });
-  }, []);
+  }, [upgradingBuyer]);
 
   useEffect(() => {
     let active = true;
@@ -184,6 +189,7 @@ function StudentOnboarding() {
       .select('id, name, short_name, city, region, institution_type, campus_launch_status')
       .eq('is_enabled', true)
       .order('name')
+      .abortSignal(AbortSignal.timeout(10_000))
       .then(({ data }) => {
         if (!active) return;
         setUniversities(data || []);
@@ -194,7 +200,7 @@ function StudentOnboarding() {
       });
 
     return () => { active = false; };
-  }, []);
+  }, [schoolRetry]);
 
   const updateForm = (key: keyof FormData, value: string | number | undefined) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -211,7 +217,7 @@ function StudentOnboarding() {
       if (!isValidGhanaPhone(form.phone)) return 'Enter a valid Ghana phone number, for example 0244 123 456';
     }
     if (step === 1) {
-      if (!form.university_id) return 'Select your university';
+      if (!selectedUniversity) return 'Choose a school from the list';
       if (!form.level) return 'Select your level';
     }
     return null;
@@ -243,7 +249,14 @@ function StudentOnboarding() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || !registrationAccess?.can_pay_student_registration || submitLock.current) return;
+    if (!selectedUniversity) {
+      setStep(1);
+      setError('Choose a school from the list.');
+      return;
+    }
+    if (!isValidGhanaPhone(form.phone)) { setStep(0); setError('Enter a valid Ghana phone number.'); return; }
+    submitLock.current = true;
     setError(null);
     setSubmitting(true);
 
@@ -259,13 +272,22 @@ function StudentOnboarding() {
         phone: normalizeGhanaPhone(form.phone),
       });
       if (!parsed.success) throw new Error(parsed.error.issues[0]?.message || 'Check your registration details.');
-      const referralCode = new URLSearchParams(window.location.search).get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
-      const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token') || window.sessionStorage.getItem('unieco_pending_university_admin_token');
+      const params = new URLSearchParams(window.location.search);
+      const referralCode = upgradingBuyer ? null : params.get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
+      const universityAdminToken = upgradingBuyer ? null : params.get('university_admin_token') || window.sessionStorage.getItem('unieco_pending_university_admin_token');
+      const applyCampusInvite = async () => {
+        if (!universityAdminToken || !user) return;
+        // An optional admin attribution must not strand an already opened checkout.
+        const { error: inviteError } = await supabase.rpc('claim_university_admin_registration', {
+          p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student',
+        }).abortSignal(AbortSignal.timeout(4_000));
+        if (inviteError) console.warn('[student-registration] campus attribution could not be attached', { code: inviteError.code });
+      };
       if (cashInviteToken) {
         const { error: cashError } = await supabase.rpc('redeem_cash_student_registration', {
           p_token: cashInviteToken,
           p_university_id: form.university_id,
-          p_phone: form.phone,
+          p_phone: parsed.data.phone,
           p_student_id_number: null,
           p_program: form.programme.trim() || null,
           p_faculty: form.faculty.trim() || null,
@@ -276,10 +298,7 @@ function StudentOnboarding() {
           p_student_document_path: null,
         });
         if (cashError) throw new Error(cashError.message);
-        if (universityAdminToken) {
-          const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student' });
-          if (adminTokenError) throw new Error(adminTokenError.message);
-        }
+        await applyCampusInvite();
         window.sessionStorage.removeItem('unieco_pending_registration_invite');
         window.sessionStorage.removeItem('unieco_pending_referral_code');
         window.sessionStorage.removeItem('unieco_pending_university_admin_token');
@@ -315,16 +334,8 @@ function StudentOnboarding() {
         window.location.assign(`/payments/callback?reference=${encodeURIComponent(payment.reference)}`);
         return;
       }
-      if (referralCode) {
-        const { error: referralError } = await supabase.rpc('attach_my_referral_code', {
-          p_referral_code: referralCode,
-        });
-        if (referralError) throw new Error(referralError.message);
-      }
-      if (universityAdminToken) {
-        const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'student' });
-        if (adminTokenError) throw new Error(adminTokenError.message);
-      }
+      // The payment RPC records student referrals with the registration.
+      await applyCampusInvite();
       window.sessionStorage.setItem('unieco_registration_payment_reference', payment.reference);
       const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
       if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
@@ -334,35 +345,21 @@ function StudentOnboarding() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };
 
   return (
     <AuthLayout
-      title="Complete your student profile"
-      subtitle="Quick setup · your progress is saved on this device"
+      title="Student seller setup"
+      subtitle="Add your details, then review your one-time fee."
       wide
       backHref="/signin"
       backLabel="Sign out"
       onBackClick={handleSignOut}
     >
       <div className="space-y-6">
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-foreground">Your registration is protected</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Your details are saved securely while Paystack confirms the one-time registration payment. Student verification is reviewed separately after payment.
-              </p>
-              <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                You do not need a student ID card or index number to register. Any required verification can be completed later.
-              </p>
-            </div>
-          </div>
-        </div>
-
         {draftRestored && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
             <span><strong>Welcome back.</strong> Your unfinished registration has been restored.</span>
@@ -437,16 +434,14 @@ function StudentOnboarding() {
                   inputMode="tel"
                   autoComplete="tel"
                   maxLength={15}
+                  className="h-12 text-base"
                   placeholder="e.g. 0244 123 456"
                   value={form.phone}
                   onChange={(e) => updateForm('phone', e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Use the number you will use for Mobile Money. It is also used for order updates and important notifications.
-                </p>
               </div>
 
-              <Button onClick={handleNext} className="w-full">
+              <Button onClick={handleNext} className="min-h-12 w-full">
                 Continue
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -469,11 +464,13 @@ function StudentOnboarding() {
                   options={universityOptions}
                   placeholder="Search and choose your school"
                   searchPlaceholder="Type a school name or abbreviation"
+                  disabled={!unisLoaded || universities.length === 0}
                   onChange={(value) => updateForm('university_id', value)}
                 />
-                <p className="text-xs text-muted-foreground">
-                  {unisLoaded ? `${universities.length} listed institution${universities.length === 1 ? '' : 's'} available.` : 'Loading listed institutions…'}
-                </p>
+                {!unisLoaded && <p role="status" className="text-xs text-muted-foreground">Loading schools…</p>}
+                {unisLoaded && universities.length === 0 && <div role="alert" className="flex items-center justify-between gap-2 text-sm">
+                  <span>Couldn’t load schools.</span><Button variant="outline" className="min-h-11" onClick={() => { setUnisLoaded(false); setSchoolRetry((value) => value + 1); }}>Retry</Button>
+                </div>}
               </div>
 
               <RegistrationOptionPicker
@@ -531,7 +528,7 @@ function StudentOnboarding() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button onClick={handleNext} className="flex-1">
+                <Button onClick={handleNext} disabled={!unisLoaded || universities.length === 0} className="min-h-12 flex-1">
                   Continue
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -553,7 +550,7 @@ function StudentOnboarding() {
                   <div><dt className="text-muted-foreground">Phone</dt><dd className="mt-0.5 break-words font-medium">{form.phone || 'Not entered'}</dd></div>
                   <div><dt className="text-muted-foreground">University</dt><dd className="mt-0.5 break-words font-medium">{selectedUniversity?.short_name || selectedUniversity?.name || 'Not selected'}</dd></div>
                   <div><dt className="text-muted-foreground">Programme</dt><dd className="mt-0.5 break-words font-medium">{form.programme || 'Not entered'}</dd></div>
-                  <div><dt className="text-muted-foreground">Level</dt><dd className="mt-0.5 font-medium">{form.level ? `Level ${form.level}` : 'Not selected'}</dd></div>
+                  <div><dt className="text-muted-foreground">Level</dt><dd className="mt-0.5 font-medium">{form.level === 'graduate' ? 'Graduate' : form.level ? `Level ${form.level}` : 'Not selected'}</dd></div>
                 </dl>
                 <button type="button" onClick={() => setStep(1)} className="mt-3 text-xs font-semibold text-primary underline underline-offset-2">Edit study details</button>
               </div>
@@ -563,27 +560,25 @@ function StudentOnboarding() {
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">₵</span>
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-foreground">One-time registration payment</p>
-                    <p className="mt-1 text-lg font-bold tracking-tight text-primary">One-time fee shown at checkout</p>
-                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Pay securely with Paystack using card or Mobile Money. Your student access and verification review start after the payment is confirmed.</p>
+                    <p className="mt-1 text-lg font-bold tracking-tight text-primary">{feeLabel || 'Fee shown at checkout'}</p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">Seller access starts once Paystack confirms payment.</p>
                   </div>
                 </div>
               </div>}
-              <p className="text-xs text-muted-foreground">You can add profile details and enable notifications any time after joining.</p>
-              <p className="text-xs text-muted-foreground">If someone invited you, their referral code will be attached automatically. Eligible successful registrations may earn the referrer GH₵2 after the settlement period.</p>
-
               <div className="flex gap-3">
                 <Button variant="outline" onClick={handleBack} className="flex-1">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back
                 </Button>
-                <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="flex-1">
+                <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading || !unisLoaded} className="min-h-12 flex-1">
                   {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {cashInviteToken ? 'Complete cash registration' : 'Pay securely and continue'}
+                  {cashInviteToken ? 'Complete cash registration' : feeLabel ? `Pay ${feeLabel}` : 'Continue to Paystack'}
                 </Button>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
+        {upgradingBuyer && <Button asChild variant="ghost" className="min-h-11 w-full"><Link href="/">Keep using your buyer account</Link></Button>}
       </div>
     </AuthLayout>
   );

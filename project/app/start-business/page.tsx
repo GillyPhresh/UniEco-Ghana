@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
+import { SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
@@ -20,7 +21,7 @@ export default function StartBusinessPage() {
 }
 
 function StartBusinessContent() {
-  const { user } = useAuth();
+  const { user, registrationAccess } = useAuth();
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +31,25 @@ function StartBusinessContent() {
 
   if (!user) return null;
 
-  const isVerifiedStudent = user.studentProfile?.is_verified_student;
+  if (registrationAccess?.buyer_restricted) {
+    return <>
+      <SiteHeader />
+      <main className="container max-w-xl px-4 py-10">
+        <Card><CardContent className="space-y-4 p-5">
+          <h1 className="text-2xl font-bold">Start selling on UniEco</h1>
+          <p className="text-sm text-muted-foreground">Upgrade from Buyer to Student Seller to sell, publish campus posts and share a referral link.</p>
+          <Button asChild className="min-h-12"><Link href={SELLER_UPGRADE_PATH}>{registrationAccess.seller_upgrade_started ? 'Resume seller setup' : 'See seller options'}</Link></Button>
+        </CardContent></Card>
+      </main>
+      <SiteFooter />
+    </>;
+  }
+
+  if (user.role === 'student_vendor' || user.role === 'external_vendor') {
+    return <main className="container max-w-xl py-10"><Button asChild className="min-h-11"><Link href="/vendor-dashboard">Open your business dashboard</Link></Button></main>;
+  }
+
+  const isVerifiedStudent = user.studentProfile?.is_verified_student === true;
 
   const steps = [
     {
@@ -52,7 +71,7 @@ function StartBusinessContent() {
     {
       icon: FileText,
       title: 'Submit for review',
-      description: 'Our team reviews your business details. Student businesses usually get approved within 24 hours.',
+      description: 'Our team reviews your business details before you go live.',
       action: null,
       done: false,
     },
@@ -86,7 +105,7 @@ function StartBusinessContent() {
         </div>
 
         {/* Verification status banner */}
-        {verificationStatus && verificationStatus !== 'approved' && (
+        {verificationStatus && !isVerifiedStudent && (
           <Card className="mb-6 border-warning/30 bg-warning/5">
             <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
@@ -99,7 +118,7 @@ function StartBusinessContent() {
                 )}
                 <p className="text-sm text-muted-foreground">
                   {verificationStatus === 'pending'
-                    ? 'Your student verification is being reviewed. You can start your business profile while you wait.'
+                    ? 'Your student verification is in review. You can register a student business after approval.'
                     : verificationStatus === 'rejected'
                     ? 'Your verification was rejected. Please check your profile for details and re-submit.'
                     : 'Verify your student account first to unlock business registration.'}
@@ -115,7 +134,7 @@ function StartBusinessContent() {
         {/* Benefits */}
         <div className="mb-8 grid gap-4 sm:grid-cols-3">
           {[
-            { icon: Store, title: 'Free to start', desc: 'No listing fees, no subscription. List your business and products for free.' },
+            { icon: Store, title: 'Student business tools', desc: registrationAccess?.student_business_covered ? 'Your student seller payment covers business registration.' : 'Submit your business details and review any registration fee before paying.' },
             { icon: ShieldCheck, title: 'Verified badge', desc: 'A "Verified Student Business" badge tells students you are legit.' },
             { icon: ArrowRight, title: 'Reach every student', desc: 'Get discovered by students across your entire campus, not just your hall.' },
           ].map((b) => (

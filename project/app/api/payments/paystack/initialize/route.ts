@@ -5,11 +5,12 @@ import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransacti
 import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
 import { siteConfig } from '@/lib/constants/site';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
+import { canInitializePaystack, parseRegistrationAccess, type PaystackPurpose } from '@/lib/auth/registration-access';
 
 export const dynamic = 'force-dynamic';
 
 type RequestBody = {
-  purpose?: 'subscription' | 'marketplace' | 'student_registration' | 'vendor_registration';
+  purpose?: PaystackPurpose;
   vendorId?: string; orderId?: string; idempotencyKey?: string;
   autoRenew?: boolean;
   mobileMoney?: { phone?: string; provider?: PaystackMobileMoneyProvider };
@@ -32,12 +33,27 @@ function normalizeGhanaPhone(value: string | undefined): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!paystackIsEnabled()) return NextResponse.json({ error: 'Paystack checkout is not enabled in this environment.' }, { status: 503 });
     const body = await readJsonLimited<RequestBody>(request, 32 * 1024);
-    if (!body.idempotencyKey || !/^[A-Za-z0-9._=-]{8,120}$/.test(body.idempotencyKey)) return NextResponse.json({ error: 'A valid idempotency key is required.' }, { status: 400 });
+    if (typeof body?.idempotencyKey !== 'string' || !/^[A-Za-z0-9._=-]{8,120}$/.test(body.idempotencyKey)) return NextResponse.json({ error: 'A valid idempotency key is required.' }, { status: 400 });
+    if (!body.purpose || !['subscription', 'marketplace', 'student_registration', 'vendor_registration'].includes(body.purpose)) {
+      return NextResponse.json({ error: 'Unsupported payment purpose.' }, { status: 400 });
+    }
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) return NextResponse.json({ error: 'Authentication is required.' }, { status: 401 });
+    const { data: registrationAccess, error: accessError } = await supabase.rpc('get_my_registration_access');
+    const access = !accessError ? parseRegistrationAccess(registrationAccess) : null;
+    if (!access) {
+      return NextResponse.json({ error: 'We couldn’t check your account. No payment was started. Please try again.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (!canInitializePaystack(access, body.purpose)) {
+      const error = access.buyer_restricted
+        ? body.purpose === 'marketplace' ? 'Paystack is not available for buyer orders. Choose another payment method.'
+          : 'Your buyer account does not require payment.'
+        : 'This checkout is not available for your registration. Return to UniEco to check your account.';
+      return NextResponse.json({ error }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
+    }
+    if (!paystackIsEnabled()) return NextResponse.json({ error: 'Paystack checkout is not enabled in this environment.' }, { status: 503 });
     const { data: { session } } = await supabase.auth.getSession();
     const rpcClient = session?.access_token
       ? createTokenClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
@@ -321,6 +337,9 @@ export async function POST(request: NextRequest) {
     }
     if (!intent || typeof intent !== 'object') return NextResponse.json({ error: 'Payment could not be initialized. Please try again.' }, { status: 422 });
     let payment = intent as { payment_reference?: string; amount?: number; currency?: string; status?: string; payment_type?: string };
+    if (payment.payment_type !== body.purpose || Number(payment.amount) <= 0) {
+      return NextResponse.json({ error: 'This payment could not be safely matched to your checkout.' }, { status: 409, headers: { 'Cache-Control': 'no-store' } });
+    }
     if (!payment.payment_reference || payment.currency !== 'GHS' || !Number.isFinite(Number(payment.amount))) return NextResponse.json({ error: 'Invalid authoritative payment intent.' }, { status: 422 });
     // A prior checkout is returned as the latest intent by the registration
     // RPC. Paystack references are single-use, so verify that attempt before

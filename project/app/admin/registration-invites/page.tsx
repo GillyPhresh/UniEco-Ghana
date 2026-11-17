@@ -61,7 +61,7 @@ function Content() {
     toast.success('Cash registration link created. Copy it now; it is shown only once.');
   };
 
-  const inviteUrl = invite ? `${window.location.origin}/signup?invite=${encodeURIComponent(invite.token)}` : '';
+  const inviteUrl = invite ? `${window.location.origin}/signup?invite=${encodeURIComponent(invite.token)}&intent=${invite.audience === 'vendor' ? 'external_vendor' : 'student'}` : '';
 
   const copyInvite = async () => {
     if (!inviteUrl) return;

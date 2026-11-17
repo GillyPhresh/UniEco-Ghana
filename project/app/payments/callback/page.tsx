@@ -22,12 +22,16 @@ function PaymentCallbackContent() {
   const reference = params.get('reference') || params.get('trxref');
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
+  const [checking, setChecking] = useState(true);
   const [registrationNext, setRegistrationNext] = useState('/');
   useEffect(() => {
     setRegistrationNext(safeInternalPath(window.sessionStorage.getItem('unieco_registration_next')));
   }, []);
   useEffect(() => {
     if (!reference) { setError('No payment reference was provided.'); return; }
+    setError(null);
+    setChecking(true);
     let cancelled = false;
     let attempts = 0;
     let reconciled = false;
@@ -37,6 +41,7 @@ function PaymentCallbackContent() {
         const { data: { session } } = await supabase.auth.getSession();
         const response = await fetch(`/api/payments/status?reference=${encodeURIComponent(reference)}`, {
           cache: 'no-store',
+          signal: AbortSignal.timeout(10_000),
           headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
         });
         const body = await response.json() as { payment?: Payment; error?: string };
@@ -49,6 +54,7 @@ function PaymentCallbackContent() {
             const reconcileResponse = await fetch('/api/payments/reconcile', {
               method: 'POST',
               cache: 'no-store',
+              signal: AbortSignal.timeout(10_000),
               headers: {
                 'Content-Type': 'application/json',
                 ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
@@ -61,18 +67,25 @@ function PaymentCallbackContent() {
             // Keep polling the webhook-backed status if provider verification is temporarily unavailable.
           }
         }
+        if (cancelled) return;
         setPayment(currentPayment);
         attempts += 1;
-        if (!['success','failed','cancelled','reconciliation_required','refunded'].includes(currentPayment?.status || '') && attempts < 20) timer = setTimeout(check, 3000);
+        if (!['success','failed','cancelled','abandoned','reconciliation_required','refunded','partially_refunded'].includes(currentPayment?.status || '') && attempts < 20) timer = setTimeout(check, 3000);
+        else setChecking(false);
       } catch (reason) {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : 'Payment could not be found.');
+        if (!cancelled) {
+          setChecking(false);
+          setError(reason instanceof Error && reason.name === 'Error' ? reason.message : 'Couldn’t check the payment. Please check again.');
+        }
       }
     };
     void check();
     return () => { cancelled = true; if (timer) clearTimeout(timer); };
-  }, [reference]);
+  }, [reference, retry]);
   const successful = payment?.status === 'success';
-  const failed = ['failed','cancelled','abandoned','reconciliation_required','refunded'].includes(payment?.status || '');
+  const canRetryPayment = ['failed', 'cancelled', 'abandoned'].includes(payment?.status || '');
+  const needsSupport = ['reconciliation_required', 'refunded', 'partially_refunded'].includes(payment?.status || '');
+  const failed = canRetryPayment || needsSupport;
   const successHref = payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration'
     ? withNext('/onboarding/complete?registration=paid', registrationNext)
     : '/dashboard/payment-history';
@@ -81,16 +94,19 @@ function PaymentCallbackContent() {
     : payment?.payment_type === 'vendor_registration'
       ? withNext('/onboarding/vendor?payment_required=1', registrationNext)
       : '/dashboard/payment-history';
-  const actionHref = successful ? successHref : registrationHref;
+  const actionHref = needsSupport ? 'mailto:support@uniecoghana.com' : successful ? successHref : canRetryPayment ? registrationHref : '/dashboard/payment-history';
   const actionLabel = successful && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')
     ? 'Continue to UniEco'
-    : failed && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')
+    : needsSupport ? 'Contact support' : canRetryPayment && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')
       ? 'Try payment again'
       : 'View payment history';
   return <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4"><section className="w-full rounded-2xl border bg-card p-7 text-center shadow-sm">
     {!payment && !error && <><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /><h1 className="mt-4 text-xl font-bold">Checking your payment</h1><p className="mt-2 text-sm text-muted-foreground">We are waiting for Paystack’s verified result.</p></>}
-    {payment && <>{successful ? <CheckCircle2 className="mx-auto h-11 w-11 text-success" /> : failed ? <XCircle className="mx-auto h-11 w-11 text-destructive" /> : <Clock3 className="mx-auto h-11 w-11 text-warning" />}<h1 className="mt-4 text-xl font-bold">{successful ? 'Payment confirmed' : failed ? 'Payment needs attention' : 'Payment is pending'}</h1><p className="mt-2 text-sm text-muted-foreground">{successful ? 'Your payment was confirmed by Paystack and applied to UniEco Ghana.' : failed ? (payment.failure_reason || 'No value has been granted. You may try again from your dashboard.') : 'If you used Mobile Money, approve the prompt on your phone. This page will not mark a payment successful; Paystack’s verified webhook does that.'}</p><p className="mt-4 font-medium">{payment.currency} {Number(payment.amount).toFixed(2)}</p></>}
+    {payment && <>{successful ? <CheckCircle2 className="mx-auto h-11 w-11 text-success" /> : failed ? <XCircle className="mx-auto h-11 w-11 text-destructive" /> : <Clock3 className="mx-auto h-11 w-11 text-warning" />}<h1 className="mt-4 text-xl font-bold">{successful ? 'Payment confirmed' : failed ? 'Payment needs attention' : 'Payment is pending'}</h1><p className="mt-2 text-sm text-muted-foreground">{successful ? 'Paystack confirmed your payment.' : needsSupport ? 'Contact support about this payment before trying again.' : canRetryPayment ? 'This attempt did not complete.' : 'If you chose Mobile Money, approve the prompt on your phone. Don’t pay again while this payment is pending.'}</p><p className="mt-4 font-medium">{payment.currency} {Number(payment.amount).toFixed(2)}</p></>}
     {error && <><XCircle className="mx-auto h-11 w-11 text-destructive" /><h1 className="mt-4 text-xl font-bold">Payment status unavailable</h1><p className="mt-2 text-sm text-muted-foreground">{error}</p></>}
-    <Button asChild className="mt-6"><Link href={actionHref}>{actionLabel}</Link></Button>
+    <div className="mt-6 flex flex-wrap justify-center gap-2">
+      {reference && !checking && !successful && !failed && <Button type="button" onClick={() => setRetry((value) => value + 1)}>Check payment again</Button>}
+      <Button asChild variant={!successful && !failed ? 'outline' : 'default'}><Link href={actionHref}>{actionLabel}</Link></Button>
+    </div>
   </section></main>;
 }

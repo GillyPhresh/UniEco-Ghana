@@ -44,7 +44,7 @@ import { Badge } from '@/components/ui/badge';
 import { Logo } from '@/components/layout/logo';
 import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
-import { ROLE_LABELS, isStudent, isVendor } from '@/lib/auth/permissions';
+import { ROLE_LABELS, isVendor } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
 import { getUnreadNotificationCount } from '@/lib/data/student-client';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
@@ -62,7 +62,9 @@ const networkLinks = [
 export function SiteHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, signOut, registrationAccess } = useAuth();
+  const referralHref = registrationAccess?.can_vendor_referral ? '/vendor-dashboard/referrals'
+    : registrationAccess?.can_student_referral ? '/dashboard/referrals' : null;
   const { installed, installApp } = useInstallPrompt();
   const router = useRouter();
   const [unreadNotifs, setUnreadNotifs] = useState(0);
@@ -172,8 +174,7 @@ export function SiteHeader() {
                   <DropdownMenuItem onClick={() => router.push('/orders')}><Package className="mr-2 h-4 w-4" />My orders</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => router.push('/wishlist')}><Heart className="mr-2 h-4 w-4" />Saved items</DropdownMenuItem>
                   {isVendor(user.role) && <DropdownMenuItem onClick={() => router.push('/vendor-dashboard')}><Briefcase className="mr-2 h-4 w-4" />Vendor dashboard</DropdownMenuItem>}
-                  {isVendor(user.role) && <DropdownMenuItem onClick={() => router.push('/vendor-dashboard/referrals')}><Gift className="mr-2 h-4 w-4" />Referrals &amp; rewards</DropdownMenuItem>}
-                  {!isVendor(user.role) && isStudent(user.role) && <DropdownMenuItem onClick={() => router.push('/dashboard/referrals')}><Gift className="mr-2 h-4 w-4" />Referrals &amp; rewards</DropdownMenuItem>}
+                  {referralHref && <DropdownMenuItem onClick={() => router.push(referralHref)}><Gift className="mr-2 h-4 w-4" />Referrals &amp; rewards</DropdownMenuItem>}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleSignOut} className="text-destructive"><LogOut className="mr-2 h-4 w-4" />Sign out</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -231,8 +232,7 @@ export function SiteHeader() {
                     <SheetClose asChild><Link href="/campus-mate" className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10"><MapPinned className="h-5 w-5" />Campus Mate</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/messages" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><MessageSquare className="h-5 w-5 text-primary" />Messages</Link></SheetClose>
                     <SheetClose asChild><Link href="/dashboard/notifications" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Bell className="h-5 w-5 text-primary" />Notifications</Link></SheetClose>
-                    {isVendor(user.role) && <SheetClose asChild><Link href="/vendor-dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
-                    {!isVendor(user.role) && isStudent(user.role) && <SheetClose asChild><Link href="/dashboard/referrals" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
+                    {referralHref && <SheetClose asChild><Link href={referralHref} className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Gift className="h-5 w-5 text-primary" />Referrals &amp; rewards</Link></SheetClose>}
                     <SheetClose asChild><Link href="/start-business" className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold hover:bg-muted"><Store className="h-5 w-5 text-primary" />Start a business</Link></SheetClose>
                   </div>
                 )}

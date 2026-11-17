@@ -27,15 +27,16 @@ test('Google registration keeps selected intent and invite through onboarding wi
     read('app/auth/callback/route.ts'),
   ]);
   assert.match(signup, /unieco_pending_registration_invite/);
-  assert.match(signup, /signInWithGoogle\(\{ intent: accountType \|\| 'student', next \}\)/);
+  assert.match(signup, /signInWithGoogle\(\{ intent: institutionInvite \? undefined : accountType \?\? undefined, next \}\)/);
   assert.match(onboarding, /pendingInvite/);
-  assert.match(onboarding, /params\.set\('invite', pendingInvite\)/);
-  assert.match(signup, /onboardingParams\.set\('ref', incomingReferral\)/);
-  assert.match(signup, /onboardingParams\.set\('invite', incomingInvite\)/);
+  assert.match(onboarding, /!access\.buyer_restricted[\s\S]*sessionStorage\.setItem\('unieco_pending_registration_invite', pendingInvite\)/);
+  assert.match(signup, /sessionStorage\.setItem\('unieco_pending_referral_code', incomingReferral\)/);
+  assert.match(signup, /sessionStorage\.setItem\('unieco_pending_registration_invite', incomingInvite\)/);
   assert.match(signup, /sessionStorage\.setItem\('unieco_pending_university_admin_token', universityAdminToken\)/);
   assert.match(studentOnboarding, /getItem\('unieco_pending_university_admin_token'\)/);
   assert.doesNotMatch(signup, /onboardingParams\.set\('university_admin_token'/);
-  assert.match(callback, /searchParams\.set\('payment_required', '1'\)/);
+  assert.match(callback, /rpc\('set_my_registration_intent'[\s\S]*withNext\('\/onboarding', destination\)/);
+  assert.doesNotMatch(callback, /destinationUrl\.pathname = intent/);
   assert.match(callback, /function clearOAuthState\(response: NextResponse\)/);
   assert.match(callback, /return clearOAuthState\(response\)/);
 });
@@ -54,8 +55,8 @@ test('new users are gated through sign-in, secure onboarding, and their original
   assert.match(middleware, /pathname === '\/' && Boolean\(user\)/);
   assert.match(signin, /router\.replace\(withNext\('\/onboarding', next\)\)/);
   assert.match(onboarding, /get_my_registration_access/);
-  assert.match(onboarding, /registrationDestination\(user, requestedNext\)/);
-  assert.match(callback, /if \(!intent && destination === '\/'\) safeDestination = '\/onboarding'/);
+  assert.match(onboarding, /registrationDestination\(access, requestedNext\)/);
+  assert.match(callback, /withNext\('\/onboarding', destination\)/);
   assert.match(paymentCallback, /unieco_registration_next/);
   assert.match(paymentCallback, /onboarding\/complete\?registration=paid/);
   assert.match(redirects, /Preserve the original protected destination through onboarding/);

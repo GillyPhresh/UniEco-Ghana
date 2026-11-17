@@ -12,5 +12,6 @@ test('auth context keeps user identity stable across unrelated provider renders'
   assert.match(source, /const sessionUser = session\?\.user/);
   assert.match(source, /\[sessionUser, profile, studentProfile, vendorProfile\]/);
   assert.match(source, /const value = useMemo<AuthContextValue>/);
-  assert.match(source, /\[user, session, loading, signIn, signUp, signInWithGoogle, signOut, signOutAll, resetPassword, updatePassword, changePassword, refreshProfile\]/);
+  assert.match(source, /\[user, session, loading, registrationAccess, signIn, signUp, signInWithGoogle, signOut, signOutAll, resetPassword, updatePassword, changePassword, refreshProfile\]/);
+  assert.match(source, /if \(authRevision\.current !== revision\) return;[\s\S]*setRegistrationAccess/);
 });

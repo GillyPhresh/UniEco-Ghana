@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
-import { safeInternalPath } from '@/lib/auth/redirects';
+import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { readRegistrationIntent } from '@/lib/auth/registration-access';
 
 function clearOAuthState(response: NextResponse) {
   response.cookies.delete('unieco_oauth_next');
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   const next = requestUrl.searchParams.get('next');
   const cookieNext = request.cookies.get('unieco_oauth_next')?.value;
   const destination = safeInternalPath(next || cookieNext);
-  const intent = request.cookies.get('unieco_oauth_intent')?.value;
+  const intent = readRegistrationIntent(request.cookies.get('unieco_oauth_intent')?.value);
 
   if (!code) {
     return clearOAuthState(NextResponse.redirect(
@@ -46,25 +47,20 @@ export async function GET(request: NextRequest) {
     ));
   }
 
-  if (intent === 'student' || intent === 'external_vendor') {
+  if (intent) {
     const { error: intentError } = await supabase.rpc('set_my_registration_intent', { p_intent: intent });
     if (intentError) {
       console.error('[auth/callback] Could not persist Google registration intent', { message: intentError.message });
-      return clearOAuthState(NextResponse.redirect(new URL('/signup?error=google_onboarding_setup_failed', publicOrigin)));
+      // The session is already established. Let onboarding retry from the
+      // persisted account state instead of sending the user back to sign up.
     }
   }
 
-  // A Google signup must complete the appropriate onboarding flow before
-  // entering the platform. The onboarding screen performs the authoritative
-  // access check and starts the required Paystack registration payment.
-  let safeDestination = destination;
-  if (!intent && destination === '/') safeDestination = '/onboarding';
-  if (intent && destination.startsWith('/onboarding')) {
-    const destinationUrl = new URL(destination, publicOrigin);
-    destinationUrl.pathname = intent === 'student' ? '/onboarding/student' : '/onboarding/vendor';
-    if (intent === 'external_vendor') destinationUrl.searchParams.set('payment_required', '1');
-    safeDestination = `${destinationUrl.pathname}${destinationUrl.search}`;
-  }
+  // An OAuth cookie is a signup hint, never permission to change a returning
+  // account's lane or open checkout. Onboarding reads the saved entitlement.
+  const path = new URL(destination, publicOrigin).pathname;
+  const safeDestination = path === '/institution-admin-invite' || path === '/onboarding'
+    ? destination : withNext('/onboarding', destination);
   const response = NextResponse.redirect(new URL(safeDestination, publicOrigin));
   return clearOAuthState(response);
 }

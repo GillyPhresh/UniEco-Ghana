@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { getPaystackMode, initializePaystackTransaction, paystackIsEnabled, permittedChannels } from '@/lib/payments/paystack.server';
 import { siteConfig } from '@/lib/constants/site';
+import { canInitializePaystack, parseRegistrationAccess } from '@/lib/auth/registration-access';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -21,7 +22,7 @@ function signInRedirect(request: NextRequest, role: 'student' | 'vendor') {
 }
 
 function fallbackRedirect(request: NextRequest, role: 'student' | 'vendor') {
-  const onboarding = role === 'vendor' ? '/onboarding/vendor?payment_required=1' : '/onboarding/student?payment_required=1';
+  const onboarding = role === 'vendor' ? '/onboarding/vendor' : '/onboarding/student';
   return NextResponse.redirect(new URL(onboarding, request.url), 303);
 }
 
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user?.email) return signInRedirect(request, role);
+  const { data, error: accessError } = await supabase.rpc('get_my_registration_access');
+  const access = !accessError ? parseRegistrationAccess(data) : null;
+  if (!access) return NextResponse.redirect(new URL('/onboarding', request.url), 303);
+  if (!canInitializePaystack(access, `${role}_registration`)) {
+    const destination = access.allowed ? '/onboarding' : access.registration_path ?? '/onboarding';
+    return NextResponse.redirect(new URL(destination, request.url), 303);
+  }
   if (!paystackIsEnabled()) return fallbackRedirect(request, role);
 
   try {
@@ -49,7 +57,8 @@ export async function GET(request: NextRequest) {
     if (payment.status === 'success') {
       return NextResponse.redirect(new URL('/onboarding/complete?registration=paid', request.url), 303);
     }
-    if (!payment.payment_reference || payment.currency !== 'GHS' || !Number.isFinite(Number(payment.amount))) {
+    if (!payment.payment_reference || payment.currency !== 'GHS' || !Number.isFinite(Number(payment.amount)) || Number(payment.amount) <= 0
+        || payment.payment_type !== `${role}_registration`) {
       return fallbackRedirect(request, role);
     }
 
@@ -58,6 +67,15 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
+    const { data: saved, error: savedError } = await admin.from('payments')
+      .select('status,provider_checkout_initialized_at')
+      .eq('payment_reference', payment.payment_reference).eq('user_id', user.id).maybeSingle();
+    if (savedError || !saved) return fallbackRedirect(request, role);
+    if (saved.provider_checkout_initialized_at || saved.status !== 'initiated') {
+      const callback = new URL('/payments/callback', request.url);
+      callback.searchParams.set('reference', payment.payment_reference);
+      return NextResponse.redirect(callback, 303);
+    }
     const { data: provider, error: providerError } = await admin
       .from('payment_providers')
       .select('is_enabled,supported_methods,config')
@@ -68,11 +86,13 @@ export async function GET(request: NextRequest) {
     const channels = permittedChannels(provider.supported_methods || [], provider.config?.channels);
     if (!channels.length) return fallbackRedirect(request, role);
 
+    const publicUrl = (process.env.UNIECO_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || siteConfig.url)
+      .replace(/\/+$/, '').replace(/^https:\/\/uniecoghana\.com$/, siteConfig.url);
     const checkout = await initializePaystackTransaction({
       email: user.email,
       amountGhs: Number(payment.amount),
       reference: payment.payment_reference,
-      callbackUrl: `${siteConfig.url}/payments/callback`,
+      callbackUrl: `${publicUrl}/payments/callback`,
       channels,
       metadata: {
         unieco_payment_reference: payment.payment_reference,

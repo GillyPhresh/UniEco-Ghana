@@ -21,6 +21,7 @@ test('referral delivery repairs paid accounts and retries email safely', () => {
   const paidRegistrationTrigger = read('supabase/migrations/20261021130000_0135_referral_code_paid_registration_trigger.sql');
   const api = read('app/api/student-referrals/me/route.ts');
   const onboarding = read('app/onboarding/student/page.tsx');
+  const registrationPayment = read('supabase/migrations/20261109130000_0190_resume_legacy_unpaid_student_registration.sql');
   const email = read('supabase/functions/send-email/index.ts');
 
   assert.match(migration, /queue_referral_link_message_for_user/);
@@ -34,7 +35,9 @@ test('referral delivery repairs paid accounts and retries email safely', () => {
   assert.match(api, /ensure_my_student_referral_link/);
   assert.match(api, /referralCode/);
   assert.match(api, /signup\?ref=/);
-  assert.match(onboarding, /attach_my_referral_code/);
+  assert.match(onboarding, /referralCode: referralCode \|\| null/);
+  assert.doesNotMatch(onboarding, /rpc\('attach_my_referral_code'/);
+  assert.match(registrationPayment, /INSERT INTO public\.student_referral_attributions/);
   assert.match(email, /meta\.referral_code/);
   assert.match(email, /Referral code/);
   assert.match(email, /Referral link/);

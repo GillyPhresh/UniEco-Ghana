@@ -19,7 +19,8 @@ test('student registration starts the paid Paystack flow without browser financi
   assert.doesNotMatch(onboarding, /\.from\('payments'\)\s*\.(insert|update)/);
   assert.doesNotMatch(onboarding, /\.from\('student_profiles'\)\s*\.(insert|update)/);
   assert.match(callback, /\/api\/payments\/status/);
-  assert.match(callback, /verified webhook/);
+  assert.match(callback, /\/api\/payments\/reconcile/);
+  assert.match(callback, /Don’t pay again while this payment is pending/);
 });
 
 test('registration activation and referral reward are tied to verified payment transition', async () => {

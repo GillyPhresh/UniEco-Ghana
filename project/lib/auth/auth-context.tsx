@@ -4,18 +4,20 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef, us
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import type { AuthUser, Profile, StudentProfile, VendorProfile, UserRole } from '@/lib/types';
+import { parseRegistrationAccess, type RegistrationAccess, type RegistrationIntent } from './registration-access';
 
 interface AuthContextValue {
   user: AuthUser | null;
   session: Session | null;
   loading: boolean;
+  registrationAccess: RegistrationAccess | null;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (
     email: string,
     password: string,
-    meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
+    meta: { full_name: string; registration_intent?: RegistrationIntent }
   ) => Promise<{ error: string | null; session: Session | null }>;
-  signInWithGoogle: (options?: { intent?: 'student' | 'external_vendor'; next?: string }) => Promise<{ error: string | null }>;
+  signInWithGoogle: (options?: { intent?: RegistrationIntent; next?: string }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   signOutAll: () => Promise<{ error: string | null }>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
@@ -48,11 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [vendorProfile, setVendorProfile] = useState<VendorProfile | null>(null);
+  const [registrationAccess, setRegistrationAccess] = useState<RegistrationAccess | null>(null);
   const [loading, setLoading] = useState(true);
   const authRevision = useRef(0);
 
   const loadProfileData = useCallback(async (uid: string) => {
-    const [profileResult, studentResult, vendorResult] = await Promise.all([
+    const revision = authRevision.current;
+    const [profileResult, studentResult, vendorResult, accessResult] = await Promise.all([
       supabase.from('profiles')
         .select('*, university:universities(id, name, short_name, slug)')
         .eq('id', uid)
@@ -65,10 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('profile_id', uid)
         .maybeSingle(),
+      supabase.rpc('get_my_registration_access').abortSignal(AbortSignal.timeout(8_000)),
     ]);
+    if (authRevision.current !== revision) return;
     setProfile(profileResult.data as Profile | null);
     setStudentProfile(studentResult.data as StudentProfile | null);
     setVendorProfile(vendorResult.data as VendorProfile | null);
+    setRegistrationAccess(accessResult.error ? null : parseRegistrationAccess(accessResult.data));
   }, []);
 
   useEffect(() => {
@@ -77,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setStudentProfile(null);
       setVendorProfile(null);
+      setRegistrationAccess(null);
     };
 
     const initialRevision = authRevision.current;
@@ -86,7 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(s);
       if (s?.user) {
         setLoading(true);
-        void loadProfileData(s.user.id).catch(clearProfile).finally(() => {
+        void loadProfileData(s.user.id).catch(() => {
+          if (active && authRevision.current === initialRevision) clearProfile();
+        }).finally(() => {
           if (active && authRevision.current === initialRevision) setLoading(false);
         });
       } else {
@@ -112,7 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // issuing auth-backed requests inside that callback can stall refreshes.
         window.setTimeout(() => {
           if (!active || authRevision.current !== revision) return;
-          void loadProfileData(s.user.id).catch(clearProfile).finally(() => {
+          void loadProfileData(s.user.id).catch(() => {
+            if (active && authRevision.current === revision) clearProfile();
+          }).finally(() => {
             if (active && authRevision.current === revision) setLoading(false);
           });
         }, 0);
@@ -156,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       email: string,
       password: string,
-      meta: { full_name: string; registration_intent?: 'student' | 'external_vendor' }
+      meta: { full_name: string; registration_intent?: RegistrationIntent }
     ) => {
       setLoading(true);
       try {
@@ -164,10 +176,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email,
           password,
           options: {
-            data: {
-              full_name: meta.full_name,
-              registration_intent: meta.registration_intent ?? 'student',
-            },
+            data: meta,
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
         if (error || !data.session) setLoading(false);
@@ -180,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     []
   );
 
-  const signInWithGoogle = useCallback(async (options?: { intent?: 'student' | 'external_vendor'; next?: string }) => {
+  const signInWithGoogle = useCallback(async (options?: { intent?: RegistrationIntent; next?: string }) => {
     const params = new URLSearchParams();
     if (options?.intent) params.set('intent', options.intent);
     if (options?.next) params.set('next', options.next);
@@ -193,6 +203,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setStudentProfile(null);
     setVendorProfile(null);
+    setRegistrationAccess(null);
   }, []);
 
   const signOutAll = useCallback(async () => {
@@ -200,6 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
     setStudentProfile(null);
     setVendorProfile(null);
+    setRegistrationAccess(null);
     return { error: error?.message ?? null };
   }, []);
 
@@ -240,6 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    registrationAccess,
     signIn,
     signUp,
     signInWithGoogle,
@@ -249,7 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     updatePassword,
     changePassword,
     refreshProfile,
-  }), [user, session, loading, signIn, signUp, signInWithGoogle, signOut, signOutAll, resetPassword, updatePassword, changePassword, refreshProfile]);
+  }), [user, session, loading, registrationAccess, signIn, signUp, signInWithGoogle, signOut, signOutAll, resetPassword, updatePassword, changePassword, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

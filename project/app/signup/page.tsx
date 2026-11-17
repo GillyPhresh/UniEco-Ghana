@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { readRegistrationIntent, signupReferralCode, type RegistrationIntent } from '@/lib/auth/registration-access';
 import { AuthLayout } from '@/components/auth/auth-layout';
+import { AccountChoices, registrationAccountName } from '@/components/registration/account-choices';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,19 +25,19 @@ import {
   EyeOff,
   Loader2,
   AlertCircle,
-  GraduationCap,
-  Store,
-  Check,
-  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
-type AccountType = 'student' | 'external_vendor';
 
 export default function SignUpPage() {
-  const { signUp, signIn, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const router = useRouter();
-  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [accountType, setAccountType] = useState<RegistrationIntent | null>(null);
+  const [institutionInvite, setInstitutionInvite] = useState(false);
+  const [sellerInvite, setSellerInvite] = useState(false);
+  const [confirmationDestination, setConfirmationDestination] = useState<string | null>(null);
+  const [requestedNext, setRequestedNext] = useState('/');
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -49,8 +51,10 @@ export default function SignUpPage() {
       // Keep the referral token out of browser history, preserving Next's history state.
       window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}`);
     }
-    const intent = query.get('intent');
-    if (intent === 'student' || intent === 'external_vendor') setAccountType(intent);
+    setInstitutionInvite(query.has('institution_admin_invite'));
+    setSellerInvite(query.has('invite') || query.has('ref') || Boolean(tokenFromFragment));
+    setAccountType(readRegistrationIntent(query.get('intent')));
+    setRequestedNext(safeInternalPath(query.get('next')));
   }, []);
 
   const {
@@ -61,106 +65,74 @@ export default function SignUpPage() {
     resolver: zodResolver(signUpSchema),
   });
 
-  const onSubmit = async (data: SignUpFormData) => {
-    if (!accountType) return;
-    setAuthError(null);
-    const incomingReferral = new URLSearchParams(window.location.search).get('ref');
-    const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
-    const incomingInvite = new URLSearchParams(window.location.search).get('invite');
-    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token')
-      || window.sessionStorage.getItem('unieco_pending_university_admin_token');
-    const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
-    // This is only a registration hint. The database revalidates and locks it at intent creation.
+  const signupDestination = () => {
+    const query = new URLSearchParams(window.location.search);
+    const institutionAdminInvite = query.get('institution_admin_invite');
+    if (institutionAdminInvite) {
+      window.sessionStorage.setItem('unieco_pending_institution_admin_invite', institutionAdminInvite);
+      return `/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`;
+    }
+    const paidLane = accountType === 'student' || accountType === 'external_vendor';
+    const linkedIntent = readRegistrationIntent(query.get('intent'));
+    const incomingReferral = signupReferralCode(query.get('ref'), accountType);
+    const incomingInvite = paidLane && (!linkedIntent || linkedIntent === accountType) ? query.get('invite') : null;
     if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
+    else window.sessionStorage.removeItem('unieco_pending_referral_code');
     if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
+    else window.sessionStorage.removeItem('unieco_pending_registration_invite');
+    // Keep the university-admin bearer token out of URLs and referrer logs.
+    const universityAdminToken = paidLane ? query.get('university_admin_token') : null;
     if (universityAdminToken) window.sessionStorage.setItem('unieco_pending_university_admin_token', universityAdminToken);
+    if (!paidLane) window.sessionStorage.removeItem('unieco_pending_university_admin_token');
+    return withNext('/onboarding', requestedNext);
+  };
+
+  const onSubmit = async (data: SignUpFormData) => {
+    if ((!accountType && !institutionInvite) || googleLoading) return;
+    setAuthError(null);
+    const destination = signupDestination();
     const { error, session } = await signUp(data.email, data.password, {
       full_name: data.full_name,
-      registration_intent: accountType,
+      registration_intent: institutionInvite ? undefined : accountType ?? undefined,
     });
-    if (error) {
-      setAuthError(error);
-    } else {
-      // With email confirmations disabled Supabase returns a session here.
-      // The fallback lets an existing account continue without a confirmation
-      // screen when Supabase returns no session for an already-created user.
-      if (!session) {
-        const signInResult = await signIn(data.email, data.password);
-        if (signInResult.error) {
-          setAuthError('Your account was created, but sign-in is not ready yet. Please try signing in once, then continue registration.');
-          return;
-        }
-      }
-      const referral = incomingReferral;
-      if (institutionAdminInvite) {
-        router.push(`/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`);
-        return;
-      }
-      const inviteQuery = incomingInvite ? `invite=${encodeURIComponent(incomingInvite)}` : '';
-      // The university-admin bearer token stays in sessionStorage; do not put it
-      // into a URL that may be retained in browser history or referrer logs.
-      const studentQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
-      const studentPath = withNext(studentQuery ? `/onboarding/student?${studentQuery}` : '/onboarding/student', requestedNext);
-      const vendorQuery = [referral ? `ref=${encodeURIComponent(referral)}` : '', inviteQuery].filter(Boolean).join('&');
-      const vendorPath = withNext(vendorQuery ? `/onboarding/vendor?${vendorQuery}` : '/onboarding/vendor', requestedNext);
-      router.push(accountType === 'student' ? studentPath : vendorPath);
-    }
+    if (error) setAuthError(error);
+    else if (!session) setConfirmationDestination(destination.startsWith('/institution-admin-invite') ? destination : requestedNext);
+    else router.replace(destination);
   };
 
   const handleGoogle = async () => {
+    if ((!accountType && !institutionInvite) || googleLoading || isSubmitting) return;
     setAuthError(null);
-    const incomingInvite = new URLSearchParams(window.location.search).get('invite');
-    const institutionAdminInvite = new URLSearchParams(window.location.search).get('institution_admin_invite');
-    const incomingReferral = new URLSearchParams(window.location.search).get('ref');
-    const universityAdminToken = new URLSearchParams(window.location.search).get('university_admin_token')
-      || window.sessionStorage.getItem('unieco_pending_university_admin_token');
-    const requestedNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
-    if (incomingReferral) window.sessionStorage.setItem('unieco_pending_referral_code', incomingReferral);
-    if (incomingInvite) window.sessionStorage.setItem('unieco_pending_registration_invite', incomingInvite);
-    if (universityAdminToken) window.sessionStorage.setItem('unieco_pending_university_admin_token', universityAdminToken);
-    if (institutionAdminInvite) window.sessionStorage.setItem('unieco_pending_institution_admin_invite', institutionAdminInvite);
+    const next = signupDestination();
     setGoogleLoading(true);
-    const next = institutionAdminInvite
-      ? `/institution-admin-invite?token=${encodeURIComponent(institutionAdminInvite)}`
-      : (() => {
-          const onboardingParams = new URLSearchParams();
-          if (incomingReferral) onboardingParams.set('ref', incomingReferral);
-          if (incomingInvite) onboardingParams.set('invite', incomingInvite);
-          const onboardingPath = onboardingParams.toString()
-            ? `/onboarding?${onboardingParams.toString()}`
-            : '/onboarding';
-          return withNext(onboardingPath, requestedNext);
-        })();
-    const { error } = await signInWithGoogle({ intent: accountType || 'student', next });
+    const { error } = await signInWithGoogle({ intent: institutionInvite ? undefined : accountType ?? undefined, next });
     if (error) {
       setAuthError(error);
       setGoogleLoading(false);
     }
   };
 
+  if (confirmationDestination !== null) {
+    return <AuthLayout title="Check your email" subtitle="If a confirmation link was sent, open it first. Then sign in to finish setup.">
+      <Button asChild className="min-h-12 w-full"><Link href={withNext('/signin', confirmationDestination)}>Go to sign in</Link></Button>
+    </AuthLayout>;
+  }
+
   return (
     <AuthLayout
       title="Join UniEco Ghana"
-      subtitle="Create your account in less than 2 minutes"
+      subtitle={institutionInvite ? 'Use the email address on your invitation.' : accountType ? undefined : 'Choose how you want to use UniEco.'}
     >
-      <div className="space-y-6">
-        <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
-          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-          <div>
-            <p className="font-semibold text-foreground">Simple and secure</p>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">No email confirmation step. After sign-up, complete your short profile and secure registration payment before entering UniEco Ghana.</p>
-          </div>
-        </div>
-
+      <div className="space-y-5">
         {authError && (
-          <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <span>{authError}</span>
           </div>
         )}
 
         <AnimatePresence mode="wait">
-          {!accountType ? (
+          {!accountType && !institutionInvite ? (
             <motion.div
               key="account-type"
               initial={{ opacity: 0, y: 10 }}
@@ -168,27 +140,7 @@ export default function SignUpPage() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              <p className="text-center text-sm text-muted-foreground">
-                Choose how you will use UniEco. We will guide you through only the details you need.
-              </p>
-
-              <AccountTypeCard
-                icon={GraduationCap}
-                title="Student"
-                description="Discover businesses, shop for products, message vendors, and review businesses on your campus."
-                selected={accountType === 'student'}
-                onClick={() => setAccountType('student')}
-              />
-
-              <AccountTypeCard
-                icon={Store}
-                title="Business"
-                description="Register your business, list products and services, accept orders, and reach students."
-                selected={accountType === 'external_vendor'}
-                onClick={() => setAccountType('external_vendor')}
-              />
-
-              <p className="text-center text-xs text-muted-foreground">Tap Student or Business to continue.</p>
+              <AccountChoices onChoose={setAccountType} sellerInvite={sellerInvite} />
             </motion.div>
           ) : (
             <motion.div
@@ -198,37 +150,19 @@ export default function SignUpPage() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-6"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {accountType === 'student' ? (
-                    <GraduationCap className="h-4 w-4 text-primary" />
-                  ) : (
-                    <Store className="h-4 w-4 text-primary" />
-                  )}
-                  <span className="font-medium text-foreground">
-                    {accountType === 'student' ? 'Student' : 'Business'} Account
-                  </span>
+              {accountType && !institutionInvite && <div className="flex items-center justify-between gap-2 rounded-xl bg-muted/50 px-3 py-1">
+                <div className="min-w-0 py-2">
+                  <p className="text-sm font-semibold">{registrationAccountName(accountType)}</p>
+                  <p className="text-xs text-muted-foreground">{accountType === 'buyer' ? 'Free · No registration payment' : 'One-time fee after your details'}</p>
                 </div>
-                <button
-                  onClick={() => setAccountType(null)}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Change
-                </button>
-              </div>
-
-              <div className="rounded-lg border border-primary/15 bg-primary/5 p-3 text-xs text-muted-foreground">
-                <strong className="text-foreground">Fastest option:</strong> continue with Google. You will not be asked to look for a confirmation email.
-              </div>
-
-              <div className="rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-950">
-                <p className="font-semibold">Registration payment comes next</p>
-                <p className="mt-1 text-xs leading-5">After your short profile details, UniEco will open a secure Paystack checkout with the current one-time registration fee for your account type. Access starts only after payment is confirmed.</p>
-              </div>
+                <Button type="button" variant="ghost" onClick={() => { setAccountType(null); setAuthError(null); }} disabled={googleLoading || isSubmitting} className="min-h-11 shrink-0 px-2 text-primary">
+                  <ArrowLeft className="mr-1 size-3.5" /> Change
+                </Button>
+              </div>}
 
               <Button
                 variant="outline"
-                className="w-full"
+                className="min-h-12 w-full"
                 onClick={handleGoogle}
                 disabled={googleLoading || isSubmitting}
               >
@@ -239,6 +173,10 @@ export default function SignUpPage() {
                 )}
                 Continue with Google
               </Button>
+              <p className="text-xs text-muted-foreground">By continuing with Google, you agree to our{' '}
+                <Link href="/terms-of-service" className="text-primary underline">Terms</Link> and{' '}
+                <Link href="/privacy-policy" className="text-primary underline">Privacy Policy</Link>.
+              </p>
 
               <div className="relative">
                 <Separator />
@@ -255,8 +193,7 @@ export default function SignUpPage() {
                     <Input
                       id="full_name"
                       placeholder="Ama Serwaa"
-                      autoFocus
-                      className="pl-9"
+                      className="h-12 pl-9 text-base"
                       autoComplete="name"
                       {...register('full_name')}
                     />
@@ -274,7 +211,7 @@ export default function SignUpPage() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
-                      className="pl-9"
+                      className="h-12 pl-9 text-base"
                       autoComplete="email"
                       {...register('email')}
                     />
@@ -291,15 +228,15 @@ export default function SignUpPage() {
                     <Input
                       id="password"
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Create a strong password"
-                      className="px-9"
+                      placeholder="At least 8 characters"
+                      className="h-12 pl-9 pr-12 text-base"
                       autoComplete="new-password"
                       {...register('password')}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute inset-y-0 right-0 grid w-12 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
                       aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -318,7 +255,7 @@ export default function SignUpPage() {
                       id="confirmPassword"
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Re-enter your password"
-                      className="pl-9"
+                      className="h-12 pl-9 text-base"
                       autoComplete="new-password"
                       {...register('confirmPassword')}
                     />
@@ -347,9 +284,9 @@ export default function SignUpPage() {
                   <p className="text-xs text-destructive">{errors.terms.message}</p>
                 )}
 
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                <Button type="submit" className="min-h-12 w-full" disabled={isSubmitting || googleLoading}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create account
+                  {isSubmitting ? 'Creating account…' : accountType === 'buyer' ? 'Create free account' : 'Create account'}
                 </Button>
               </form>
             </motion.div>
@@ -358,53 +295,12 @@ export default function SignUpPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Already have an account?{' '}
-          <Link href={withNext('/signin', new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search).get('next'))} className="font-medium text-primary hover:underline">
+          <Link href={withNext('/signin', requestedNext)} className="font-medium text-primary hover:underline">
             Sign in
           </Link>
         </p>
       </div>
     </AuthLayout>
-  );
-}
-
-function AccountTypeCard({
-  icon: Icon,
-  title,
-  description,
-  selected,
-  onClick,
-}: {
-  icon: typeof GraduationCap;
-  title: string;
-  description: string;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      aria-label={`Choose ${title} account`}
-      onClick={onClick}
-      className={`flex w-full items-start gap-4 rounded-xl border p-4 text-left transition-all ${
-        selected
-          ? 'border-primary bg-primary/5 ring-1 ring-primary'
-          : 'border-border hover:border-primary/40 hover:bg-muted/50'
-      }`}
-    >
-      <span
-        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg transition-colors ${
-          selected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-        }`}
-      >
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="flex-1">
-        <p className="font-semibold text-foreground">{title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </div>
-      {selected && <Check className="mt-1 h-5 w-5 shrink-0 text-primary" />}
-    </button>
   );
 }
 

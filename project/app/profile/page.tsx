@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { useAuth } from '@/lib/auth/auth-context';
+import { SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { supabase } from '@/lib/supabase/client';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Button } from '@/components/ui/button';
@@ -49,7 +51,7 @@ export default function ProfilePage() {
 }
 
 function ProfileContent() {
-  const { user, signOut, refreshProfile } = useAuth();
+  const { user, signOut, refreshProfile, registrationAccess } = useAuth();
   const router = useRouter();
   const academicYears = Array.from({ length: new Date().getFullYear() + 13 - 1980 }, (_, index) => new Date().getFullYear() + 12 - index);
   const [saving, setSaving] = useState(false);
@@ -239,7 +241,7 @@ function ProfileContent() {
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Badge variant="secondary">
-                {ROLE_LABELS[user?.role || 'student']}
+                {registrationAccess?.buyer_restricted ? 'Student Buyer' : ROLE_LABELS[user?.role || 'student']}
               </Badge>
               {user?.studentProfile && (
                 <Badge
@@ -286,7 +288,12 @@ function ProfileContent() {
           </div>
         )}
 
-        {user?.role === 'student' || user?.role === 'student_vendor' ? (
+        {registrationAccess?.buyer_restricted && <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+          <div><p className="text-sm font-semibold">Free buyer account</p><p className="mt-1 text-sm text-muted-foreground">Upgrade when you’re ready to sell, post or share a referral link.</p></div>
+          <Button asChild variant="outline" className="min-h-11"><Link href={SELLER_UPGRADE_PATH}>{registrationAccess.seller_upgrade_started ? 'Resume seller setup' : 'Upgrade to seller'}</Link></Button>
+        </div>}
+
+        {!registrationAccess?.buyer_restricted && (user?.role === 'student' || user?.role === 'student_vendor') ? (
           <div className={`mb-6 rounded-2xl border p-4 ${user.studentProfile?.verification_status === 'verified' ? 'border-success/20 bg-success/5' : user.studentProfile?.verification_status === 'rejected' ? 'border-destructive/20 bg-destructive/5' : 'border-primary/20 bg-primary/5'}`}>
             <div className="flex items-start gap-3">
               <ShieldCheck className={`mt-0.5 h-5 w-5 shrink-0 ${user.studentProfile?.verification_status === 'verified' ? 'text-success' : user.studentProfile?.verification_status === 'rejected' ? 'text-destructive' : 'text-primary'}`} />

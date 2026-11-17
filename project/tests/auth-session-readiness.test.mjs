@@ -19,13 +19,11 @@ test('registration access gates recover from network errors and have a bounded w
     read('app/onboarding/complete/page.tsx'),
   ]);
   for (const page of [entry, complete]) {
-    assert.match(page, /Promise\.race\(\[supabase\.rpc\('get_my_registration_access'\), timedOut\]\)/);
-    assert.match(page, /12_000/);
+    assert.match(page, /supabase\.rpc\('get_my_registration_access'\)\.abortSignal\(AbortSignal\.timeout\(10_000\)\)/);
     assert.match(page, /\.catch\(\(\) =>/);
-    assert.match(page, /Try again/);
+    assert.match(page, /Try again|Check again/);
   }
-  assert.match(complete, /defaultDashboard/);
-  assert.match(complete, /safeInternalPath\([\s\S]*?defaultDashboard\)/);
+  assert.match(complete, /safeInternalPath\([\s\S]*?defaultDestination\)/);
 });
 
 test('public anonymous page requests do not wait on a remote auth lookup', async () => {

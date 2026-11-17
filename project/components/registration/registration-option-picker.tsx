@@ -17,6 +17,7 @@ export function RegistrationOptionPicker({
   placeholder,
   searchPlaceholder,
   optional = false,
+  disabled = false,
   onChange,
 }: {
   id: string;
@@ -26,6 +27,7 @@ export function RegistrationOptionPicker({
   placeholder: string;
   searchPlaceholder: string;
   optional?: boolean;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -36,7 +38,7 @@ export function RegistrationOptionPicker({
       <Label htmlFor={id}>{label} {optional && <span className="font-normal text-muted-foreground">(optional)</span>}</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open}
+          <Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} disabled={disabled}
             className="min-h-12 w-full justify-between text-left font-normal touch-manipulation">
             <span className={selected ? 'truncate' : 'truncate text-muted-foreground'}>{selected?.label || placeholder}</span>
             <Search className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -44,7 +46,7 @@ export function RegistrationOptionPicker({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0">
           <Command>
-            <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} />
+            <CommandInput placeholder={searchPlaceholder} aria-label={searchPlaceholder} className="text-base sm:text-sm" />
             <CommandList className="max-h-[min(18rem,calc(100dvh-12rem))]">
               <CommandEmpty>No matching option found.</CommandEmpty>
               {options.map((option) => (

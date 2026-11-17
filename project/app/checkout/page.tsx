@@ -43,7 +43,7 @@ export default function CheckoutPage() {
 
 function CheckoutContent() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, registrationAccess } = useAuth();
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [items, setItems] = useState<CartItem[]>([]);
@@ -64,13 +64,21 @@ function CheckoutContent() {
   // Booking fields for service items
   const [bookingForm, setBookingForm] = useState<Record<string, { date: string; time: string; notes: string }>>({});
   const [paymentProviders, setPaymentProviders] = useState<PaymentProvider[]>([]);
-  const [selectedProvider, setSelectedProvider] = useState('manual');
+  const [providerSelection, setProviderSelection] = useState('');
+  const [providersLoading, setProvidersLoading] = useState(true);
   const [selectedMethod, setSelectedMethod] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
 
   const loadProviders = useCallback(async (isCurrent: () => boolean) => {
-    const provs = await getEnabledPaymentProviders();
-    if (isCurrent()) setPaymentProviders(provs);
+    setProvidersLoading(true);
+    try {
+      const provs = await getEnabledPaymentProviders();
+      if (isCurrent()) setPaymentProviders(provs);
+    } catch {
+      if (isCurrent()) setPaymentProviders([]);
+    } finally {
+      if (isCurrent()) setProvidersLoading(false);
+    }
   }, []);
 
   const loadCart = useCallback(async (isCurrent: () => boolean) => {
@@ -140,6 +148,11 @@ function CheckoutContent() {
   const summary = calculateCartSummary(items, form.deliveryMethod, 0);
   const hasServiceItems = items.some(i => i.service_id);
   const hasProductItems = items.some(i => i.product_id);
+  const availableProviders = paymentProviders.filter((provider) =>
+    provider.name !== 'paystack' || registrationAccess?.can_paystack === true);
+  const selectedProvider = providerSelection
+    ? availableProviders.find((provider) => provider.name === providerSelection)?.name
+    : availableProviders.find((provider) => provider.name === 'manual')?.name ?? availableProviders[0]?.name;
 
   const canProceedFromStep1 = () => {
     if (form.deliveryMethod === 'delivery') {
@@ -163,6 +176,12 @@ function CheckoutContent() {
 
   const handlePlaceOrder = async () => {
     if (!user) { toast.error('Please sign in to checkout'); return; }
+    if (placing) return;
+    if (!selectedProvider || providersLoading || (selectedProvider === 'paystack' && !registrationAccess?.can_paystack)) {
+      setStep(3);
+      toast.error('Choose an available payment method before placing your order.');
+      return;
+    }
     if (!online) { toast.error('You are offline. Please reconnect before placing your order.'); return; }
 
     setPlacing(true);
@@ -216,7 +235,7 @@ function CheckoutContent() {
         return;
       }
       await clearCartItems();
-      toast.info('Order placed. Cash on delivery is awaiting collection; it has not been marked as paid.');
+      toast.info(form.deliveryMethod === 'pickup' ? 'Order placed. Pay when you pick it up.' : 'Order placed. Pay on delivery.');
     } else {
       // Online payment — initiate and await provider confirmation
       if (selectedProvider === 'paystack') {
@@ -232,7 +251,7 @@ function CheckoutContent() {
         window.location.assign(authorizationUrl);
         return;
       }
-      const prov = paymentProviders.find(p => p.name === selectedProvider);
+      const prov = availableProviders.find(p => p.name === selectedProvider);
       const methodObj = prov ? getPaymentMethodsForProvider(prov).find(m => m.id === selectedMethod) : null;
       const { error: payError } = await initiateMarketplacePayment({
         orderId: order.id,
@@ -490,26 +509,28 @@ function CheckoutContent() {
 
                 {/* Provider selection */}
                 <div className="space-y-2">
-                  {paymentProviders.map(p => (
+                  {providersLoading && <p role="status" className="text-sm text-muted-foreground">Checking payment methods…</p>}
+                  {!providersLoading && availableProviders.length === 0 && <p role="alert" className="text-sm text-muted-foreground">No payment methods are available for your account right now. Try again later.</p>}
+                  {!providersLoading && availableProviders.map(p => (
                     <button
                       key={p.name}
-                      onClick={() => { setSelectedProvider(p.name); setSelectedMethod(''); }}
+                      onClick={() => { setProviderSelection(p.name); setSelectedMethod(''); }}
                       className={`w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors ${
                         selectedProvider === p.name ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
                       }`}
                     >
                       {p.supported_methods.includes('mtn_momo') ? <Smartphone className="h-5 w-5 text-primary" /> : <CreditCard className="h-5 w-5 text-primary" />}
                       <div>
-                        <p className="text-sm font-medium text-foreground">{p.display_name}</p>
-                        <p className="text-xs text-muted-foreground">{p.supported_methods.length} methods</p>
+                        <p className="text-sm font-medium text-foreground">{p.name === 'manual' ? 'Pay on receipt' : p.display_name}</p>
+                        {p.name !== 'manual' && <p className="text-xs text-muted-foreground">{p.supported_methods.length} methods</p>}
                       </div>
                     </button>
                   ))}
                 </div>
 
                 {/* Dynamic payment methods */}
-                {selectedProvider !== 'manual' && (() => {
-                  const prov = paymentProviders.find(p => p.name === selectedProvider);
+                {selectedProvider && selectedProvider !== 'manual' && (() => {
+                  const prov = availableProviders.find(p => p.name === selectedProvider);
                   const methods = prov ? getPaymentMethodsForProvider(prov) : [];
                   const selectedMethodObj = methods.find(m => m.id === selectedMethod);
                   const isMobileMoney = selectedMethodObj?.type === 'mobile_money';
@@ -545,7 +566,7 @@ function CheckoutContent() {
                 {selectedProvider === 'manual' && (
                   <div className="rounded-lg bg-info/5 border border-info/20 p-3 text-sm text-info">
                     <Smartphone className="inline h-4 w-4 mr-1" />
-                    Pay with cash on delivery or bank transfer. Your order will be confirmed once payment is verified.
+                    {form.deliveryMethod === 'pickup' ? 'Pay the seller when you pick up your order.' : 'Pay when your order is delivered.'}
                   </div>
                 )}
 
@@ -553,7 +574,7 @@ function CheckoutContent() {
                   <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
-                  <Button onClick={() => setStep(4)} className="flex-1">
+                  <Button onClick={() => { if (selectedProvider) { setProviderSelection(selectedProvider); setStep(4); } }} disabled={providersLoading || !selectedProvider} className="flex-1">
                     Review order <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
@@ -616,7 +637,7 @@ function CheckoutContent() {
                   <Button variant="outline" onClick={() => setStep(3)} className="flex-1">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
-                  <Button onClick={handlePlaceOrder} disabled={placing} className="flex-1" size="lg">
+                  <Button onClick={handlePlaceOrder} disabled={placing || providersLoading || !selectedProvider} className="flex-1" size="lg">
                     {placing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
                     {placing ? 'Placing order...' : `Place order — GH₵${summary.total.toFixed(2)}+`}
                   </Button>

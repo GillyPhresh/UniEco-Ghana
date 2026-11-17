@@ -14,7 +14,6 @@ test('student signup does not request or retain student ID numbers or ID-card fi
   assert.match(onboarding, /studentIdNumber: null/);
   assert.match(onboarding, /studentDocumentPath: null/);
   assert.match(onboarding, /Whitelist current fields so older browser drafts cannot retain ID/);
-  assert.match(onboarding, /You do not need a student ID card or index number to register/);
 });
 
 test('school search fits narrow phones and offers a searchable selection control', async () => {

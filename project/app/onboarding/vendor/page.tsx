@@ -4,13 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { registrationFeeLabel, SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { supabase } from '@/lib/supabase/client';
 import { createIdempotencyKey } from '@/lib/utils/idempotency';
 import { clearRegistrationDraft, readRegistrationDraft, writeRegistrationDraft } from '@/lib/registration/draft';
 import { isValidGhanaPhone, normalizeGhanaPhone } from '@/lib/registration/phone';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { AuthLayout } from '@/components/auth/auth-layout';
-import { PushPermissionCard } from '@/components/notifications/push-permission-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,9 +33,7 @@ import {
   Loader2,
   AlertCircle,
   ArrowRight,
-  Upload,
   Check,
-  Info,
   ArrowLeft,
   MapPin,
   ShieldCheck,
@@ -55,21 +53,32 @@ const VENDOR_STEPS = [
 const DRAFT_PREFIX = 'unieco_vendor_registration_draft';
 
 export default function VendorOnboardingPage() {
-  return (
-    <RouteGuard requireAuth>
-      <VendorOnboarding />
-    </RouteGuard>
-  );
+  return <RouteGuard requireAuth><BusinessRegistrationGate /></RouteGuard>;
+}
+
+function BusinessRegistrationGate() {
+  const router = useRouter();
+  const { user, registrationAccess: access } = useAuth();
+  const studentBusiness = access?.allowed === true && !access.buyer_restricted && access.role === 'student' && user?.studentProfile?.is_verified_student === true;
+  const canRegister = access?.can_pay_vendor_registration === true || studentBusiness ||
+    (access?.role === 'student_vendor' && access.student_business_covered);
+  useEffect(() => {
+    if (canRegister) return;
+    const next = new URLSearchParams(window.location.search).get('next');
+    router.replace(access?.buyer_restricted && access.allowed ? SELLER_UPGRADE_PATH
+      : access?.allowed && access.role === 'student' ? '/start-business'
+      : withNext('/onboarding', next));
+  }, [access, canRegister, router]);
+  if (!canRegister) return <AuthLayout title="Checking your account" showBackLink={false}><Loader2 role="status" aria-label="Checking your account" className="mx-auto animate-spin text-primary" /></AuthLayout>;
+  return <VendorOnboarding />;
 }
 
 function VendorOnboarding() {
-  const { user, refreshProfile, signOut } = useAuth();
+  const { user, registrationAccess, signOut } = useAuth();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploadedDoc, setUploadedDoc] = useState(false);
-  const [isStudent, setIsStudent] = useState(false);
   const [cashInviteToken, setCashInviteToken] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [universityAdminToken, setUniversityAdminToken] = useState<string | null>(null);
@@ -84,6 +93,11 @@ function VendorOnboarding() {
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const paymentAttemptKeyRef = useRef<string | null>(null);
+  const submitLock = useRef(false);
+  const isStudent = user?.vendorProfile?.vendor_type === 'student_vendor'
+    || (user?.role === 'student' && registrationAccess?.allowed === true && user.studentProfile?.is_verified_student === true);
+  const coveredByStudentPayment = isStudent && registrationAccess?.student_business_covered === true;
+  const feeLabel = registrationFeeLabel(registrationAccess?.vendor_fee);
   const [form, setForm] = useState<FormData>({
     business_name: '',
     business_category: '',
@@ -96,13 +110,6 @@ function VendorOnboarding() {
     contact_email: '',
     vendor_type: 'external_vendor',
   });
-
-  useEffect(() => {
-    if (user?.studentProfile) {
-      setIsStudent(true);
-      setForm((prev) => ({ ...prev, vendor_type: 'student_vendor' }));
-    }
-  }, [user]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -146,6 +153,7 @@ function VendorOnboarding() {
   }, [draftReady, form, locationAccuracy, locationCapturedAt, locationSource, mapsLink, mobileMoneyProvider, paymentMethod, pin, step, user?.id]);
 
   useEffect(() => {
+    if (registrationAccess?.buyer_restricted || coveredByStudentPayment) return;
     const params = new URLSearchParams(window.location.search);
     const incomingReferral = params.get('ref') || window.sessionStorage.getItem('unieco_pending_referral_code');
     if (incomingReferral) setReferralCode(incomingReferral);
@@ -164,7 +172,7 @@ function VendorOnboarding() {
       }
       setCashInviteLoading(false);
     });
-  }, []);
+  }, [registrationAccess?.buyer_restricted, coveredByStudentPayment]);
 
   const updateForm = (key: keyof FormData, value: string) => {
     paymentAttemptKeyRef.current = null;
@@ -222,11 +230,12 @@ function VendorOnboarding() {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || submitLock.current) return;
     setError(null);
 
     const normalizedForm = {
       ...form,
+      vendor_type: isStudent ? 'student_vendor' : 'external_vendor',
       business_name: form.business_name.trim(),
       business_category: form.business_category.trim(),
       description: form.description.trim(),
@@ -237,6 +246,7 @@ function VendorOnboarding() {
       contact_phone: normalizeGhanaPhone(form.contact_phone),
       contact_email: (form.contact_email || '').trim(),
     };
+    if (!isValidGhanaPhone(normalizedForm.contact_phone)) { setError('Enter a valid Ghana phone number.'); return; }
     const result = vendorRegistrationSchema.safeParse(normalizedForm);
     if (!result.success) {
       setError(result.error.issues[0]?.message || 'Check all required fields');
@@ -247,9 +257,10 @@ function VendorOnboarding() {
       return;
     }
 
+    submitLock.current = true;
     setSubmitting(true);
     try {
-      if (referralCode) {
+      if (referralCode && !coveredByStudentPayment) {
         const { error: referralError } = await supabase.rpc('attach_my_vendor_referral_code', {
           p_referral_code: referralCode,
         });
@@ -274,7 +285,7 @@ function VendorOnboarding() {
       if (!vendorId) throw new Error('Vendor registration did not return a vendor reference.');
       if (universityAdminToken) {
         const { error: adminTokenError } = await supabase.rpc('claim_university_admin_registration', { p_token: universityAdminToken, p_referred_user_id: user.id, p_registration_type: 'vendor' });
-        if (adminTokenError) throw new Error(adminTokenError.message);
+        if (adminTokenError) console.warn('[business-registration] campus attribution could not be attached', { code: adminTokenError.code });
       }
       const { error: locationError } = await supabase.rpc('set_my_vendor_location', {
         p_vendor_id: vendorId,
@@ -289,6 +300,16 @@ function VendorOnboarding() {
       });
       if (locationError) throw new Error(locationError.message);
 
+      if (coveredByStudentPayment) {
+        const { error: coverageError } = await supabase.rpc('confirm_student_seller_business_coverage', { p_vendor_id: vendorId });
+        if (coverageError) throw new Error('Your details were saved, but we couldn’t confirm that your existing seller payment covers this business. No new payment was started.');
+        clearDraft();
+        window.sessionStorage.removeItem('unieco_pending_referral_code');
+        window.sessionStorage.removeItem('unieco_pending_registration_invite');
+        window.location.assign('/onboarding/complete?registration=paid&next=%2Fvendor-dashboard%2Fverification');
+        return;
+      }
+
       if (cashInviteToken) {
         const { error: cashError } = await supabase.rpc('redeem_cash_vendor_registration', {
           p_token: cashInviteToken,
@@ -299,8 +320,7 @@ function VendorOnboarding() {
         window.sessionStorage.removeItem('unieco_pending_referral_code');
         window.sessionStorage.removeItem('unieco_pending_university_admin_token');
         clearDraft();
-        await refreshProfile();
-        router.push(withNext('/onboarding/complete?registration=cash', new URLSearchParams(window.location.search).get('next')));
+        window.location.assign(withNext('/onboarding/complete?registration=cash', new URLSearchParams(window.location.search).get('next')));
         return;
       }
 
@@ -333,7 +353,6 @@ function VendorOnboarding() {
         throw new Error(paymentResult.error || 'Payment checkout could not be started. Your business details are saved; please retry shortly.');
       }
 
-      await refreshProfile();
       clearDraft();
       const registrationNext = safeInternalPath(new URLSearchParams(window.location.search).get('next'));
       if (registrationNext !== '/') window.sessionStorage.setItem('unieco_registration_next', registrationNext);
@@ -345,65 +364,27 @@ function VendorOnboarding() {
         return;
       }
       if (paymentResult.mobileMoney) {
-        router.push(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
+        window.location.assign(`/payments/callback?reference=${encodeURIComponent(paymentResult.reference)}&channel=mobile_money`);
       } else if (paymentResult.authorizationUrl) {
         window.location.assign(paymentResult.authorizationUrl);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Try again.');
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };
 
-  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Choose a verification document smaller than 5 MB.');
-      e.target.value = '';
-      return;
-    }
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      setError('Upload an image or PDF verification document.');
-      e.target.value = '';
-      return;
-    }
-    const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin';
-    const path = `${user.id}/vendor-verification-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage
-      .from('vendor-documents')
-      .upload(path, file);
-    if (error) {
-      setError('Could not upload the document. Try again.');
-      return;
-    }
-    setUploadedDoc(true);
-  };
-
   return (
     <AuthLayout
-      title="Register your business"
-      subtitle={
-        isStudent
-          ? 'Turn your student hustle into a verified campus business'
-          : 'About 3 minutes · your progress is saved on this device'
-      }
+      title={isStudent ? 'Set up your student business' : 'Register your business'}
+      subtitle="Add your business details and location."
       backHref="/signin"
       backLabel="Sign out"
       onBackClick={handleSignOut}
     >
       <div className="space-y-6">
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">Build trust from day one</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">Your business is reviewed before it is published. Payment activates access; it does not bypass verification.</p>
-            </div>
-          </div>
-        </div>
-
         {draftRestored && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
             <span><strong>Welcome back.</strong> Your unfinished business registration has been restored.</span>
@@ -429,26 +410,17 @@ function VendorOnboarding() {
           })}
         </div>
 
-        {isStudent && (
-          <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
-            <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-            <span className="text-foreground">
-              Since you are a verified student, your business will be registered as a
-              <strong> Student Business</strong>. You will get a &ldquo;Verified Student
-              Business&rdquo; badge after approval.
-            </span>
-          </div>
-        )}
-
-        {cashInviteToken ? (
+        {coveredByStudentPayment ? (
+          <p className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">Your student seller payment covers this setup. No additional registration fee.</p>
+        ) : cashInviteToken ? (
           <div className="rounded-lg border border-emerald-300/70 bg-emerald-50 p-3 text-sm text-emerald-950">
             <p className="font-semibold">Cash registration approved</p>
-            <p className="mt-1">This one-time link was issued by UniEco Ghana administration. You will not be sent to Paystack.</p>
+            <p className="mt-1">Complete your details. No online payment is needed.</p>
           </div>
         ) : (
           <div className="rounded-lg border border-amber-300/60 bg-amber-50 p-3 text-sm text-amber-950">
-            <p className="font-semibold">Registration payment required</p>
-            <p className="mt-1">Complete the one-time business registration payment after submitting these details. Your vendor access starts only after Paystack confirms the payment.</p>
+            <p className="font-semibold">{feeLabel ? `One-time registration · ${feeLabel}` : 'One-time business registration fee'}</p>
+            <p className="mt-1">Pay after adding your details. Businesses are reviewed before going live.</p>
           </div>
         )}
 
@@ -635,38 +607,9 @@ function VendorOnboarding() {
             <button type="button" onClick={() => setStep(0)} className="mt-3 text-xs font-semibold text-primary underline underline-offset-2">Edit business details</button>
           </div>
 
-          <div className="space-y-2">
-            <Label>Verification document (optional)</Label>
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-primary">
-              {uploadedDoc ? (
-                <>
-                  <Check className="h-4 w-4 text-success" /> Document uploaded
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" /> Upload business registration or ID
-                </>
-              )}
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={handleDocUpload}
-                className="hidden"
-              />
-            </label>
-            <p className="text-xs text-muted-foreground">
-              A business registration document or ID helps speed up your approval
-            </p>
-          </div>
+          <p className="text-xs text-muted-foreground">Submit verification documents from your business dashboard after setup.</p>
 
-          {!cashInviteToken && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm text-foreground">
-            Registration fee is shown securely at Paystack checkout. Choose Paystack checkout or send
-            a direct Mobile Money prompt after submitting your business details. Your
-            vendor access starts only after the payment is verified.
-          </div>}
-          {!cashInviteToken && <PushPermissionCard onboarding />}
-
-          {!cashInviteToken && (
+          {!cashInviteToken && !coveredByStudentPayment && (
             <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
               <div>
                 <p className="text-sm font-semibold text-foreground">Choose how to pay</p>
@@ -695,9 +638,9 @@ function VendorOnboarding() {
             </div>
           )}
 
-          <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="w-full">
+          <Button onClick={handleSubmit} disabled={submitting || cashInviteLoading} className="min-h-12 w-full">
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt' : 'Pay securely and continue'}
+            {coveredByStudentPayment ? 'Save business details' : cashInviteToken ? 'Complete cash registration' : paymentMethod === 'mobile_money' ? 'Send Mobile Money prompt' : feeLabel ? `Pay ${feeLabel}` : 'Continue to Paystack'}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
           <Button variant="outline" onClick={handleBack} disabled={submitting} className="w-full"><ArrowLeft className="mr-2 h-4 w-4" />Back to edit details</Button>

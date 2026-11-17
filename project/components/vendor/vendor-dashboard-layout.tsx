@@ -41,6 +41,7 @@ export function VendorSidebar({ vendorName, isVerified, subscriptionStatus }: {
   subscriptionStatus: string;
 }) {
   const pathname = usePathname();
+  const { registrationAccess } = useAuth();
 
   return (
     <nav className="flex flex-col gap-1">
@@ -69,13 +70,16 @@ export function VendorSidebar({ vendorName, isVerified, subscriptionStatus }: {
       </div>
 
       {NAV_ITEMS.map((item) => {
-        const isActive = pathname === item.href ||
+        const href = item.href === '/vendor-dashboard/referrals' && !registrationAccess?.can_vendor_referral
+          ? registrationAccess?.can_student_referral ? '/dashboard/referrals' : null : item.href;
+        if (!href) return null;
+        const isActive = pathname === href ||
           (item.href !== '/vendor-dashboard' && pathname.startsWith(item.href));
 
         return (
           <Link
             key={item.href}
-            href={item.href}
+            href={href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
               isActive
                 ? 'bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10'

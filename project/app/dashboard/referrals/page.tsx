@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { RouteGuard } from '@/lib/auth/route-guard';
+import { useAuth } from '@/lib/auth/auth-context';
+import { SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Gift, Copy, Share2, MessageCircle, Loader2, TrendingUp } from 'lucide-react';
@@ -13,6 +16,24 @@ type Summary = { code: string | null; successful_referrals: number; pending_amou
 const CURRENCY = 'GH\u20B5';
 
 export default function StudentReferralsPage() {
+  return <RouteGuard requireAuth><StudentReferralAccess /></RouteGuard>;
+}
+
+function StudentReferralAccess() {
+  const { registrationAccess } = useAuth();
+  if (!registrationAccess?.can_student_referral) {
+    return <main className="mx-auto max-w-lg px-4 py-12"><Card><CardContent className="space-y-4 p-5">
+      <h1 className="text-xl font-bold">Student referral links</h1>
+      <p className="text-sm text-muted-foreground">{registrationAccess?.buyer_restricted
+        ? 'Referral links are for student sellers. Your free buyer account is still active.'
+        : 'A verified student seller payment is required for student referrals.'}</p>
+      <Button asChild className="min-h-11"><Link href={registrationAccess?.buyer_restricted ? SELLER_UPGRADE_PATH : '/profile'}>{registrationAccess?.buyer_restricted ? 'See seller options' : 'Back to profile'}</Link></Button>
+    </CardContent></Card></main>;
+  }
+  return <StudentReferralDashboard />;
+}
+
+function StudentReferralDashboard() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [link, setLink] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
@@ -63,7 +84,7 @@ export default function StudentReferralsPage() {
   };
   const money = (value: number) => `${CURRENCY}${Number(value || 0).toFixed(2)}`;
 
-  return <RouteGuard requireAuth><main className="min-h-screen bg-background pb-20"><div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
+  return <main className="min-h-screen bg-background pb-20"><div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
     <header><h1 className="font-display text-2xl font-bold">Grow UniEco with your network</h1><p className="mt-1 text-sm text-muted-foreground">Share UniEco Ghana with students you know and earn {CURRENCY}2 for every eligible registration. The more you share, the more you can earn.</p></header>
     {error && <Card><CardContent className="p-5 text-sm text-destructive">{error}</CardContent></Card>}
     {!summary && !error && <div className="flex items-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading your referral information...</div>}
@@ -84,7 +105,7 @@ export default function StudentReferralsPage() {
       <Card><CardHeader><CardTitle>Keep sharing, keep growing</CardTitle></CardHeader><CardContent><p className="text-sm text-muted-foreground">Every eligible referral helps another student discover UniEco Ghana and can earn {CURRENCY}2. Rewards move from in progress to available after the review period. Available rewards of at least the minimum shown above may be grouped into weekly Mobile Money payouts after payout setup and production processing are enabled. Check the payout history for current status.</p></CardContent></Card>
       <Card><CardHeader><CardTitle>How your rewards grow</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground"><ul className="list-disc space-y-1 pl-5"><li>Share your link with classmates, friends, and students across Ghana.</li><li>Eligible student referrals are recorded after registration payment and student verification are confirmed.</li><li>Rewards remain in progress during the review period, then appear as available when eligible.</li><li>Available rewards are tracked separately from payouts already made.</li><li>Self-referrals, duplicates, and fraudulent registrations do not qualify.</li></ul></CardContent></Card>
     </>}
-  </div></main></RouteGuard>;
+  </div></main>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 text-xl font-semibold">{value}</p></CardContent></Card>; }

@@ -228,7 +228,7 @@ function FeedSkeleton() {
 }
 
 export function CampusCommunityFeed() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, registrationAccess } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [socialByPost, setSocialByPost] = useState<Record<string, CommunitySocialState>>({});
   const [loading, setLoading] = useState(true);
@@ -271,10 +271,12 @@ export function CampusCommunityFeed() {
   const touchOrigin = useRef<{ x: number; y: number } | null>(null);
   const pullReadyRef = useRef(false);
 
-  const canPost = Boolean(user && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
+  const canPost = registrationAccess?.can_publish === true;
+  const showPostEntry = !authLoading && (!user || canPost);
+  const canFollow = Boolean(user && registrationAccess?.allowed && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
   const universityId = user?.profile?.university_id;
   const hasUniversity = Boolean(universityId);
-  const allowedScope = (selectedScope === 'university' && !hasUniversity) || (selectedScope === 'following' && !canPost) ? null : selectedScope;
+  const allowedScope = (selectedScope === 'university' && !hasUniversity) || (selectedScope === 'following' && !canFollow) ? null : selectedScope;
   const scope = linkedPostId ? 'all' : allowedScope ?? (hasUniversity ? 'university' : 'all');
   const feedCacheKey = `unieco:community-feed:v2:${user?.id ?? 'guest'}:${scope}:${universityId ?? 'none'}`;
   const viewKey = `${feedCacheKey}:${linkedPostId ?? ''}`;
@@ -298,9 +300,9 @@ export function CampusCommunityFeed() {
     if (canPost) {
       composerOrigin.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
       setPostOpen(true);
-    } else if (user) toast.info('Your account cannot publish campus posts.');
+    } else if (user) toast.info(registrationAccess?.buyer_restricted ? 'Campus posts are available to sellers.' : 'Your account cannot publish campus posts.');
     else window.location.assign('/signin?next=%2F%3FcreatePost%3D1');
-  }, [authLoading, canPost, user]);
+  }, [authLoading, canPost, registrationAccess?.buyer_restricted, user]);
 
   useEffect(() => {
     window.addEventListener('unieco:open-post-composer', openComposer);
@@ -662,7 +664,7 @@ export function CampusCommunityFeed() {
   const selectedVideo = mediaFile ? isVideoUploadCandidate(mediaFile) : false;
   const scopes: { id: FeedScope; label: string }[] = [{ id: 'all', label: 'Across Ghana' }];
   if (hasUniversity) scopes.push({ id: 'university', label: 'My campus' });
-  if (canPost) scopes.push({ id: 'following', label: 'Following' });
+  if (canFollow) scopes.push({ id: 'following', label: 'Following' });
 
   return (
     <div className="campus-feed-surface min-h-[80dvh] bg-background" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
@@ -694,7 +696,7 @@ export function CampusCommunityFeed() {
                 </div>
                 <div className="flex shrink-0 items-center gap-1 sm:gap-2">
                   {user && <Link href="/community/saved" aria-label="Saved posts" title="Saved posts" className="grid h-11 w-11 place-items-center rounded-full border border-border bg-card/80 transition hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><Bookmark className="h-5 w-5" /></Link>}
-                  <Button type="button" onClick={openComposer} disabled={authLoading} className="min-h-11 gap-1.5 rounded-full px-3 text-sm font-bold sm:px-4"><Plus className="h-[18px] w-[18px] shrink-0" /><span>Post</span></Button>
+                  {showPostEntry && <Button type="button" onClick={openComposer} className="min-h-11 gap-1.5 rounded-full px-3 text-sm font-bold sm:px-4"><Plus className="h-[18px] w-[18px] shrink-0" /><span>Post</span></Button>}
                 </div>
               </div>
             </div>
@@ -713,13 +715,13 @@ export function CampusCommunityFeed() {
               {moments.length > 0 && <p className="shrink-0 text-[11px] font-medium text-muted-foreground">From the feed</p>}
             </div>
             <div className="-mx-1 mt-2 flex snap-x gap-2 overflow-x-auto px-1 pb-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
-              <button type="button" onClick={openComposer} disabled={authLoading} className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+              {showPostEntry && <button type="button" onClick={openComposer} className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                 <span className="relative grid h-[3.6rem] w-[3.6rem] place-items-center rounded-full border border-dashed border-primary/55 bg-primary/10 transition group-hover:bg-primary/15">
                   {user?.profile?.avatar_url ? <Avatar className="h-12 w-12"><AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" /><AvatarFallback className="bg-primary/10 text-primary"><ImagePlus className="h-5 w-5" /></AvatarFallback></Avatar> : <ImagePlus className="h-6 w-6 text-primary" />}
                   <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"><Plus className="h-3.5 w-3.5" /></span>
                 </span>
                 <span>New moment</span>
-              </button>
+              </button>}
               {moments.map((post) => <button key={post.id} type="button" onClick={() => focusPost(post.id)} aria-label={`Go to ${post.author_name}’s ${post.media_type === 'image' ? 'photo' : 'video'}`}
                 className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
                 <span className="relative rounded-full bg-gradient-to-tr from-amber-400 via-emerald-500 to-teal-600 p-[2px] transition group-hover:brightness-110">
@@ -731,7 +733,7 @@ export function CampusCommunityFeed() {
                 </span>
                 <span className="w-full truncate px-0.5">{post.author_name}</span>
               </button>)}
-              {!moments.length && <p className="my-auto max-w-xs px-1 text-xs leading-5 text-muted-foreground">Share a photo or a short video from campus.</p>}
+              {!moments.length && <p className="my-auto max-w-xs px-1 text-xs leading-5 text-muted-foreground">{showPostEntry ? 'Share a photo or a short video from campus.' : 'New campus photos and videos will appear here.'}</p>}
             </div>
           </div>
 
@@ -749,9 +751,9 @@ export function CampusCommunityFeed() {
               : !visiblePosts.length ? <div className="flex min-h-56 flex-col items-center justify-center gap-2 bg-card px-5 text-center sm:rounded-2xl sm:border">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">{scope === 'following' ? <UsersRound className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}</span>
                 <h2 className="mt-1 text-lg font-bold">{scope === 'following' ? 'Nothing from your follows yet' : 'No posts here yet'}</h2>
-                <p className="max-w-xs text-sm leading-6 text-muted-foreground">{scope === 'following' ? 'Find people in Across Ghana and follow the ones you’d like to see here.' : 'Share a moment, or see what’s happening across Ghana.'}</p>
+                <p className="max-w-xs text-sm leading-6 text-muted-foreground">{scope === 'following' ? 'Find people in Across Ghana and follow the ones you’d like to see here.' : showPostEntry ? 'Share a moment, or see what’s happening across Ghana.' : 'Check back for new campus posts.'}</p>
                 {scope !== 'all' ? <Button type="button" variant="outline" className="mt-2 min-h-11 rounded-full" onClick={() => changeScope('all')}>Browse Across Ghana</Button>
-                  : <Button type="button" onClick={openComposer} disabled={authLoading} className="mt-2 min-h-11 rounded-full">Create a post</Button>}
+                  : showPostEntry && <Button type="button" onClick={openComposer} className="mt-2 min-h-11 rounded-full">Create a post</Button>}
               </div>
               : visiblePosts.map((post) => <CommunityPostCard key={post.id} post={post} priority={leadPhoto === post.id}
                 socialState={socialByPost[post.id] ?? (scope === 'following' && post.id !== linkedPostId ? followingSocialState : emptyCommunitySocialState)}
@@ -809,7 +811,7 @@ export function CampusCommunityFeed() {
         </aside>
       </div>
 
-      <Dialog open={postOpen} onOpenChange={closePostDialog}>
+      <Dialog open={postOpen && canPost} onOpenChange={closePostDialog}>
         <DialogContent onCloseAutoFocus={(event) => { if (composerOrigin.current?.isConnected) { event.preventDefault(); composerOrigin.current.focus(); } }}
           onOpenAutoFocus={(event) => { event.preventDefault(); if (event.currentTarget instanceof HTMLElement) event.currentTarget.focus(); }}
           className="campus-feed-surface max-h-[min(92dvh,48rem)] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl p-4 max-sm:!bottom-0 max-sm:!left-0 max-sm:!top-auto max-sm:!w-full max-sm:!max-w-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!rounded-b-none sm:max-w-lg sm:p-6">

@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getSupabaseConfig } from './config';
 import { safeInternalPath } from '@/lib/auth/redirects';
+import { parseRegistrationAccess, SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { getModeratorPermissionForAdminPath } from '@/lib/auth/admin-route-policy';
 
 type CookieToSet = {
@@ -154,19 +155,30 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && (isPaymentProtectedRoute || pathname === '/') && !paymentGateExcluded) {
-    const { data: access, error: accessError } = await supabase.rpc('get_my_registration_access');
+    const { data, error: accessError } = await supabase.rpc('get_my_registration_access');
+    const access = !accessError ? parseRegistrationAccess(data) : null;
+    const vendorWorkspace = pathname === '/vendor-dashboard' || pathname.startsWith('/vendor-dashboard/');
     // Fail closed when the authoritative access check cannot be completed.
     // A transient database/RPC error must never turn into platform access for
     // an account whose payment state is unknown.
-    if (accessError || !access || access.allowed !== true) {
-      const target = access?.role === 'student' ? '/onboarding/student' : '/onboarding/vendor';
+    if (!access?.allowed || (vendorWorkspace && access.buyer_restricted)) {
+      const target = access?.allowed && access.buyer_restricted ? SELLER_UPGRADE_PATH : access?.registration_path ?? '/onboarding';
       const paymentUrl = request.nextUrl.clone();
       paymentUrl.pathname = target;
       paymentUrl.search = '';
-      paymentUrl.searchParams.set('payment_required', '1');
-      paymentUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
+      if (target !== SELLER_UPGRADE_PATH) paymentUrl.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
       const response = NextResponse.redirect(paymentUrl);
+      supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
       response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      response.headers.set('Cache-Control', 'private, no-store, max-age=0');
+      return response;
+    }
+    if (pathname === '/vendor-dashboard/referrals' && !access.can_vendor_referral && access.can_student_referral) {
+      const referralUrl = request.nextUrl.clone();
+      referralUrl.pathname = '/dashboard/referrals';
+      referralUrl.search = '';
+      const response = NextResponse.redirect(referralUrl);
+      supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie));
       response.headers.set('Cache-Control', 'private, no-store, max-age=0');
       return response;
     }

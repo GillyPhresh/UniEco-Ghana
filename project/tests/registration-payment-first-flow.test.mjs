@@ -13,7 +13,7 @@ test('student registration starts the authoritative Paystack flow before activat
   ]);
   assert.match(student, /startPaystackCheckout/);
   assert.match(student, /purpose: 'student_registration'/);
-  assert.match(student, /Pay securely and continue/);
+  assert.match(student, /Continue to Paystack/);
   assert.doesNotMatch(student, /Complete free registration/);
   assert.match(payments, /begin_student_registration_payment/);
   assert.match(migration, /payment.status = 'success'/);
@@ -52,9 +52,9 @@ test('registration access fails closed and completion cannot be opened without v
     read('lib/supabase/middleware.ts'),
     read('app/onboarding/complete/page.tsx'),
   ]);
-  assert.match(middleware, /if \(accessError \|\| !access \|\| access\.allowed !== true\)/);
+  assert.match(middleware, /if \(!access\?\.allowed \|\| \(vendorWorkspace && access\.buyer_restricted\)\)/);
   assert.match(complete, /get_my_registration_access/);
-  assert.match(complete, /!\['paid', 'cash'\]\.includes/);
+  assert.match(complete, /state\.allowed !== true \|\| !\['paid', 'cash_verified', 'free_buyer'\]\.includes\(state\.status\)/);
 });
 
 test('vendor payment verification follows the configured fee snapshot', async () => {
