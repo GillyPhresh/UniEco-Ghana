@@ -107,6 +107,7 @@ function PaymentCallbackContent() {
     <div className="mt-6 flex flex-wrap justify-center gap-2">
       {reference && !checking && !successful && !failed && <Button type="button" onClick={() => setRetry((value) => value + 1)}>Check payment again</Button>}
       <Button asChild variant={!successful && !failed ? 'outline' : 'default'}><Link href={actionHref}>{actionLabel}</Link></Button>
+      {successful && <Button asChild variant="outline"><Link prefetch={false} href="/dashboard/transactions?show=receipts">View receipts</Link></Button>}
     </div>
   </section></main>;
 }

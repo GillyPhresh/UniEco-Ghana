@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { SiteHeader } from '@/components/layout/site-header';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
 import { CourierOrderPanel } from '@/components/courier/courier-order-panel';
+import { OrderDocumentLinks } from '@/components/transactions/order-document-links';
 import {
   getVendorOrders, updateOrderStatus, rejectOrder, updateBookingStatus,
   updateVendorOrderNotes,
@@ -137,6 +139,9 @@ function VendorOrdersContent() {
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Orders</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage incoming orders and bookings.</p>
+        <Button asChild variant="outline" className="mt-3 min-h-11">
+          <Link prefetch={false} href="/dashboard/transactions?show=sales">Sales invoices &amp; receipts</Link>
+        </Button>
       </div>
 
       {/* Pending alert */}
@@ -350,6 +355,7 @@ function VendorOrdersContent() {
                 })}
               </div>
 
+              <OrderDocumentLinks orderId={selectedOrder.id} />
               {selectedOrder.delivery_method === 'delivery' && selectedOrder.order_type === 'product' && <CourierOrderPanel orderId={selectedOrder.id} />}
 
               {/* Vendor notes */}

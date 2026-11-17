@@ -36,12 +36,13 @@ test('Resend routes transactional, support, and no-reply messages to their corre
 test('public and payment documents use domain contact addresses instead of personal Gmail or stale domains', async () => {
   const paths = [
     'app/privacy-policy/page.tsx', 'app/terms-of-service/page.tsx', 'app/code-of-conduct/page.tsx',
-    'lib/data/payment-client.ts', 'supabase/functions/send-email/university-admin-documents.ts',
+    'app/dashboard/transactions/[kind]/[id]/page.tsx', 'supabase/functions/send-email/university-admin-documents.ts',
   ];
   const files = await Promise.all(paths.map(read));
   for (const source of files) {
     assert.doesNotMatch(source, /info\.uniecoghana@gmail\.com|support@unieco\.gh/);
   }
-  assert.match(files[3], /support@uniecoghana\.com/);
+  assert.match(files[3], /mailto:\$\{businessEmail\.support\}/);
+  assert.match(await read('lib/constants/business-email.ts'), /support: 'support@uniecoghana\.com'/);
   assert.match(files[4], /info@uniecoghana\.com/);
 });

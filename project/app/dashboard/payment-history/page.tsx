@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { exportToCsv } from '@/lib/data/payment-client';
 import { useUserPaymentHistory } from '@/hooks/use-user-payment-history';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
+import { transactionDocumentHref, receiptPaymentStatuses, documentMoney } from '@/lib/transactions/documents';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Download, Wallet, Search } from 'lucide-react';
 
@@ -48,7 +49,10 @@ function Content() {
             <p className="mt-1 text-sm text-muted-foreground">{payments.length} transactions</p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={loading || !!error || payments.length === 0} className="w-full sm:w-auto"><Download className="mr-2 h-4 w-4" /> Export</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="min-h-11"><Link prefetch={false} href="/dashboard/transactions?show=receipts">Receipts &amp; invoices</Link></Button>
+            <Button variant="outline" className="min-h-11" onClick={handleExport} disabled={loading || !!error || payments.length === 0}><Download className="mr-2 h-4 w-4" /> Export</Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -81,10 +85,13 @@ function Content() {
                 <TableBody>
                   {payments.map(p => (
                     <TableRow key={p.id}>
-                      <TableCell className="font-mono text-xs">{p.payment_reference || '—'}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {p.payment_reference || '—'}
+                        {receiptPaymentStatuses.has(p.status) && <Link prefetch={false} href={transactionDocumentHref('receipt', p.id)} className="mt-1 block font-sans font-semibold text-primary underline underline-offset-2">View receipt</Link>}
+                      </TableCell>
                       <TableCell className="text-sm capitalize">{p.provider}</TableCell>
                       <TableCell><Badge variant="outline" className="capitalize">{p.payment_type}</Badge></TableCell>
-                      <TableCell className="font-medium">GH₵{p.amount.toFixed(2)}</TableCell>
+                      <TableCell className="font-medium">{documentMoney(p.amount, p.currency)}</TableCell>
                       <TableCell><Badge className={PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.color || 'bg-muted text-muted-foreground'}>{PAYMENT_STATUSES[p.status as keyof typeof PAYMENT_STATUSES]?.label || p.status}</Badge></TableCell>
                       <TableCell className="text-xs text-muted-foreground">{new Date(p.created_at).toLocaleDateString('en-GH')}</TableCell>
                     </TableRow>

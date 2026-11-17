@@ -263,6 +263,11 @@
   }
 }
 
+@media print {
+  body:has(> [data-transaction-document]) { padding: 0 !important; background: white !important; }
+  body:has(> [data-transaction-document]) > :not([data-transaction-document]) { display: none !important; }
+}
+
 @keyframes shimmer {
   0% { background-position: -1000px 0; }
   100% { background-position: 1000px 0; }

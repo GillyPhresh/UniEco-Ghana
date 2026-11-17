@@ -184,13 +184,19 @@ test('payment and role management surfaces provide phone-sized representations',
     'app/admin/roles/page.tsx',
     'app/vendor-dashboard/financial/page.tsx',
     'app/vendor-dashboard/payment-history/page.tsx',
-    'app/vendor-dashboard/invoices/page.tsx',
   ];
   for (const page of pages) {
     const source = await read(page);
     assert.match(source, /lg:hidden/, `${page} is missing a mobile representation`);
     assert.match(source, /hidden[^"\n]*lg:block/, `${page} is missing a desktop representation`);
   }
+  const oldInvoices = await read('app/vendor-dashboard/invoices/page.tsx');
+  const documents = await read('app/dashboard/transactions/page.tsx');
+  assert.match(oldInvoices, /redirect\('\/dashboard\/transactions\?show=invoices'\)/);
+  assert.match(documents, /label: 'Platform invoices'/);
+  assert.match(documents, /<ul className="overflow-hidden rounded-xl border bg-card"/);
+  assert.match(documents, /min-h-16 items-center/);
+  assert.match(documents, /break-words text-sm font-semibold/);
 });
 
 test('admin can retry provider verification for reconciliation-required payments', async () => {

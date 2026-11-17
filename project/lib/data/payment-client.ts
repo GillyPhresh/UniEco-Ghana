@@ -4,9 +4,9 @@ import { supabase } from '@/lib/supabase/client';
 import { normalizeSearchTerm } from '@/lib/utils/search';
 import type { Subscription } from '@/lib/types';
 import type {
-  PaymentRecord, PaymentProvider, Invoice, InvoiceItem,
+  PaymentRecord, PaymentProvider,
   AdminPayment, AdminInvoice, Coupon,
-  Receipt, AdminRefund, TransactionAuditEntry, PaymentStatusEvent,
+  AdminRefund, TransactionAuditEntry, PaymentStatusEvent,
   VendorFinancialSummary, AdminFinancialSummary,
 } from '@/lib/types/payment';
 
@@ -244,36 +244,6 @@ export async function reactivateSubscription(subId: string): Promise<{ error: st
 // ============================================================
 // Invoices
 // ============================================================
-export async function getUserInvoices(): Promise<Invoice[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data } = await supabase
-    .from('invoices')
-    .select(`
-      *,
-      items:invoice_items(*),
-      vendor:vendors(business_name)
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-
-  return (data || []) as unknown as Invoice[];
-}
-
-export async function getInvoiceById(invoiceId: string): Promise<Invoice | null> {
-  const { data } = await supabase
-    .from('invoices')
-    .select(`
-      *,
-      items:invoice_items(*),
-      vendor:vendors(business_name)
-    `)
-    .eq('id', invoiceId)
-    .maybeSingle();
-  return data as unknown as Invoice | null;
-}
-
 export async function getAdminInvoices(params: {
   status?: string;
   limit?: number;
@@ -413,161 +383,6 @@ export function exportToCsv(data: Record<string, unknown>[], filename: string): 
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-}
-
-// ============================================================
-// Invoice PDF generation (client-side text-based printable)
-// ============================================================
-export function generateInvoicePrintable(invoice: Invoice): string {
-  const items = invoice.items || [];
-  const itemRows = items.map(item => `
-    <tr>
-      <td>${item.description}</td>
-      <td style="text-align:center">${item.quantity}</td>
-      <td style="text-align:right">GH₵${item.unit_price.toFixed(2)}</td>
-      <td style="text-align:right">GH₵${item.total_price.toFixed(2)}</td>
-    </tr>`).join('');
-
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Invoice ${invoice.invoice_number}</title>
-<style>
-  body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1a1a1a; max-width: 800px; margin: 0 auto; }
-  .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
-  .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
-  .invoice-meta { text-align: right; font-size: 14px; }
-  .invoice-meta h2 { margin: 0 0 8px 0; font-size: 28px; }
-  .bill-to { margin-bottom: 30px; }
-  .bill-to h3 { font-size: 12px; text-transform: uppercase; color: #666; margin-bottom: 8px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
-  th { text-align: left; padding: 12px; background: #f8f9fa; font-size: 12px; text-transform: uppercase; color: #666; }
-  td { padding: 12px; border-bottom: 1px solid #eee; font-size: 14px; }
-  .totals { margin-left: auto; width: 300px; }
-  .totals tr td { border: none; padding: 8px 12px; }
-  .totals .total { font-size: 18px; font-weight: bold; border-top: 2px solid #1a1a1a; }
-  .footer { margin-top: 60px; font-size: 12px; color: #999; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div>
-      <div class="logo">UniEco Ghana</div>
-      <p style="font-size:12px;color:#666">University Ecosystem Platform</p>
-    </div>
-    <div class="invoice-meta">
-      <h2>INVOICE</h2>
-      <p><strong>${invoice.invoice_number}</strong></p>
-      <p>Date: ${new Date(invoice.created_at).toLocaleDateString('en-GH')}</p>
-      <p>Status: ${invoice.status.toUpperCase()}</p>
-    </div>
-  </div>
-  <div class="bill-to">
-    <h3>Bill To</h3>
-    <p>${invoice.billing_name || '—'}</p>
-    <p>${invoice.billing_email || ''}</p>
-    <p>${invoice.billing_phone || ''}</p>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Unit Price</th>
-        <th style="text-align:right">Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemRows || '<tr><td colspan="4" style="text-align:center">No items</td></tr>'}
-    </tbody>
-  </table>
-  <table class="totals">
-    <tr><td>Subtotal</td><td style="text-align:right">GH₵${invoice.amount.toFixed(2)}</td></tr>
-    <tr><td>Tax</td><td style="text-align:right">GH₵${invoice.tax_amount.toFixed(2)}</td></tr>
-    <tr class="total"><td>Total</td><td style="text-align:right">GH₵${invoice.total_amount.toFixed(2)}</td></tr>
-  </table>
-  <div class="footer">
-    <p>UniEco Ghana — This is a computer-generated invoice and does not require a signature.</p>
-    <p>For questions about this invoice, contact support@uniecoghana.com</p>
-  </div>
-</body>
-</html>`;
-}
-
-export function printInvoice(invoice: Invoice): void {
-  const html = generateInvoicePrintable(invoice);
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) return;
-  printWindow.document.write(html);
-  printWindow.document.close();
-  printWindow.print();
-}
-
-// ============================================================
-// Receipts
-// ============================================================
-export async function getUserReceipts(): Promise<Receipt[]> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
-
-  const { data } = await supabase
-    .from('receipts')
-    .select(`*, vendor:vendors(business_name)`)
-    .eq('user_id', user.id)
-    .order('generated_at', { ascending: false });
-
-  return (data || []) as unknown as Receipt[];
-}
-
-export function generateReceiptPrintable(receipt: Receipt): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<title>Receipt ${receipt.receipt_number || ''}</title>
-<style>
-  body { font-family: 'Helvetica', sans-serif; padding: 40px; color: #1a1a1a; max-width: 600px; margin: 0 auto; }
-  .header { text-align: center; margin-bottom: 30px; }
-  .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
-  .receipt-box { border: 1px solid #ddd; border-radius: 8px; padding: 24px; }
-  .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-  .row:last-child { border-bottom: none; }
-  .label { color: #666; }
-  .value { font-weight: 500; }
-  .amount { font-size: 24px; font-weight: bold; text-align: center; margin: 20px 0; color: #2563eb; }
-  .footer { margin-top: 30px; font-size: 11px; color: #999; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <div class="logo">UniEco Ghana</div>
-    <p style="font-size:12px;color:#666">Payment Receipt</p>
-  </div>
-  <div class="receipt-box">
-    <div class="row"><span class="label">Receipt No.</span><span class="value">${receipt.receipt_number || '—'}</span></div>
-    <div class="row"><span class="label">Date</span><span class="value">${new Date(receipt.generated_at).toLocaleDateString('en-GH')}</span></div>
-    <div class="row"><span class="label">Type</span><span class="value">${receipt.receipt_type}</span></div>
-    <div class="row"><span class="label">Payment Method</span><span class="value">${receipt.payment_method || '—'}</span></div>
-    ${receipt.vendor?.business_name ? `<div class="row"><span class="label">Vendor</span><span class="value">${receipt.vendor.business_name}</span></div>` : ''}
-    <div class="row"><span class="label">Billed To</span><span class="value">${receipt.billing_name || '—'}</span></div>
-    <div class="amount">GH₵${(receipt.amount || 0).toFixed(2)}</div>
-  </div>
-  <div class="footer">
-    <p>This is a computer-generated receipt and serves as proof of payment.</p>
-    <p>UniEco Ghana — support@uniecoghana.com</p>
-  </div>
-</body>
-</html>`;
-}
-
-export function printReceipt(receipt: Receipt): void {
-  const html = generateReceiptPrintable(receipt);
-  const w = window.open('', '_blank');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.print();
 }
 
 // ============================================================

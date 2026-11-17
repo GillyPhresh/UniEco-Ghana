@@ -49,7 +49,10 @@ function OrdersContent() {
   return (
     <main className="container max-w-4xl py-6 sm:py-8 px-4 sm:px-6">
       <h1 className="font-display text-2xl font-bold text-foreground mb-2">My Orders</h1>
-      <p className="text-sm text-muted-foreground mb-6">Track and manage your orders from campus vendors.</p>
+      <p className="text-sm text-muted-foreground">Track and manage your orders from campus vendors.</p>
+      <Button asChild variant="outline" className="mb-5 mt-3 min-h-11">
+        <Link prefetch={false} href="/dashboard/transactions?show=purchases">Receipts &amp; invoices</Link>
+      </Button>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
         <TabsList className="mb-5 flex h-auto w-full justify-start gap-1 overflow-x-auto px-1 sm:mb-6 [&>button]:shrink-0">

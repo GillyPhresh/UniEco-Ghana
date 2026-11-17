@@ -12,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Search, Store, Calendar, Heart, Bell, MessageSquare, Star,
   TrendingUp, Clock, ArrowRight, ShoppingBag, CheckCircle2,
-  GraduationCap, ShieldCheck, Briefcase, Settings, ChevronRight,
+  GraduationCap, ShieldCheck, Briefcase, Settings, ChevronRight, Receipt,
 } from 'lucide-react';
 import { BusinessCard } from '@/components/shared/business-card';
 import {
@@ -30,6 +30,7 @@ const QUICK_ACTIONS = [
   { icon: Search, label: 'Search Services', href: '/search', color: 'bg-secondary/15 text-secondary' },
   { icon: Briefcase, label: 'Sell Something', href: '/start-business', color: 'bg-warning/10 text-warning' },
   { icon: Settings, label: 'Manage Profile', href: '/profile', color: 'bg-muted text-muted-foreground' },
+  { icon: Receipt, label: 'Receipts & invoices', href: '/dashboard/transactions', color: 'bg-primary/10 text-primary' },
 ];
 
 export default function DashboardPage() {

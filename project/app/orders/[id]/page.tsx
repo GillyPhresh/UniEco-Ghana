@@ -11,16 +11,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth/auth-context';
 import { CourierOrderPanel } from '@/components/courier/courier-order-panel';
+import { OrderDocumentLinks } from '@/components/transactions/order-document-links';
 import type { CourierJobState } from '@/lib/courier/domain';
 import {
-  getOrderById, getOrderStatusHistory, cancelOrder, generateReceipt,
+  getOrderById, getOrderStatusHistory, cancelOrder,
   getOrderMessages, sendOrderMessage, markOrderMessagesRead, confirmOrderHandoff,
 } from '@/lib/data/marketplace-client';
 import { ORDER_STATUS_LABELS, BOOKING_STATUS_LABELS } from '@/lib/types/marketplace';
 import type { OrderWithDetails, OrderStatusHistory, OrderMessage } from '@/lib/types/marketplace';
 import {
   Package, ArrowLeft, Truck, Store, Check, X, Clock,
-  Download, Send, MessageSquare, MapPin, Phone, FileText,
+  Send, MessageSquare, MapPin, Phone, FileText,
   Image as ImageIcon, Wrench, Loader2, CheckCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -43,7 +44,6 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const [messages, setMessages] = useState<OrderMessage[]>([]);
   const [messageBody, setMessageBody] = useState('');
   const [cancelling, setCancelling] = useState(false);
-  const [generatingReceipt, setGeneratingReceipt] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [confirmingHandoff, setConfirmingHandoff] = useState(false);
@@ -98,22 +98,6 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
     setCancelling(false);
   };
 
-  const handleDownloadReceipt = async () => {
-    setGeneratingReceipt(true);
-    const { data, error } = await generateReceipt(orderId);
-    if (error || !data) {
-      toast.error('Could not generate receipt: ' + (error || 'Unknown error'));
-    } else {
-      const html = generateReceiptHtml(data.data, order);
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const w = window.open(url, '_blank');
-      if (w) { setTimeout(() => w.print(), 500); }
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-    setGeneratingReceipt(false);
-  };
-
   const handleSendMessage = async () => {
     if (!messageBody.trim() || !order) return;
     const recipientId = order.vendor?.owner_id || '';
@@ -156,7 +140,6 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const statusInfo = ORDER_STATUS_LABELS[order.status] || ORDER_STATUS_LABELS.pending;
   const canCancel = ['pending', 'accepted'].includes(order.status);
   const courierNeedsHandoff = courierStage !== null && courierStage !== 'cancelled' && courierStage !== 'delivered';
-  const isCompleted = order.status === 'completed';
 
   return (
     <main className="container max-w-3xl py-6 sm:py-8 px-4 sm:px-6">
@@ -182,13 +165,8 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
             Placed on {new Date(order.created_at).toLocaleDateString('en-GH', { year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <div className="flex gap-2">
-          {isCompleted && (
-            <Button variant="outline" size="sm" onClick={handleDownloadReceipt} disabled={generatingReceipt}>
-              {generatingReceipt ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Download className="mr-1.5 h-3.5 w-3.5" />}
-              Receipt
-            </Button>
-          )}
+        <div className="flex flex-wrap gap-2">
+          <OrderDocumentLinks orderId={order.id} />
           {canCancel && (
             <Button variant="outline" size="sm" className="text-destructive" onClick={() => setShowCancelDialog(true)}>
               <X className="mr-1.5 h-3.5 w-3.5" /> Cancel
@@ -418,44 +396,4 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
       )}
     </main>
   );
-}
-
-function generateReceiptHtml(data: Record<string, unknown>, order: OrderWithDetails | null): string {
-  const items = (data.items as Array<Record<string, unknown>>) || [];
-  const itemsHtml = items.map(i => `
-    <tr>
-      <td>${i.name}</td>
-      <td style="text-align:center;">${i.quantity}</td>
-      <td style="text-align:right;">GH₵${Number(i.unit_price).toFixed(2)}</td>
-      <td style="text-align:right;">GH₵${Number(i.subtotal).toFixed(2)}</td>
-    </tr>`).join('');
-
-  return `<!DOCTYPE html><html><head><title>Receipt ${data.receipt_number || ''}</title>
-<style>
-body{font-family:Arial,sans-serif;margin:40px;color:#1a1a1a}
-.header{display:flex;justify-content:space-between;border-bottom:2px solid #0a7c5a;padding-bottom:20px}
-.logo{font-size:24px;font-weight:bold;color:#0a7c5a}
-table{width:100%;border-collapse:collapse;margin:20px 0}
-th{text-align:left;padding:10px;border-bottom:2px solid #ddd;color:#666;font-size:12px;text-transform:uppercase}
-td{padding:10px;border-bottom:1px solid #eee;font-size:14px}
-.total{text-align:right;font-size:20px;font-weight:bold;margin-top:20px}
-.footer{margin-top:60px;padding-top:20px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center}
-@media print{body{margin:20px}}
-</style></head><body>
-<div class="header">
-<div><div class="logo">UniEco Ghana</div><p style="color:#666;font-size:13px;margin-top:5px">Campus Business Ecosystem</p></div>
-<div style="text-align:right"><div style="font-size:18px;font-weight:bold">RECEIPT</div><div style="color:#666;font-size:13px">${data.receipt_number || ''}</div></div>
-</div>
-<p><strong>Order:</strong> ${data.order_number || order?.order_number || ''}<br/>
-<strong>Vendor:</strong> ${data.vendor_name || order?.vendor?.business_name || ''}<br/>
-<strong>Customer:</strong> ${data.buyer_name || ''}<br/>
-<strong>Date:</strong> ${new Date(data.date as string || order?.created_at || '').toLocaleDateString('en-GH')}</p>
-<table><thead><tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th></tr></thead>
-<tbody>${itemsHtml}</tbody></table>
-<p>Subtotal: GH₵${Number(data.subtotal || 0).toFixed(2)}</p>
-${Number(data.discount) > 0 ? `<p style="color:#0a7c5a">Discount: −GH₵${Number(data.discount).toFixed(2)}</p>` : ''}
-${Number(data.delivery_fee) > 0 ? `<p>Delivery: GH₵${Number(data.delivery_fee).toFixed(2)}</p>` : ''}
-<div class="total">Total: GH₵${Number(data.total || order?.total_amount || 0).toFixed(2)}</div>
-<div class="footer">UniEco Ghana — Thank you for your purchase!<br/>This is a computer-generated receipt.</div>
-</body></html>`;
 }

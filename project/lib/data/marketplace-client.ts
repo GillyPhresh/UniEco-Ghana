@@ -7,7 +7,7 @@ import type { CatalogProduct, CatalogVendor, ShopFilters } from '@/lib/marketpla
 import type { Order, OrderItem, OrderStatus, DeliveryMethod, Product, Service, DeliveryAddress } from '@/lib/types';
 import type {
   Cart, CartItem, CartWithItems, OrderWithDetails, OrderStatusHistory,
-  Receipt, Coupon, WishlistItem, OrderMessage,
+  Coupon, WishlistItem, OrderMessage,
 } from '@/lib/types/marketplace';
 
 // ============================================================
@@ -694,28 +694,6 @@ export async function updateBookingStatus(
   if (status === 'rescheduled') return { error: 'Booking rescheduling is not yet supported by the secure workflow.' };
   const { error } = await supabase.rpc('vendor_update_booking_status', { p_order_item_id: orderItemId, p_status: status });
   return { error: error?.message || null };
-}
-
-// ============================================================
-// Receipts
-// ============================================================
-
-export async function getReceipt(orderId: string): Promise<Receipt | null> {
-  const { data } = await supabase
-    .from('receipts')
-    .select('*')
-    .eq('order_id', orderId)
-    .maybeSingle();
-  return data as Receipt | null;
-}
-
-export async function generateReceipt(orderId: string): Promise<{ data: Receipt | null; error: string | null }> {
-  const existing = await getReceipt(orderId);
-  if (existing) return { data: existing, error: null };
-  return {
-    data: null,
-    error: 'A receipt is issued only after verified payment confirmation.',
-  };
 }
 
 // ============================================================
