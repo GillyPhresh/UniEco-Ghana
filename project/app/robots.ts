@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { siteConfig } from '@/lib/constants/site';
+import { COURIER_WORK_PATH } from '@/lib/courier/domain';
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -15,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
           '/vendor-dashboard',
           '/profile',
           '/orders',
+          COURIER_WORK_PATH,
           '/cart',
           '/checkout',
           '/payments',

@@ -10,6 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth/auth-context';
+import { CourierOrderPanel } from '@/components/courier/courier-order-panel';
+import type { CourierJobState } from '@/lib/courier/domain';
 import {
   getOrderById, getOrderStatusHistory, cancelOrder, generateReceipt,
   getOrderMessages, sendOrderMessage, markOrderMessagesRead, confirmOrderHandoff,
@@ -28,7 +30,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <>
       <SiteHeader />
-      <OrderDetailContent orderId={id} />
+      <OrderDetailContent key={id} orderId={id} />
     </>
   );
 }
@@ -45,6 +47,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [confirmingHandoff, setConfirmingHandoff] = useState(false);
+  const [courierStage, setCourierStage] = useState<CourierJobState | null>(null);
   const loadRequestId = useRef(0);
 
   const loadOrder = useCallback(async () => {
@@ -69,6 +72,11 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
       if (requestId === loadRequestId.current) setLoading(false);
     }
   }, [orderId, user]);
+
+  const onCourierStage = useCallback((stage: CourierJobState | null) => {
+    setCourierStage(stage);
+    if ((stage === 'collected' || stage === 'delivered') && order && ['processing', 'ready'].includes(order.status)) void loadOrder();
+  }, [order?.status, loadOrder]);
 
   useEffect(() => {
     loadOrder();
@@ -147,6 +155,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] || ORDER_STATUS_LABELS.pending;
   const canCancel = ['pending', 'accepted'].includes(order.status);
+  const courierNeedsHandoff = courierStage !== null && courierStage !== 'cancelled' && courierStage !== 'delivered';
   const isCompleted = order.status === 'completed';
 
   return (
@@ -185,7 +194,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
               <X className="mr-1.5 h-3.5 w-3.5" /> Cancel
             </Button>
           )}
-          {['ready', 'out_for_delivery'].includes(order.status) && (
+          {['ready', 'out_for_delivery'].includes(order.status) && !courierNeedsHandoff && (
             <Button size="sm" onClick={handleConfirmHandoff} disabled={confirmingHandoff}>
               {confirmingHandoff ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <CheckCircle className="mr-1.5 h-3.5 w-3.5" />}
               Confirm {order.delivery_method === 'delivery' ? 'delivery' : 'pickup'}
@@ -301,6 +310,8 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
               )}
             </CardContent>
           </Card>
+
+          {order.delivery_method === 'delivery' && order.order_type === 'product' && <CourierOrderPanel orderId={order.id} onStage={onCourierStage} />}
 
           {/* Vendor info */}
           {order.vendor && (

@@ -53,7 +53,8 @@ test('new users are gated through sign-in, secure onboarding, and their original
   assert.match(middleware, /const memberRoutePrefixes = \[/);
   assert.match(middleware, /if \(isMemberRoute && !user\)/);
   assert.match(middleware, /pathname === '\/' && Boolean\(user\)/);
-  assert.match(signin, /router\.replace\(withNext\('\/onboarding', next\)\)/);
+  assert.match(signin, /signInDestination = next === COURIER_WORK_PATH \? COURIER_WORK_PATH : withNext\('\/onboarding', next\)/);
+  assert.match(signin, /router\.replace\(signInDestination\)/);
   assert.match(onboarding, /get_my_registration_access/);
   assert.match(onboarding, /registrationDestination\(access, requestedNext\)/);
   assert.match(callback, /withNext\('\/onboarding', destination\)/);

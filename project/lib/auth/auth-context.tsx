@@ -15,7 +15,7 @@ interface AuthContextValue {
   signUp: (
     email: string,
     password: string,
-    meta: { full_name: string; registration_intent?: RegistrationIntent }
+    meta: { full_name: string; registration_intent?: RegistrationIntent; signup_experience?: 'courier' }
   ) => Promise<{ error: string | null; session: Session | null }>;
   signInWithGoogle: (options?: { intent?: RegistrationIntent; next?: string }) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (
       email: string,
       password: string,
-      meta: { full_name: string; registration_intent?: RegistrationIntent }
+      meta: { full_name: string; registration_intent?: RegistrationIntent; signup_experience?: 'courier' }
     ) => {
       setLoading(true);
       try {

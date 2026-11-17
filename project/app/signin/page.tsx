@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { COURIER_JOIN_PATH, COURIER_WORK_PATH } from '@/lib/courier/domain';
 import { AuthLayout } from '@/components/auth/auth-layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,7 @@ function SignInContent() {
   const searchParams = useSearchParams();
   const requestedNext = searchParams.get('next');
   const next = safeInternalPath(requestedNext);
+  const signInDestination = next === COURIER_WORK_PATH ? COURIER_WORK_PATH : withNext('/onboarding', next);
   const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -49,14 +51,14 @@ function SignInContent() {
         ? 'We could not sign you in with that email and password. If you originally joined with Google, choose “Continue with Google”; otherwise check your password or use “Forgot password?”. Your saved registration will be available after you sign in.'
         : error);
     } else {
-      router.replace(withNext('/onboarding', next));
+      router.replace(signInDestination);
     }
   };
 
   const handleGoogle = async () => {
     setAuthError(null);
     setGoogleLoading(true);
-    const { error } = await signInWithGoogle({ next: withNext('/onboarding', next) });
+    const { error } = await signInWithGoogle({ next: signInDestination });
     if (error) {
       setAuthError(error);
       setGoogleLoading(false);
@@ -155,7 +157,7 @@ function SignInContent() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href={withNext('/signup', next)} className="font-medium text-primary hover:underline">
+          <Link href={next === COURIER_WORK_PATH ? COURIER_JOIN_PATH : withNext('/signup', next)} className="font-medium text-primary hover:underline">
             Create one for free
           </Link>
         </p>

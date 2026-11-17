@@ -4,6 +4,7 @@ import { getSupabaseConfig } from './config';
 import { safeInternalPath } from '@/lib/auth/redirects';
 import { parseRegistrationAccess, SELLER_UPGRADE_PATH } from '@/lib/auth/registration-access';
 import { getModeratorPermissionForAdminPath } from '@/lib/auth/admin-route-policy';
+import { COURIER_WORK_PATH } from '@/lib/courier/domain';
 
 type CookieToSet = {
   name: string;
@@ -57,7 +58,7 @@ export async function updateSession(request: NextRequest) {
   // Keep account workspaces private, but let search engines and signed-out
   // visitors browse public discovery pages and listing details.
   const memberRoutePrefixes = [
-    '/campus-mate', '/cart', '/checkout',
+    '/campus-mate', '/cart', '/checkout', COURIER_WORK_PATH,
     '/dashboard', '/messages', '/notifications',
     '/orders', '/payment-history', '/profile', '/referrals', '/saved', '/community/saved',
     '/start-business',

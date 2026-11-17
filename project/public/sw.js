@@ -28,6 +28,7 @@ const NEVER_CACHE_PATTERNS = [
   '/signup',
   '/checkout',
   '/orders',
+  '/delivery/work',
   '/cart',
   '/admin',
   '/vendor-dashboard',

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
 import { readRegistrationIntent } from '@/lib/auth/registration-access';
+import { COURIER_WORK_PATH } from '@/lib/courier/domain';
 
 function clearOAuthState(response: NextResponse) {
   response.cookies.delete('unieco_oauth_next');
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error) {
     const reason = error.code ?? error.name ?? 'oauth_exchange_failed';
@@ -59,8 +60,17 @@ export async function GET(request: NextRequest) {
   // An OAuth cookie is a signup hint, never permission to change a returning
   // account's lane or open checkout. Onboarding reads the saved entitlement.
   const path = new URL(destination, publicOrigin).pathname;
-  const safeDestination = path === '/institution-admin-invite' || path === '/onboarding'
-    ? destination : withNext('/onboarding', destination);
+  // Signup metadata is a route hint only. All courier permissions are checked
+  // separately against the authenticated profile and staff-approved application.
+  const courierEntry = destination === COURIER_WORK_PATH
+    || (!next && !cookieNext && data.user?.user_metadata?.signup_experience === 'courier');
+  if (destination === COURIER_WORK_PATH && data.user && data.user.user_metadata?.signup_experience !== 'courier') {
+    // Google can create a new account on sign-in. This non-authoritative
+    // marker keeps that courier-only account out of paid signup reminders.
+    await supabase.auth.updateUser({ data: { signup_experience: 'courier' } });
+  }
+  const safeDestination = courierEntry ? COURIER_WORK_PATH
+    : path === '/institution-admin-invite' || path === '/onboarding' ? destination : withNext('/onboarding', destination);
   const response = NextResponse.redirect(new URL(safeDestination, publicOrigin));
   return clearOAuthState(response);
 }

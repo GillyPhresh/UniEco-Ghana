@@ -27,6 +27,7 @@ import {
 } from '@/lib/marketplace/catalog';
 import { normalizeSearchTerm } from '@/lib/utils/search';
 import { marketPhotography } from '@/lib/marketplace/photography';
+import { courierPhotography } from '@/lib/courier/photography';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -258,6 +259,12 @@ export default function MarketplacePage() {
             <span className="absolute inset-y-0 left-0 w-[17%] bg-gradient-to-r from-[#eaf7ec] to-transparent" aria-hidden="true" />
           </div>
         </section>}
+
+        {!hasFilters && <Link href="/delivery" className="group mb-4 flex min-h-[60px] items-center gap-3 overflow-hidden rounded-xl border border-border bg-card pr-3 hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:mb-5">
+          <span className="relative h-[60px] w-[85px] shrink-0 overflow-hidden bg-muted sm:w-28"><CatalogPhoto sources={[courierPhotography.image]} alt="" sizes="112px" /></span>
+          <span className="min-w-0 flex-1"><span className="block text-sm font-bold">Deliver with UniEco</span><span className="block text-xs text-muted-foreground">Walking, bike, motorbike or car</span></span>
+          <ArrowRight className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        </Link>}
 
         <section aria-label="Shop by category" className="mb-4 sm:mb-5">
           <h2 className="mb-2 text-sm font-bold sm:text-base">Shop by category</h2>

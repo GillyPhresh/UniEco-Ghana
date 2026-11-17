@@ -7,7 +7,8 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), 'utf8');
 test('sign-in accepts only safe same-origin relative destinations', async () => {
   const source = await read('app/signin/page.tsx');
   assert.match(source, /safeInternalPath\(requestedNext\)/);
-  assert.match(source, /router\.replace\(withNext\('\/onboarding', next\)\)/);
+  assert.match(source, /signInDestination = next === COURIER_WORK_PATH \? COURIER_WORK_PATH : withNext\('\/onboarding', next\)/);
+  assert.match(source, /router\.replace\(signInDestination\)/);
   assert.match(source, /withNext\('\/signup', next\)/);
   assert.doesNotMatch(source, /const next = searchParams\.get\('next'\) \|\| '\/'/);
 });

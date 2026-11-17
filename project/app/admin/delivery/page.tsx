@@ -2,6 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useState } from 'react';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
+import { AdminCourierOperations } from '@/components/courier/admin-courier-operations';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -50,8 +51,10 @@ function Content() {
     <div className="max-w-7xl space-y-4 p-4 sm:p-6">
       <div>
         <h1 className="flex items-center gap-2 font-display text-2xl font-bold text-foreground"><Truck className="h-6 w-6 text-primary" /> Delivery Operations</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Scoped, read-only tracking of delivery and handoff progress. Order transitions remain with trusted vendor/customer workflows.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Review courier applications, dispatch parcel jobs, and track existing Marketplace deliveries.</p>
       </div>
+
+      <AdminCourierOperations />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Select value={status} onValueChange={value => { setStatus(value); setPage(0); }}>

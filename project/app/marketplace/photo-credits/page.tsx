@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { marketPhotography } from '@/lib/marketplace/photography';
+import { courierPhotography } from '@/lib/courier/photography';
 
 export const metadata = { title: 'Marketplace photo credits', robots: { index: false, follow: true } };
 
@@ -14,7 +15,7 @@ export default function MarketplacePhotoCredits() {
       <h1 className="mt-2 text-2xl font-bold">Photo credits</h1>
       <p className="mt-2 text-sm text-muted-foreground">Category photos are illustrative. Listing photos come from sellers.</p>
       <ul className="mt-5 divide-y divide-border rounded-2xl border border-border bg-card">
-        {Object.values(marketPhotography).map(photo => <li key={photo.source} className="p-4 text-sm">
+        {[...Object.values(marketPhotography), courierPhotography].map(photo => <li key={photo.source} className="p-4 text-sm">
           <a href={photo.source} className="font-semibold text-primary hover:underline">{photo.title}</a>
           <p className="mt-1 text-muted-foreground">{photo.creator} · <a href="https://www.pexels.com/license/" className="underline">Pexels License</a></p>
         </li>)}

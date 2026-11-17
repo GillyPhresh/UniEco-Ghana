@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { VendorDashboardLayout, VendorRouteGuard } from '@/components/vendor/vendor-dashboard-layout';
 import { useVendor } from '@/hooks/use-vendor';
+import { CourierOrderPanel } from '@/components/courier/courier-order-panel';
 import {
   getVendorOrders, updateOrderStatus, rejectOrder, updateBookingStatus,
   updateVendorOrderNotes,
@@ -348,6 +349,8 @@ function VendorOrdersContent() {
                   );
                 })}
               </div>
+
+              {selectedOrder.delivery_method === 'delivery' && selectedOrder.order_type === 'product' && <CourierOrderPanel orderId={selectedOrder.id} />}
 
               {/* Vendor notes */}
               <div className="space-y-2">
