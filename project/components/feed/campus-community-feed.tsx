@@ -667,7 +667,7 @@ export function CampusCommunityFeed() {
   if (canFollow) scopes.push({ id: 'following', label: 'Following' });
 
   return (
-    <div className="campus-feed-surface min-h-[80dvh] bg-background" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
+    <div className="campus-feed-surface min-h-[80dvh] bg-[radial-gradient(ellipse_at_top,_hsl(var(--primary)/.07),_transparent_34rem)]" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
       <Suspense fallback={null}><FeedPostLocation onChange={setLinkedPostId} /></Suspense>
       <div className="mx-auto grid w-full max-w-[78rem] gap-6 sm:px-6 sm:py-6 lg:grid-cols-[minmax(0,40rem)_minmax(14rem,17rem)] lg:justify-center lg:gap-8 xl:grid-cols-[minmax(11rem,15rem)_minmax(0,39rem)_minmax(14rem,17rem)]">
         <aside className="hidden xl:block" aria-label="Explore UniEco">
@@ -685,56 +685,65 @@ export function CampusCommunityFeed() {
           </div>
         </aside>
 
-        <section ref={timelineRef} className="mx-auto min-w-0 w-full max-w-[40rem] scroll-mt-[4.3rem]" aria-labelledby="campus-community-heading">
-          <div className="border-b border-border bg-card sm:overflow-hidden sm:rounded-2xl sm:border">
-            <div className="relative overflow-hidden border-b border-border bg-gradient-to-br from-primary/10 via-card to-card px-3.5 py-4 min-[375px]:px-4 sm:px-6 sm:py-5">
-              <div className="pointer-events-none absolute -right-12 -top-20 h-52 w-52 rounded-full border border-primary/15 before:absolute before:inset-4 before:rounded-full before:border before:border-primary/10 after:absolute after:inset-9 after:rounded-full after:border after:border-primary/10" aria-hidden="true" />
-              <div className="relative flex items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.18em] text-primary sm:text-[11px]"><span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" /> Campus life</p>
-                  <h1 id="campus-community-heading" className="mt-1 text-[clamp(1.35rem,6vw,2rem)] font-extrabold leading-none tracking-tight">Campus feed</h1>
-                </div>
-                <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                  {user && <Link href="/community/saved" aria-label="Saved posts" title="Saved posts" className="grid h-11 w-11 place-items-center rounded-full border border-border bg-card/80 transition hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><Bookmark className="h-5 w-5" /></Link>}
-                  {showPostEntry && <Button type="button" onClick={openComposer} className="min-h-11 gap-1.5 rounded-full px-3 text-sm font-bold sm:px-4"><Plus className="h-[18px] w-[18px] shrink-0" /><span>Post</span></Button>}
-                </div>
+        <section ref={timelineRef} className="mx-auto min-w-0 w-full max-w-[40rem] scroll-mt-[calc(4rem+4px)] [--site-header-height:calc(4rem+4px)]" aria-labelledby="campus-community-heading">
+          <div className="overflow-hidden border-t border-border/80 bg-card sm:rounded-t-3xl sm:border-x sm:shadow-[0_12px_40px_-30px_rgba(15,23,42,.35)]">
+            <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4 sm:px-6 sm:pt-5">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[.16em] text-primary"><span className="h-2 w-2 rounded-full bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/.12)]" />UniEco community</p>
+                <h1 id="campus-community-heading" className="mt-1 text-2xl font-extrabold leading-tight tracking-[-.04em] sm:text-[1.8rem]">Campus feed</h1>
+              </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <button type="button" onClick={refresh} disabled={refreshing || loadingView} aria-label="Refresh feed" title="Refresh feed" className="grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><RefreshCw className={`h-[17px] w-[17px] ${refreshing ? 'motion-safe:animate-spin' : ''}`} /></button>
+                {user && <Link href="/community/saved" aria-label="Saved posts" title="Saved posts" className="grid h-11 w-11 place-items-center rounded-full text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"><Bookmark className="h-5 w-5" /></Link>}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-2 min-[375px]:px-4 sm:gap-3 sm:px-6">
-              <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Choose a feed">
-                {scopes.map(({ id, label }) => <button type="button" key={id} onClick={() => changeScope(id)} aria-pressed={scope === id}
-                  className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-2.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring min-[375px]:px-3 sm:px-4 sm:text-sm ${scope === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>{label}</button>)}
+
+            {showPostEntry && <button type="button" onClick={openComposer} className="mx-3 mb-3 flex min-h-[4.2rem] w-[calc(100%-1.5rem)] items-center gap-3 rounded-2xl border border-border/80 bg-muted/35 px-3 text-left transition hover:border-primary/30 hover:bg-primary/[.035] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:mx-5 sm:mb-4 sm:w-[calc(100%-2.5rem)] sm:px-4">
+              <Avatar className="h-10 w-10 shrink-0 ring-2 ring-background">
+                {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
+                <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{user ? initials(user.profile?.full_name || user.email || 'You') : <ImagePlus className="h-4 w-4" />}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">Share a campus moment…</span>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground shadow-sm"><Plus className="h-5 w-5" /></span>
+            </button>}
+
+            <div className="border-t border-border/70 px-3 pb-3 pt-3 sm:px-5 sm:pb-4">
+              <div className="flex items-center justify-between gap-2 px-1">
+                <h2 className="text-sm font-bold tracking-tight">Moments</h2>
+                <span className="text-[11px] font-medium text-muted-foreground">Photos & short videos</span>
               </div>
-              <button type="button" onClick={refresh} disabled={refreshing || loadingView} aria-label="Refresh feed" title="Refresh feed" className="grid h-11 w-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"><RefreshCw className={`h-[17px] w-[17px] ${refreshing ? 'motion-safe:animate-spin' : ''}`} /></button>
+              <div className="-mx-1 mt-2 flex snap-x gap-2.5 overflow-x-auto px-1 pb-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
+                {showPostEntry && <button type="button" onClick={openComposer} className="group flex w-[4.65rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className="relative grid h-[3.65rem] w-[3.65rem] place-items-center rounded-full border-2 border-dashed border-primary/60 bg-primary/5 p-1 transition group-hover:scale-[1.04] group-hover:bg-primary/10">
+                    <Avatar className="h-full w-full"><AvatarImage src={user?.profile?.avatar_url ? getPublicAvatarUrl(user.profile.avatar_url) : undefined} alt="" /><AvatarFallback className="bg-transparent text-primary"><ImagePlus className="h-5 w-5" /></AvatarFallback></Avatar>
+                    <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"><Plus className="h-3.5 w-3.5" /></span>
+                  </span>
+                  <span className="w-full truncate">Your moment</span>
+                </button>}
+                {moments.map((post) => <button key={post.id} type="button" onClick={() => focusPost(post.id)} aria-label={`View ${post.author_name}’s ${post.media_type === 'image' ? 'photo' : 'video'} in the feed`}
+                  className="group flex w-[4.65rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <span className="relative rounded-full bg-gradient-to-tr from-amber-400 via-emerald-500 to-teal-600 p-[2.5px] shadow-sm transition duration-200 group-hover:scale-[1.045] group-hover:shadow-md">
+                    <span className="relative block h-[3.45rem] w-[3.45rem] overflow-hidden rounded-full border-[3px] border-card bg-muted">
+                      {post.media_url && post.media_type === 'image' ? <img src={post.media_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        : <Avatar className="h-full w-full"><AvatarImage src={getPublicAvatarUrl(post.author_avatar_url)} alt="" loading="lazy" /><AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{initials(post.author_name)}</AvatarFallback></Avatar>}
+                      {post.media_type === 'video' && <span className="absolute inset-0 grid place-items-center bg-black/15 text-white"><Play className="h-4 w-4 fill-current drop-shadow" /></span>}
+                    </span>
+                  </span>
+                  <span className="w-full truncate px-0.5">{post.author_name.split(/\s+/)[0]}</span>
+                </button>)}
+                {!moments.length && <p className="my-auto max-w-xs px-1 text-xs leading-5 text-muted-foreground">{showPostEntry ? 'Your campus stories will show up here.' : 'Campus photos and videos will appear here.'}</p>}
+              </div>
             </div>
+
           </div>
 
-          <div className="border-b border-border bg-card px-3 pb-3 pt-4 sm:mt-3 sm:rounded-2xl sm:border sm:px-5 sm:pb-4">
-            <div className="flex items-baseline justify-between gap-2 px-1">
-              <h2 className="text-sm font-bold">Campus moments</h2>
-              {moments.length > 0 && <p className="shrink-0 text-[11px] font-medium text-muted-foreground">From the feed</p>}
+          {/* Keep this outside the clipped header so it sticks throughout the timeline. */}
+          <div data-campus-feed-toolbar className="sticky top-[var(--site-header-height)] z-20 flex items-center justify-between gap-2 border-y border-border/70 bg-card/95 px-3 py-1.5 backdrop-blur-xl sm:rounded-b-2xl sm:border-x sm:px-5">
+            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="group" aria-label="Choose a feed">
+              {scopes.map(({ id, label }) => <button type="button" key={id} onClick={() => changeScope(id)} aria-pressed={scope === id}
+                className={`min-h-11 shrink-0 whitespace-nowrap rounded-full px-3 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:px-4 sm:text-sm ${scope === id ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted hover:text-foreground'}`}>{label}</button>)}
             </div>
-            <div className="-mx-1 mt-2 flex snap-x gap-2 overflow-x-auto px-1 pb-1 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3">
-              {showPostEntry && <button type="button" onClick={openComposer} className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                <span className="relative grid h-[3.6rem] w-[3.6rem] place-items-center rounded-full border border-dashed border-primary/55 bg-primary/10 transition group-hover:bg-primary/15">
-                  {user?.profile?.avatar_url ? <Avatar className="h-12 w-12"><AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" /><AvatarFallback className="bg-primary/10 text-primary"><ImagePlus className="h-5 w-5" /></AvatarFallback></Avatar> : <ImagePlus className="h-6 w-6 text-primary" />}
-                  <span className="absolute -bottom-0.5 -right-0.5 grid h-5 w-5 place-items-center rounded-full bg-primary text-primary-foreground ring-2 ring-card"><Plus className="h-3.5 w-3.5" /></span>
-                </span>
-                <span>New moment</span>
-              </button>}
-              {moments.map((post) => <button key={post.id} type="button" onClick={() => focusPost(post.id)} aria-label={`Go to ${post.author_name}’s ${post.media_type === 'image' ? 'photo' : 'video'}`}
-                className="group flex w-[4.7rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-xl py-1 text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                <span className="relative rounded-full bg-gradient-to-tr from-amber-400 via-emerald-500 to-teal-600 p-[2px] transition group-hover:brightness-110">
-                  <Avatar className="h-[3.35rem] w-[3.35rem] border-[3px] border-card">
-                    <AvatarImage src={getPublicAvatarUrl(post.author_avatar_url)} alt="" loading="lazy" />
-                    <AvatarFallback className="bg-primary/10 text-sm font-bold text-primary">{initials(post.author_name)}</AvatarFallback>
-                  </Avatar>
-                  {post.media_type === 'video' && <span className="absolute bottom-0 right-0 grid h-[17px] w-[17px] place-items-center rounded-full bg-card text-primary ring-1 ring-border"><Play className="ml-px h-2.5 w-2.5 fill-current" /></span>}
-                </span>
-                <span className="w-full truncate px-0.5">{post.author_name}</span>
-              </button>)}
-              {!moments.length && <p className="my-auto max-w-xs px-1 text-xs leading-5 text-muted-foreground">{showPostEntry ? 'Share a photo or a short video from campus.' : 'New campus photos and videos will appear here.'}</p>}
-            </div>
+            {showPostEntry && <Button type="button" onClick={openComposer} className="min-h-11 shrink-0 gap-1.5 rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm"><Plus className="h-4 w-4" /><span>Post</span></Button>}
           </div>
 
           <div className="divide-y divide-border sm:mt-3 sm:space-y-3 sm:divide-y-0">
@@ -890,7 +899,7 @@ export function CommunityPostCard({ post, priority = false, socialState = emptyC
 
   return (
     <article id={`campus-post-${post.id}`} data-post-id={post.id} tabIndex={-1} aria-label={`Post by ${post.author_name}`}
-      className="campus-feed-surface scroll-mt-20 overflow-hidden border-b border-border bg-card text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:rounded-2xl sm:border">
+      className="campus-feed-surface scroll-mt-[calc(var(--site-header-height,4rem)+4rem)] overflow-hidden border-b border-border bg-card text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:rounded-2xl sm:border">
       <CommunityPostActions postId={post.id} authorId={post.author_id} authorName={post.author_name} caption={post.caption} textOnly={post.media_type === 'text'}
         initialState={socialState} onStateChange={onSocialChange} onReport={onReport} onDelete={onDelete}
         renderHeader={(menu) => (
