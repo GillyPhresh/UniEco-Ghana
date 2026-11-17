@@ -185,10 +185,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     setExpandedNavGroups(current => ({ ...current, [activeGroupLabel]: true }));
   }, [activeGroupLabel]);
 
+  const navigationQuery = navigationSearch.trim().toLowerCase();
   const filteredNavGroups = navGroups
     .map(group => ({
       ...group,
-      items: group.items.filter(item => item.label.toLowerCase().includes(navigationSearch.trim().toLowerCase())),
+      items: group.items.filter(item => !navigationQuery
+        || group.label.toLowerCase().includes(navigationQuery)
+        || item.label.toLowerCase().includes(navigationQuery)
+        || item.href.replace(/^\/admin\/?/, '').replaceAll('-', ' ').toLowerCase().includes(navigationQuery)),
     }))
     .filter(group => group.items.length > 0);
   const availablePaths = new Set<string>(navGroups.flatMap(group => group.items.map(item => item.href)));
@@ -234,7 +238,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         )}
         {filteredNavGroups.map(group => {
           const groupId = `${instance}-admin-nav-${group.label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
-          const isExpanded = expandedNavGroups[group.label] ?? Boolean(navigationSearch.trim());
+          const isExpanded = navigationQuery ? true : expandedNavGroups[group.label] ?? group.label === 'Overview';
           return (
             <div key={group.label}>
               <button
@@ -324,7 +328,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {!isOnline && (
             <div className="flex items-center gap-2 border-b border-warning/30 bg-warning/10 px-4 py-2 text-xs text-warning-foreground" role="status">
               <WifiOff className="h-4 w-4 shrink-0" />
-              <span>You are offline. Changes will not be submitted until your connection returns.</span>
+              <span>You’re offline. Changes aren’t being saved—reconnect and try again.</span>
             </div>
           )}
 
@@ -388,7 +392,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="ghana-stripe h-[3px] w-full shrink-0" aria-hidden="true" />
-        {!isOnline && <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900" role="status"><WifiOff className="h-4 w-4 shrink-0" /><span>You are offline. Changes will not be submitted until your connection returns.</span></div>}
+        {!isOnline && <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-50 px-6 py-2 text-xs text-amber-900" role="status"><WifiOff className="h-4 w-4 shrink-0" /><span>You’re offline. Changes aren’t being saved—reconnect and try again.</span></div>}
         <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
           {children}
         </main>

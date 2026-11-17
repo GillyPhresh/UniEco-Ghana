@@ -36,3 +36,13 @@ test('user search waits for an explicit mobile-friendly search submission', () =
   assert.match(page, /enterKeyHint="search"/);
   assert.doesNotMatch(page, /onChange=\{e => setSearch\(e\.target\.value\)\}/);
 });
+
+test('management menu search opens matching groups and never promises offline saves are queued', () => {
+  const layout = read('components/admin/admin-layout.tsx');
+  assert.match(layout, /const navigationQuery = navigationSearch\.trim\(\)\.toLowerCase\(\)/);
+  assert.match(layout, /group\.label\.toLowerCase\(\)\.includes\(navigationQuery\)/);
+  assert.match(layout, /item\.href\.replace\(/);
+  assert.match(layout, /const isExpanded = navigationQuery \? true/);
+  assert.match(layout, /Changes aren’t being saved—reconnect and try again\./);
+  assert.doesNotMatch(layout, /Changes will not be submitted until your connection returns/);
+});
