@@ -1,32 +1,29 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowUpRight,
-  BadgeCheck,
-  CalendarDays,
   Check,
   ChevronRight,
   Compass,
-  Globe2,
   ExternalLink,
   LocateFixed,
   Loader2,
   Map,
   MapPinned,
   Navigation,
-  Phone,
   Share2,
   Search,
-  Star,
   Store,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UniversityLogo } from '@/components/universities/university-media';
-import { CATEGORY_ICONS } from '@/lib/constants/categories';
-import { getGoogleMapsDirectionsUrl, getGoogleMapsPlaceUrl, getGoogleMapsSearchUrl } from '@/lib/maps';
+import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
+import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
+import { CampusPlaceCard } from '@/components/campus-mate/campus-place-card';
+import { campusMateCategories, findCampusMateCategory } from '@/lib/campus-mate/categories';
+import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
 import { cn } from '@/lib/utils';
 
 export type CampusMateUniversity = {
@@ -42,6 +39,8 @@ export type CampusMateUniversity = {
   hero_image_url: string | null;
   landmark_image_url: string | null;
   logo_alt_text: string | null;
+  photoAlt?: string;
+  photoCredit?: string;
 };
 
 export type CampusMatePlace = {
@@ -56,6 +55,7 @@ export type CampusMatePlace = {
   latitude: number | null;
   longitude: number | null;
   image_url: string | null;
+  logo_url?: string | null;
   href: string | null;
   rating: number | null;
   verified: boolean;
@@ -107,17 +107,6 @@ const filters = [
   { id: 'Other Services', label: 'Services', query: 'services' },
 ] as const;
 
-const quickSearches = [
-  { label: 'Food nearby', query: 'food', emoji: '🍛' },
-  { label: 'Hostels', query: 'hostel', emoji: '🛏️' },
-  { label: 'Pharmacies', query: 'pharmacy', emoji: '💊' },
-  { label: 'Banks & ATMs', query: 'bank', emoji: '🏦' },
-  { label: 'Transport', query: 'transport', emoji: '🚌' },
-  { label: 'Health care', query: 'hospital clinic', emoji: '🏥' },
-  { label: 'Groceries', query: 'supermarket', emoji: '🛒' },
-  { label: 'Printing', query: 'printing', emoji: '🖨️' },
-] as const;
-
 function campusSearchText(university: CampusMateUniversity) {
   return [university.official_name || university.name, university.city, university.region, 'Ghana']
     .filter(Boolean)
@@ -134,7 +123,7 @@ function formatDate(value: string | null) {
   if (!value) return null;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return null;
-  return new Intl.DateTimeFormat('en-GH', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+  return new Intl.DateTimeFormat('en-GH', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Africa/Accra' }).format(date);
 }
 
 function distanceInKm(from: Coordinates, to: Coordinates) {
@@ -149,7 +138,7 @@ function distanceInKm(from: Coordinates, to: Coordinates) {
 }
 
 function getPlaceCoordinates(place: CampusMatePlace) {
-  return place.latitude != null && place.longitude != null
+  return place.latitude != null && place.longitude != null && isValidCoordinate(place.latitude, place.longitude)
     ? { latitude: place.latitude, longitude: place.longitude }
     : null;
 }
@@ -160,6 +149,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [mapTarget, setMapTarget] = useState(campusSearchText(university));
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
@@ -167,19 +157,24 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [googlePlacesLoading, setGooglePlacesLoading] = useState(false);
   const [googlePlacesError, setGooglePlacesError] = useState('');
   const [googleSearchCompleted, setGoogleSearchCompleted] = useState(false);
-  const [discoverySource, setDiscoverySource] = useState<'Google Maps' | 'OpenStreetMap' | null>(null);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<DiscoveredPlace | null>(null);
   const [shareMessage, setShareMessage] = useState('');
+  const [resultsLimit, setResultsLimit] = useState(12);
+  const nearbyRequest = useRef<AbortController | null>(null);
+  const mapPanel = useRef<HTMLElement>(null);
+  const resultsPanel = useRef<HTMLElement>(null);
+  useEffect(() => () => nearbyRequest.current?.abort(), []);
 
   const campusMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&output=embed`;
-  const campusDirectionsUrl = getGoogleMapsSearchUrl(campusSearchText(university));
+  const campusDirectionsUrl = getGoogleMapsSearchUrl(mapTarget);
 
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
     return places
       .filter((place) => {
         const matchesFilter = activeFilter === 'all'
-          || (activeFilter === 'event' ? place.kind === 'event' : place.category === activeFilter);
+          || (activeFilter === 'event' ? place.kind === 'event'
+            : place.kind === 'business' && (place.category === activeFilter || findCampusMateCategory(place.category)?.id === activeFilter));
         if (!matchesFilter) return false;
         if (!normalizedQuery) return true;
         return [place.name, place.category, place.description, place.address, place.city]
@@ -197,7 +192,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
       });
   }, [activeFilter, deviceLocation, places, searchQuery]);
 
-  const selectedPlace = visiblePlaces.find(({ place }) => place.id === selectedPlaceId)?.place || null;
+  const selectedPlace = places.find(place => place.id === selectedPlaceId) ?? null;
   const selectedMapName = selectedPlace?.name || selectedGooglePlace?.name;
 
   const visibleGooglePlaces = useMemo(() => {
@@ -224,9 +219,7 @@ export function CampusMateExperience({ university, universities, places }: Campu
       ({ coords }) => {
         const location = { latitude: coords.latitude, longitude: coords.longitude };
         setDeviceLocation(location);
-        setMapLoaded(false);
-        setMapTarget(`${location.latitude}, ${location.longitude}`);
-        setLocationMessage('Nearby places are now sorted first.');
+        setLocationMessage('Places with a matched map pin are sorted by distance.');
         setLocating(false);
       },
       (error) => {
@@ -235,29 +228,42 @@ export function CampusMateExperience({ university, universities, places }: Campu
           : 'We could not get your location yet. Check GPS or network access and try again.');
         setLocating(false);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 },
     );
+  };
+
+  const showMap = () => {
+    setMapOpen(true);
+    mapPanel.current?.focus({ preventScroll: true });
+    mapPanel.current?.scrollIntoView({ block: 'start' });
+  };
+
+  const changeMapTarget = (target: string) => {
+    if (target === mapTarget) return;
+    setMapLoaded(false);
+    setMapTarget(target);
   };
 
   const choosePlace = (place: CampusMatePlace) => {
     setSelectedPlaceId(place.id);
     setSelectedGooglePlace(null);
-    setMapLoaded(false);
-    setMapTarget(placeSearchText(place, university));
+    const coords = getPlaceCoordinates(place);
+    changeMapTarget(coords ? `${coords.latitude}, ${coords.longitude}` : place.address ? placeSearchText(place, university) : campusSearchText(university));
+    showMap();
   };
 
   const chooseGooglePlace = (place: DiscoveredPlace) => {
     setSelectedPlaceId(null);
     setSelectedGooglePlace(place);
-    setMapLoaded(false);
-    setMapTarget([place.name, place.address].filter(Boolean).join(', '));
+    changeMapTarget(place.latitude != null && place.longitude != null && isValidCoordinate(place.latitude, place.longitude)
+      ? `${place.latitude}, ${place.longitude}` : [place.name, place.address].filter(Boolean).join(', '));
+    showMap();
   };
 
   const clearSelection = () => {
     setSelectedPlaceId(null);
     setSelectedGooglePlace(null);
-    setMapLoaded(false);
-    setMapTarget(campusSearchText(university));
+    changeMapTarget(campusSearchText(university));
   };
 
   const shareCampus = async () => {
@@ -280,23 +286,27 @@ export function CampusMateExperience({ university, universities, places }: Campu
   };
 
   const searchGooglePlaces = async (queryOverride?: string) => {
-    const query = (queryOverride || searchQuery).trim();
+    nearbyRequest.current?.abort();
+    const query = (queryOverride ?? searchQuery).trim();
     if (query.length < 2) {
-      setGooglePlacesError('Type what you are looking for first, for example food, hostel, pharmacy, bank, printing or transport.');
+      setGooglePlacesLoading(false);
+      setGooglePlacesError('Choose a category or type what you’re looking for.');
       setGoogleSearchCompleted(true);
       return;
     }
 
+    const controller = new AbortController();
+    nearbyRequest.current = controller;
     setGooglePlacesLoading(true);
     setGooglePlacesError('');
     setGoogleSearchCompleted(true);
-    setDiscoverySource(null);
+    setGooglePlaces([]);
     try {
       const params = new URLSearchParams({
         q: query,
         campus: campusSearchText(university),
       });
-      const response = await fetch(`/api/maps/open-places/search?${params.toString()}`, { cache: 'no-store' });
+      const response = await fetch(`/api/maps/open-places/search?${params.toString()}`, { cache: 'no-store', signal: controller.signal });
       const responseText = await response.text();
       let result: { places?: DiscoveredPlace[]; error?: string } = {};
       try {
@@ -309,294 +319,195 @@ export function CampusMateExperience({ university, universities, places }: Campu
       if (!response.ok) {
         throw new Error(result.error || 'Free community place search is temporarily unavailable.');
       }
-      setDiscoverySource('OpenStreetMap');
+      if (controller.signal.aborted) return;
       setGooglePlaces(result.places || []);
       if (!result.places?.length) setGooglePlacesError('No mapped community places matched that search around this campus yet.');
     } catch (error) {
+      if (controller.signal.aborted) return;
       setGooglePlaces([]);
-      setGooglePlacesError(error instanceof Error ? error.message : 'Google place search is temporarily unavailable.');
+      setGooglePlacesError(error instanceof Error ? error.message : 'Community place search is temporarily unavailable.');
     } finally {
-      setGooglePlacesLoading(false);
+      if (!controller.signal.aborted) setGooglePlacesLoading(false);
     }
   };
 
-  const resetMapPreview = () => setMapLoaded(false);
+  const resetNearby = () => {
+    nearbyRequest.current?.abort();
+    setGooglePlacesLoading(false);
+    setGoogleSearchCompleted(false);
+    setGooglePlacesError('');
+    setGooglePlaces([]);
+  };
 
+  const selectedCategory = filters.find(item => item.id === activeFilter);
+  const widerSearch = searchQuery.trim() || selectedCategory?.query || '';
   const searchEverywhereUrl = getGoogleMapsSearchUrl(
-    searchQuery.trim() ? `${searchQuery.trim()}, ${campusSearchText(university)}` : campusSearchText(university),
+    widerSearch ? `${widerSearch}, ${campusSearchText(university)}` : campusSearchText(university),
   );
 
+  const campusName = university.short_name || university.name;
+  const campusLocation = Array.from(new Set([university.city, university.region].filter(Boolean))).join(' · ') || 'Ghana';
+  const cardGrid = 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3';
+  const updateCategory = (id: (typeof filters)[number]['id'], query?: string) => {
+    setActiveFilter(id);
+    setSearchQuery('');
+    setResultsLimit(12);
+    resetNearby();
+    if (query) {
+      void searchGooglePlaces(query);
+      resultsPanel.current?.scrollIntoView({ block: 'start' });
+    }
+  };
+
   return (
-    <main className="min-h-[calc(100dvh-4rem)] bg-slate-50 pb-6 dark:bg-slate-950">
-      <section className="border-b border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
-        <div className="mx-auto max-w-6xl px-4 pb-5 pt-5 sm:px-6 sm:pb-7 sm:pt-8">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.18em] text-primary">
-                <MapPinned className="h-4 w-4" /> Campus Mate
-              </p>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-slate-950 sm:text-4xl dark:text-white">
-                Find your way around campus
-              </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600 sm:text-base dark:text-slate-300">
-                Discover businesses, events, services and useful places near your university, then open live directions in Google Maps.
-              </p>
+    <main data-campus-mate-layout="photo-first" className="min-h-[calc(100dvh-4rem)] bg-background pb-8">
+      <div className="mx-auto w-full max-w-6xl space-y-7 px-3 py-4 sm:space-y-9 sm:px-6 sm:py-7">
+        <section aria-labelledby="campus-mate-heading" className="grid overflow-hidden rounded-[1.65rem] border border-emerald-900 bg-[#082b27] text-white shadow-lg sm:grid-cols-[minmax(0,1fr)_minmax(0,.88fr)]">
+          <div className="min-w-0 p-4 sm:p-7 lg:p-9">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-emerald-100"><Compass className="h-4 w-4" aria-hidden="true" /> Campus Mate</p>
+            <h1 id="campus-mate-heading" className="mt-3 text-[clamp(1.7rem,6vw,3.1rem)] font-extrabold leading-tight tracking-tight">Explore your campus</h1>
+            <p className="mt-2 max-w-md text-sm leading-6 text-emerald-50/90">Find food, shops, services and events. Get directions when you’re ready to go.</p>
+            <div className="mt-4 flex items-center gap-2.5">
+              <span className="h-10 w-10 shrink-0 rounded-xl bg-white/95 p-1"><UniversityLogo src={university.logo_url} name={university.name} shortName={campusName} alt="" /></span>
+              <div className="min-w-0"><p className="break-words text-sm font-bold">{campusName}</p><p className="text-xs text-emerald-100/90">{campusLocation}</p></div>
             </div>
-            <div className="hidden shrink-0 rounded-2xl bg-primary/10 p-3 text-primary sm:block">
-              <Compass className="h-8 w-8" />
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <label className="relative block">
-              <span className="sr-only">Choose your campus</span>
-              <select
-                value={university.slug}
-                onChange={(event) => { window.location.href = `/campus-mate?campus=${encodeURIComponent(event.target.value)}`; }}
-                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 pr-10 text-sm font-semibold text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-              >
-                {universities.map((item) => <option key={item.id} value={item.slug}>{item.short_name || item.name} · {item.city || item.region || 'Ghana'}</option>)}
-              </select>
-              <ChevronRight className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 rotate-90 text-slate-500" />
-            </label>
-            <Button type="button" variant="outline" className="h-12 justify-center rounded-xl border-slate-200 bg-white px-4 dark:border-slate-700 dark:bg-slate-800" onClick={requestLocation}>
-              <LocateFixed className="mr-2 h-4 w-4 text-primary" /> Use my location
-            </Button>
-          </div>
-          {locationMessage && <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{locationMessage}</p>}
-        </div>
-      </section>
-
-      <div className="mx-auto max-w-6xl space-y-4 px-4 py-4 sm:space-y-6 sm:px-6 sm:py-6">
-        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="relative aspect-[1.35/1] min-h-[270px] bg-slate-200 sm:aspect-[2.5/1] sm:min-h-[340px]">
-            <iframe
-              title={`Google Maps view of ${university.name}`}
-              src={campusMapUrl}
-              className="absolute inset-0 h-full w-full border-0"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              allowFullScreen
-              onLoad={() => setMapLoaded(true)}
-              onError={resetMapPreview}
-            />
-            {!mapLoaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(circle_at_20%_20%,rgba(16,185,129,0.18),transparent_35%),linear-gradient(135deg,#e2e8f0,#f8fafc)] p-6 text-center">
-                <div className="max-w-xs rounded-2xl border border-white/80 bg-white/95 p-5 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary"><Map className="h-6 w-6" /></div>
-                  <p className="mt-3 font-bold text-slate-950 dark:text-white">Campus map preview</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Open Google Maps for the live map and turn-by-turn navigation.</p>
-                  {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open Google Maps</a>}
-                </div>
-              </div>
-            )}
-            <div className="pointer-events-none absolute inset-x-3 top-3 flex items-start justify-between gap-2 sm:inset-x-5 sm:top-5">
-              <div className="pointer-events-auto max-w-[calc(100%-3.25rem)] rounded-xl border border-white/70 bg-white/95 px-3 py-2 shadow-lg backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary">You are exploring</p>
-                <p className="mt-0.5 truncate text-sm font-bold text-slate-950 dark:text-white">{selectedMapName || university.short_name || university.name}</p>
-                <p className="truncate text-xs text-slate-500">{selectedPlace ? 'UniEco place' : selectedGooglePlace ? 'Google Maps place' : campusSearchText(university)}</p>
-              </div>
-              {selectedMapName && <button type="button" onClick={clearSelection} className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/70 bg-white/95 text-slate-700 shadow-lg dark:border-slate-700 dark:bg-slate-900/95 dark:text-white" aria-label="Show whole campus"><X className="h-4 w-4" /></button>}
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2 border-t border-slate-100 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/60">
-            {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground transition hover:bg-primary/90"><Navigation className="mr-2 h-4 w-4" /> Open live map</a>}
-            <button type="button" onClick={requestLocation} disabled={locating} className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 transition hover:border-primary/30 hover:bg-primary/5 disabled:cursor-wait disabled:opacity-70 dark:border-slate-700 dark:bg-slate-900 dark:text-white">{locating ? <Loader2 className="mr-2 h-4 w-4 animate-spin text-primary" /> : <LocateFixed className="mr-2 h-4 w-4 text-primary" />} {locating ? 'Finding you…' : 'Near me'}</button>
-            <button type="button" onClick={() => void shareCampus()} className="inline-flex min-h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-900 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-700 dark:bg-slate-900 dark:text-white"><Share2 className="mr-2 h-4 w-4 text-primary" /> Share</button>
-          </div>
-          <div className="flex items-center gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-            <Map className="h-4 w-4 shrink-0 text-primary" />
-            <span role="status">{locationMessage || 'Live map and turn-by-turn navigation are provided by Google Maps.'}</span>
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Campus directory</p>
-              <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-white">What are you looking for?</h2>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-80 sm:flex-row">
-              <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') void searchGooglePlaces(); }} placeholder="Food, hostel, pharmacy, bank…" aria-label="Search this campus" className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-800" />
-              </div>
-              <button type="button" onClick={() => void searchGooglePlaces()} disabled={googlePlacesLoading} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground disabled:cursor-wait disabled:opacity-70">
-                <Globe2 className="mr-1.5 h-4 w-4" /> {googlePlacesLoading ? 'Searching…' : 'Search all places'}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button type="button" onClick={showMap} className="min-h-11 rounded-xl bg-emerald-100 font-bold text-emerald-950 hover:bg-white"><Map className="mr-2 h-4 w-4" aria-hidden="true" /> Open map</Button>
+              <button type="button" onClick={requestLocation} disabled={locating} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/30 px-3 text-sm font-semibold hover:bg-white/10 disabled:opacity-60">
+                {locating ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> : <LocateFixed className="h-4 w-4" aria-hidden="true" />} Near me
               </button>
+              <button type="button" onClick={() => void shareCampus()} aria-label="Share this campus" className="grid h-11 w-11 place-items-center rounded-xl border border-white/30 hover:bg-white/10"><Share2 className="h-4 w-4" aria-hidden="true" /></button>
             </div>
+            {(locationMessage || shareMessage) && <p role="status" className="mt-3 text-xs leading-5 text-emerald-100">{shareMessage || locationMessage}</p>}
+          </div>
+          {university.hero_image_url || university.landmark_image_url ? <figure className="relative order-first m-0 aspect-[2/1] min-w-0 overflow-hidden sm:order-none sm:aspect-auto">
+            <UniversityMedia kind="campus" name={university.name} shortName={campusName} src={university.hero_image_url} fallbackSrc={university.landmark_image_url}
+              alt={university.photoAlt || ('Campus view of ' + university.name)} priority className="absolute inset-0 h-full w-full object-cover" />
+            {university.photoCredit && <figcaption className="absolute bottom-2 right-2"><a href={university.photoCredit} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center gap-1 rounded-full bg-black/75 px-3 text-xs font-semibold text-white">Campus photo source <ArrowUpRight className="h-3 w-3" aria-hidden="true" /></a></figcaption>}
+          </figure> : <div className="relative hidden min-h-[180px] place-items-center overflow-hidden border-l border-white/15 bg-[radial-gradient(ellipse_at_38%_30%,#1d6b56,transparent_70%)] sm:grid" aria-hidden="true">
+            <MapPinned className="h-24 w-24 text-emerald-100/55" />
+          </div>}
+        </section>
+
+        <section aria-label="Campus and place search" className="grid gap-2.5 rounded-2xl border bg-card p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] sm:p-4">
+          <label className="relative flex min-w-0 flex-col gap-1.5 text-xs font-bold">
+            Your campus
+            <select value={university.slug} onChange={(event) => { window.location.href = '/campus-mate?campus=' + encodeURIComponent(event.target.value); }}
+              className="h-12 w-full appearance-none rounded-xl border bg-background pl-3 pr-9 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring">
+              {universities.map(item => <option key={item.id} value={item.slug}>{item.short_name || item.name} · {item.city || item.region || 'Ghana'}</option>)}
+            </select>
+            <ChevronRight className="pointer-events-none absolute bottom-4 right-3 h-4 w-4 rotate-90 text-muted-foreground" aria-hidden="true" />
+          </label>
+          <form onSubmit={(event) => { event.preventDefault(); void searchGooglePlaces(widerSearch); resultsPanel.current?.scrollIntoView({ block: 'start' }); }} className="min-w-0">
+            <label htmlFor="campus-mate-search" className="mb-1.5 block text-xs font-bold">Find a place</label>
+            <div className="flex gap-2">
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                <input id="campus-mate-search" value={searchQuery} maxLength={80} placeholder="Food, hostels, banks…"
+                  onChange={(event) => { setSearchQuery(event.target.value); setActiveFilter('all'); setResultsLimit(12); resetNearby(); }}
+                  className="h-12 w-full rounded-xl border bg-background pl-9 pr-2 text-sm focus-visible:ring-2 focus-visible:ring-ring" />
+              </div>
+              <Button type="submit" disabled={googlePlacesLoading || widerSearch.length < 2} className="h-12 shrink-0 rounded-xl px-3 sm:px-4">Search nearby</Button>
+            </div>
+          </form>
+        </section>
+
+        <section aria-labelledby="campus-essentials">
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div><h2 id="campus-essentials" className="text-xl font-extrabold tracking-tight sm:text-2xl">Campus essentials</h2><p className="mt-0.5 text-xs text-muted-foreground">Tap a picture to find places around this campus.</p></div>
+            <span className="text-[11px] font-medium text-muted-foreground">Category photos</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3 lg:grid-cols-8">
+            {campusMateCategories.map((category, index) => <button key={category.id} type="button" aria-pressed={activeFilter === category.id}
+              onClick={() => updateCategory(category.id, category.query)}
+              className={cn('group overflow-hidden rounded-2xl border bg-card text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', activeFilter === category.id ? 'border-primary ring-2 ring-primary/20' : 'hover:border-primary/60')}>
+              <span className="relative block aspect-[1.55/1] overflow-hidden bg-muted"><CatalogPhoto sources={[category.photo.image]} alt="" sizes="(max-width: 639px) 46vw, (max-width: 1023px) 23vw, 14vw" priority={index < 2} fallback={Store} /></span>
+              <span className="flex min-h-11 items-center justify-between gap-1.5 px-2.5 text-xs font-bold leading-tight"><span>{category.label}</span><ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" /></span>
+            </button>)}
+          </div>
+        </section>
+
+        <section ref={resultsPanel} aria-labelledby="campus-places" className="scroll-mt-20 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="campus-places" className="text-xl font-extrabold tracking-tight sm:text-2xl">{activeFilter === 'event' ? 'Campus events' : 'Places & events on UniEco'}</h2>
+              <p className="mt-1 text-xs text-muted-foreground">{visiblePlaces.length} {visiblePlaces.length === 1 ? 'match' : 'matches'}{deviceLocation ? ' · Closest mapped places first' : ''}</p>
+            </div>
+            <label className="inline-flex items-center gap-2 text-xs font-semibold">
+              Filter
+              <select value={activeFilter} onChange={event => updateCategory(event.target.value as (typeof filters)[number]['id'])}
+                className="min-h-11 max-w-[11rem] rounded-xl border bg-card px-2 text-xs font-semibold focus-visible:ring-2 focus-visible:ring-ring">
+                {filters.map(filter => <option key={filter.id} value={filter.id}>{filter.label}</option>)}
+              </select>
+            </label>
           </div>
 
-          <div className="mt-4 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Campus Mate filters">
-            {filters.map((filter) => {
-              const active = activeFilter === filter.id;
-              return <button key={filter.id} type="button" onClick={() => { setActiveFilter(filter.id); if (filter.query) { setSearchQuery(filter.query); void searchGooglePlaces(filter.query); } }} role="tab" aria-selected={active} className={cn('shrink-0 rounded-full border px-3.5 py-2 text-xs font-bold transition', active ? 'border-primary bg-primary text-primary-foreground' : 'border-slate-200 bg-white text-slate-600 hover:border-primary/50 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300')}>
-                {filter.id !== 'all' && filter.id !== 'event' && <span className="mr-1">{CATEGORY_ICONS[filter.id] || '•'}</span>}{filter.label}
-              </button>;
+          {visiblePlaces.length ? <div className={cardGrid}>
+            {visiblePlaces.slice(0, resultsLimit).map(({ place, distance }) => {
+              const coords = getPlaceCoordinates(place);
+              const directions = coords || place.address ? getGoogleMapsDirectionsUrl({
+                latitude: coords?.latitude, longitude: coords?.longitude, address: placeSearchText(place, university),
+              }, deviceLocation ?? undefined) : null;
+              return <CampusPlaceCard key={place.kind + '-' + place.id} name={place.name} source={place.kind}
+                category={place.kind === 'event' ? 'Campus event' : place.category}
+                address={place.address || (place.kind === 'business' ? 'Exact location not published' : null)}
+                date={formatDate(place.start_time)} distance={distance} rating={place.rating} verified={place.verified}
+                photo={place.image_url} logo={place.logo_url} backdrop={findCampusMateCategory(place.category)?.photo.image}
+                active={selectedPlaceId === place.id} directions={directions} details={place.href} onMap={() => choosePlace(place)} />;
             })}
-          </div>
+          </div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-card p-4 sm:p-5">
+            <div><p className="font-bold">No matching UniEco listings yet</p><p className="mt-1 text-xs text-muted-foreground">Try a different category or search the wider area.</p></div>
+            {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold hover:bg-muted"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Google Maps</a>}
+          </div>}
+          {visiblePlaces.length > resultsLimit && <Button type="button" variant="outline" className="min-h-11" onClick={() => setResultsLimit(current => current + 12)}>Show more places</Button>}
 
-          <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-slate-950 dark:text-white">Popular around campus</p>
-                <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">One tap to find everyday essentials</p>
-              </div>
-              <span className="hidden text-xs font-semibold text-primary sm:inline">Free community search</span>
+          {(googleSearchCompleted || googlePlacesLoading) && <section aria-labelledby="community-places" className="space-y-3 rounded-2xl border bg-muted/30 p-3 sm:p-5">
+            <div>
+              <h3 id="community-places" className="text-lg font-extrabold tracking-tight">Around campus{widerSearch ? ' · ' + widerSearch : ''}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">Community map results, not UniEco-verified businesses.</p>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {quickSearches.map((item) => (
-                <button
-                  key={item.query}
-                  type="button"
-                  onClick={() => { setSearchQuery(item.query); setActiveFilter('all'); void searchGooglePlaces(item.query); }}
-                  className="flex min-h-12 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-left text-xs font-bold text-slate-700 transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-primary dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                >
-                  <span className="text-base" aria-hidden="true">{item.emoji}</span>
-                  <span className="truncate">{item.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          {shareMessage && <p className="mt-3 text-center text-xs font-semibold text-primary" role="status">{shareMessage}</p>}
+            {googlePlacesLoading ? <p role="status" className="flex items-center gap-2 py-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> Finding nearby places…</p>
+              : googlePlacesError ? <div className="rounded-xl border bg-card p-3 text-sm"><p role="status">{googlePlacesError}</p>
+                {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex min-h-11 items-center gap-1.5 font-semibold text-primary underline"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Search Google Maps</a>}
+              </div> : <div className={cardGrid}>
+                {visibleGooglePlaces.map(place => {
+                  const coords = place.latitude != null && place.longitude != null && isValidCoordinate(place.latitude, place.longitude) ? { latitude: place.latitude, longitude: place.longitude } : null;
+                  const directions = getGoogleMapsDirectionsUrl({ ...coords, address: [place.name, place.address].filter(Boolean).join(', ') }, deviceLocation ?? undefined);
+                  return <CampusPlaceCard key={place.id} name={place.name} source="community" category={place.category} address={place.address}
+                    distance={deviceLocation && coords ? distanceInKm(deviceLocation, coords) : null}
+                    backdrop={findCampusMateCategory(place.category)?.photo.image}
+                    active={selectedGooglePlace?.id === place.id} directions={directions} externalDetails={place.osmUrl} onMap={() => chooseGooglePlace(place)} />;
+                })}
+              </div>}
+            <p className="text-[11px] leading-5 text-muted-foreground">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a>. Coverage varies by campus.</p>
+          </section>}
         </section>
 
-        {(googleSearchCompleted || googlePlacesLoading) && (
-          <section className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 shadow-sm sm:p-5 dark:border-blue-900/60 dark:bg-blue-950/20">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">{discoverySource === 'OpenStreetMap' ? 'OpenStreetMap discovery' : 'Community place discovery'}</p>
-                <h2 className="mt-1 text-lg font-bold text-slate-950 dark:text-white">Places around this campus</h2>
-                <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">Free community places are shown from OpenStreetMap. They are not UniEco vendors unless the owner joins and verifies the business.</p>
-              </div>
-              <Globe2 className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-300" />
-            </div>
-
-            {googlePlacesLoading ? (
-              <div className="mt-4 rounded-xl border border-blue-200 bg-white/80 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">Finding places around {university.short_name || university.name}…</div>
-            ) : googlePlacesError ? (
-              <div className="mt-4 rounded-xl border border-dashed border-blue-300 bg-white/70 p-5 text-center text-sm text-slate-600 dark:border-blue-900/60 dark:bg-slate-900/60 dark:text-slate-300">
-                <p>{googlePlacesError}</p>
-                {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-primary px-4 text-xs font-bold text-primary-foreground"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open free Google Maps search</a>}
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3 lg:grid-cols-2">
-                {visibleGooglePlaces.map((place) => {
-                  const directionsUrl = getGoogleMapsDirectionsUrl({ latitude: place.latitude, longitude: place.longitude, address: place.address }, deviceLocation ? { latitude: deviceLocation.latitude, longitude: deviceLocation.longitude } : undefined);
-                  return (
-                    <article key={place.id} className="rounded-xl border border-blue-100 bg-white p-3 shadow-sm dark:border-blue-900/50 dark:bg-slate-900">
-                      <div className="flex gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300"><Globe2 className="h-5 w-5" /></div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0"><p className="truncate font-bold text-slate-950 dark:text-white">{place.name}</p><p className="mt-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">{place.category}</p></div>
-                            {place.rating != null && <span className="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-amber-600"><Star className="h-3.5 w-3.5 fill-current" /> {place.rating.toFixed(1)}</span>}
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{place.address || 'Address available in Google Maps'}{deviceLocation && place.latitude != null && place.longitude != null ? ` · ${distanceInKm(deviceLocation, { latitude: place.latitude, longitude: place.longitude }).toFixed(1)} km away` : ''}</p>
-                          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-                            <button type="button" onClick={() => chooseGooglePlace(place)} className="inline-flex min-h-9 items-center rounded-lg bg-blue-100 px-3 font-bold text-blue-800 dark:bg-blue-950/60 dark:text-blue-200"><Map className="mr-1.5 h-3.5 w-3.5" /> View on map</button>
-                            {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 font-bold text-primary-foreground"><Navigation className="mr-1.5 h-3.5 w-3.5" /> Directions</a>}
-                            {place.googleMapsUri && <a href={place.googleMapsUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-blue-200 px-2.5 font-semibold text-blue-800 dark:border-blue-900/60 dark:text-blue-200"><ExternalLink className="mr-1 h-3.5 w-3.5" /> Google Maps</a>}
-                            {place.osmUrl && <a href={place.osmUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><ExternalLink className="mr-1 h-3.5 w-3.5" /> OpenStreetMap</a>}
-                            {place.phone && <a href={`tel:${place.phone}`} className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Phone className="mr-1 h-3.5 w-3.5" /> Call</a>}
-                            {place.websiteUri && <a href={place.websiteUri} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-2.5 font-semibold text-slate-700 dark:border-slate-700 dark:text-slate-200"><Globe2 className="mr-1 h-3.5 w-3.5" /> Website</a>}
-                          </div>
-                          {place.businessStatus && place.businessStatus !== 'OPERATIONAL' && <p className="mt-2 text-[11px] font-semibold text-amber-700 dark:text-amber-300">Google status: {place.businessStatus.toLowerCase().replaceAll('_', ' ')}</p>}
-                          {place.userRatingCount != null && <p className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">{place.userRatingCount.toLocaleString()} Google reviews · Google Maps</p>}
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-            <p className="mt-4 text-[11px] text-slate-500 dark:text-slate-400">OpenStreetMap data is provided by OpenStreetMap contributors under the Open Database License. Place coverage depends on what the local community has mapped. Use Google Maps for the latest external details.</p>
-          </section>
-        )}
-
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
-            <div className="mb-3 flex items-end justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-950 dark:text-white">Nearby places</h2>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{visiblePlaces.length} {visiblePlaces.length === 1 ? 'place' : 'places'} found</p>
-              </div>
-              {deviceLocation && <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary"><Check className="h-3.5 w-3.5" /> Sorted near you</span>}
-            </div>
-
-            {visiblePlaces.length > 0 ? (
-              <div className="space-y-3">
-                {visiblePlaces.map(({ place, distance }) => {
-                  const coordinates = getPlaceCoordinates(place);
-                  const directionsUrl = getGoogleMapsDirectionsUrl({ latitude: place.latitude, longitude: place.longitude, address: placeSearchText(place, university) }, deviceLocation ? { latitude: deviceLocation.latitude, longitude: deviceLocation.longitude } : undefined);
-                  const placeUrl = getGoogleMapsPlaceUrl({ latitude: place.latitude, longitude: place.longitude, address: placeSearchText(place, university) });
-                  const date = formatDate(place.start_time);
-                  return (
-                    <article key={`${place.kind}-${place.id}`} className={cn('rounded-xl border p-3 transition', selectedPlaceId === place.id ? 'border-primary bg-primary/5' : 'border-slate-200 hover:border-primary/40 dark:border-slate-700')}>
-                      <div className="flex gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-primary/10 text-primary">
-                          {place.image_url ? <img src={place.image_url} alt="" className="h-full w-full object-cover" /> : place.kind === 'event' ? <CalendarDays className="h-5 w-5" /> : <Store className="h-5 w-5" />}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate font-bold text-slate-950 dark:text-white">{place.name}</p>
-                              <p className="mt-0.5 text-xs font-medium text-primary">{place.kind === 'event' ? 'Campus event' : `${CATEGORY_ICONS[place.category] || '📍'} ${place.category || 'Campus business'}`}</p>
-                            </div>
-                            {place.verified && <BadgeCheck className="h-4 w-4 shrink-0 text-primary" aria-label="Verified" />}
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500 dark:text-slate-400">{place.address || 'Campus location available in Google Maps'}{date ? ` · ${date}` : ''}</p>
-                          <div className="mt-3 flex flex-wrap items-center gap-2">
-                            <button type="button" onClick={() => choosePlace(place)} className="inline-flex min-h-9 items-center rounded-lg bg-slate-100 px-3 text-xs font-bold text-slate-700 transition hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:text-slate-200"><Map className="mr-1.5 h-3.5 w-3.5" /> View on map</button>
-                            {directionsUrl && <a href={directionsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-9 items-center rounded-lg bg-primary px-3 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"><Navigation className="mr-1.5 h-3.5 w-3.5" /> Directions</a>}
-                            {place.href && <Link href={place.href} className="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-bold text-primary hover:bg-primary/10">Details <ArrowUpRight className="ml-1 h-3.5 w-3.5" /></Link>}
-                            {distance != null && <span className="ml-auto text-xs font-semibold text-slate-500">{distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center dark:border-slate-700">
-                <MapPinned className="mx-auto h-8 w-8 text-primary/70" />
-                <h3 className="mt-3 font-bold text-slate-900 dark:text-white">No UniEco places match that search</h3>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">Search the wider campus area in Google Maps to find any place, even if it is not listed on UniEco yet.</p>
-                {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground"><Search className="mr-2 h-4 w-4" /> Search Google Maps</a>}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 sm:p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Navigation className="h-5 w-5" /></div>
-                <div>
-                  <h2 className="font-bold text-slate-950 dark:text-white">Need to go somewhere else?</h2>
-                  <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Search any hostel, lecture hall, food spot, bank, transport stop or landmark around {university.short_name || university.name}.</p>
-                  {campusDirectionsUrl && <a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-10 items-center rounded-lg border border-primary/30 bg-white px-3 text-xs font-bold text-primary dark:bg-slate-900"><ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Explore all places</a>}
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5 dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-start gap-3">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700">
-                  <UniversityLogo src={university.logo_url} fallbackSrc={university.hero_image_url || university.landmark_image_url} name={university.name} shortName={university.short_name} alt={university.logo_alt_text || `${university.name} logo`} className="h-full w-full object-contain" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-primary">Your campus</p>
-                  <h2 className="mt-1 truncate font-bold text-slate-950 dark:text-white">{university.name}</h2>
-                  <p className="mt-1 text-xs text-slate-500">{[university.city, university.region].filter(Boolean).join(' · ') || 'Ghana'}</p>
-                </div>
-              </div>
-              <Link href={`/university/${university.slug}`} className="mt-4 flex min-h-11 items-center justify-between rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-700 transition hover:bg-primary/10 hover:text-primary dark:bg-slate-800 dark:text-slate-200">
-                View campus community <ChevronRight className="h-4 w-4" />
-              </Link>
+        <section ref={mapPanel} tabIndex={-1} aria-labelledby="campus-map" className="scroll-mt-20 overflow-hidden rounded-2xl border bg-card focus:outline-none">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+            <div><h2 id="campus-map" className="text-lg font-extrabold">Campus map</h2><p className="mt-1 break-words text-xs text-muted-foreground">{selectedMapName || campusName}{selectedPlace && !getPlaceCoordinates(selectedPlace) && !selectedPlace.address ? ' · Showing the campus area only' : ''}</p></div>
+            <div className="flex flex-wrap gap-2">
+              {!mapOpen && <Button type="button" variant="outline" className="min-h-11" onClick={showMap}>Load map</Button>}
+              {mapOpen && <Button type="button" variant="outline" className="min-h-11" onClick={() => { setMapOpen(false); setMapLoaded(false); }}><X className="mr-1.5 h-4 w-4" aria-hidden="true" /> Close map</Button>}
+              {selectedMapName && <Button type="button" variant="ghost" className="min-h-11" onClick={clearSelection}>Reset map</Button>}
+              {campusDirectionsUrl && <Button variant="outline" className="min-h-11" asChild><a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer">Open Google Maps <ArrowUpRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" /></a></Button>}
             </div>
           </div>
+          {mapOpen && <div className="relative h-[300px] border-t bg-muted sm:h-[380px]">
+            <iframe key={campusMapUrl} title={'Google Maps view of ' + (selectedMapName || campusName)} src={campusMapUrl} className="absolute inset-0 h-full w-full border-0"
+              referrerPolicy="strict-origin" allowFullScreen onLoad={() => setMapLoaded(true)} />
+            {!mapLoaded && <p role="status" className="pointer-events-none absolute left-3 top-3 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold">Loading map…</p>}
+          </div>}
         </section>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+          <Link href={'/university/' + university.slug} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary">View campus profile <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer py-2 font-medium">Photo credits</summary>
+            <ul className="mt-1 space-y-1">{campusMateCategories.map(item => <li key={item.id}><a href={item.photo.source} target="_blank" rel="noopener noreferrer" className="underline">{item.label} · {item.photo.creator}</a></li>)}</ul>
+            <p className="mt-2"><a href="https://www.pexels.com/license/" target="_blank" rel="noopener noreferrer" className="underline">Pexels License</a></p>
+          </details>
+        </div>
       </div>
     </main>
   );

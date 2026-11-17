@@ -16,8 +16,8 @@ export type DirectoryRecord = Pick<University,
   'ownership_type' | 'campus_launch_status'
 > & { university_aliases: Array<{ alias: string }> };
 
-type ProfileRecord = Omit<DirectoryRecord, 'university_aliases'> & Partial<Pick<University,
-  'website_url' | 'description' | 'image_source' | 'accreditation_source_url'
+type ProfileRecord = Omit<DirectoryRecord, 'university_aliases' | 'ownership_type'> & Partial<Pick<University,
+  'ownership_type' | 'website_url' | 'description' | 'image_source' | 'accreditation_source_url'
 >>;
 
 function imagePath(value?: string | null) {
