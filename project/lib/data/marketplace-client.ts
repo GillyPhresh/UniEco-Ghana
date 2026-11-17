@@ -2,6 +2,8 @@
 
 import { supabase } from '@/lib/supabase/client';
 import { normalizeSearchTerm } from '@/lib/utils/search';
+import { catalogRange, compareCatalogPrice, firstRelation } from '@/lib/marketplace/catalog';
+import type { CatalogProduct, CatalogVendor, ShopFilters } from '@/lib/marketplace/catalog';
 import type { Order, OrderItem, OrderStatus, DeliveryMethod, Product, Service, DeliveryAddress } from '@/lib/types';
 import type {
   Cart, CartItem, CartWithItems, OrderWithDetails, OrderStatusHistory,
@@ -50,49 +52,66 @@ export async function getCartItems(): Promise<CartItem[]> {
   return (data || []) as unknown as CartItem[];
 }
 
+let cartAddQueue: Promise<unknown> = Promise.resolve();
+
 export async function addToCart(productId?: string, serviceId?: string, quantity = 1): Promise<{ error: string | null }> {
+  const next = cartAddQueue.then(() => addCatalogItem(productId, serviceId, quantity));
+  cartAddQueue = next.catch(() => undefined);
+  return next;
+}
+
+type CartVendorRef = { vendor_id: string };
+type CartListingRef = { business: CartVendorRef | CartVendorRef[] | null };
+type CartAddEntry = {
+  id: string; product_id: string | null; service_id: string | null; quantity: number; save_for_later: boolean;
+  product: CartListingRef | CartListingRef[] | null;
+  service: CartListingRef | CartListingRef[] | null;
+};
+
+async function addCatalogItem(productId?: string, serviceId?: string, quantity = 1): Promise<{ error: string | null }> {
+  const listingId = productId ?? serviceId;
+  if (!listingId || Boolean(productId) === Boolean(serviceId) || !Number.isSafeInteger(quantity) || quantity < 1) {
+    return { error: 'Choose an item and a valid quantity.' };
+  }
+  const { data: listing, error: listingError } = await supabase
+    .from(productId ? 'products' : 'services')
+    .select(`id${productId ? ',stock' : ''},business:businesses!inner(vendor_id,vendor:vendors!inner(id))`)
+    .eq('id', listingId)
+    .eq('is_active', true).eq('is_archived', false).eq('business.is_active', true)
+    .eq('business.vendor.is_active', true).eq('business.vendor.is_verified', true)
+    .eq('business.vendor.is_temporarily_closed', false)
+    .maybeSingle();
+  if (listingError) return { error: 'Could not check this item. Try again.' };
+  const target = listing as unknown as (CartListingRef & { stock?: number }) | null;
+  const vendorId = firstRelation(target?.business)?.vendor_id;
+  if (!target || !vendorId) return { error: 'This item is not available to order.' };
+
   const cart = await getOrCreateCart();
-  if (!cart) return { error: 'Not authenticated' };
-
-  if (productId) {
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('cart_id', cart.id)
-      .eq('product_id', productId)
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from('cart_items')
-        .update({ quantity: existing.quantity + quantity })
-        .eq('id', existing.id);
-      return { error: error?.message || null };
-    }
-
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({ cart_id: cart.id, product_id: productId, quantity });
-    return { error: error?.message || null };
+  if (!cart) return { error: 'Could not open your cart. Please sign in and try again.' };
+  const { data, error } = await supabase.from('cart_items')
+    .select('id,quantity,product_id,service_id,save_for_later,product:products(business:businesses(vendor_id)),service:services(business:businesses(vendor_id))')
+    .eq('cart_id', cart.id);
+  if (error) return { error: 'Could not check your cart. Try again.' };
+  const entries = (data ?? []) as unknown as CartAddEntry[];
+  for (const entry of entries) {
+    if (entry.save_for_later) continue;
+    const owner = firstRelation(firstRelation(entry.product ?? entry.service)?.business)?.vendor_id;
+    if (!owner) return { error: 'Open your cart and remove unavailable items first.' };
+    if (owner !== vendorId) return { error: 'You can order from one shop at a time. Open your cart to finish that order or save those items for later.' };
   }
-
-  if (serviceId) {
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id')
-      .eq('cart_id', cart.id)
-      .eq('service_id', serviceId)
-      .maybeSingle();
-
-    if (existing) return { error: 'This service is already in your cart' };
-
-    const { error } = await supabase
-      .from('cart_items')
-      .insert({ cart_id: cart.id, service_id: serviceId, quantity: 1 });
-    return { error: error?.message || null };
+  const existing = entries.find(entry => productId ? entry.product_id === productId : entry.service_id === serviceId);
+  const combined = productId ? (existing && !existing.save_for_later ? existing.quantity : 0) + quantity : 1;
+  if (productId && (target.stock == null || combined > target.stock)) return { error: 'There isn’t enough stock for this quantity.' };
+  if (existing) {
+    if (!productId && !existing.save_for_later) return { error: null };
+    const { error: updateError } = await supabase.from('cart_items')
+      .update({ quantity: combined, save_for_later: false }).eq('id', existing.id).eq('cart_id', cart.id);
+    return { error: updateError ? 'Could not update your cart. Try again.' : null };
   }
-
-  return { error: 'No item specified' };
+  const { error: insertError } = await supabase.from('cart_items')
+    .insert(productId ? { cart_id: cart.id, product_id: productId, quantity: combined }
+      : { cart_id: cart.id, service_id: serviceId, quantity: 1 });
+  return { error: insertError ? 'Could not add this item. Try again.' : null };
 }
 
 export async function updateCartQuantity(itemId: string, quantity: number): Promise<{ error: string | null }> {
@@ -186,7 +205,7 @@ export function calculateCartSummary(
 
   for (const item of activeItems) {
     const price = item.product
-      ? (item.product.discount_price || item.product.price)
+      ? (item.product.discount_price ?? item.product.price)
       : item.service?.price || 0;
     subtotal += price * item.quantity;
   }
@@ -314,72 +333,46 @@ export async function getRecentlyAddedProducts(limit = 8): Promise<(Product & { 
   });
 }
 
-export async function searchProducts(params: {
-  query?: string;
-  category?: string;
-  sort?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<{ products: (Product & { vendor?: { business_name: string; business_slug: string; logo_url: string | null } })[]; total: number; error: boolean }> {
-  let query = supabase
-    .from('products')
-    .select(`
-      *,
+export async function searchProducts(params: ShopFilters): Promise<{ products: CatalogProduct[]; total: number; error: boolean }> {
+  const { start, end } = catalogRange(params.offset, params.limit);
+  const searchTerm = normalizeSearchTerm(params.query || '');
+  const baseQuery = () => {
+    let query = supabase.from('products').select(`
+      id,name,price,currency,stock,image_url,images,discount_price,low_stock_threshold,business_id,
       business:businesses!inner(
         category,
-        vendor:vendors!inner(id, business_name, business_slug, logo_url)
+        vendor:vendors!inner(id,business_name,business_slug,logo_url,rating_avg,rating_count,delivery_available,is_temporarily_closed)
       )
     `, { count: 'exact' })
-    .eq('is_active', true)
-    .eq('is_archived', false)
-    .gt('stock', 0);
-
-  const searchTerm = normalizeSearchTerm(params.query || '');
-  if (searchTerm) {
-    query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      .eq('is_active', true).eq('is_archived', false).eq('business.is_active', true)
+      .eq('business.vendor.is_active', true).eq('business.vendor.is_verified', true);
+    if (searchTerm) query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+    if (params.category) query = query.eq('business.category', params.category);
+    if (params.universityId) query = query.eq('business.vendor.university_id', params.universityId);
+    if (params.deliveryOnly) query = query.eq('business.vendor.delivery_available', true).eq('business.vendor.is_temporarily_closed', false);
+    if (params.signal) query = query.abortSignal(params.signal);
+    return query;
+  };
+  type Business = { vendor: CatalogVendor | CatalogVendor[] };
+  type Row = CatalogProduct & { business: Business | Business[] };
+  const asCards = (data: unknown): CatalogProduct[] => ((data as Row[] | null) ?? []).map(({ business, ...item }) => ({
+    ...item,
+    vendor: firstRelation(firstRelation(business)?.vendor) ?? undefined,
+  }));
+  if (params.sort === 'price_low' || params.sort === 'price_high') {
+    // Sorted price is checkout's COALESCE(discount_price, price). Merge disjoint streams.
+    const ascending = params.sort === 'price_low';
+    const [regular, discounted] = await Promise.all([
+      baseQuery().is('discount_price', null).order('price', { ascending }).order('id').range(0, end),
+      baseQuery().not('discount_price', 'is', null).order('discount_price', { ascending }).order('id').range(0, end),
+    ]);
+    if (regular.error || discounted.error) return { products: [], total: 0, error: true };
+    const products = [...asCards(regular.data), ...asCards(discounted.data)]
+      .sort((a, b) => compareCatalogPrice(a, b, !ascending)).slice(start, end + 1);
+    return { products, total: (regular.count ?? 0) + (discounted.count ?? 0), error: false };
   }
-
-  if (params.category) {
-    // Marketplace categories are stored on businesses; vendor.business_type
-    // describes the vendor account and is not the product-browsing category.
-    query = query.eq('business.category', params.category);
-  }
-
-  switch (params.sort) {
-    case 'price_low':
-      query = query.order('price', { ascending: true });
-      break;
-    case 'price_high':
-      query = query.order('price', { ascending: false });
-      break;
-    case 'newest':
-      query = query.order('created_at', { ascending: false });
-      break;
-    case 'rating':
-      query = query.order('created_at', { ascending: false });
-      break;
-    default:
-      query = query.order('created_at', { ascending: false });
-  }
-
-  const limit = params.limit || 12;
-  const offset = params.offset || 0;
-  query = query.range(offset, offset + limit - 1);
-
-  const { data, count, error } = await query;
-
-  if (error) return { products: [], total: 0, error: true };
-
-  if (!data) return { products: [], total: 0, error: false };
-
-  const products = data.map((p: Record<string, unknown>) => {
-    const business = p.business as Record<string, unknown> | null;
-    const vendorArr = business?.vendor as Record<string, unknown>[] | null;
-    const vendor = vendorArr?.[0];
-    return { ...(p as unknown as Product), vendor: vendor ? { business_name: vendor.business_name as string, business_slug: vendor.business_slug as string, logo_url: vendor.logo_url as string | null } : undefined };
-  });
-
-  return { products, total: count || 0, error: false };
+  const { data, count, error } = await baseQuery().order('created_at', { ascending: false }).order('id').range(start, end);
+  return { products: asCards(data), total: count ?? 0, error: Boolean(error) };
 }
 
 // ============================================================
@@ -387,24 +380,32 @@ export async function searchProducts(params: {
 // ============================================================
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('products')
-    .select('*')
+    .select('*,business:businesses!inner(vendor:vendors!inner(id))')
     .eq('id', id)
     .eq('is_active', true)
     .eq('is_archived', false)
+    .eq('business.is_active', true)
+    .eq('business.vendor.is_active', true)
+    .eq('business.vendor.is_verified', true)
     .maybeSingle();
+  if (error) throw new Error('Product could not load.');
   return data as Product | null;
 }
 
 export async function getServiceById(id: string): Promise<Service | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('services')
-    .select('*')
+    .select('*,business:businesses!inner(vendor:vendors!inner(id))')
     .eq('id', id)
     .eq('is_active', true)
     .eq('is_archived', false)
+    .eq('business.is_active', true)
+    .eq('business.vendor.is_active', true)
+    .eq('business.vendor.is_verified', true)
     .maybeSingle();
+  if (error) throw new Error('Service could not load.');
   return data as Service | null;
 }
 

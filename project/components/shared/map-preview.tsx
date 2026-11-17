@@ -9,6 +9,7 @@ interface MapPreviewProps {
   address?: string | null;
   city?: string | null;
   mapsUrl?: string | null;
+  placeId?: string | null;
 }
 
 export function MapPreview({
@@ -18,8 +19,9 @@ export function MapPreview({
   address,
   city,
   mapsUrl,
+  placeId,
 }: MapPreviewProps) {
-  const destination = { latitude, longitude, address: [address, city].filter(Boolean).join(', ') };
+  const destination = { latitude, longitude, placeId, address: [address, city].filter(Boolean).join(', ') || (placeId ? label : undefined) };
   const directionsUrl = getGoogleMapsDirectionsUrl(destination);
   const placeUrl = isSupportedGoogleMapsUrl(mapsUrl) ? mapsUrl : getGoogleMapsPlaceUrl(destination);
 
@@ -32,20 +34,9 @@ export function MapPreview({
             <p className="font-medium text-foreground">{label || 'Business location'}</p>
             <p className="mt-1 text-sm text-muted-foreground">{address || city || 'Address not provided'}</p>
             {address && city && <p className="text-sm text-muted-foreground">{city}</p>}
-            {latitude != null && longitude != null && <p className="mt-2 text-xs text-muted-foreground">Coordinates available for precise directions</p>}
           </div>
         </div>
       </div>
-      {(address || city) && (
-        <div className="flex items-start gap-2 text-sm text-muted-foreground">
-          <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-          <span>
-            {address}
-            {address && city ? ', ' : ''}
-            {city}
-          </span>
-        </div>
-      )}
       {directionsUrl && <Button asChild variant="outline" size="sm">
         <a href={directionsUrl} target="_blank" rel="noopener noreferrer">
           <Navigation className="mr-2 h-4 w-4" />
@@ -53,7 +44,7 @@ export function MapPreview({
         </a>
       </Button>}
       {placeUrl && <Button asChild variant="outline" size="sm"><a href={placeUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="mr-2 h-4 w-4" />Open in Google Maps</a></Button>}
-      {!directionsUrl && <p className="text-sm text-muted-foreground">The vendor has not provided a usable location yet.</p>}
+      {!directionsUrl && !placeUrl && <p className="text-sm text-muted-foreground">No public location yet.</p>}
     </div>
   );
 }

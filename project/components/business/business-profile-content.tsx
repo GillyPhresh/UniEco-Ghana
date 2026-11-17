@@ -8,7 +8,11 @@ import { OpenStatus } from '@/components/shared/open-status';
 import { MapPreview } from '@/components/shared/map-preview';
 import { EmptyState } from '@/components/shared/empty-state';
 import { BusinessCard } from '@/components/shared/business-card';
-import { Phone, MessageCircle, Mail, MapPin, Clock, Package, Wrench, Image, Star, Info, Heart, Loader2, Send } from 'lucide-react';
+import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
+import { ProductCard, ServiceCard } from '@/components/marketplace/product-card';
+import { catalogPhotos, publicShopDestination } from '@/lib/marketplace/catalog';
+import { getGoogleMapsDirectionsUrl, isSupportedGoogleMapsUrl } from '@/lib/maps';
+import { Phone, MessageCircle, Mail, MapPin, Navigation, Package, Store, Wrench, Image as ImageIcon, Star, Info, Heart, Loader2, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -17,11 +21,12 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { toggleSaveItem, isItemSaved, trackRecentlyViewed, checkExistingReview, createReview } from '@/lib/data/student-client';
 import Link from 'next/link';
 import type { VendorWithRelations } from '@/lib/types/extended';
-import type { Product, Service, Review, Location, Vendor } from '@/lib/types';
+import type { Product, Service, Review, Location } from '@/lib/types';
 import type { BusinessGalleryItem } from '@/lib/types/vendor';
 
 interface BusinessProfileContentProps {
   vendor: VendorWithRelations;
+  initialTab: string;
   location: Location | null;
   gallery: BusinessGalleryItem[];
   products: (Product & { business: { id: string; name: string; slug: string } })[];
@@ -30,12 +35,9 @@ interface BusinessProfileContentProps {
   relatedVendors: VendorWithRelations[];
 }
 
-function formatGHS(amount: number): string {
-  return `GH₵${amount.toFixed(2)}`;
-}
-
 export function BusinessProfileContent({
   vendor,
+  initialTab,
   location,
   gallery,
   products,
@@ -43,7 +45,7 @@ export function BusinessProfileContent({
   reviews,
   relatedVendors,
 }: BusinessProfileContentProps) {
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = useState(initialTab);
   const { user } = useAuth();
   const [isSaved, setIsSaved] = useState(false);
   const [savingItem, setSavingItem] = useState(false);
@@ -90,8 +92,12 @@ export function BusinessProfileContent({
     setSubmittingReview(false);
   };
 
-  const hasProducts = products.length > 0;
-  const hasServices = services.length > 0;
+  const galleryPhotos = gallery.filter(item => catalogPhotos(item.image_url).length > 0);
+  const heroPhotos = catalogPhotos(vendor.cover_image_url, galleryPhotos.map(item => item.image_url));
+  const destination = publicShopDestination({ ...vendor, location });
+  const hasPublicMap = vendor.location_public_visibility === 'business_location' && vendor.location_verification_status === 'verified';
+  const directions = destination ? getGoogleMapsDirectionsUrl(destination) : null;
+  const mapHref = hasPublicMap && isSupportedGoogleMapsUrl(vendor.location_maps_url) ? vendor.location_maps_url : null;
   const hasReviews = reviews.length > 0;
   const openingHours = vendor.opening_hours as Record<string, { open: string; close: string }> | null;
 
@@ -113,31 +119,20 @@ export function BusinessProfileContent({
     <div className="container py-6 sm:py-8">
       {/* Breadcrumb */}
       <nav className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
-        <a href="/discover" className="hover:text-foreground">Discover</a>
+        <Link href="/marketplace" className="hover:text-foreground">Marketplace</Link>
         <span>/</span>
         <span className="text-foreground">{vendor.business_name}</span>
       </nav>
 
       {/* Header card */}
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-        <div className="relative h-40 bg-gradient-to-br from-primary/15 via-primary/5 to-accent/10 sm:h-48">
-          {vendor.cover_image_url && (
-            <img
-              src={vendor.cover_image_url}
-              alt={vendor.business_name}
-              className="h-full w-full object-cover"
-            />
-          )}
+        <div className="relative aspect-[2.55/1] max-h-64 min-h-24 overflow-hidden bg-muted">
+          <CatalogPhoto sources={heroPhotos} alt="" sizes="(min-width: 1280px) 1150px, 100vw" fallback={Store} priority />
         </div>
         <div className="px-4 pb-4 sm:px-6 sm:pb-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            {/* Logo */}
-            <div className="-mt-12 flex h-24 w-24 shrink-0 items-center justify-center rounded-xl border-4 border-card bg-primary/10 text-4xl shadow-lg sm:-mt-16 sm:h-28 sm:w-28">
-              {vendor.logo_url ? (
-                <img src={vendor.logo_url} alt={vendor.business_name} className="h-full w-full rounded-lg object-cover" />
-              ) : (
-                '🏪'
-              )}
+            <div className="relative -mt-9 grid h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-4 border-card bg-card shadow-md sm:-mt-12 sm:h-24 sm:w-24">
+              <CatalogPhoto sources={[vendor.logo_url]} alt="" sizes="96px" fallback={Store} />
             </div>
 
             {/* Info */}
@@ -167,12 +162,15 @@ export function BusinessProfileContent({
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-                <RatingStars
-                  rating={vendor.rating_avg || 0}
-                  count={vendor.rating_count || 0}
-                  size={18}
-                />
-                <OpenStatus openingHours={openingHours} />
+                <a href="#shop-sections" onClick={() => setActiveTab('reviews')} className="inline-flex min-h-[40px] items-center gap-1.5 font-semibold hover:text-primary">
+                  {vendor.rating_count > 0
+                    ? <RatingStars rating={Number(vendor.rating_avg)} count={vendor.rating_count} size={16} />
+                    : <><Star className="h-4 w-4 text-muted-foreground" aria-hidden="true" /> No ratings yet</>}
+                  <span className="sr-only">Reviews</span>
+                </a>
+                {vendor.is_temporarily_closed
+                  ? <Badge variant="secondary">Temporarily closed</Badge>
+                  : <OpenStatus openingHours={openingHours} />}
                 {vendor.university && (
                   <span className="flex items-center gap-1.5 text-muted-foreground">
                     <MapPin className="h-4 w-4 text-primary" />
@@ -183,6 +181,11 @@ export function BusinessProfileContent({
 
               {/* Contact actions */}
               <div className="mt-4 flex flex-wrap gap-2">
+                {(directions || mapHref) && <Button asChild className="min-h-[44px] gap-2 rounded-full">
+                  <a href={directions || mapHref!} target="_blank" rel="noopener noreferrer">
+                    <Navigation className="h-4 w-4" aria-hidden="true" /> {directions ? 'Directions' : 'Open map'}
+                  </a>
+                </Button>}
                 {whatsappUrl && (
                   <Button asChild size="sm" className="bg-success hover:bg-success/90">
                     <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
@@ -238,116 +241,49 @@ export function BusinessProfileContent({
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         {/* Main content with tabs */}
-        <div>
+        <div id="shop-sections" className="min-w-0 scroll-mt-28">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="products" className="gap-1 text-xs sm:text-sm">
+            <TabsList className="grid h-auto w-full grid-cols-5">
+              <TabsTrigger value="products" className="min-h-[44px] gap-1 text-xs sm:text-sm">
                 <Package className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Products</span>
+                <span className="sr-only sm:not-sr-only">Products</span>
               </TabsTrigger>
-              <TabsTrigger value="services" className="gap-1 text-xs sm:text-sm">
+              <TabsTrigger value="services" className="min-h-[44px] gap-1 text-xs sm:text-sm">
                 <Wrench className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Services</span>
+                <span className="sr-only sm:not-sr-only">Services</span>
               </TabsTrigger>
-              <TabsTrigger value="gallery" className="gap-1 text-xs sm:text-sm">
-                <Image className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Gallery</span>
+              <TabsTrigger value="gallery" className="min-h-[44px] gap-1 text-xs sm:text-sm">
+                <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                <span className="sr-only sm:not-sr-only">Gallery</span>
               </TabsTrigger>
-              <TabsTrigger value="reviews" className="gap-1 text-xs sm:text-sm">
+              <TabsTrigger value="reviews" className="min-h-[44px] gap-1 text-xs sm:text-sm">
                 <Star className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Reviews</span>
+                <span className="sr-only sm:not-sr-only">Reviews</span>
               </TabsTrigger>
-              <TabsTrigger value="about" className="gap-1 text-xs sm:text-sm">
+              <TabsTrigger value="about" className="min-h-[44px] gap-1 text-xs sm:text-sm">
                 <Info className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">About</span>
+                <span className="sr-only sm:not-sr-only">About</span>
               </TabsTrigger>
             </TabsList>
 
-            {/* Products tab */}
             <TabsContent value="products" className="mt-4">
-              {hasProducts ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="flex gap-3 rounded-xl border border-border bg-card p-4 shadow-sm"
-                    >
-                      <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-muted text-2xl">
-                        {product.image_url ? (
-                          <img src={product.image_url} alt={product.name} className="h-full w-full rounded-lg object-cover" />
-                        ) : (
-                          '📦'
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-foreground">{product.name}</h3>
-                        {product.description && (
-                          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                            {product.description}
-                          </p>
-                        )}
-                        <div className="mt-2 flex items-center justify-between">
-                          <span className="font-semibold text-primary">
-                            {formatGHS(product.price)}
-                          </span>
-                          <Badge variant="secondary" className="text-xs">
-                            {product.stock > 0 ? 'In stock' : 'Out of stock'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {products.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-3">
+                  {products.map(product => <ProductCard key={product.id} product={{ ...product, vendor }} />)}
                 </div>
-              ) : (
-                <EmptyState
-                  icon={Package}
-                  title="No products listed yet"
-                  description={`${vendor.business_name} has not added any products yet. Check back later or contact them directly.`}
-                />
-              )}
+              ) : <EmptyState icon={Package} title="No products listed yet" description="Check back for this shop’s catalogue." />}
             </TabsContent>
-
-            {/* Services tab */}
             <TabsContent value="services" className="mt-4">
-              {hasServices ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {services.map((service) => (
-                    <div
-                      key={service.id}
-                      className="rounded-xl border border-border bg-card p-4 shadow-sm"
-                    >
-                      <div className="flex items-start justify-between">
-                        <h3 className="font-medium text-foreground">{service.name}</h3>
-                        {service.duration_estimate && (
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {service.duration_estimate}
-                          </Badge>
-                        )}
-                      </div>
-                      {service.description && (
-                        <p className="mt-2 text-xs text-muted-foreground">
-                          {service.description}
-                        </p>
-                      )}
-                      <p className="mt-3 font-semibold text-primary">
-                        {formatGHS(service.price)}
-                      </p>
-                    </div>
-                  ))}
+              {services.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-3">
+                  {services.map(service => <ServiceCard key={service.id} service={{ ...service, vendor }} />)}
                 </div>
-              ) : (
-                <EmptyState
-                  icon={Wrench}
-                  title="No services listed yet"
-                  description={`${vendor.business_name} has not added any services yet. Check back later or contact them directly.`}
-                />
-              )}
+              ) : <EmptyState icon={Wrench} title="No services listed yet" description="Check back for available services." />}
             </TabsContent>
 
             {/* Gallery tab */}
             <TabsContent value="gallery" className="mt-4">
-              {gallery.length > 0 ? (
+              {galleryPhotos.length > 0 ? (
                 <div className="space-y-3">
                   <div>
                     <h3 className="text-base font-semibold text-foreground">Shop photos</h3>
@@ -356,7 +292,7 @@ export function BusinessProfileContent({
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-                    {gallery.map((item) => (
+                    {galleryPhotos.map((item) => (
                       <a
                         key={item.id}
                         href={item.image_url}
@@ -364,14 +300,8 @@ export function BusinessProfileContent({
                         rel="noopener noreferrer"
                         className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm"
                       >
-                        <div className="aspect-square overflow-hidden bg-muted">
-                          <img
-                            src={item.image_url}
-                            alt={item.caption || `${vendor.business_name} shop photo`}
-                            loading="lazy"
-                            decoding="async"
-                            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                          />
+                        <div className="relative aspect-square overflow-hidden bg-muted">
+                          <CatalogPhoto sources={[item.image_url]} alt={item.caption || `${vendor.business_name} shop photo`} sizes="(min-width: 1024px) 25vw, 50vw" />
                         </div>
                         {item.caption && (
                           <p className="truncate px-3 py-2 text-xs text-muted-foreground">{item.caption}</p>
@@ -382,7 +312,7 @@ export function BusinessProfileContent({
                 </div>
               ) : (
                 <EmptyState
-                  icon={Image}
+                  icon={ImageIcon}
                   title="Gallery is empty"
                   description={`${vendor.business_name} has not uploaded any photos yet.`}
                 />
@@ -579,14 +509,17 @@ export function BusinessProfileContent({
           {/* Location */}
           <div className="rounded-xl border border-border bg-card p-4 shadow-sm">
             <h3 className="mb-3 font-display font-semibold text-foreground">Location</h3>
-            <MapPreview
-              latitude={vendor.location_verification_status === 'verified' ? location?.latitude || null : null}
-              longitude={vendor.location_verification_status === 'verified' ? location?.longitude || null : null}
-              label={vendor.business_name}
-              address={location?.address_line}
-              city={location?.city}
-              mapsUrl={vendor.location_maps_url}
-            />
+            {hasPublicMap && (destination || mapHref) ? (
+              <MapPreview
+                latitude={destination?.latitude ?? null}
+                longitude={destination?.longitude ?? null}
+                placeId={destination?.placeId}
+                label={vendor.business_name}
+                address={location?.address_line}
+                city={location?.city}
+                mapsUrl={mapHref}
+              />
+            ) : <p className="text-sm text-muted-foreground">No public shop pin.</p>}
           </div>
 
           {/* Contact */}

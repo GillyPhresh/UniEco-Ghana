@@ -186,6 +186,7 @@ export async function getVendorBySlug(slug: string) {
     `)
     .eq('business_slug', slug)
     .eq('is_active', true)
+    .eq('is_verified', true)
     .maybeSingle();
   return data as unknown as VendorWithRelations | null;
 }
@@ -195,7 +196,11 @@ export async function getVendorLocation(vendorId: string) {
   const { data } = await supabase
     .from('locations')
     .select('*')
+    .eq('owner_type', 'vendor')
     .eq('owner_id', vendorId)
+    .eq('verification_status', 'verified')
+    .order('last_confirmed_at', { ascending: false, nullsFirst: false })
+    .limit(1)
     .maybeSingle();
   return data as Location | null;
 }
@@ -217,9 +222,11 @@ export async function getVendorProducts(vendorId: string) {
     .from('products')
     .select(`
       *,
-      business:businesses(id, name, slug, vendor_id)
+      business:businesses!inner(id, name, slug, vendor_id)
     `)
     .eq('is_active', true)
+    .eq('is_archived', false)
+    .eq('business.is_active', true)
     .eq('business.vendor_id', vendorId)
     .order('name');
   return (data || []) as unknown as (Product & { business: Pick<Business, 'id' | 'name' | 'slug' | 'vendor_id'> })[];
@@ -231,9 +238,11 @@ export async function getVendorServices(vendorId: string) {
     .from('services')
     .select(`
       *,
-      business:businesses(id, name, slug, vendor_id)
+      business:businesses!inner(id, name, slug, vendor_id)
     `)
     .eq('is_active', true)
+    .eq('is_archived', false)
+    .eq('business.is_active', true)
     .eq('business.vendor_id', vendorId)
     .order('name');
   return (data || []) as unknown as (Service & { business: Pick<Business, 'id' | 'name' | 'slug' | 'vendor_id'> })[];
@@ -263,6 +272,7 @@ export async function getRelatedVendors(vendor: Vendor, limit = 4) {
     `)
     .eq('is_active', true)
     .eq('business_type', vendor.business_type)
+    .eq('is_verified', true)
     .eq('university_id', vendor.university_id)
     .neq('id', vendor.id)
     .order('rating_avg', { ascending: false })

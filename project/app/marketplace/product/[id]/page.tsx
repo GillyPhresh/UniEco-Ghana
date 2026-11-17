@@ -2,6 +2,13 @@
 
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { CatalogGallery } from '@/components/marketplace/catalog-gallery';
+import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
+import { withNext } from '@/lib/auth/redirects';
+import { shopCartCountKey } from '@/lib/data/shop-catalog-client';
+import { formatCatalogPrice } from '@/lib/marketplace/catalog';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { Button } from '@/components/ui/button';
@@ -21,7 +28,7 @@ import type { Product, Review } from '@/lib/types';
 import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import {
   ShoppingCart, Heart, Share2, MessageSquare, Store, Package,
-  ArrowLeft, Check, AlertCircle, Image as ImageIcon, Truck,
+  ArrowLeft, Check, AlertCircle, Truck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -37,14 +44,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 }
 
 function ProductDetailContent({ productId }: { productId: string }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const cartPending = useRef(false);
+  const [loadError, setLoadError] = useState(false);
   const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
-  const [vendor, setVendor] = useState<{ id: string; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean; delivery_available: boolean } | null>(null);
+  const [vendor, setVendor] = useState<{ id: string; owner_id: string; is_temporarily_closed: boolean; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean; delivery_available: boolean } | null>(null);
   const [similar, setSimilar] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [selectedImage, setSelectedImage] = useState(0);
   const [inWishlist, setInWishlist] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
   const [quantity, setQuantity] = useState(1);
@@ -53,6 +63,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
   const loadProduct = useCallback(async () => {
     const requestId = ++loadRequestId.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const p = await getProductById(productId);
       if (requestId !== loadRequestId.current) return;
@@ -68,7 +79,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
 
       const { data: business } = await supabase
         .from('businesses')
-        .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified, delivery_available)')
+        .select('vendor:vendors(id, owner_id, is_temporarily_closed, business_name, business_slug, logo_url, is_verified, delivery_available)')
         .eq('id', p.business_id)
         .maybeSingle();
       if (requestId !== loadRequestId.current) return;
@@ -92,7 +103,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
       setReviews(reviewResult.data || []);
     } catch {
       if (requestId === loadRequestId.current) {
-        toast.error('Could not load this product. Please try again.');
+        setLoadError(true);
       }
     } finally {
       if (requestId === loadRequestId.current) setLoading(false);
@@ -116,24 +127,28 @@ function ProductDetailContent({ productId }: { productId: string }) {
     return () => { active = false; };
   }, [productId, userId]);
 
-  const handleAddToCart = async () => {
-    if (!user) { toast.error('Please sign in to add items to your cart'); return; }
-    setAddingToCart(true);
-    const { error } = await addToCart(product!.id, undefined, quantity);
-    if (error) { toast.error(error); }
-    else { toast.success(`${quantity} ${quantity === 1 ? 'item' : 'items'} added to cart`); }
-    setAddingToCart(false);
-  };
-
-  const handleBuyNow = async () => {
-    if (!user) { toast.error('Please sign in to purchase'); return; }
-    setAddingToCart(true);
-    const { error } = await addToCart(product!.id, undefined, quantity);
-    if (error) { toast.error(error); }
-    else {
-      window.location.href = '/cart';
+  const handleAddToCart = async (checkout = false) => {
+    if (!product || authLoading || cartPending.current || product.stock <= 0 || vendor?.is_temporarily_closed) return;
+    if (!user) {
+      router.push(withNext('/signin', `/marketplace/product/${product.id}`));
+      return;
     }
-    setAddingToCart(false);
+    cartPending.current = true;
+    setAddingToCart(true);
+    try {
+      const { error } = await addToCart(product.id, undefined, quantity);
+      if (error) toast.error(error, { action: { label: 'View cart', onClick: () => router.push('/cart') } });
+      else {
+        void queryClient.invalidateQueries({ queryKey: shopCartCountKey(user.id) });
+        if (checkout) router.push('/checkout');
+        else toast.success('Added to cart', { action: { label: 'View cart', onClick: () => router.push('/cart') } });
+      }
+    } catch {
+      toast.error('Could not add this item. Try again.');
+    } finally {
+      cartPending.current = false;
+      setAddingToCart(false);
+    }
   };
 
   const handleWishlist = async () => {
@@ -175,13 +190,14 @@ function ProductDetailContent({ productId }: { productId: string }) {
     );
   }
 
-  if (!product) {
+  if (loadError || !product) {
     return (
       <main className="container max-w-6xl py-6 sm:py-8 px-4 sm:px-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Package className="h-12 w-12 text-muted-foreground/40" />
-            <p className="mt-4 text-lg font-semibold text-foreground">Product not found</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">{loadError ? 'Product could not load' : 'Product not found'}</p>
+            {loadError && <Button type="button" variant="outline" className="mt-3 min-h-[44px]" onClick={() => void loadProduct()}>Try again</Button>}
             <Button asChild className="mt-4">
               <Link href="/marketplace">Back to marketplace</Link>
             </Button>
@@ -191,9 +207,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
     );
   }
 
-  const allImages = product.images && product.images.length > 0
-    ? product.images
-    : (product.image_url ? [product.image_url] : []);
+  const allImages = [product.image_url, ...(product.images ?? [])];
 
   const displayPrice = product.discount_price ?? product.price;
   const hasDiscount = product.discount_price !== null && product.discount_price < product.price;
@@ -206,51 +220,16 @@ function ProductDetailContent({ productId }: { productId: string }) {
       </Link>
 
       <div className="mt-4 grid gap-8 lg:grid-cols-2">
-        {/* Images */}
-        <div>
-          <div className="relative h-80 overflow-hidden rounded-xl border border-border bg-muted sm:h-96">
-            {allImages[selectedImage] ? (
-              <img src={allImages[selectedImage]} alt={product.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground/40">
-                <ImageIcon className="h-12 w-12" />
-              </div>
-            )}
-            {hasDiscount && (
-              <Badge className="absolute left-3 top-3 bg-destructive text-destructive-foreground">
-                -{Math.round((1 - (product.discount_price! / product.price)) * 100)}% OFF
-              </Badge>
-            )}
-          </div>
-          {allImages.length > 1 && (
-            <div className="mt-3 flex gap-2 overflow-x-auto">
-              {allImages.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSelectedImage(i)}
-                  className={`h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
-                    selectedImage === i ? 'border-primary' : 'border-border'
-                  }`}
-                >
-                  <img src={img} alt="" className="h-full w-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <CatalogGallery key={product.id} name={product.name} sources={allImages} />
 
         {/* Details */}
         <div className="flex flex-col">
           {/* Vendor info */}
           {vendor && (
             <Link href={`/business/${vendor.business_slug}`} className="mb-3 flex items-center gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-muted/50">
-              {vendor.logo_url ? (
-                <img src={vendor.logo_url} alt={vendor.business_name} className="h-8 w-8 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <Store className="h-4 w-4 text-primary" />
-                </div>
-              )}
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-muted">
+                <CatalogPhoto sources={[vendor.logo_url]} alt="" sizes="36px" fallback={Store} />
+              </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{vendor.business_name}</p>
                 <p className="text-xs text-muted-foreground">View store</p>
@@ -272,14 +251,15 @@ function ProductDetailContent({ productId }: { productId: string }) {
 
           {/* Price */}
           <div className="mt-4 flex items-baseline gap-3">
-            <span className="text-3xl font-bold text-primary">GH₵{displayPrice}</span>
+            <span className="text-3xl font-bold text-primary">{formatCatalogPrice(Number(displayPrice), product.currency)}</span>
             {hasDiscount && (
-              <span className="text-lg text-muted-foreground line-through">GH₵{product.price}</span>
+              <span className="text-lg text-muted-foreground line-through">{formatCatalogPrice(Number(product.price), product.currency)}</span>
             )}
           </div>
 
           {/* Stock status */}
           <div className="mt-3">
+            {vendor?.is_temporarily_closed && <Badge variant="secondary" className="mr-2">Shop closed</Badge>}
             {product.stock > 0 ? (
               <Badge className="bg-success/10 text-success border-success/20">
                 <Check className="mr-1 h-3 w-3" /> In stock ({product.stock} available)
@@ -292,7 +272,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
           </div>
 
           {/* Delivery */}
-          {vendor?.delivery_available && (
+          {vendor?.delivery_available && !vendor.is_temporarily_closed && (
             <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
               <Truck className="h-4 w-4" /> Delivery available
             </div>
@@ -314,21 +294,21 @@ function ProductDetailContent({ productId }: { productId: string }) {
           {/* Quantity selector */}
           {product.stock > 0 && (
             <div className="mt-6 flex items-center gap-3">
-              <span className="text-sm font-medium text-foreground">Quantity:</span>
+              <span className="text-sm font-medium text-foreground">Quantity</span>
               <div className="flex items-center rounded-lg border border-border">
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>−</Button>
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Decrease quantity" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>−</Button>
                 <span className="w-10 text-center text-sm font-medium">{quantity}</span>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} disabled={quantity >= product.stock}>+</Button>
+                <Button variant="ghost" size="icon" className="h-11 w-11" aria-label="Increase quantity" onClick={() => setQuantity(q => Math.min(product.stock, q + 1))} disabled={quantity >= product.stock}>+</Button>
               </div>
             </div>
           )}
 
           {/* Actions */}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={handleAddToCart} disabled={product.stock === 0 || addingToCart} variant="outline" className="flex-1">
+            <Button onClick={() => void handleAddToCart()} disabled={product.stock <= 0 || vendor?.is_temporarily_closed || authLoading || addingToCart} variant="outline" className="min-h-[44px] flex-1">
               <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart
             </Button>
-            <Button onClick={handleBuyNow} disabled={product.stock === 0 || addingToCart} className="flex-1">
+            <Button onClick={() => void handleAddToCart(true)} disabled={product.stock <= 0 || vendor?.is_temporarily_closed || authLoading || addingToCart} className="min-h-[44px] flex-1">
               {addingToCart ? 'Adding...' : 'Buy Now'}
             </Button>
           </div>
@@ -343,7 +323,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
             </Button>
             {vendor && (
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/dashboard/messages?to=${vendor.id}`}>
+                <Link href={`/dashboard/messages?to=${vendor.owner_id}`}>
                   <MessageSquare className="mr-1.5 h-4 w-4" /> Contact vendor
                 </Link>
               </Button>

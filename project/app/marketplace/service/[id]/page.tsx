@@ -2,15 +2,19 @@
 
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
+import { CatalogGallery } from '@/components/marketplace/catalog-gallery';
+import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
+import { withNext } from '@/lib/auth/redirects';
+import { shopCartCountKey } from '@/lib/data/shop-catalog-client';
+import { formatCatalogPrice } from '@/lib/marketplace/catalog';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { RatingStars } from '@/components/shared/rating-stars';
 import { VerificationBadge } from '@/components/shared/verification-badge';
 import { ServiceCard } from '@/components/marketplace/product-card';
@@ -39,21 +43,25 @@ export default function ServiceDetailPage({ params }: { params: Promise<{ id: st
 }
 
 function ServiceDetailContent({ serviceId }: { serviceId: string }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const cartPending = useRef(false);
+  const [loadError, setLoadError] = useState(false);
   const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [service, setService] = useState<Service | null>(null);
-  const [vendor, setVendor] = useState<{ id: string; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean } | null>(null);
+  const [vendor, setVendor] = useState<{ id: string; owner_id: string; is_temporarily_closed: boolean; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean } | null>(null);
   const [related, setRelated] = useState<Service[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [inWishlist, setInWishlist] = useState(false);
   const [booking, setBooking] = useState(false);
-  const [bookingForm, setBookingForm] = useState({ date: '', time: '', notes: '' });
   const loadRequestId = useRef(0);
 
   const loadService = useCallback(async () => {
     const requestId = ++loadRequestId.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const s = await getServiceById(serviceId);
       if (requestId !== loadRequestId.current) return;
@@ -69,7 +77,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
 
       const { data: business } = await supabase
         .from('businesses')
-        .select('vendor:vendors(id, business_name, business_slug, logo_url, is_verified)')
+        .select('vendor:vendors(id, owner_id, is_temporarily_closed, business_name, business_slug, logo_url, is_verified)')
         .eq('id', s.business_id)
         .maybeSingle();
       if (requestId !== loadRequestId.current) return;
@@ -85,6 +93,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
               .from('reviews')
               .select('*, reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)')
               .eq('vendor_id', v.id)
+              .eq('service_id', s.id)
               .eq('is_approved', true)
               .order('created_at', { ascending: false })
               .limit(5)
@@ -95,7 +104,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
       setReviews(reviewResult.data || []);
     } catch {
       if (requestId === loadRequestId.current) {
-        toast.error('Could not load this service. Please try again.');
+        setLoadError(true);
       }
     } finally {
       if (requestId === loadRequestId.current) setLoading(false);
@@ -120,16 +129,26 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
   }, [serviceId, userId]);
 
   const handleBook = async () => {
-    if (!user) { toast.error('Please sign in to book a service'); return; }
-    if (!bookingForm.date || !bookingForm.time) { toast.error('Please select a preferred date and time'); return; }
-    setBooking(true);
-    const { error } = await addToCart(undefined, service!.id, 1);
-    if (error) { toast.error(error); }
-    else {
-      toast.success('Service added to cart. Complete your booking at checkout.');
-      window.location.href = '/cart';
+    if (!service || authLoading || cartPending.current || vendor?.is_temporarily_closed) return;
+    if (!user) {
+      router.push(withNext('/signin', `/marketplace/service/${service.id}`));
+      return;
     }
-    setBooking(false);
+    cartPending.current = true;
+    setBooking(true);
+    try {
+      const { error } = await addToCart(undefined, service.id, 1);
+      if (error) toast.error(error, { action: { label: 'View cart', onClick: () => router.push('/cart') } });
+      else {
+        void queryClient.invalidateQueries({ queryKey: shopCartCountKey(user.id) });
+        router.push('/checkout');
+      }
+    } catch {
+      toast.error('Could not add this service. Try again.');
+    } finally {
+      cartPending.current = false;
+      setBooking(false);
+    }
   };
 
   const handleWishlist = async () => {
@@ -170,13 +189,14 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
     );
   }
 
-  if (!service) {
+  if (loadError || !service) {
     return (
       <main className="container max-w-6xl py-6 sm:py-8 px-4 sm:px-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Wrench className="h-12 w-12 text-muted-foreground/40" />
-            <p className="mt-4 text-lg font-semibold text-foreground">Service not found</p>
+            <p className="mt-4 text-lg font-semibold text-foreground">{loadError ? 'Service could not load' : 'Service not found'}</p>
+            {loadError && <Button type="button" variant="outline" className="mt-3 min-h-[44px]" onClick={() => void loadService()}>Try again</Button>}
             <Button asChild className="mt-4"><Link href="/marketplace">Back to marketplace</Link></Button>
           </CardContent>
         </Card>
@@ -184,9 +204,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
     );
   }
 
-  const allImages = service.images && service.images.length > 0
-    ? service.images
-    : (service.image_url ? [service.image_url] : []);
+  const allImages = [service.image_url, ...(service.images ?? [])];
 
   return (
     <main className="container max-w-6xl py-6 sm:py-8 px-4 sm:px-6">
@@ -195,31 +213,15 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
       </Link>
 
       <div className="mt-4 grid gap-8 lg:grid-cols-2">
-        {/* Image */}
-        <div>
-          <div className="relative h-80 overflow-hidden rounded-xl border border-border bg-muted sm:h-96">
-            {allImages[0] ? (
-              <img src={allImages[0]} alt={service.name} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-muted-foreground/40">
-                <Wrench className="h-12 w-12" />
-              </div>
-            )}
-            <Badge className="absolute left-3 top-3 bg-secondary text-secondary-foreground">Service</Badge>
-          </div>
-        </div>
+        <CatalogGallery key={service.id} name={service.name} sources={allImages} fallback={Wrench} />
 
         {/* Details */}
         <div className="flex flex-col">
           {vendor && (
             <Link href={`/business/${vendor.business_slug}`} className="mb-3 flex items-center gap-2 rounded-lg border border-border p-2 transition-colors hover:bg-muted/50">
-              {vendor.logo_url ? (
-                <img src={vendor.logo_url} alt={vendor.business_name} className="h-8 w-8 rounded-full object-cover" />
-              ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <Store className="h-4 w-4 text-primary" />
-                </div>
-              )}
+              <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-muted">
+                <CatalogPhoto sources={[vendor.logo_url]} alt="" sizes="36px" fallback={Store} />
+              </div>
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">{vendor.business_name}</p>
                 <p className="text-xs text-muted-foreground">View provider</p>
@@ -231,7 +233,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{service.name}</h1>
 
           <div className="mt-3 flex items-center gap-3">
-            <span className="text-3xl font-bold text-primary">GH₵{service.price}</span>
+            <span className="text-3xl font-bold text-primary">{formatCatalogPrice(Number(service.price), service.currency)}</span>
             {service.duration_estimate && (
               <Badge variant="outline" className="text-xs">
                 <Clock className="mr-1 h-3 w-3" /> {service.duration_estimate}
@@ -246,33 +248,15 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
             </div>
           )}
 
-          {/* Booking form */}
-          <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Calendar className="h-4 w-4 text-primary" /> Book this service
-            </h3>
-            <p className="mt-1 text-xs text-muted-foreground">Choose your preferred date and time. The vendor will confirm your booking.</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="booking_date" className="text-xs">Preferred date</Label>
-                <Input id="booking_date" type="date" value={bookingForm.date} onChange={e => setBookingForm(p => ({ ...p, date: e.target.value }))} min={new Date().toISOString().split('T')[0]} />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="booking_time" className="text-xs">Preferred time</Label>
-                <Input id="booking_time" type="time" value={bookingForm.time} onChange={e => setBookingForm(p => ({ ...p, time: e.target.value }))} />
-              </div>
-            </div>
-            <div className="mt-3 space-y-1.5">
-              <Label htmlFor="booking_notes" className="text-xs">Additional notes (optional)</Label>
-              <Textarea id="booking_notes" rows={2} value={bookingForm.notes} onChange={e => setBookingForm(p => ({ ...p, notes: e.target.value }))} placeholder="Any specific requirements or details..." />
-            </div>
-          </div>
+          <p className="mt-5 text-sm text-muted-foreground">
+            {vendor?.is_temporarily_closed ? 'Shop temporarily closed.' : 'Choose your preferred time at checkout.'}
+          </p>
 
           {/* Actions */}
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button onClick={handleBook} disabled={booking} className="flex-1">
+            <Button onClick={() => void handleBook()} disabled={booking || authLoading || vendor?.is_temporarily_closed} className="min-h-[44px] flex-1">
               {booking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calendar className="mr-2 h-4 w-4" />}
-              {booking ? 'Adding...' : 'Book Now'}
+              {booking ? 'Adding...' : 'Book service'}
             </Button>
           </div>
 
@@ -286,7 +270,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
             </Button>
             {vendor && (
               <Button variant="ghost" size="sm" asChild>
-                <Link href={`/dashboard/messages?to=${vendor.id}`}>
+                <Link href={`/dashboard/messages?to=${vendor.owner_id}`}>
                   <MessageSquare className="mr-1.5 h-4 w-4" /> Contact
                 </Link>
               </Button>

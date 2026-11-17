@@ -1,360 +1,366 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
+import {
+  ArrowDown, ArrowRight, Boxes, Heart, LocateFixed, MapPin, Package, Search,
+  ShoppingBag, SlidersHorizontal, Store, Truck, Wrench, X,
+} from 'lucide-react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
-import { ProductCard, ServiceCard, ProductCardSkeleton } from '@/components/marketplace/product-card';
+import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
+import { ProductCard, ProductCardSkeleton, ServiceCard } from '@/components/marketplace/product-card';
+import { ShopCard } from '@/components/marketplace/shop-card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { ALL_CATEGORIES, CATEGORY_ICONS } from '@/lib/constants/categories';
+import { useAuth } from '@/lib/auth/auth-context';
+import { ALL_CATEGORIES } from '@/lib/constants/categories';
+import { searchProducts } from '@/lib/data/marketplace-client';
 import {
-  getTrendingProducts, getFeaturedServices, getDealsAndPromotions,
-  getRecentlyAddedProducts, searchProducts,
-} from '@/lib/data/marketplace-client';
-import type { Product, Service } from '@/lib/types';
+  getShopCampuses, getShopCartCount, searchMarketplaceServices, searchMarketplaceShops, shopCartCountKey,
+} from '@/lib/data/shop-catalog-client';
 import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
-import { normalizeSearchTerm } from '@/lib/utils/search';
+import { getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
 import {
-  Search, TrendingUp, Tag, Clock, Wrench, ArrowRight,
-  Sparkles, ShoppingBag, Star, Package,
-} from 'lucide-react';
+  findNearbyShops, NEARBY_SHOP_LIMIT, NEARBY_SHOP_RADIUS_KM, SHOP_BROWSE_LIMIT, SHOP_PAGE_SIZE,
+  type CatalogProduct, type CatalogService, type CatalogSort, type CatalogTab, type Coordinates, type MarketplaceShop, type ShopCampus,
+} from '@/lib/marketplace/catalog';
+import { normalizeSearchTerm } from '@/lib/utils/search';
+import { cn } from '@/lib/utils';
 
-type ProductWithVendor = Product & { vendor?: { business_name: string; business_slug: string; logo_url?: string | null } };
-type ServiceWithVendor = Service & { vendor?: { business_name: string; business_slug: string; logo_url?: string | null } };
-type MarketplaceLandingData = {
-  trending: ProductWithVendor[];
-  services: ServiceWithVendor[];
-  deals: ProductWithVendor[];
-  recent: ProductWithVendor[];
-};
+const TABS = [
+  { id: 'products', label: 'Products', icon: Boxes },
+  { id: 'shops', label: 'Shops', icon: Store },
+  { id: 'services', label: 'Services', icon: Wrench },
+] as const;
+const CATEGORY_PHOTOS = [
+  { category: 'Food & Drinks', label: 'Food & drinks', image: '/assets/marketplace/waakye.webp' },
+  { category: 'Fashion', label: 'Fashion', image: '/assets/marketplace/fashion.webp' },
+  { category: 'Electronics', label: 'Tech', image: '/assets/marketplace/tech.webp' },
+  { category: 'Hair & Beauty', label: 'Beauty', image: '/assets/marketplace/beauty.webp' },
+  { category: 'Printing & Photocopy', label: 'Printing', image: '/assets/marketplace/stationery.webp' },
+] as const;
+
+type PageResults = { total: number; offset: number } & (
+  | { tab: 'products'; items: CatalogProduct[] }
+  | { tab: 'services'; items: CatalogService[] }
+  | { tab: 'shops'; items: MarketplaceShop[] }
+);
+
+const productGrid = 'grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4';
+const shopGrid = 'grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3';
+const filterStyle = 'min-h-[44px] w-full min-w-0 rounded-xl border border-border bg-card px-2.5 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+
+function uniqueItems<T extends { id: string }>(items: T[]) {
+  return Array.from(new Map(items.map(item => [item.id, item])).values());
+}
 
 export default function MarketplacePage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<ProductWithVendor[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState('newest');
-  const searchRequestId = useRef(0);
-
-  const {
-    data: marketplaceData,
-    isPending: loading,
-    isError: loadError,
-    refetch: reloadMarketplace,
-  } = useQuery<MarketplaceLandingData>({
-    queryKey: ['marketplace', 'landing'],
-    queryFn: async () => {
-      const [trendingProducts, featuredServices, promotions, recentProducts] = await Promise.all([
-        getTrendingProducts(8),
-        getFeaturedServices(6),
-        getDealsAndPromotions(4),
-        getRecentlyAddedProducts(4),
-      ]);
-      return {
-        trending: trendingProducts as ProductWithVendor[],
-        services: featuredServices as ServiceWithVendor[],
-        deals: promotions as ProductWithVendor[],
-        recent: recentProducts as ProductWithVendor[],
-      };
-    },
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
-  });
-
-  const trending: ProductWithVendor[] = marketplaceData?.trending ?? [];
-  const services: ServiceWithVendor[] = marketplaceData?.services ?? [];
-  const deals: ProductWithVendor[] = marketplaceData?.deals ?? [];
-  const recent: ProductWithVendor[] = marketplaceData?.recent ?? [];
-
-  const doSearch = useCallback(async () => {
-    const requestId = ++searchRequestId.current;
-    setSearching(true);
-    try {
-      const { products, total, error } = await searchProducts({
-        query: searchQuery.trim(),
-        category: activeCategory || undefined,
-        sort: sortBy,
-        limit: 12,
-      });
-      if (requestId === searchRequestId.current && !error && normalizeSearchTerm(searchQuery)) {
-        trackAnalyticsEvent({ event_type: 'search', result_count: Math.min(total, 1000) });
-      }
-      if (requestId === searchRequestId.current) {
-        setSearchError(error);
-        setSearchResults(products as ProductWithVendor[]);
-      }
-    } catch {
-      if (requestId === searchRequestId.current) {
-        setSearchError(true);
-        setSearchResults([]);
-      }
-    } finally {
-      if (requestId === searchRequestId.current) setSearching(false);
-    }
-  }, [searchQuery, activeCategory, sortBy]);
+  const { user } = useAuth();
+  const [tab, setTab] = useState<CatalogTab>('products');
+  const [input, setInput] = useState('');
+  const [category, setCategory] = useState('');
+  const [campus, setCampus] = useState('');
+  const [sort, setSort] = useState<CatalogSort>('newest');
+  const [deliveryOnly, setDeliveryOnly] = useState(false);
+  const [origin, setOrigin] = useState<Coordinates | null>(null);
+  const [locationPending, setLocationPending] = useState(false);
+  const [locationMessage, setLocationMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const locationRequest = useRef(0);
+  const lastTracked = useRef('');
+  const normalized = normalizeSearchTerm(input);
+  const nearby = tab === 'shops' && origin !== null;
+  const label = TABS.find(item => item.id === tab)!.label;
 
   useEffect(() => {
-    if (searchQuery.trim() || activeCategory) {
-      const timer = setTimeout(() => { void doSearch(); }, 180);
-      return () => clearTimeout(timer);
-    } else {
-      searchRequestId.current += 1;
-      setSearching(false);
-      setSearchResults([]);
-      setSearchError(false);
-    }
-  }, [searchQuery, activeCategory, sortBy, doSearch]);
+    const timer = window.setTimeout(() => setSearchTerm(normalized), normalized ? 220 : 0);
+    return () => window.clearTimeout(timer);
+  }, [normalized]);
+  useEffect(() => () => { locationRequest.current += 1; }, []);
 
-  const showSearch = searchQuery.trim().length > 0 || activeCategory;
+  const campuses = useQuery<ShopCampus[]>({
+    queryKey: ['marketplace-campus-options'],
+    queryFn: ({ signal }) => getShopCampuses(signal),
+    staleTime: 30 * 60_000,
+  });
+  const cart = useQuery({
+    queryKey: shopCartCountKey(user?.id),
+    queryFn: ({ signal }) => getShopCartCount(user!.id, signal),
+    enabled: Boolean(user?.id),
+    staleTime: 25_000,
+  });
+  const results = useInfiniteQuery({
+    queryKey: ['marketplace-v2', tab, searchTerm, category, campus, sort, deliveryOnly, nearby],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam, signal }): Promise<PageResults> => {
+      const options = {
+        query: searchTerm, category: category || undefined, universityId: campus || undefined,
+        sort, deliveryOnly, limit: SHOP_PAGE_SIZE, offset: pageParam, signal,
+      };
+      if (tab === 'shops') return { tab, offset: pageParam, ...await searchMarketplaceShops({ ...options, nearby }) };
+      if (tab === 'services') return { tab, offset: pageParam, ...await searchMarketplaceServices(options) };
+      const page = await searchProducts(options);
+      if (page.error) throw new Error('Products could not load.');
+      return { tab, items: page.products, total: page.total, offset: pageParam };
+    },
+    getNextPageParam: last => {
+      const next = last.offset + SHOP_PAGE_SIZE;
+      return !nearby && last.items.length > 0 && next < Math.min(SHOP_BROWSE_LIMIT, last.total) ? next : undefined;
+    },
+    retry: 1,
+    staleTime: 45_000,
+  });
+
+  const pages = results.data?.pages ?? [];
+  const total = pages[0]?.total ?? 0;
+  const products = uniqueItems(pages.flatMap(page => page.tab === 'products' ? page.items : []));
+  const services = uniqueItems(pages.flatMap(page => page.tab === 'services' ? page.items : []));
+  const shops = uniqueItems(pages.flatMap(page => page.tab === 'shops' ? page.items : []));
+  const tooManyPins = nearby && total > NEARBY_SHOP_LIMIT;
+  const visibleShops = nearby && origin
+    ? (tooManyPins ? [] : findNearbyShops(shops, origin))
+    : shops.map(shop => ({ shop, distance: undefined }));
+  const visibleCount = nearby ? visibleShops.length : total;
+  const searching = normalized !== searchTerm;
+  const hasFilters = Boolean(input || category || campus || deliveryOnly || nearby);
+  const campusOptions: ShopCampus[] = campuses.data ?? [];
+  const activeCampus = campusOptions.find(option => option.id === campus);
+  const externalMap = tab === 'shops' ? getGoogleMapsSearchUrl(
+    [category || 'Shops', activeCampus?.name ? `near ${activeCampus.name}` : 'nearby', activeCampus ? 'Ghana' : ''].filter(Boolean).join(' ')
+  ) : null;
+  const cartCount = cart.data ?? 0;
+
+  useEffect(() => {
+    if (!searchTerm || searching || results.isPending || results.isError || !results.data) return;
+    const key = JSON.stringify([tab, searchTerm, category, campus, deliveryOnly, nearby]);
+    if (lastTracked.current === key) return;
+    lastTracked.current = key;
+    trackAnalyticsEvent({ event_type: 'search', result_count: Math.min(visibleCount, 1000) });
+  }, [tab, searchTerm, searching, results.isPending, results.isError, results.data, category, campus, deliveryOnly, nearby, visibleCount]);
+
+  function changeTab(next: CatalogTab) {
+    if (next === tab) return;
+    if (next !== 'shops') {
+      locationRequest.current += 1;
+      setOrigin(null);
+      setLocationPending(false);
+      setLocationMessage('');
+    }
+    setTab(next);
+    setSort(next === 'shops' ? 'rating' : 'newest');
+    if (next === 'services') setDeliveryOnly(false);
+  }
+
+  function clearFilters() {
+    locationRequest.current += 1;
+    setInput('');
+    setSearchTerm('');
+    setCategory('');
+    setCampus('');
+    setOrigin(null);
+    setLocationPending(false);
+    setLocationMessage('');
+    setDeliveryOnly(false);
+    setSort(tab === 'shops' ? 'rating' : 'newest');
+  }
+
+  function toggleLocation() {
+    if (nearby || locationPending) {
+      locationRequest.current += 1;
+      setOrigin(null);
+      setLocationPending(false);
+      setLocationMessage('');
+      return;
+    }
+    changeTab('shops');
+    if (!navigator.geolocation) {
+      setLocationMessage('Location unavailable. Choose a campus instead.');
+      return;
+    }
+    const request = ++locationRequest.current;
+    setLocationPending(true);
+    setLocationMessage('');
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
+      if (request !== locationRequest.current) return;
+      setLocationPending(false);
+      if (isValidCoordinate(coords.latitude, coords.longitude)) {
+        setOrigin({ latitude: coords.latitude, longitude: coords.longitude });
+      } else setLocationMessage('Location unavailable. Choose a campus instead.');
+    }, () => {
+      if (request !== locationRequest.current) return;
+      setLocationPending(false);
+      setLocationMessage('Location unavailable. Choose a campus instead.');
+    }, { enableHighAccuracy: false, maximumAge: 120_000, timeout: 8_000 });
+  }
 
   return (
     <>
       <SiteHeader />
-      <main className="container max-w-7xl px-4 py-3 sm:px-6 sm:py-8">
-        {/* Hero */}
-        <div className="mb-4 rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-primary/5 to-background p-4 sm:mb-8 sm:p-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <ShoppingBag className="h-6 w-6 text-primary" />
-                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                  Marketplace
-                </h1>
-              </div>
-              <p className="mt-1 max-w-2xl text-sm text-muted-foreground sm:mt-2 sm:text-base">
-                Discover products and services from vendors across campus. From food to fashion, repairs to tutoring — find everything you need.
-              </p>
-            </div>
-            <Button asChild variant="outline" className="min-h-11 shrink-0 self-start bg-background/70">
-              <Link href="/orders">
-                <Package className="mr-2 h-4 w-4" />
-                My orders
+      <main className="container max-w-7xl px-3 pb-7 pt-3 sm:px-6 sm:pb-12 sm:pt-6">
+        <div className="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-x-2 gap-y-1.5 sm:mb-4">
+          <h1 className="text-xl font-extrabold tracking-tight sm:text-3xl">Marketplace</h1>
+          <div className="flex shrink-0 items-center gap-0.5 sm:gap-2">
+            <Button asChild variant="ghost" size="sm" className="h-11 w-11 gap-2 px-0 sm:w-auto sm:px-3">
+              <Link href="/wishlist" aria-label="Saved items"><Heart className="h-5 w-5" aria-hidden="true" /><span className="hidden sm:inline">Saved</span></Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="h-11 w-11 gap-2 px-0 sm:w-auto sm:px-3">
+              <Link href="/orders"><Package className="h-5 w-5" aria-hidden="true" /><span className="sr-only sm:not-sr-only">My orders</span></Link>
+            </Button>
+            <Button asChild size="sm" className="relative h-11 w-11 gap-2 rounded-xl px-0 sm:w-auto sm:px-3">
+              <Link href="/cart" aria-label={cartCount ? `Cart, ${cartCount} items` : 'Cart'}>
+                <ShoppingBag className="h-5 w-5" aria-hidden="true" /><span className="hidden sm:inline">Cart</span>
+                {cartCount > 0 && <span aria-hidden="true" className="absolute -right-1 -top-1 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-[10px] font-bold text-slate-950 sm:static">{cartCount > 99 ? '99+' : cartCount}</span>}
               </Link>
             </Button>
           </div>
-
-          {/* Search bar */}
-          <div className="relative mt-4 max-w-2xl">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9 h-11 bg-background"
-              placeholder="Search for products, services, vendors..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-          </div>
         </div>
 
-        {/* Category chips */}
-        <div className="mb-5 space-y-3 sm:mb-8">
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <button
-              onClick={() => setActiveCategory(null)}
-              aria-pressed={!activeCategory}
-              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors ${
-                !activeCategory ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
-              }`}
-            >
-              All
-            </button>
-            {ALL_CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-              aria-pressed={activeCategory === cat}
-              className={`inline-flex min-h-11 shrink-0 items-center whitespace-nowrap rounded-full border px-4 text-xs font-semibold transition-colors ${
-                activeCategory === cat ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:border-primary/30'
-              }`}
-            >
-              {CATEGORY_ICONS[cat]} {cat}
-            </button>
-          ))}
+        <section aria-label="Shop campus" className="relative isolate mb-4 min-h-[9.5rem] overflow-hidden rounded-[1.5rem] bg-[#0b342d] text-white sm:mb-5 sm:min-h-[13.75rem]">
+          <div className="absolute inset-y-0 right-0 w-[60%] sm:w-[64%]">
+            <CatalogPhoto sources={[CATEGORY_PHOTOS[0].image]} alt="" sizes="(min-width: 1024px) 780px, 65vw" priority fallback={ShoppingBag} />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#0b342d] via-[#0b342d]/25 to-transparent" />
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">Choose a category, then browse matching items.</p>
-            <label className="flex shrink-0 items-center gap-2 text-xs font-semibold text-muted-foreground">Sort
-              <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 rounded-lg border border-input bg-card px-2 text-xs font-medium text-foreground outline-none focus:border-primary">
-                <option value="newest">Newest</option><option value="price_low">Price: low to high</option><option value="price_high">Price: high to low</option><option value="rating">Recommended</option>
+          <div className="relative flex min-h-[inherit] max-w-[72%] flex-col items-start justify-center px-4 py-4 sm:px-10 sm:py-7">
+            <span className="mb-1 text-[10px] font-semibold uppercase tracking-[.22em] text-emerald-200 sm:text-xs">UniEco Ghana</span>
+            <h2 className="text-3xl font-black leading-[1.02] tracking-[-.045em] sm:text-5xl">Shop campus.</h2>
+            <a href="#shop-results" onClick={() => changeTab('shops')}
+              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#f5fff8] px-3.5 text-sm font-bold text-[#102c22] hover:bg-[#bff0d3] focus-visible:ring-2 focus-visible:ring-white sm:mt-4">
+              Explore shops <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+        </section>
+
+        <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(290px,0.52fr)]">
+          <div className="relative min-w-0">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input type="search" aria-label={`Search ${label.toLowerCase()}`} value={input} maxLength={100} onChange={event => setInput(event.target.value)}
+              placeholder={`Search ${label.toLowerCase()}`} className="min-h-[44px] w-full rounded-xl border border-border bg-card pl-10 pr-12 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary [&::-webkit-search-cancel-button]:hidden sm:min-h-[48px]" />
+            {input && <button type="button" aria-label="Clear search" onClick={() => setInput('')} className="absolute right-0 top-0 grid h-full w-11 place-items-center rounded-xl text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>}
+          </div>
+          <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div className="relative min-w-0">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" aria-hidden="true" />
+              <select aria-label="Campus" className={`${filterStyle} pl-9 sm:min-h-[48px]`} value={campus} onChange={event => setCampus(event.target.value)}>
+                <option value="">All campuses</option>
+                {campusOptions.map(option => <option key={option.id} value={option.id}>{option.name}</option>)}
               </select>
-            </label>
+            </div>
+            <Button type="button" variant={nearby ? 'default' : 'outline'} aria-pressed={nearby} onClick={toggleLocation}
+              className="min-h-[44px] gap-2 rounded-xl px-3 sm:min-h-[48px]">
+              <LocateFixed className={cn('h-4 w-4', locationPending && 'motion-safe:animate-pulse')} aria-hidden="true" />
+              {nearby ? 'Nearby on' : locationPending ? 'Locating…' : 'Near me'}
+            </Button>
           </div>
+          {campuses.isError && <button type="button" onClick={() => void campuses.refetch()} className="text-left text-xs font-medium text-primary underline">Reload campus options</button>}
+          {locationMessage && <p className="text-xs text-muted-foreground sm:col-span-2" role="status">{locationMessage}</p>}
         </div>
 
-        {/* Search results */}
-        {showSearch ? (
-          <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">
-                {searching ? 'Searching...' : `${searchResults.length} ${searchResults.length === 1 ? 'result' : 'results'}`}
-              </h2>
-              {(searchQuery || activeCategory || sortBy !== 'newest') && (
-                <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setActiveCategory(null); setSortBy('newest'); }}>
-                  Clear filters
-                </Button>
-              )}
+        <section aria-label="Shop by category" className="mb-4 sm:mb-5">
+          <h2 className="sr-only">Shop by category</h2>
+          <div className="-mx-3 grid snap-x grid-flow-col auto-cols-[minmax(92px,28%)] gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid-flow-row sm:grid-cols-5 sm:gap-3 sm:px-0">
+            {CATEGORY_PHOTOS.map(item => (
+              <button type="button" key={item.category} onClick={() => setCategory(current => current === item.category ? '' : item.category)}
+                aria-pressed={category === item.category}
+                className={cn('group relative isolate aspect-[4/3] min-w-0 snap-start overflow-hidden rounded-xl border bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:aspect-[2/1] sm:rounded-2xl',
+                  category === item.category ? 'border-primary ring-2 ring-inset ring-primary' : 'border-border')}>
+                <CatalogPhoto sources={[item.image]} alt="" sizes="(min-width: 900px) 235px, (min-width: 640px) 19vw, 30vw" />
+                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent px-2.5 pb-2 pt-6 text-xs font-semibold leading-tight text-white sm:text-sm">{item.label}</span>
+                {category === item.category && <span className="absolute inset-0 rounded-[inherit] border-2 border-emerald-400" aria-hidden="true" />}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section id="shop-results" className="scroll-mt-28" aria-label="Marketplace results">
+          <div className="mb-3 flex min-w-0 flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
+            <div className="grid w-full grid-cols-3 gap-1 rounded-xl bg-muted p-1 sm:w-auto sm:min-w-[330px]" role="group" aria-label="Browse type">
+              {TABS.map(({ id, icon: Icon, label: tabLabel }) => (
+                <button type="button" key={id} onClick={() => changeTab(id)} aria-pressed={tab === id}
+                  className={cn('flex min-h-[44px] min-w-0 items-center justify-center gap-1.5 rounded-lg px-2 text-xs font-bold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:text-sm',
+                    tab === id ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground')}>
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> {tabLabel}
+                </button>
+              ))}
             </div>
-            {searching ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(i => <ProductCardSkeleton key={i} />)}
-              </div>
-            ) : searchError ? (
-              <Card><CardContent className="flex flex-col items-center gap-3 py-10 text-center" role="alert">
-                <ShoppingBag className="h-9 w-9 text-muted-foreground/50" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Marketplace search is temporarily unavailable</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Your filters are saved. Please try the search again.</p>
-                </div>
-                <Button type="button" variant="outline" className="min-h-11" onClick={() => void doSearch()} disabled={searching}>
-                  {searching ? 'Searching…' : 'Try again'}
-                </Button>
-              </CardContent></Card>
-            ) : searchResults.length > 0 ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {searchResults.map(p => <div key={p.id} onClick={() => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'product', subject_id: p.id })}><ProductCard product={p} /></div>)}
-              </div>
-            ) : (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-                  <Search className="h-10 w-10 text-muted-foreground/40" />
-                  <p className="mt-3 text-sm font-medium text-foreground">No products found</p>
-                  <p className="mt-1 text-xs text-muted-foreground">Try a different search term or category</p>
-                </CardContent>
-              </Card>
-            )}
+            {tab !== 'services' && <button type="button" aria-pressed={deliveryOnly} onClick={() => setDeliveryOnly(value => !value)}
+              className={cn('inline-flex min-h-[44px] items-center gap-1.5 rounded-full border px-3 text-xs font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                deliveryOnly ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground')}>
+              <Truck className="h-4 w-4" aria-hidden="true" /> Delivery
+            </button>}
           </div>
-        ) : loadError ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-              <ShoppingBag className="h-10 w-10 text-muted-foreground/50" />
-              <div><p className="font-semibold text-foreground">Marketplace could not load</p><p className="mt-1 text-sm text-muted-foreground">Check your connection and try again.</p></div>
-              <Button type="button" variant="outline" onClick={() => void reloadMarketplace()}>Try again</Button>
-            </CardContent>
-          </Card>
-        ) : loading ? (
-          <div className="space-y-8">
-            <div>
-              <SkeletonHeader />
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[1, 2, 3, 4].map(i => <ProductCardSkeleton key={i} />)}
+
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0">
+              <h2 className="text-lg font-bold tracking-tight sm:text-xl">{nearby ? 'Shops near you' : label}</h2>
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                {!results.isPending && !results.isError && !searching && !tooManyPins
+                  ? `${visibleCount} ${visibleCount === 1 ? 'result' : 'results'}${activeCampus ? ` · ${activeCampus.short_name || activeCampus.name}` : ''}`
+                  : activeCampus?.short_name || ''}
+              </p>
+            </div>
+            <div className="grid w-full grid-cols-2 items-center gap-2 sm:w-auto sm:min-w-[300px]">
+              <div className="relative min-w-0"><SlidersHorizontal className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <select className={`${filterStyle} pl-7`} aria-label="Category" value={category} onChange={event => setCategory(event.target.value)}>
+                  <option value="">All categories</option>
+                  {ALL_CATEGORIES.map(item => <option key={item} value={item}>{item}</option>)}
+                </select>
               </div>
+              <select aria-label="Sort results" className={filterStyle} disabled={nearby} value={nearby ? 'distance' : sort}
+                onChange={event => setSort(event.target.value as CatalogSort)}>
+                {nearby && <option value="distance">Nearest</option>}
+                {tab === 'shops' && <option value="rating">Top rated</option>}
+                <option value="newest">Newest</option>
+                {tab !== 'shops' && <><option value="price_low">Lowest price</option><option value="price_high">Highest price</option></>}
+              </select>
             </div>
           </div>
-        ) : (
-          <div className="space-y-10">
-            {/* Trending Products */}
-            {trending.length > 0 && (
-              <Section
-                icon={TrendingUp}
-                title="Trending Products"
-                subtitle="Popular items students are buying right now"
-              >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {trending.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
-              </Section>
-            )}
 
-            {/* Deals & Promotions */}
-            {deals.length > 0 && (
-              <Section
-                icon={Tag}
-                title="Deals & Promotions"
-                subtitle="Save with discounted items from campus vendors"
-                accent
-              >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {deals.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
-              </Section>
-            )}
+          {nearby && <p className="mb-3 text-xs text-muted-foreground">Within {NEARBY_SHOP_RADIUS_KM} km · Approximate distances · Your location stays on this device.</p>}
 
-            {/* Featured Services */}
-            {services.length > 0 && (
-              <Section
-                icon={Wrench}
-                title="Recommended Services"
-                subtitle="Book services from trusted campus vendors"
-              >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {services.map(s => <ServiceCard key={s.id} service={s} />)}
-                </div>
-              </Section>
-            )}
+          {searching || results.isPending ? (
+            <div className={tab === 'shops' ? shopGrid : productGrid} aria-busy="true" aria-label={`Loading ${label.toLowerCase()}`}>
+              {Array.from({ length: tab === 'shops' ? 3 : 4 }, (_, index) => <ProductCardSkeleton key={index} />)}
+            </div>
+          ) : results.isError && !results.data ? (
+            <div className="rounded-2xl border border-border bg-card p-6 text-center" role="alert">
+              <p className="font-semibold">Marketplace search is temporarily unavailable</p>
+              <Button type="button" variant="outline" className="mt-3 min-h-[44px]" onClick={() => void results.refetch()}>Try again</Button>
+            </div>
+          ) : tooManyPins || visibleCount === 0 ? (
+            <div className="grid justify-items-center gap-3 rounded-2xl border border-dashed border-border bg-card py-7 text-center sm:py-10">
+              <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+              <p className="font-semibold">{tooManyPins ? 'Choose a campus to narrow nearby results' : nearby ? 'No verified shop locations nearby' : `No ${label.toLowerCase()}${hasFilters ? ' match these filters' : ' yet'}`}</p>
+              <div className="flex flex-wrap justify-center gap-2 px-2">
+                {hasFilters && <Button type="button" variant="outline" className="min-h-[44px]" onClick={clearFilters}>Clear filters</Button>}
+                {tab !== 'shops'
+                  ? <Button type="button" className="min-h-[44px] gap-2" onClick={() => changeTab('shops')}><Store className="h-4 w-4" aria-hidden="true" />Browse shops</Button>
+                  : externalMap && <Button asChild variant="outline" className="min-h-[44px] gap-2">
+                    <a href={externalMap} target="_blank" rel="noopener noreferrer"><MapPin className="h-4 w-4" aria-hidden="true" />Search Google Maps</a>
+                  </Button>}
+                {!hasFilters && <Button asChild variant="ghost" className="min-h-[44px]"><Link href="/start-business">Start selling <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" /></Link></Button>}
+              </div>
+            </div>
+          ) : tab === 'shops' ? (
+            <div className={shopGrid}>{visibleShops.map(({ shop, distance }) => <ShopCard key={shop.id} shop={shop} distance={distance} />)}</div>
+          ) : tab === 'services' ? (
+            <div className={productGrid}>{services.map(service => <ServiceCard key={service.id} service={service} />)}</div>
+          ) : (
+            <div className={productGrid}>{products.map(product => <ProductCard key={product.id} product={product}
+              onView={searchTerm ? () => trackAnalyticsEvent({ event_type: 'search_result_click', subject_type: 'product', subject_id: product.id }) : undefined} />)}</div>
+          )}
 
-            {/* Recently Added */}
-            {recent.length > 0 && (
-              <Section
-                icon={Clock}
-                title="Recently Added"
-                subtitle="The latest products from campus vendors"
-              >
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  {recent.map(p => <ProductCard key={p.id} product={p} />)}
-                </div>
-              </Section>
-            )}
-
-            {/* Empty state */}
-            {trending.length === 0 && services.length === 0 && deals.length === 0 && recent.length === 0 && (
-              <Card>
-                <CardContent className="flex flex-col items-center justify-center py-10 text-center sm:py-16">
-                  <ShoppingBag className="h-12 w-12 text-muted-foreground/40" />
-                  <p className="mt-4 text-lg font-semibold text-foreground">No products available yet</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Vendors are still setting up their shops. Check back soon!
-                  </p>
-                  <Button asChild className="mt-4" variant="outline">
-                    <Link href="/discover">Browse businesses</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
+          {results.hasNextPage && !searching && <div className="mt-5 text-center">
+            <Button type="button" variant="outline" disabled={results.isFetchingNextPage} className="min-h-[44px] gap-2"
+              onClick={() => void results.fetchNextPage()}>
+              {results.isFetchingNextPage ? 'Loading…' : results.isFetchNextPageError ? 'Retry loading more' : 'Show more'} <ArrowDown className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>}
+          {!nearby && !results.hasNextPage && total > SHOP_BROWSE_LIMIT && <p className="mt-4 text-center text-xs text-muted-foreground">Choose a campus or category to narrow your results.</p>}
+        </section>
+        <Link href="/marketplace/photo-credits" className="mt-5 inline-flex min-h-[40px] items-center text-xs text-muted-foreground hover:underline">Photo credits</Link>
       </main>
       <SiteFooter />
     </>
-  );
-}
-
-function Section({ icon: Icon, title, subtitle, children, accent }: {
-  icon: typeof TrendingUp;
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  accent?: boolean;
-}) {
-  return (
-    <section>
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${accent ? 'bg-destructive/10 text-destructive' : 'bg-primary/10 text-primary'}`}>
-            <Icon className="h-4 w-4" />
-          </div>
-          <div>
-            <h2 className="font-display text-lg font-bold text-foreground">{title}</h2>
-            <p className="text-xs text-muted-foreground">{subtitle}</p>
-          </div>
-        </div>
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SkeletonHeader() {
-  return (
-    <div className="mb-4 flex items-center gap-2">
-      <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
-      <div className="space-y-1">
-        <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-48 animate-pulse rounded bg-muted" />
-      </div>
-    </div>
   );
 }

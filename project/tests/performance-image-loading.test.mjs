@@ -9,14 +9,17 @@ const read = (relativePath) => readFileSync(path.join(projectRoot, relativePath)
 
 test('repeated marketplace and business listing images load lazily and decode asynchronously', () => {
   const cards = read('components/marketplace/product-card.tsx');
+  const catalogPhoto = read('components/marketplace/catalog-photo.tsx');
+  const catalog = read('lib/marketplace/catalog.ts');
   const business = read('components/shared/business-card.tsx');
   const landing = read('components/landing/business-discovery.tsx');
   const campusUpdates = read('components/feed/campus-updates.tsx');
   const nextConfig = read('next.config.js');
 
-  assert.equal((cards.match(/loading="lazy"/g) || []).length, 2);
-  assert.equal((cards.match(/<Image[\s\S]*?fill/g) || []).length, 2);
-  assert.equal((cards.match(/unoptimized=\{!canOptimizeImage\}/g) || []).length, 2);
+  assert.equal((cards.match(/<CatalogPhoto/g) || []).length, 2);
+  assert.doesNotMatch(cards, /<CatalogPhoto[^>]*priority/);
+  assert.match(catalogPhoto, /<Image[\s\S]*?fill[\s\S]*?sizes=\{sizes\}[\s\S]*?loading=\{priority \? undefined : 'lazy'\}/);
+  assert.match(catalog, /isOptimizablePublicImage\(value\)/);
   assert.match(business, /<Image[\s\S]*?fill[\s\S]*?sizes=/);
   assert.match(business, /unoptimized=\{!canOptimizeLogo\}/);
   assert.equal((landing.match(/loading="lazy"\s+decoding="async"/g) || []).length, 1);

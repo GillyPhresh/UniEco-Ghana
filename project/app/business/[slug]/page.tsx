@@ -18,6 +18,7 @@ import { EntityViewTracker } from '@/components/analytics/entity-view-tracker';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -36,19 +37,29 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function BusinessProfilePage({ params }: PageProps) {
-  const { slug } = await params;
+export default async function BusinessProfilePage({ params, searchParams }: PageProps) {
+  const [{ slug }, { tab }] = await Promise.all([params, searchParams]);
   const vendor = await getVendorBySlug(slug);
   if (!vendor) notFound();
 
+  const canMap = vendor.location_public_visibility === 'business_location' && vendor.location_verification_status === 'verified';
+  const publicVendor = {
+    ...vendor,
+    gps_latitude: canMap ? vendor.gps_latitude : null,
+    gps_longitude: canMap ? vendor.gps_longitude : null,
+    location_place_id: canMap ? vendor.location_place_id : null,
+    location_maps_url: canMap ? vendor.location_maps_url : null,
+  };
   const [location, gallery, products, services, reviews, relatedVendors] = await Promise.all([
-    getVendorLocation(vendor.id),
+    canMap ? getVendorLocation(vendor.id) : Promise.resolve(null),
     getVendorGallery(vendor.id),
     getVendorProducts(vendor.id),
     getVendorServices(vendor.id),
     getVendorReviews(vendor.id),
     getRelatedVendors(vendor, 4),
   ]);
+  const defaultTab = !products.length && services.length ? 'services' : 'products';
+  const initialTab = typeof tab === 'string' && ['products', 'services', 'gallery', 'reviews', 'about'].includes(tab) ? tab : defaultTab;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -83,13 +94,17 @@ export default async function BusinessProfilePage({ params }: PageProps) {
       <SiteHeader />
       <main>
         <BusinessProfileContent
-          vendor={vendor}
+          key={`${vendor.id}:${initialTab}`}
+          vendor={publicVendor}
+          initialTab={initialTab}
           location={location}
           gallery={gallery}
           products={products}
           services={services}
           reviews={reviews}
-          relatedVendors={relatedVendors}
+          relatedVendors={relatedVendors.map(item => ({
+            ...item, gps_latitude: null, gps_longitude: null, location_place_id: null, location_maps_url: null,
+          }))}
         />
       </main>
       <SiteFooter />

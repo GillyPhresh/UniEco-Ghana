@@ -36,22 +36,27 @@ export function isSupportedGoogleMapsUrl(raw: string | null | undefined) {
   try {
     const url = new URL(raw.trim());
     const host = url.hostname.toLowerCase();
-    return url.protocol === 'https:'
-      && (host === 'google.com' || host.endsWith('.google.com') || host === 'maps.app.goo.gl');
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    if (host === 'maps.app.goo.gl') return /^\/[\w-]+\/?$/.test(url.pathname);
+    return (host === 'google.com' || host.endsWith('.google.com'))
+      && /^\/maps(?:\/|$)/.test(url.pathname);
   } catch { return false; }
 }
 
 export function getGoogleMapsDirectionsUrl(destination: MapDestination, origin?: MapDestination) {
-  const destinationValue = destination.placeId
-    ? `place_id:${destination.placeId}`
-    : isValidCoordinate(destination.latitude, destination.longitude)
-      ? `${destination.latitude},${destination.longitude}`
-      : destination.address?.trim();
+  const destinationValue = isValidCoordinate(destination.latitude, destination.longitude)
+    ? `${destination.latitude},${destination.longitude}`
+    : destination.address?.trim() || (destination.placeId ? 'Destination' : null);
   if (!destinationValue) return null;
   const params = new URLSearchParams({ api: '1', destination: destinationValue });
-  if (origin?.placeId) params.set('origin', `place_id:${origin.placeId}`);
-  else if (origin && isValidCoordinate(origin.latitude, origin.longitude)) params.set('origin', `${origin.latitude},${origin.longitude}`);
-  else if (origin?.address?.trim()) params.set('origin', origin.address.trim());
+  if (destination.placeId) params.set('destination_place_id', destination.placeId);
+  if (origin) {
+    const originValue = isValidCoordinate(origin.latitude, origin.longitude)
+      ? `${origin.latitude},${origin.longitude}`
+      : origin.address?.trim();
+    if (originValue) params.set('origin', originValue);
+    if (originValue && origin.placeId) params.set('origin_place_id', origin.placeId);
+  }
   return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
