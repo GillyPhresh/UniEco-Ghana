@@ -27,12 +27,13 @@ test('homepage is a real community feed and keeps the university directory separ
 });
 
 test('the Home timeline uses a compact header, thumb navigation and an accessible composer', async () => {
-  const [feed, css, header, nav, viewport] = await Promise.all([
+  const [feed, css, header, nav, viewport, installPrompt] = await Promise.all([
     read('components/feed/campus-community-feed.tsx'),
     read('app/globals.css'),
     read('components/layout/site-header.tsx'),
     read('components/pwa/mobile-bottom-nav.tsx'),
     read('hooks/use-feed-media-viewport.ts'),
+    read('components/pwa/install-prompt.tsx'),
   ]);
   assert.match(feed, /<SiteHeader feedNavigation=/);
   assert.match(feed, /<DropdownMenuRadioGroup[^>]+onValueChange/);
@@ -44,6 +45,8 @@ test('the Home timeline uses a compact header, thumb navigation and an accessibl
   assert.match(viewport, /querySelector\('\[data-home-feed-header\]'\)/);
   assert.match(feed, /form="campus-post-form"/);
   assert.match(feed, /<form id="campus-post-form" onSubmit=\{submitPost\}/);
+  assert.match(feed, /onSelect=\{\(\) => void installApp\(\)\}[^]*?Install UniEco app/);
+  assert.match(installPrompt, /inviteVisible && !installed && !isHomeFeed/);
   assert.match(css, /body:has\(\[data-campus-feed="social"\]\)\s*\{\s*overflow-x: clip/);
 });
 

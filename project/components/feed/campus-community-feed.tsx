@@ -8,6 +8,7 @@ import { Upload } from 'tus-js-client';
 import { supabase } from '@/lib/supabase/client';
 import { getSupabaseConfig } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useInstallPrompt } from '@/hooks/use-install-prompt';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,7 +16,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioGroup, DropdownMenuRadioItem,
   DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
-  ArrowUpRight, Bookmark, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert, Film, FileText,
+  ArrowUpRight, Bookmark, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert, Download, Film, FileText,
   Flag, Home, ImagePlus, Loader2, MapPin, Newspaper, Play, Plus, RefreshCw, Search, ShoppingBag, SquarePlus, UsersRound, X, type LucideIcon,
 } from 'lucide-react';
 import {
@@ -231,6 +232,7 @@ function FeedSkeleton() {
 }
 
 export function CampusCommunityFeed() {
+  const { installed, installBusy, installApp } = useInstallPrompt();
   const { user, loading: authLoading, registrationAccess } = useAuth();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [socialByPost, setSocialByPost] = useState<Record<string, CommunitySocialState>>({});
@@ -687,6 +689,7 @@ export function CampusCommunityFeed() {
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={refresh} disabled={refreshing || loadingView} className="min-h-11 gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh feed</DropdownMenuItem>
             {user && <DropdownMenuItem asChild className="min-h-11 gap-2"><Link href="/community/saved"><Bookmark className="h-4 w-4" aria-hidden="true" /> Saved posts</Link></DropdownMenuItem>}
+            {!installed && <DropdownMenuItem disabled={installBusy} onSelect={() => void installApp()} className="min-h-11 gap-2"><Download className="h-4 w-4" aria-hidden="true" /> Install UniEco app</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
       } />

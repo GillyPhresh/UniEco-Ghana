@@ -1,6 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,6 +14,7 @@ import {
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 
 export function InstallPrompt() {
+  const isHomeFeed = usePathname() === '/';
   const {
     inviteVisible,
     installed,
@@ -28,7 +30,7 @@ export function InstallPrompt() {
   return (
     <>
       <AnimatePresence>
-        {inviteVisible && !installed && (
+        {inviteVisible && !installed && !isHomeFeed && (
           <motion.aside
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

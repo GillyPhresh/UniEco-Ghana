@@ -194,7 +194,7 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
               {!isFeedHeader && !installed && <Button variant="outline" size="icon" className="hidden h-11 w-11 lg:inline-flex xl:hidden" onClick={() => void installApp()} aria-label="Install UniEco app" title="Install UniEco app"><Download className="h-4 w-4" /></Button>}
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link href="/signin">Sign in</Link></Button>
               <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/signup">Join UniEco</Link></Button>
-              {!installed && <Button variant="outline" size="sm" className="hidden xl:inline-flex" onClick={() => void installApp()}><Download className="mr-1.5 h-4 w-4" />Install</Button>}
+              {!isFeedHeader && !installed && <Button variant="outline" size="sm" className="hidden xl:inline-flex" onClick={() => void installApp()}><Download className="mr-1.5 h-4 w-4" />Install</Button>}
             </>
           )}
 
