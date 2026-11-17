@@ -36,6 +36,29 @@ test('the sticky feed toolbar is outside the clipped Moments header, with room f
   assert.match(css, /body:has\(\[data-campus-feed-toolbar\]\)\s*\{\s*overflow-x: clip/);
 });
 
+test('feed video and composer preview use a stable full-bleed rectangle without stretching the clip', async () => {
+  const [feed, player, css] = await Promise.all([
+    read('components/feed/campus-community-feed.tsx'),
+    read('components/feed/campus-post-media.tsx'),
+    read('app/globals.css'),
+  ]);
+  const video = player.slice(player.indexOf('function FeedVideo('));
+  assert.match(video, /className="campus-video-frame isolate group\/video bg-neutral-950"/);
+  assert.match(video, /onLoadedMetadata=\{\(\) => setLoadedOnce\(true\)\}/);
+  assert.doesNotMatch(video, /object-contain|style=\{\{ aspectRatio|setRatio/);
+  assert.match(css, /\.campus-video-frame\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*5;[^}]*overflow:\s*hidden;/);
+  assert.match(css, /\.campus-video-frame > video\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;[^}]*object-fit:\s*cover;[^}]*object-position:\s*center;/);
+  assert.match(feed, /selectedVideo \? <div className="campus-video-frame/);
+});
+
+test('production allows only the feed storage paths needed for direct Supabase video playback', async () => {
+  const config = await read('next.config.js');
+  const directive = config.match(/"media-src [^"]+"/)?.[0] || '';
+  assert.match(directive, /https:\/\/\*\.supabase\.co\/storage\/v1\/object\/public\/campus-community\//);
+  assert.match(directive, /https:\/\/\*\.supabase\.co\/storage\/v1\/object\/sign\/campus-community-files\//);
+  assert.doesNotMatch(directive, /https:\/\/\*\.supabase\.co(?:\s|")/);
+});
+
 test('community media is bounded and writes go through authenticated owner-checked RPCs', async () => {
   const migration = await read('supabase/migrations/20261101180000_0175_campus_community_posts.sql');
   const attachmentMigration = await read('supabase/migrations/20261102120000_0177_community_any_file_attachments.sql');

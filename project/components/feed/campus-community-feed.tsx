@@ -840,7 +840,9 @@ export function CampusCommunityFeed() {
                 <span className="mb-1 grid h-10 w-10 place-items-center rounded-xl bg-primary/10 text-primary"><ImagePlus className="h-5 w-5" /></span>
                 <span className="text-sm font-semibold">Add a photo or video</span><span className="text-xs text-muted-foreground">Up to 50 MB</span>
               </label> : <div className="overflow-hidden rounded-2xl border border-border peer-focus-visible:ring-2 peer-focus-visible:ring-ring">
-                {previewUrl && !previewFailed && (selectedVideo ? <video key={previewUrl} src={previewUrl} controls playsInline muted preload="metadata" aria-label="Preview of your video" onError={() => setPreviewFailed(true)} className="block max-h-[34dvh] w-full bg-neutral-950 object-contain" />
+                {previewUrl && !previewFailed && (selectedVideo ? <div className="campus-video-frame mx-auto max-w-[min(100%,32svh)] bg-neutral-950">
+                  <video key={previewUrl} src={previewUrl} controls playsInline muted preload="metadata" aria-label="Preview of your video in the feed" onError={() => setPreviewFailed(true)} />
+                </div>
                   : mediaFile.type.startsWith('image/') && <img src={previewUrl} alt="Preview of your photo" onError={() => setPreviewFailed(true)} className="block max-h-[34dvh] w-full bg-muted object-contain" />)}
                 <div className="flex min-w-0 items-center gap-2 bg-muted/40 p-2 pl-3">
                   {selectedVideo ? <Film className="h-[18px] w-[18px] shrink-0 text-primary" /> : <FileText className="h-[18px] w-[18px] shrink-0 text-primary" />}

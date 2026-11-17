@@ -42,7 +42,7 @@ const nextConfig = {
             "script-src 'self' 'unsafe-inline'",
             "style-src 'self' 'unsafe-inline'",
             "img-src 'self' data: blob: https://*.supabase.co https://images.pexels.com https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
-            "media-src 'self' blob: https://*.supabase.co/storage/v1/object/sign/message-attachments/ https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
+            "media-src 'self' blob: https://*.supabase.co/storage/v1/object/sign/message-attachments/ https://*.supabase.co/storage/v1/object/public/campus-community/ https://*.supabase.co/storage/v1/object/sign/campus-community-files/ https://ug.edu.gh https://*.ug.edu.gh https://knust.edu.gh https://*.knust.edu.gh https://atu.edu.gh https://*.atu.edu.gh https://acity.edu.gh https://*.acity.edu.gh",
             "font-src 'self' data:",
             "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
             "frame-src 'self' https://www.google.com https://maps.google.com",

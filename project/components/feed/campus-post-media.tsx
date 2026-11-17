@@ -176,7 +176,6 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
   refreshSource?: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [ratio, setRatio] = useState(1);
   const [muted, setMuted] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [buffering, setBuffering] = useState(false);
@@ -312,10 +311,10 @@ function FeedVideo({ post, source, active, preload, resolving, requestPlayback, 
   };
 
   return (
-    <div className={`${mediaFrame} group/video`} style={{ aspectRatio: ratio }}>
+    <div className="campus-video-frame isolate group/video bg-neutral-950">
       <video ref={videoRef} src={shouldAttach ? mediaUrl ?? undefined : undefined} playsInline muted={muted} loop disablePictureInPicture preload={preloadMode}
-        aria-label={`Video shared by ${post.author_name}`} className="campus-feed-video h-full w-full object-contain"
-        onLoadedMetadata={({ currentTarget }) => { setRatio(feedAspectRatio(currentTarget.videoWidth, currentTarget.videoHeight)); setLoadedOnce(true); }}
+        aria-label={`Video shared by ${post.author_name}`} className="campus-feed-video"
+        onLoadedMetadata={() => setLoadedOnce(true)}
         onLoadedData={() => { setFailed(false); setBuffering(false); }}
         onPlay={() => setPlaying(true)} onPlaying={() => { retryCount.current = 0; setPlaying(true); setBuffering(false); }}
         onPause={() => setPlaying(false)} onWaiting={() => setBuffering(true)} onError={({ currentTarget }) => handleVideoError(currentTarget)} />
