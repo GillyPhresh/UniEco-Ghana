@@ -145,7 +145,7 @@ function FeedPhoto({ post, priority, onLike }: { post: FeedMedia; priority: bool
     <div className={`${mediaFrame} touch-manipulation`} style={{ aspectRatio: ratio }} onDoubleClick={like} onPointerDown={pointerDown} onPointerUp={pointerUp}
       onPointerCancel={() => { start.current = null; lastTap.current = null; }}>
       <img src={post.media_url} alt={`Campus photo shared by ${post.author_name}`} loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" draggable={false}
-        onLoad={({ currentTarget }) => setRatio(feedAspectRatio(currentTarget.naturalWidth, currentTarget.naturalHeight))} onError={() => setFailed(true)} className="h-full w-full select-none object-contain" />
+        onLoad={({ currentTarget }) => setRatio(feedAspectRatio(currentTarget.naturalWidth, currentTarget.naturalHeight))} onError={() => setFailed(true)} className="h-full w-full select-none object-cover" />
       {burst > 0 && <span key={burst} aria-hidden="true" className="campus-heart-burst pointer-events-none absolute drop-shadow-lg" onAnimationEnd={() => setBurst(0)}><Heart className="h-[4.5rem] w-[4.5rem] fill-white text-white" /></span>}
     </div>
   );

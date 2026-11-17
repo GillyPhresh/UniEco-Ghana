@@ -258,7 +258,7 @@
 
 /* Clip horizontal overshoot without making the body the feed toolbar's scroll container. */
 @supports (overflow: clip) {
-  body:has([data-campus-feed-toolbar]) {
+  body:has([data-campus-feed="social"]) {
     overflow-x: clip;
   }
 }
@@ -349,6 +349,27 @@ html {
   21% { opacity: 1; transform: scale(1.16); }
   40%, 65% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(1.06); }
+}
+
+:is([data-campus-feed="social"], [data-home-feed-bottom-navigation], [data-campus-feed-composer]) {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 34%;
+  --border: 0 0% 87%;
+  color: hsl(var(--foreground));
+}
+
+.dark :is([data-campus-feed="social"], [data-home-feed-bottom-navigation], [data-campus-feed-composer]) {
+  --background: 0 0% 5%;
+  --foreground: 0 0% 95%;
+  --card: 0 0% 7%;
+  --card-foreground: 0 0% 95%;
+  --muted: 0 0% 14%;
+  --muted-foreground: 0 0% 69%;
+  --border: 0 0% 19%;
 }
 
 .campus-feed-surface {

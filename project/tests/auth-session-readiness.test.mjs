@@ -37,5 +37,6 @@ test('homepage shell can be statically served while feed and account data load c
   const homepage = await read('app/page.tsx');
   assert.doesNotMatch(homepage, /force-dynamic/);
   assert.match(homepage, /<CampusCommunityFeed\s*\/>/);
-  assert.match(homepage, /<SiteHeader\s*\/>/);
+  const feed = await read('components/feed/campus-community-feed.tsx');
+  assert.match(feed, /<SiteHeader feedNavigation=/);
 });

@@ -73,7 +73,7 @@ function CommentLine({ comment, children }: { comment: CommunityComment; childre
 }
 
 export function CommunityPostActions({
-  postId, authorId, authorName, caption, textOnly, initialState, renderHeader, renderMedia, onStateChange, onReport, onDelete,
+  postId, authorId, authorName, caption, textOnly, initialState, renderHeader, renderMedia, postDate, onStateChange, onReport, onDelete,
 }: {
   postId: string;
   authorId: string;
@@ -83,6 +83,7 @@ export function CommunityPostActions({
   initialState?: CommunitySocialState;
   renderHeader: (actions: ReactNode) => ReactNode;
   renderMedia: (likeFromPhoto: () => boolean) => ReactNode;
+  postDate?: ReactNode;
   onStateChange?: (state: CommunitySocialState, kind: CommunityMutation) => void;
   onReport?: () => void;
   onDelete?: () => void;
@@ -276,7 +277,7 @@ export function CommunityPostActions({
   const postCaption = (caption || '').trim();
   const longCaption = !textOnly && postCaption.length > 158;
   const captionText = longCaption && !captionExpanded ? `${postCaption.slice(0, 153).trimEnd()}…` : postCaption;
-  const iconAction = 'inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-full text-foreground transition hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
+  const iconAction = 'inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-md text-foreground transition-opacity hover:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
   const myPost = user?.id === authorId;
 
   const menu = (
@@ -298,8 +299,8 @@ export function CommunityPostActions({
       {renderHeader(menu)}
       {textOnly && postCaption && <p className="whitespace-pre-wrap break-words px-4 pb-4 pt-1 text-[15px] leading-relaxed sm:px-5">{postCaption}</p>}
       {renderMedia(likeFromPhoto)}
-      <div className="px-3 pb-3 sm:px-4 sm:pb-4">
-        <div className="flex items-center gap-0.5 py-1" role="group" aria-label="Post actions">
+      <div className="px-3 pb-3 sm:pb-4">
+        <div className="-mx-1 flex items-center" role="group" aria-label="Post actions">
           <button type="button" onClick={() => void toggle('like')} disabled={Boolean(busy)} aria-label={state.liked_by_me ? 'Unlike post' : 'Like post'} aria-pressed={state.liked_by_me} className={`${iconAction} ${state.liked_by_me ? '!text-rose-500' : ''}`}>
             <Heart className={`h-[23px] w-[23px] ${state.liked_by_me ? 'fill-current' : ''}`} strokeWidth={1.85} />
           </button>
@@ -309,13 +310,14 @@ export function CommunityPostActions({
             <Bookmark className={`h-[22px] w-[22px] ${state.bookmarked_by_me ? 'fill-current' : ''}`} strokeWidth={1.85} />
           </button>
         </div>
-        <div className="space-y-1 px-1 text-sm leading-relaxed">
+        <div className="space-y-1 text-sm leading-relaxed">
           {state.like_count > 0 && <p aria-live="polite" className="font-semibold">{new Intl.NumberFormat('en-GH').format(state.like_count)} {state.like_count === 1 ? 'like' : 'likes'}</p>}
           {!textOnly && postCaption && <p className="whitespace-pre-wrap break-words">
             <Link href={`/community/member/${authorId}`} className="mr-1.5 font-semibold hover:underline">{authorName}</Link>{captionText}
             {longCaption && <> <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)} aria-expanded={captionExpanded} className="inline-flex min-h-7 items-center rounded px-1 font-medium text-muted-foreground hover:text-foreground">{captionExpanded ? 'less' : 'more'}</button></>}
           </p>}
           {state.comment_count > 0 && <button type="button" onClick={openComments} className="inline-flex min-h-9 items-center text-sm text-muted-foreground hover:text-foreground">View {state.comment_count === 1 ? '1 comment' : `all ${state.comment_count} comments`}</button>}
+          {postDate}
         </div>
       </div>
 
@@ -339,7 +341,7 @@ export function CommunityPostActions({
             {replyTo && <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground"><span className="truncate">Replying to {replyTo.author_name}</span><button type="button" onClick={() => setReplyTo(null)} className="min-h-9 shrink-0 font-semibold text-primary">Cancel reply</button></div>}
             <div className="flex items-end gap-2">
               <Textarea value={commentBody} onChange={(event) => setCommentBody(event.target.value.slice(0, 1000))} maxLength={1000} rows={2} placeholder={replyTo ? 'Write a reply…' : 'Add a comment…'} aria-label={replyTo ? 'Write a reply' : 'Write a comment'} className="min-h-11 resize-none rounded-xl bg-muted/40 text-base sm:text-sm" />
-              <Button type="submit" disabled={sendingComment || !commentBody.trim() || Boolean(busy)} aria-label={replyTo ? 'Send reply' : 'Send comment'} className="h-11 w-11 shrink-0 rounded-full p-0">{sendingComment ? <Loader2 className="h-5 w-5 motion-safe:animate-spin" /> : <Send className="h-[18px] w-[18px]" />}</Button>
+              <button type="submit" disabled={sendingComment || !commentBody.trim() || Boolean(busy)} aria-label={replyTo ? 'Send reply' : 'Send comment'} className="inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-sm font-bold text-primary focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-45">{sendingComment ? <Loader2 className="h-5 w-5 motion-safe:animate-spin" /> : 'Post'}</button>
             </div>
           </form> : <div className="shrink-0 border-t border-border px-5 pb-[max(.9rem,env(safe-area-inset-bottom))] pt-2 text-center"><Link href={`/signin?next=${encodeURIComponent(postHref)}`} className="inline-flex min-h-11 items-center text-sm font-semibold text-primary">Sign in to comment</Link></div>}
         </DialogContent>

@@ -18,7 +18,9 @@ function measure() {
   // hand off to the next clip even when two clips still fit on a large screen.
   if (manuallySelected && Math.abs(window.scrollY - manualScrollPosition) >= 80) manuallySelected = null;
   const navigation = document.querySelector<HTMLElement>('[aria-label="Mobile bottom navigation"]');
-  const viewport = { top: 68, bottom: Math.max(69, window.innerHeight - (navigation?.offsetHeight ?? 0)) };
+  const header = document.querySelector('[data-home-feed-header]');
+  const top = header ? Math.max(0, Math.ceil(header.getBoundingClientRect().bottom)) : 68;
+  const viewport = { top, bottom: Math.max(top + 1, window.innerHeight - (navigation?.offsetHeight ?? 0)) };
   const bounds = Array.from(nearby).flatMap((node) => {
     const entry = entries.get(node);
     if (!entry || !node.isConnected) return [];

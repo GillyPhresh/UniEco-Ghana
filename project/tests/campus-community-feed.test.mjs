@@ -21,19 +21,30 @@ test('homepage is a real community feed and keeps the university directory separ
   assert.match(feed, /href="\/universities"/);
   assert.match(feed, /href="\/updates"/);
   assert.match(feed, /Campus feed/);
-  assert.match(feed, /Share a campus moment…/);
+  assert.match(feed, /aria-label="Campus moments"/);
   assert.match(feed, /post\.media_url && post\.media_type === 'image'/);
-  assert.match(feed, /bg-primary text-primary-foreground shadow-sm/);
   assert.match(feed, /get_campus_community_feed/);
 });
 
-test('the sticky feed toolbar is outside the clipped Moments header, with room for post anchors', async () => {
-  const feed = await read('components/feed/campus-community-feed.tsx');
-  const css = await read('app/globals.css');
-  assert.match(feed, /data-campus-feed-toolbar className="sticky top-\[var\(--site-header-height\)\]/);
-  assert.match(feed, /<\/div>\s*<\/div>\s*\{\/\* Keep this outside the clipped header[^]*?<div data-campus-feed-toolbar/);
-  assert.match(feed, /scroll-mt-\[calc\(var\(--site-header-height,4rem\)\+4rem\)\]/);
-  assert.match(css, /body:has\(\[data-campus-feed-toolbar\]\)\s*\{\s*overflow-x: clip/);
+test('the Home timeline uses a compact header, thumb navigation and an accessible composer', async () => {
+  const [feed, css, header, nav, viewport] = await Promise.all([
+    read('components/feed/campus-community-feed.tsx'),
+    read('app/globals.css'),
+    read('components/layout/site-header.tsx'),
+    read('components/pwa/mobile-bottom-nav.tsx'),
+    read('hooks/use-feed-media-viewport.ts'),
+  ]);
+  assert.match(feed, /<SiteHeader feedNavigation=/);
+  assert.match(feed, /<DropdownMenuRadioGroup[^>]+onValueChange/);
+  assert.match(feed, /scroll-mt-\[var\(--site-header-height,4rem\)\]/);
+  assert.match(header, /data-home-feed-header/);
+  assert.match(nav, /if \(pathname === '\/'\)[^]*?data-home-feed-bottom-navigation[^]*?unieco:open-post-composer/);
+  assert.match(nav, /label: 'Shop'/);
+  assert.match(nav, /label: 'Mate'/);
+  assert.match(viewport, /querySelector\('\[data-home-feed-header\]'\)/);
+  assert.match(feed, /form="campus-post-form"/);
+  assert.match(feed, /<form id="campus-post-form" onSubmit=\{submitPost\}/);
+  assert.match(css, /body:has\(\[data-campus-feed="social"\]\)\s*\{\s*overflow-x: clip/);
 });
 
 test('feed video and composer preview use a stable full-bleed rectangle without stretching the clip', async () => {

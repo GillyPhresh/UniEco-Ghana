@@ -2,8 +2,10 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, MapPinned, ShoppingCart, Newspaper, User } from 'lucide-react';
+import { Home, MapPinned, ShoppingCart, Newspaper, Search, SquarePlus, User } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
@@ -32,6 +34,29 @@ export function MobileBottomNav() {
     pathname.startsWith('/checkout')
   ) {
     return null;
+  }
+
+  if (pathname === '/') {
+    const target = 'grid min-h-11 min-w-0 place-items-center text-foreground transition-opacity hover:opacity-65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
+    const avatar = getPublicAvatarUrl(user?.profile?.avatar_url);
+    return (
+      <nav data-home-feed-bottom-navigation aria-label="Mobile bottom navigation"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background lg:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="mx-auto grid h-12 max-w-xl grid-cols-5">
+          <Link href="/" aria-label="Home" aria-current="page" className={target}><Home aria-hidden="true" className="h-6 w-6 fill-current" /></Link>
+          <Link href="/search" aria-label="Search" className={target}><Search aria-hidden="true" className="h-6 w-6" /></Link>
+          <button type="button" aria-label="Create post" className={target} onClick={() => window.dispatchEvent(new Event('unieco:open-post-composer'))}><SquarePlus aria-hidden="true" className="h-6 w-6" /></button>
+          <Link href="/updates" aria-label="Campus updates" className={target}><Newspaper aria-hidden="true" className="h-6 w-6" /></Link>
+          <Link href={user ? '/profile' : '/signin'} aria-label={user ? 'Profile' : 'Sign in'} className={target}>
+            <Avatar aria-hidden="true" className="h-7 w-7 border border-border">
+              {avatar && <AvatarImage src={avatar} alt="" />}
+              <AvatarFallback className="bg-background"><User className="h-5 w-5" /></AvatarFallback>
+            </Avatar>
+          </Link>
+        </div>
+      </nav>
+    );
   }
 
   // Adjust the last item based on auth state

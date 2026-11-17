@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import { SiteHeader } from '@/components/layout/site-header';
 import { CampusCommunityFeed } from '@/components/feed/campus-community-feed';
 import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
@@ -10,12 +9,5 @@ export const metadata: Metadata = createPublicPageMetadata({
 });
 
 export default function Home() {
-  return (
-    <>
-      <SiteHeader />
-      <main id="main-content">
-        <CampusCommunityFeed />
-      </main>
-    </>
-  );
+  return <CampusCommunityFeed />;
 }

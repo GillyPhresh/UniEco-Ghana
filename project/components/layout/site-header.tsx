@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -22,6 +22,7 @@ import {
   Newspaper,
   Package,
   Search,
+  Send,
   ShieldCheck,
   Settings,
   ShoppingCart,
@@ -59,7 +60,8 @@ const networkLinks = [
   { href: '/universities', label: 'Universities', icon: University },
 ] as const;
 
-export function SiteHeader() {
+export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = {}) {
+  const isFeedHeader = feedNavigation != null;
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, loading, signOut, registrationAccess } = useAuth();
@@ -106,11 +108,11 @@ export function SiteHeader() {
     .toUpperCase();
 
   return (
-    <header className={`sticky top-0 z-50 w-full border-b border-border/80 bg-card/95 backdrop-blur-xl transition-shadow ${scrolled ? 'shadow-sm' : ''}`}>
-      <div className="mx-auto flex h-16 max-w-7xl items-center gap-1 px-2 sm:gap-3 sm:px-6">
-        <Logo />
+    <header data-home-feed-header={isFeedHeader ? '' : undefined} role="banner" className={`sticky top-0 z-50 w-full border-b border-border/80 transition-shadow ${isFeedHeader ? 'bg-background' : 'bg-card/95 backdrop-blur-xl'} ${!isFeedHeader && scrolled ? 'shadow-sm' : ''}`}>
+      <div className={`mx-auto flex max-w-7xl items-center gap-1 px-2 sm:gap-3 sm:px-6 ${isFeedHeader ? 'h-14' : 'h-16'}`}>
+        {isFeedHeader ? feedNavigation : <Logo />}
 
-        <form onSubmit={submitSearch} className="relative hidden min-w-0 flex-1 md:flex md:max-w-[20rem] lg:max-w-[24rem]">
+        {!isFeedHeader && <form onSubmit={submitSearch} className="relative hidden min-w-0 flex-1 md:flex md:max-w-[20rem] lg:max-w-[24rem]">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             value={searchQuery}
@@ -119,35 +121,38 @@ export function SiteHeader() {
             placeholder="Search businesses, events..."
             className="h-10 w-full rounded-lg border border-transparent bg-muted/70 pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary/40 focus:bg-background focus:ring-2 focus:ring-primary/10"
           />
-        </form>
+        </form>}
 
-        <nav className="hidden flex-1 items-stretch justify-center gap-0.5 xl:flex" aria-label="Primary">
+        {!isFeedHeader && <nav className="hidden flex-1 items-stretch justify-center gap-0.5 xl:flex" aria-label="Primary">
           {networkLinks.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="flex min-w-[4rem] flex-col items-center justify-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[11px] font-medium text-muted-foreground transition-colors duration-100 hover:bg-muted">
               <Icon className="h-[18px] w-[18px]" />
               <span>{label}</span>
             </Link>
           ))}
-        </nav>
+        </nav>}
 
         <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-1.5">
           {loading ? (
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           ) : user ? (
             <>
-              <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors duration-100 hover:bg-muted md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>
-              <div className="flex items-center gap-0 sm:gap-1">
+              {!isFeedHeader && <Link href="/search" className="flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-xl text-muted-foreground transition-colors duration-100 hover:bg-muted md:hidden" aria-label="Search"><Search className="h-[18px] w-[18px]" /></Link>}
+              {isFeedHeader ? <div className="flex items-center">
+                <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Heart} count={unreadNotifs} plain />
+                <HeaderIconLink href="/dashboard/messages" label="Messages" icon={Send} plain />
+              </div> : <div className="flex items-center gap-0 sm:gap-1">
                 <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} />
                 <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={user ? unreadNotifs : 0} />
-              </div>
-              {user.role === 'super_admin' && (
+              </div>}
+              {!isFeedHeader && user.role === 'super_admin' && (
                 <Button asChild size="sm" variant="outline" className="hidden border-primary/30 text-primary hover:bg-primary/10 lg:inline-flex">
                   <Link href="/admin" aria-label="Open management system"><ShieldCheck className="mr-1.5 h-4 w-4" />Management system</Link>
                 </Button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-muted" aria-label="Open account menu">
+                  <button className={`items-center gap-2 rounded-lg p-1 transition-colors hover:bg-muted ${isFeedHeader ? 'hidden lg:flex' : 'flex'}`} aria-label="Open account menu">
                     <Avatar className="h-8 w-8 border border-primary/20 sm:h-9 sm:w-9">
                       <AvatarImage src={getPublicAvatarUrl(user.profile?.avatar_url)} alt={user.profile?.full_name || ''} />
                       <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
@@ -182,7 +187,11 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              {!installed && <Button variant="outline" size="icon" className="hidden h-11 w-11 lg:inline-flex xl:hidden" onClick={() => void installApp()} aria-label="Install UniEco app" title="Install UniEco app"><Download className="h-4 w-4" /></Button>}
+              {isFeedHeader && <div className="flex items-center lg:hidden">
+                <HeaderIconLink href="/signin?next=%2Fdashboard%2Fnotifications" label="Notifications" icon={Heart} plain />
+                <HeaderIconLink href="/signin?next=%2Fdashboard%2Fmessages" label="Messages" icon={Send} plain />
+              </div>}
+              {!isFeedHeader && !installed && <Button variant="outline" size="icon" className="hidden h-11 w-11 lg:inline-flex xl:hidden" onClick={() => void installApp()} aria-label="Install UniEco app" title="Install UniEco app"><Download className="h-4 w-4" /></Button>}
               <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex"><Link href="/signin">Sign in</Link></Button>
               <Button asChild size="sm" className="hidden sm:inline-flex"><Link href="/signup">Join UniEco</Link></Button>
               {!installed && <Button variant="outline" size="sm" className="hidden xl:inline-flex" onClick={() => void installApp()}><Download className="mr-1.5 h-4 w-4" />Install</Button>}
@@ -191,7 +200,8 @@ export function SiteHeader() {
 
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl lg:hidden" aria-label="Open navigation menu"><Menu className="h-5 w-5" /></Button>
+              {isFeedHeader ? <button type="button" className="grid h-11 w-11 shrink-0 place-items-center rounded-md lg:hidden focus-visible:ring-2 focus-visible:ring-ring" aria-label="Open navigation menu"><Menu className="h-[23px] w-[23px]" strokeWidth={1.85} /></button>
+                : <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl lg:hidden" aria-label="Open navigation menu"><Menu className="h-5 w-5" /></Button>}
             </SheetTrigger>
             <SheetContent side="right" className="w-full max-w-sm p-0">
               <div className="flex h-full flex-col">
@@ -245,15 +255,15 @@ export function SiteHeader() {
           </Sheet>
         </div>
       </div>
-      <div className="ghana-stripe h-[3px] w-full" aria-hidden="true" />
+      {!isFeedHeader && <div className="ghana-stripe h-[3px] w-full" aria-hidden="true" />}
     </header>
   );
 }
 
-function HeaderIconLink({ href, label, icon: Icon, count = 0 }: { href: string; label: string; icon: typeof Bell; count?: number }) {
+function HeaderIconLink({ href, label, icon: Icon, count = 0, plain = false }: { href: string; label: string; icon: typeof Bell; count?: number; plain?: boolean }) {
   return (
-    <Link href={href} className="relative flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg text-muted-foreground transition-colors duration-100 hover:bg-muted" aria-label={label}>
-      <Icon className="h-[18px] w-[18px]" />
+    <Link href={href} className={`relative flex h-11 w-11 min-h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center rounded-lg transition-colors duration-100 focus-visible:ring-2 focus-visible:ring-ring ${plain ? 'text-foreground hover:opacity-65' : 'text-muted-foreground hover:bg-muted'}`} aria-label={count > 0 ? `${label}, ${count} unread` : label}>
+      <Icon className={plain ? 'h-[23px] w-[23px]' : 'h-[18px] w-[18px]'} strokeWidth={plain ? 1.85 : 2} />
       {count > 0 && <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">{count > 99 ? '99+' : count}</span>}
     </Link>
   );
