@@ -26,6 +26,7 @@ import {
   type CatalogProduct, type CatalogService, type CatalogSort, type CatalogTab, type Coordinates, type MarketplaceShop, type ShopCampus,
 } from '@/lib/marketplace/catalog';
 import { normalizeSearchTerm } from '@/lib/utils/search';
+import { marketPhotography } from '@/lib/marketplace/photography';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -34,11 +35,11 @@ const TABS = [
   { id: 'services', label: 'Services', icon: Wrench },
 ] as const;
 const CATEGORY_PHOTOS = [
-  { category: 'Food & Drinks', label: 'Food & drinks', image: '/assets/marketplace/waakye.webp' },
-  { category: 'Fashion', label: 'Fashion', image: '/assets/marketplace/fashion.webp' },
-  { category: 'Electronics', label: 'Tech', image: '/assets/marketplace/tech.webp' },
-  { category: 'Hair & Beauty', label: 'Beauty', image: '/assets/marketplace/beauty.webp' },
-  { category: 'Printing & Photocopy', label: 'Printing', image: '/assets/marketplace/stationery.webp' },
+  { category: 'Food & Drinks', label: 'Food & drink', image: marketPhotography.food.image },
+  { category: 'Fashion', label: 'Fashion', image: marketPhotography.fashion.image },
+  { category: 'Electronics', label: 'Tech', image: marketPhotography.tech.image },
+  { category: 'Hair & Beauty', label: 'Beauty', image: marketPhotography.beauty.image },
+  { category: 'Printing & Photocopy', label: 'Printing', image: marketPhotography.print.image },
 ] as const;
 
 type PageResults = { total: number; offset: number } & (
@@ -216,21 +217,6 @@ export default function MarketplacePage() {
           </div>
         </div>
 
-        <section aria-label="Shop campus" className="relative isolate mb-4 min-h-[9.5rem] overflow-hidden rounded-[1.5rem] bg-[#0b342d] text-white sm:mb-5 sm:min-h-[13.75rem]">
-          <div className="absolute inset-y-0 right-0 w-[60%] sm:w-[64%]">
-            <CatalogPhoto sources={[CATEGORY_PHOTOS[0].image]} alt="" sizes="(min-width: 1024px) 780px, 65vw" priority fallback={ShoppingBag} />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0b342d] via-[#0b342d]/25 to-transparent" />
-          </div>
-          <div className="relative flex min-h-[inherit] max-w-[72%] flex-col items-start justify-center px-4 py-4 sm:px-10 sm:py-7">
-            <span className="mb-1 text-[10px] font-semibold uppercase tracking-[.22em] text-emerald-200 sm:text-xs">UniEco Ghana</span>
-            <h2 className="text-3xl font-black leading-[1.02] tracking-[-.045em] sm:text-5xl">Shop campus.</h2>
-            <a href="#shop-results" onClick={() => changeTab('shops')}
-              className="mt-3 inline-flex min-h-[44px] items-center gap-2 rounded-full bg-[#f5fff8] px-3.5 text-sm font-bold text-[#102c22] hover:bg-[#bff0d3] focus-visible:ring-2 focus-visible:ring-white sm:mt-4">
-              Explore shops <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </a>
-          </div>
-        </section>
-
         <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(290px,0.52fr)]">
           <div className="relative min-w-0">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
@@ -256,17 +242,35 @@ export default function MarketplacePage() {
           {locationMessage && <p className="text-xs text-muted-foreground sm:col-span-2" role="status">{locationMessage}</p>}
         </div>
 
+        {!hasFilters && <section aria-label="Campus shopping" className="relative isolate mb-4 grid min-h-[9.5rem] grid-cols-[1.1fr_1fr] overflow-hidden rounded-[1.4rem] bg-[#eaf7ec] text-[#142d24] ring-1 ring-black/5 sm:mb-6 sm:min-h-[14rem] sm:grid-cols-[0.8fr_1fr] xl:min-h-[16rem]">
+          <div className="relative z-10 flex min-w-0 flex-col items-start justify-center p-4 sm:px-8 sm:py-7 xl:px-12">
+            <span className="mb-1 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.16em] text-[#246746] sm:text-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2a8e53]" aria-hidden="true" /> Campus market
+            </span>
+            <h2 className="text-[1.85rem] font-black leading-[1.02] tracking-[-.045em] sm:text-5xl">Shop closer.</h2>
+            <a href="#shop-results" onClick={() => changeTab('shops')}
+              className="mt-3 inline-flex min-h-[44px] items-center gap-1.5 rounded-full bg-[#164735] px-3.5 text-xs font-bold text-white hover:bg-[#245e47] focus-visible:ring-2 focus-visible:ring-[#164735] focus-visible:ring-offset-2 sm:mt-5 sm:px-4 sm:text-sm">
+              Explore shops <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </a>
+          </div>
+          <div className="relative">
+            <CatalogPhoto sources={[marketPhotography.shop.image]} alt="" sizes="(min-width: 1280px) 720px, (min-width: 640px) 58vw, 49vw" priority fallback={ShoppingBag} />
+            <span className="absolute inset-y-0 left-0 w-[17%] bg-gradient-to-r from-[#eaf7ec] to-transparent" aria-hidden="true" />
+          </div>
+        </section>}
+
         <section aria-label="Shop by category" className="mb-4 sm:mb-5">
-          <h2 className="sr-only">Shop by category</h2>
-          <div className="-mx-3 grid snap-x grid-flow-col auto-cols-[minmax(92px,28%)] gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid-flow-row sm:grid-cols-5 sm:gap-3 sm:px-0">
+          <h2 className="mb-2 text-sm font-bold sm:text-base">Shop by category</h2>
+          <div className="-mx-3 grid snap-x grid-flow-col auto-cols-[minmax(84px,23%)] gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:grid-flow-row sm:grid-cols-5 sm:gap-3 sm:px-0">
             {CATEGORY_PHOTOS.map(item => (
               <button type="button" key={item.category} onClick={() => setCategory(current => current === item.category ? '' : item.category)}
                 aria-pressed={category === item.category}
-                className={cn('group relative isolate aspect-[4/3] min-w-0 snap-start overflow-hidden rounded-xl border bg-muted text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:aspect-[2/1] sm:rounded-2xl',
-                  category === item.category ? 'border-primary ring-2 ring-inset ring-primary' : 'border-border')}>
-                <CatalogPhoto sources={[item.image]} alt="" sizes="(min-width: 900px) 235px, (min-width: 640px) 19vw, 30vw" />
-                <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent px-2.5 pb-2 pt-6 text-xs font-semibold leading-tight text-white sm:text-sm">{item.label}</span>
-                {category === item.category && <span className="absolute inset-0 rounded-[inherit] border-2 border-emerald-400" aria-hidden="true" />}
+                className={cn('group isolate min-w-0 snap-start overflow-hidden rounded-xl border bg-card text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary sm:rounded-2xl',
+                  category === item.category ? 'border-primary bg-primary/10 ring-1 ring-inset ring-primary' : 'border-border hover:border-primary/60')}>
+                <span className="relative block aspect-[4/3] overflow-hidden bg-muted sm:aspect-[2/1]">
+                  <CatalogPhoto sources={[item.image]} alt="" sizes="(min-width: 1280px) 235px, (min-width: 640px) 19vw, 24vw" />
+                </span>
+                <span className="flex min-h-9 items-center px-2 text-xs font-bold leading-tight sm:px-3 sm:text-sm">{item.label}</span>
               </button>
             ))}
           </div>

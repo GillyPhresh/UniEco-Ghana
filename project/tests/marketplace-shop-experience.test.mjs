@@ -30,13 +30,13 @@ const verifiedStore = {
 };
 
 test('catalogue media accepts licensed local assets and public storage, without arbitrary URLs', () => {
-  const valid = '/assets/marketplace/waakye.webp';
+  const valid = '/assets/marketplace/fresh/shop.webp';
   const stored = 'https://project.supabase.co/storage/v1/object/public/products/photo.jpg';
   assert.deepEqual(catalog.catalogPhotos(valid, [valid, stored, 'https://bad.example/photo.jpg',
     'javascript:alert(1)', '//foo.example/photo.webp', '/assets/../photos/image.png', '/assets/%2e%2e/x.png',
     'https://project.supabase.co/storage/v1/object/sign/private-photo.jpg', null]), [valid, stored]);
-  for (const photo of ['waakye', 'fashion', 'tech', 'beauty', 'stationery']) {
-    assert.ok(readFileSync(`public/assets/marketplace/${photo}.webp`).subarray(8, 12).equals(Buffer.from('WEBP')));
+  for (const photo of ['shop', 'food', 'fashion', 'tech', 'beauty', 'print']) {
+    assert.ok(readFileSync(`public/assets/marketplace/fresh/${photo}.webp`).subarray(8, 12).equals(Buffer.from('WEBP')));
   }
 });
 
