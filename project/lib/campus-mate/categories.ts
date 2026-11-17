@@ -36,8 +36,19 @@ export function findCampusMateCategory(category: string) {
 export function secureCampusPhoto(input?: string | null) {
   if (!input) return null;
   if (/^\/assets\/[^%\\\s?#]+\.(webp|png|jpe?g|avif)$/i.test(input) && !input.split('/').includes('..')) return input;
+  return campusPlaceWebsite(input);
+}
+
+export function campusPlaceWebsite(input?: string | null) {
+  if (!input) return null;
   try {
     const url = new URL(input);
     return url.protocol === 'https:' && !url.username && !url.password && !url.port ? url.href : null;
   } catch { return null; }
+}
+
+export function campusPlaceTelephone(input?: string | null) {
+  if (!input || !/^\+?[0-9().\s-]+$/.test(input.trim())) return null;
+  const number = input.trim().replace(/[().\s-]/g, '');
+  return /^\+?[0-9]{7,15}$/.test(number) ? `tel:${number}` : null;
 }

@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
 import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
 import { CampusPlaceCard } from '@/components/campus-mate/campus-place-card';
-import { campusMateCategories, findCampusMateCategory } from '@/lib/campus-mate/categories';
+import { campusMateCategories, findCampusMateCategory, campusPlaceTelephone, campusPlaceWebsite } from '@/lib/campus-mate/categories';
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
 import { cn } from '@/lib/utils';
 
@@ -476,7 +476,8 @@ export function CampusMateExperience({ university, universities, places }: Campu
                   return <CampusPlaceCard key={place.id} name={place.name} source="community" category={place.category} address={place.address}
                     distance={deviceLocation && coords ? distanceInKm(deviceLocation, coords) : null}
                     backdrop={findCampusMateCategory(place.category)?.photo.image}
-                    active={selectedGooglePlace?.id === place.id} directions={directions} externalDetails={place.osmUrl} onMap={() => chooseGooglePlace(place)} />;
+                    active={selectedGooglePlace?.id === place.id} directions={directions} externalDetails={campusPlaceWebsite(place.osmUrl)}
+                    telephone={campusPlaceTelephone(place.phone)} website={campusPlaceWebsite(place.websiteUri)} onMap={() => chooseGooglePlace(place)} />;
                 })}
               </div>}
             <p className="text-[11px] leading-5 text-muted-foreground">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a>. Coverage varies by campus.</p>

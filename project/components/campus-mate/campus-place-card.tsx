@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, BadgeCheck, CalendarDays, Compass, MapPin, Navigation, Star, Store, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, BadgeCheck, CalendarDays, Compass, Globe2, MapPin, Navigation, Phone, Star, Store, type LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
 import { catalogPhotos } from '@/lib/marketplace/catalog';
@@ -28,11 +28,11 @@ export function PlaceArtwork({ photo, logo, backdrop, icon: Icon }: {
 }
 
 export function CampusPlaceCard({ name, category, source, address, date, distance, rating, verified, photo, logo, backdrop,
-  active, directions, details, externalDetails, onMap }: {
+  active, directions, details, externalDetails, telephone, website, onMap }: {
   name: string; category: string; source: 'business' | 'event' | 'community'; address?: string | null;
   date?: string | null; distance?: number | null; rating?: number | null; verified?: boolean;
   photo?: string | null; logo?: string | null; backdrop?: string; active?: boolean;
-  directions?: string | null; details?: string | null; externalDetails?: string | null; onMap: () => void;
+  directions?: string | null; details?: string | null; externalDetails?: string | null; telephone?: string | null; website?: string | null; onMap: () => void;
 }) {
   const Icon = source === 'event' ? CalendarDays : source === 'community' ? Compass : Store;
   return <article className={cn('group flex min-w-0 flex-col overflow-hidden rounded-[1.35rem] border bg-card transition-shadow hover:shadow-md', active && 'border-primary ring-2 ring-primary/20')}>
@@ -57,6 +57,8 @@ export function CampusPlaceCard({ name, category, source, address, date, distanc
         <button type="button" aria-pressed={Boolean(active)} onClick={onMap} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border px-3 hover:bg-muted"><MapPin className="h-3.5 w-3.5" aria-hidden="true" /> Map</button>
         {details && <Link href={details} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-primary hover:bg-muted">Details <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>}
         {externalDetails && <a href={externalDetails} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-primary hover:bg-muted">Source <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></a>}
+        {telephone && <a href={telephone} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Phone className="h-3.5 w-3.5" aria-hidden="true" /> Call</a>}
+        {website && <a href={website} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Globe2 className="h-3.5 w-3.5" aria-hidden="true" /> Website</a>}
       </div>
     </div>
   </article>;

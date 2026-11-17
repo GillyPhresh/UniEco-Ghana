@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { testModules } from './helpers/load-typescript.mjs';
 
 const read = path => readFile(new URL('../' + path, import.meta.url), 'utf8');
-const { campusMateCategories, findCampusMateCategory, secureCampusPhoto } =
+const { campusMateCategories, findCampusMateCategory, secureCampusPhoto, campusPlaceTelephone, campusPlaceWebsite } =
   testModules()('lib/campus-mate/categories.ts');
 
 test('photo categories use local WebP assets and credit the photographer', async () => {
@@ -28,6 +28,15 @@ test('campus artwork can use real campus photos without accepting non-HTTPS or p
   assert.equal(secureCampusPhoto('//example.edu.gh/campus.jpg'), null);
   assert.equal(secureCampusPhoto('/assets/../private.jpg'), null);
   assert.equal(secureCampusPhoto('data:image/png;base64,xxx'), null);
+});
+
+test('community contact actions accept HTTPS sites and clean telephone numbers only', () => {
+  assert.equal(campusPlaceWebsite('https://example.com/info'), 'https://example.com/info');
+  assert.equal(campusPlaceWebsite('https://member:secret@example.com/'), null);
+  assert.equal(campusPlaceWebsite('javascript:alert(1)'), null);
+  assert.equal(campusPlaceTelephone('+233 (24) 123-4567'), 'tel:+233241234567');
+  assert.equal(campusPlaceTelephone('0241234567;ext=4'), null);
+  assert.equal(campusPlaceTelephone('0123'), null);
 });
 
 test('Campus Mate prefers actual covers, labels category photos and shows community results separately', async () => {
