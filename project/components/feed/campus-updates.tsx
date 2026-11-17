@@ -127,23 +127,23 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
   const briefing = campus !== 'all' && !campus.startsWith('no-feed:') ? '/updates/bulletin?source=' + encodeURIComponent(campus) : '/updates/bulletin';
 
   return <>
-    <header className="border-b border-border pb-4 pt-5 sm:pb-6 sm:pt-8">
+    <header className="border-b border-border pb-3 pt-3 sm:pb-6 sm:pt-8">
       <div className="flex items-center justify-between gap-3">
         <p className="newsroom-kicker">UniEco Ghana <span aria-hidden="true">/</span> News desk</p>
         <Link href={briefing} className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 text-xs font-bold text-primary hover:underline sm:text-sm">Campus briefing <ArrowUpRight className="h-4 w-4" /></Link>
       </div>
       <h1 className="newsroom-headline text-[clamp(2.4rem,6vw,4.9rem)] leading-[0.97]">Campus Updates</h1>
-      <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground sm:text-base">The latest news, events and opportunities from Ghana’s tertiary institutions.</p>
+      <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-base sm:leading-6">News, events and opportunities from Ghana’s tertiary institutions.</p>
     </header>
-    <nav className="flex gap-5 overflow-x-auto border-b border-border [scrollbar-width:thin] sm:gap-7" aria-label="News sections">
+    <nav className="flex gap-5 overflow-x-auto border-b border-border [scrollbar-width:none] sm:gap-7" aria-label="News sections">
       {categories.map(([value, label]) => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(value)}
         className={`newsroom-section min-h-[48px] shrink-0 border-b-[3px] px-0.5 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 ${category === value ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
     </nav>
-    <form onSubmit={(event) => { event.preventDefault(); setQuerySearch(search.trim()); }} className="grid grid-cols-1 gap-2 border-b border-border py-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,17rem)]">
+    <form role="search" aria-label="Find campus stories" onSubmit={(event) => { event.preventDefault(); setQuerySearch(search.trim()); }} className="grid grid-cols-1 gap-2 border-b border-border py-3 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,17rem)]">
       <label className="relative block min-w-0">
         <span className="sr-only">Search campus updates</span>
         <Search aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input id="campus-feed-search" type="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} placeholder="Search headlines or a school" className="h-11 w-full rounded-md border border-border bg-background pl-9 pr-3 text-base outline-none focus:ring-2 focus:ring-ring" />
+        <input id="campus-feed-search" type="text" inputMode="search" enterKeyHint="search" value={search} maxLength={120} onChange={(event) => setSearch(event.target.value)} placeholder="Search headlines or a school" className="h-11 w-full rounded-md border border-border bg-background pl-9 pr-3 text-base outline-none focus:ring-2 focus:ring-ring" />
       </label>
       <div className="relative min-w-0">
         <Building2 aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -172,10 +172,10 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
         {lead && <section className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)] lg:gap-8" aria-label="Top stories">
           <article className="min-w-0">
             <div className="newsroom-kicker mb-2">Lead story</div>
+            <StoryMeta item={lead} />
+            <h2 className="newsroom-headline mb-3 mt-2 text-[clamp(1.65rem,4vw,3.1rem)] leading-[1.07]"><Link href={'/updates/' + lead.id} className="hover:text-primary">{lead.title}</Link></h2>
             <LeadArtwork item={lead} />
             <div className="border-b border-border pb-4 pt-3">
-              <StoryMeta item={lead} />
-              <h2 className="newsroom-headline my-2 text-[clamp(1.65rem,4vw,3.1rem)] leading-[1.07]"><Link href={'/updates/' + lead.id} className="hover:text-primary">{lead.title}</Link></h2>
               {updateSummary(lead.excerpt, lead.title) && <p className="line-clamp-3 text-sm leading-6 text-muted-foreground sm:text-base">{updateSummary(lead.excerpt, lead.title)}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-x-4">
                 <Link href={'/updates/' + lead.id} className="inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-primary hover:underline">Read story <ArrowRight className="h-4 w-4" /></Link>

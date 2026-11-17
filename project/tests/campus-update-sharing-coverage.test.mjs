@@ -18,6 +18,7 @@ test('newsroom search tokens cannot introduce a PostgREST operator and lead artw
   assert.match(feed, /Campus file photo/);
   assert.match(feed, /query\.or\(/);
   assert.doesNotMatch(feed, /sticky top-/);
+  assert.match(read('components/pwa/install-prompt.tsx'), /const isReadingUpdates = pathname === '\/updates' \|\| pathname.startsWith\('\/updates\/'\)/);
   assert.match(read('app/updates/page.tsx'), /headers: \{ apikey: key, Authorization: 'Bearer ' \+ key \}/);
 });
 
