@@ -51,11 +51,13 @@ test('research queues separate, source-linked work and never approves or sends',
   assert.match(broadcasts, /Recipients queued:/);
 });
 
-test('manual and automatic worker credentials are distinct; only reviews can publish', async () => {
+test('manual and automatic worker credentials are distinct; the automatic route has a server-only gate', async () => {
   assert.match(worker, /timingSafeEqual/);
   assert.match(worker, /UNIECO_FEED_INGEST_TOKEN/);
   assert.match(worker, /UNIECO_RESEARCH_SCHEDULER_NONCE/);
   assert.match(worker, /caller === 'scheduler'/);
+  assert.match(worker, /const autoPublish = caller === 'scheduler' && process\.env\.UNIECO_DISABLE_CAMPUS_AUTOPUBLISH !== 'true'/);
+  assert.match(worker, /autoPublish \? \{ verifiedArticleKeys: verifiedArticleKeys \|\| \[\], now \} : undefined/);
   assert.match(worker, /if \(!dryRun/);
   assert.match(worker, /campus_research\.sweep_started/);
   const review = read('app/api/admin/campus-feed/route.ts');

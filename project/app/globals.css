@@ -482,3 +482,43 @@ body:has([data-chat-app]) { overflow: hidden; }
 }
 
 .chat-dock-item:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+
+.newsroom {
+  --background: 42 28% 97%;
+  --foreground: 153 30% 10%;
+  --muted: 40 16% 91%;
+  --muted-foreground: 150 9% 35%;
+  --border: 148 10% 83%;
+  --primary: 153 77% 24%;
+  --primary-foreground: 0 0% 100%;
+  --ring: var(--primary);
+}
+
+.dark .newsroom {
+  --background: 160 15% 8%;
+  --foreground: 45 20% 94%;
+  --muted: 154 11% 15%;
+  --muted-foreground: 146 10% 68%;
+  --border: 154 11% 23%;
+  --primary: 150 62% 61%;
+  --primary-foreground: 153 75% 9%;
+  --ring: var(--primary);
+}
+
+.newsroom-headline {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  overflow-wrap: break-word;
+}
+.newsroom-kicker {
+  color: hsl(var(--primary));
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+.newsroom-artwork-mark {
+  background: radial-gradient(ellipse at 90% 5%, #1c855a 0, transparent 58%),
+    repeating-linear-gradient(115deg, #ffffff10 0 1px, transparent 1px 18px), #103b2c;
+}

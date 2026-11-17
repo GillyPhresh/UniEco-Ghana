@@ -50,7 +50,7 @@ export function CampusFeedReview({ sources, onDecision }: { sources: SourceOptio
 
   return <section className="min-w-0 space-y-4 rounded-2xl border bg-card p-4 sm:p-6" aria-labelledby="campus-review">
     <div className="flex flex-wrap items-start justify-between gap-2">
-      <div><h2 id="campus-review" className="flex items-center gap-2 text-lg font-bold"><ClipboardCheck className="h-5 w-5 text-primary" />Campus feed review</h2><p className="mt-1 text-sm text-muted-foreground">Review the publisher, dates and content before you publish. This does not send a notification.</p></div>
+      <div><h2 id="campus-review" className="flex items-center gap-2 text-lg font-bold"><ClipboardCheck className="h-5 w-5 text-primary" />Campus feed review</h2><p className="mt-1 text-sm text-muted-foreground">Review flagged stories or unpublish a story from the Published tab. Automatic and manual publication here does not send a notification.</p></div>
       <Button size="sm" variant="outline" onClick={refresh}><RefreshCw className="mr-2 h-4 w-4" />Refresh</Button>
     </div>
     <div className="grid items-end gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,22rem)]">

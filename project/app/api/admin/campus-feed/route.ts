@@ -1,7 +1,9 @@
+import { revalidateTag } from 'next/cache';
 import { acceptsAdminMutation, privateJson, requireResearchAdmin } from '@/lib/ai/admin-access';
 import { campusFeedUuid, validSourceId } from '@/lib/ai/research-catalog';
 import { createResearchClient } from '@/lib/ai/research-service';
 import { readJsonLimited } from '@/lib/http/read-json-limited';
+import { newsroomEditionTag } from '@/lib/ai/newsroom';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -61,5 +63,6 @@ export async function POST(request: Request) {
     p_item_id: body.id, p_decision: body.decision, p_reason: body.reason.trim(),
   });
   if (error) return privateJson({ error: 'The review decision could not be saved.' }, 503);
+  revalidateTag(newsroomEditionTag);
   return privateJson({ result: data });
 }

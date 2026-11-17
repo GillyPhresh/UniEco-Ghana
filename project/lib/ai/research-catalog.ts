@@ -32,6 +32,7 @@ export type ResearchSource = {
   registered: boolean;
   seeds: string[];
   hosts: string[];
+  directoryHost?: string;
 };
 
 export const researchBatchSize = 8;
@@ -105,14 +106,15 @@ export function buildResearchCatalog(schools: ResearchSchool[], rows: FeedRegist
         || (owners.get(host) === 1 && sameHost.length === 1 ? sameHost[0] : undefined);
       if (existing) {
         priorities.set(school.slug, exact ? 3 : named.length === 1 ? 2 : 1);
-        return registrationSource(existing, school.slug, school.name, school.curatedNews);
+        return { ...registrationSource(existing, school.slug, school.name, school.curatedNews),
+          directoryHost: host && !shared ? host : undefined };
       }
       if (!website || shared) return unconfigured;
-      return registrationSource({
+      return { ...registrationSource({
         id, label: (school.short_name || school.name).slice(0, 120),
         university_name: (school.official_name || school.name).slice(0, 160),
         website_url: website.href, feed_url: website.href, source_domain: host, source_kind: 'campus', enabled: true,
-      }, school.slug, school.name, school.curatedNews, false);
+      }, school.slug, school.name, school.curatedNews, false), directoryHost: host };
     });
   const publisherGroups = new Map<string, ResearchSource[]>();
   for (const source of campus) {

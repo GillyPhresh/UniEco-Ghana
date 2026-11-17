@@ -18,7 +18,7 @@ export type ResearchLead = {
   media_type: 'image' | 'video' | null;
   category: FeedCategory;
 };
-export type ScanResult = { state: ResearchSource['state'] | 'unreachable' | 'no_updates' | 'found'; leads: ResearchLead[] };
+export type ScanResult = { state: ResearchSource['state'] | 'unreachable' | 'no_updates' | 'found'; leads: ResearchLead[]; verifiedArticleKeys?: string[] };
 type Candidate = { url: string; title: string; excerpt?: string; date?: string | null; rank: number; media?: Media };
 type Media = { url: string; type: 'image' | 'video' };
 type Html = ReturnType<typeof load>;
@@ -97,7 +97,11 @@ function meta($: Html, names: string[]) {
 }
 
 function allowsSnippets($: Html) {
-  return !/\b(?:noindex|nosnippet)\b/i.test(meta($, ['robots', 'googlebot']));
+  return !$('meta[name]').slice(0, 80).toArray().some((node) => {
+    const tag = $(node);
+    return /^(?:robots|googlebot|uniecoGhanaCampusResearch)$/i.test(tag.attr('name') || '')
+      && /\b(?:none|noindex|nosnippet|max-snippet\s*:\s*\d+)\b/i.test(tag.attr('content') || '');
+  });
 }
 
 function safeMarkup(raw: string) {
@@ -158,7 +162,7 @@ export function parsePublisherIndex(raw: string, page: string, source: ResearchS
   return { candidates, indexes: Array.from(new Set(indexes)), readable: true };
 }
 
-export function parsePublisherArticle(raw: string, page: string, source: ResearchSource, lead: Candidate, now: number): ResearchLead | null {
+export function parsePublisherArticle(raw: string, page: string, source: ResearchSource, lead: Candidate, now: number, verify?: (item: ResearchLead) => void): ResearchLead | null {
   if (!safeMarkup(raw)) return null;
   const $ = load(raw, htmlOptions);
   if (!allowsSnippets($)) return null;
@@ -178,18 +182,21 @@ export function parsePublisherArticle(raw: string, page: string, source: Researc
   $('script, style, template, noscript, nav, footer, form').remove();
   const titles = [$('main h1, article h1, article .post-content .title').first().text(), meta($, ['og:title', 'twitter:title']), $('h1').first().text()];
   const post = structured[0];
+  if (structured.some((entry) => entry.isAccessibleForFree === false || entry.isAccessibleForFree === 'false')) return null;
   if (typeof post?.headline === 'string') titles.splice(1, 0, post.headline);
-  const title = titles.map(headline).find(Boolean) || lead.title;
+  const observedTitle = titles.map(headline).find(Boolean);
+  const title = observedTitle || lead.title;
   const content = $('article, [itemprop="articleBody"], .post-content, .entry-content, .news-detail, main').first();
   const paragraphs = content.find('p').slice(0, 15).toArray().map((node) => $(node).text());
-  const excerpt = [typeof post?.description === 'string' ? post.description : '', meta($, ['og:description', 'description', 'twitter:description']), ...paragraphs, lead.excerpt || '']
-    .map((value) => briefExcerpt(value, title)).find(Boolean) || '';
+  const articleExcerpt = [typeof post?.description === 'string' ? post.description : '', meta($, ['og:description', 'description', 'twitter:description']), ...paragraphs]
+    .map((value) => briefExcerpt(value, title)).find(Boolean);
+  const excerpt = articleExcerpt || lead.excerpt || '';
   const dateText = content.find('.post-date, .entry-date, .post-meta time, .entry-meta time, [itemprop="datePublished"]').first();
   const explicitDate = dateText.attr('datetime') || dateText.attr('content') || cleanPublisherText(dateText.text());
-  const date = publishDate(typeof post?.datePublished === 'string' ? post.datePublished : '', now)
+  const articleDate = publishDate(typeof post?.datePublished === 'string' ? post.datePublished : '', now)
     || publishDate(meta($, ['article:published_time', 'datePublished', 'pubdate', 'DC.date.issued']), now)
-    || publishDate(explicitDate, now)
-    || publishDate(content.find('time[datetime]').first().attr('datetime'), now) || lead.date || null;
+    || publishDate(explicitDate, now);
+  const date = articleDate || publishDate(content.find('time[datetime]').first().attr('datetime'), now) || lead.date || null;
   const canonical = articleUrl($('link[rel~="canonical"]').first().attr('href'), page, source);
   const url = canonical && !newsIndex.test(new URL(canonical).pathname) && new URL(canonical).pathname !== '/' ? canonical : page;
   const video = mediaCandidate(meta($, ['og:video:secure_url', 'og:video:url', 'og:video']), page, source, 'video')
@@ -208,7 +215,11 @@ export function parsePublisherArticle(raw: string, page: string, source: Researc
   // wall is not enough evidence by itself.
   if (!excerpt && !date && !titles.map(headline).includes(lead.title)) return null;
   const media = video || (embeddedVideo ? { url: page, type: 'video' as const } : undefined) || photo || lead.media;
-  return makeLead(source, { ...lead, url, title, date, excerpt, media }, now);
+  const result = makeLead(source, { ...lead, url, title, date, excerpt, media }, now);
+  if (result && observedTitle && articleExcerpt && articleDate && paragraphs.some((text) => cleanPublisherText(text).length >= 65)
+    && (post || $('article, [itemprop="articleBody"], .post-content, .entry-content, .news-detail').length)
+    && articleIdentity(url) === articleIdentity(page)) verify?.(result);
+  return result;
 }
 
 function makeLead(source: ResearchSource, candidate: Candidate, now: number): ResearchLead | null {
@@ -276,11 +287,14 @@ export async function scanResearchSource(source: ResearchSource, stop?: AbortSig
   }
   const usable = best.filter((item) => (titleGroups.get(item.title.toLowerCase())?.size || 0) < 3);
   const selected = Array.from(new Map(usable.slice().reverse().map((lead) => [articleIdentity(lead.url), lead])).values()).reverse().slice(0, 6);
+  const verified = new Map<string, ResearchLead>();
   const enrich = async (lead: Candidate) => {
     if (!allowsPath(new URL(lead.url))) return null;
     const doc = await read(lead.url);
     if (doc && !doc.indexable) return null;
-    if (doc && /(?:html|xhtml)/.test(doc.mime)) return parsePublisherArticle(doc.text, doc.url, source, lead, now);
+    if (doc && /(?:html|xhtml)/.test(doc.mime)) return parsePublisherArticle(doc.text, doc.url, source, lead, now, (item) => {
+      verified.set(item.source_item_key, item);
+    });
     // An actual RSS item remains evidence when the article host is down. A
     // generic HTML link without a readable supporting page does not.
     return lead.rank >= 8 && lead.date ? makeLead(source, lead, now) : null;
@@ -290,5 +304,6 @@ export async function scanResearchSource(source: ResearchSource, stop?: AbortSig
   const unique = new Map<string, ResearchLead>();
   for (const lead of enriched) if (lead) unique.set(articleIdentity(lead.canonical_url), lead);
   const leads = Array.from(unique.values());
-  return { state: leads.length ? 'found' : succeeded ? 'no_updates' : 'unreachable', leads };
+  return { state: leads.length ? 'found' : succeeded ? 'no_updates' : 'unreachable', leads,
+    verifiedArticleKeys: leads.filter((lead) => verified.get(lead.source_item_key) === lead).map((lead) => lead.source_item_key) };
 }

@@ -4,6 +4,7 @@ import { getCuratedCampusProfile, getLocalUniversityBranding } from '@/lib/data/
 import { articleIdentity, publicSourceUrl, sourceLink } from './public-source-url';
 import { buildResearchCatalog, researchBatchSize, type FeedRegistration, type ResearchSchool, type ResearchSource } from './research-catalog';
 import { feedCategories, scanResearchSource, type ResearchLead } from './research';
+import { automatedReviewReason, canAutomaticallyPublish } from './editorial-policy';
 
 export function createResearchClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -44,7 +45,7 @@ export function acquireResearchSlot(key: string) {
 export async function scanResearchBatch(catalog: ResearchSource[], offset: number, signal: AbortSignal, only?: string) {
   const targets = only ? catalog.filter((source) => source.id === only) : catalog.slice(offset, offset + researchBatchSize);
   const outcomes = await Promise.all(targets.map(async (source) => {
-    const result = await scanResearchSource(source, signal).catch(() => ({ state: 'unreachable' as const, leads: [] }));
+    const result = await scanResearchSource(source, signal).catch(() => ({ state: 'unreachable' as const, leads: [], verifiedArticleKeys: [] }));
     return { source, ...result };
   }));
   return {
@@ -89,10 +90,10 @@ export function leadMatchesSource(source: ResearchSource, lead: ResearchLead) {
       && (lead.media_type === 'image' || lead.media_type === 'video') : lead.media_type === null));
 }
 
-/** Service-role writes happen only after authenticated catalog resolution.
- * No conflict ever rewrites reviewed content or the pending evidence a human
- * may currently be reading. The final publication RPC is separate. */
-export async function queueResearchLeads(db: SupabaseClient, source: ResearchSource, candidates: ResearchLead[]) {
+/** Only the authenticated scheduler supplies in-process article evidence. No
+ * manual ingest, review endpoint or AI chat prompt can request publication. */
+export async function queueResearchLeads(db: SupabaseClient, source: ResearchSource, candidates: ResearchLead[],
+  automation?: { verifiedArticleKeys: string[]; now: number }) {
   const registration = source.registration;
   const leads = Array.from(new Map(candidates.filter((lead) => leadMatchesSource(source, lead))
     .map((lead) => [articleIdentity(lead.canonical_url), lead])).values()).slice(0, 5);
@@ -121,20 +122,46 @@ export async function queueResearchLeads(db: SupabaseClient, source: ResearchSou
       return [base.href, slash.href];
     });
   })));
-  const { data: existing, error: queryError } = await db.from('campus_feed_items').select('canonical_url')
+  const { data: existing, error: queryError } = await db.from('campus_feed_items').select(automation
+    ? 'id,canonical_url,status,source_item_key,title,excerpt,published_at,category,media_url,media_type,updated_at'
+    : 'canonical_url')
     .eq('source_id', registration.id).in('canonical_url', variants);
   if (queryError) throw new Error('Campus review queue is unavailable.');
-  const seen = new Set((existing || []).flatMap((item) => publicSourceUrl(item.canonical_url) ? [articleIdentity(item.canonical_url)] : []));
+  const history = (existing || []) as unknown as Array<Pick<ResearchLead, 'canonical_url' | 'source_item_key' | 'title' | 'excerpt' | 'published_at' | 'category' | 'media_url' | 'media_type'>
+    & { id: string; status: string; updated_at: string }>;
+  const seen = new Set(history.flatMap((item) => publicSourceUrl(item.canonical_url) ? [articleIdentity(item.canonical_url)] : []));
+  const verified = new Set(automation?.verifiedArticleKeys || []);
+  const eligible = automation && leads.find((lead) => canAutomaticallyPublish(source, lead, verified, automation.now));
+  const approval = { status: 'approved', approved_by: null, approved_at: automation ? new Date(automation.now).toISOString() : null, review_reason: automatedReviewReason };
+  let published = 0;
+  if (eligible && seen.has(articleIdentity(eligible.canonical_url))) {
+    const matching = history.filter((row) => publicSourceUrl(row.canonical_url) && articleIdentity(row.canonical_url) === articleIdentity(eligible.canonical_url));
+    const prior = matching.length === 1 && matching[0];
+    // Promote only an unchanged, exact research record. Respect any previous
+    // rejection, manual copy or conflicting legacy import.
+    if (prior && prior.status === 'pending' && prior.source_item_key === eligible.source_item_key && prior.canonical_url === eligible.canonical_url
+      && prior.title === eligible.title && prior.excerpt === eligible.excerpt && prior.category === eligible.category
+      && prior.media_url === eligible.media_url && prior.media_type === eligible.media_type
+      && Date.parse(prior.published_at || '') === Date.parse(eligible.published_at || '')) {
+      const { data, error } = await db.from('campus_feed_items').update({ ...approval, updated_at: approval.approved_at })
+        .eq('id', prior.id).eq('source_id', registration.id).eq('status', 'pending').eq('updated_at', prior.updated_at).select('id');
+      if (error) throw new Error('Automatic campus publication could not be saved.');
+      published = data?.length || 0;
+    }
+  }
   const entries = leads.filter((lead) => !seen.has(articleIdentity(lead.canonical_url))).map((lead) => ({
     ...lead, source_label: current.label, university_name: current.university_name,
     title: Array.from(lead.title).slice(0, 220).join(''),
-    excerpt: Array.from(lead.excerpt).slice(0, 600).join(''), status: 'pending',
+    excerpt: Array.from(lead.excerpt).slice(0, 600).join(''),
+    ...(eligible === lead ? approval : { status: 'pending', approved_at: null, approved_by: null, review_reason: null }),
   }));
-  if (!entries.length) return { added: 0, existing: leads.length };
+  if (!entries.length) return { added: 0, existing: leads.length, ...(automation ? { published } : {}) };
   const { data, error } = await db.from('campus_feed_items')
-    .upsert(entries, { onConflict: 'source_id,source_item_key', ignoreDuplicates: true }).select('id');
+    .upsert(entries, { onConflict: 'source_id,source_item_key', ignoreDuplicates: true }).select(automation ? 'id,status' : 'id');
   if (error) throw new Error('Updates could not be queued for review.');
-  return { added: data.length, existing: leads.length - data.length };
+  const added = (data || []) as unknown as { id: string; status?: string }[];
+  return { added: added.length, existing: leads.length - added.length,
+    ...(automation ? { published: published + added.filter((item) => item.status === 'approved').length } : {}) };
 }
 
 export function displayResearchSource(source: ResearchSource) {

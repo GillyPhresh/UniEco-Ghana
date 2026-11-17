@@ -11,6 +11,7 @@ const { parsePublisherPolicy, allowsPublisherPath } = use('lib/ai/publisher-poli
 const { buildResearchCatalog, schoolSourceId } = use('lib/ai/research-catalog.ts');
 const { parsePublisherIndex, parsePublisherArticle } = use('lib/ai/research.ts');
 const { issueResearchLead, verifyResearchLead, leadMatchesSource, queueResearchLeads } = use('lib/ai/research-service.ts');
+const { canAutomaticallyPublish, automatedReviewReason } = use('lib/ai/editorial-policy.ts');
 const { getCuratedCampusProfile } = use('lib/data/university-branding.ts');
 const now = Date.parse('2026-11-16T10:00:00Z');
 const site = 'https://www.cohy.edu.gh/';
@@ -27,6 +28,81 @@ const yamfo = school('college-of-health-yamfo', 1, {
 const [publisher] = buildResearchCatalog([yamfo], []);
 const headline = 'College holds its student research forum';
 const story = site + 'news/student-research-forum';
+
+function articleFixture() {
+  const title = 'Yamfo students win campus robotics competition';
+  const copy = 'The college team built a small demonstration robot and won first place in the annual campus design challenge.';
+  const date = '2026-11-14T10:00:00Z';
+  const verified = [];
+  const lead = parsePublisherArticle(
+    `<meta property="article:published_time" content="${date}"><article><h1>${title}</h1><p>${copy}</p></article>`,
+    story, publisher, { title, url: story, rank: 8 }, now, (item) => verified.push(item.source_item_key));
+  return { lead, verified, date, title, copy };
+}
+
+test('autopublish requires an exact directory host, on-page evidence, recency and low-risk subject matter', () => {
+  const { lead, verified, title, copy, date } = articleFixture();
+  const evidence = new Set(verified);
+  assert.equal(verified.length, 1);
+  assert.equal(canAutomaticallyPublish(publisher, lead, evidence, now), true);
+  assert.equal(canAutomaticallyPublish(publisher, lead, new Set(), now), false);
+  for (const change of [
+    { title: title + ' after a fatal accident' }, { excerpt: copy + ' Pay the fee first.' }, { category: 'notices' },
+    { published_at: null }, { published_at: '2026-01-01T00:00:00Z' }, { published_at: '2026-11-17T00:00:00Z' },
+    { canonical_url: 'https://school.example.com/news/award' },
+  ]) assert.equal(canAutomaticallyPublish(publisher, { ...lead, ...change }, evidence, now), false);
+  assert.equal(canAutomaticallyPublish({ ...publisher, directoryHost: 'another.edu.gh' }, lead, evidence, now), false);
+  assert.equal(canAutomaticallyPublish({ ...publisher, state: 'shared_source' }, lead, evidence, now), false);
+  const weak = [];
+  assert.ok(parsePublisherArticle(`<main><h1>${title}</h1><p>${copy}</p></main>`, story,
+    publisher, { title, url: story, date, rank: 8 }, now, (item) => weak.push(item)));
+  assert.deepEqual(weak, [], 'a date from a listing or RSS is not article evidence');
+  assert.equal(parsePublisherArticle(`<meta name="robots" content="index"><meta name="googlebot" content="nosnippet"><article><h1>${title}</h1><p>${copy}</p></article>`,
+    story, publisher, { title, url: story, date, rank: 8 }, now), null);
+});
+
+test('scheduler publishes only one matching item, preserves rejections and never overwrites pending editorial changes', async () => {
+  const { lead, verified } = articleFixture();
+  const candidates = [lead, { ...lead, title: 'A notice concerning registration', category: 'notices', canonical_url: site + 'news/notice', source_item_key: 'a'.repeat(64) }];
+  let history = [];
+  const writes = [];
+  const db = { from(table) {
+    if (table === 'campus_feed_sources') return {
+      upsert: async () => ({}), select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: publisher.registration }) }) }),
+    };
+    return {
+      select: () => ({ eq: () => ({ in: async () => ({ data: history }) }) }),
+      update: (row) => {
+        const checks = {};
+        const builder = {
+          eq: (key, value) => { checks[key] = value; return builder; },
+          select: async () => { writes.push({ row, checks }); return { data: [{ id: 'old' }] }; },
+        };
+        return builder;
+      },
+      upsert: (rows, options) => ({ select: async () => {
+        assert.equal(options.ignoreDuplicates, true);
+        writes.push(...rows);
+        return { data: rows };
+      } }),
+    };
+  } };
+  assert.equal((await queueResearchLeads(db, publisher, candidates, { verifiedArticleKeys: verified, now })).published, 1);
+  assert.equal(writes[0].status, 'approved');
+  assert.equal(writes[0].approved_by, null);
+  assert.equal(writes[0].review_reason, automatedReviewReason);
+  assert.equal(writes[1].status, 'pending');
+  writes.length = 0;
+  const old = { ...lead, id: 'existing', updated_at: '2026-11-14T14:00:00Z', status: 'pending' };
+  history = [{ ...old, status: 'rejected' }];
+  assert.equal((await queueResearchLeads(db, publisher, [lead], { verifiedArticleKeys: verified, now })).published, 0);
+  history = [{ ...old, excerpt: 'Changed by an editor.' }];
+  await queueResearchLeads(db, publisher, [lead], { verifiedArticleKeys: verified, now });
+  assert.deepEqual(writes, []);
+  history = [old];
+  assert.equal((await queueResearchLeads(db, publisher, [lead], { verifiedArticleKeys: verified, now })).published, 1);
+  assert.deepEqual(writes[0].checks, { id: old.id, source_id: publisher.registration.id, status: 'pending', updated_at: old.updated_at });
+});
 
 test('only approved HTTPS publisher hosts can be attempted; mixed public/private DNS fails closed', () => {
   for (const url of ['http://cohy.edu.gh', 'https://localhost/x', 'https://127.1/x', 'https://2130706433',
@@ -203,7 +279,7 @@ test('transient errors replay only the interrupted batch without losing full-dir
   });
   assert.deepEqual(offsets, [0, 8, 8, 8]);
   assert.deepEqual(pauses, [1_200, 3_000]);
-  assert.deepEqual(totals, { processed: 9, found: 9, added: 9, gap: 0, failures: 0 });
+  assert.deepEqual(totals, { processed: 9, found: 9, added: 9, published: 0, gap: 0, failures: 0 });
 });
 
 test('sweeps fail closed on authentication or an invalid cursor', async () => {
@@ -221,7 +297,7 @@ test('an active sweep may not be replaced; one expired claim can recover and fin
   const clock = Date.now();
   const windowUtc = new Date(Math.floor(clock / (6 * 3_600_000)) * 6 * 3_600_000).toISOString();
   const marker = (suffix) => {
-    const hash = createHash('sha256').update('unieco:campus-research:v1:' + windowUtc + ':' + suffix).digest('hex');
+    const hash = createHash('sha256').update('unieco:campus-research:v2:' + windowUtc + ':' + suffix).digest('hex');
     return hash.slice(0, 8) + '-' + hash.slice(8, 12) + '-5' + hash.slice(13, 16) + '-8' + hash.slice(17, 20) + '-' + hash.slice(20, 32);
   };
   const original = { id: marker('started'), metadata: { run_id: randomUUID() }, created_at: new Date(clock).toISOString() };

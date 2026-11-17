@@ -5,9 +5,9 @@ import { Download, Image as PhotoIcon, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-type Props = { id: string; title: string; excerpt: string; sourceLabel: string; universityName: string; imageShare?: boolean };
+type Props = { id: string; title: string; excerpt: string; sourceLabel: string; universityName: string; imageShare?: boolean; compact?: boolean };
 
-export function CampusUpdateActions({ id, title, excerpt, sourceLabel, universityName, imageShare = false }: Props) {
+export function CampusUpdateActions({ id, title, excerpt, sourceLabel, universityName, imageShare = false, compact = false }: Props) {
   const [busy, setBusy] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
   const [fileShare, setFileShare] = useState(false);
@@ -64,8 +64,8 @@ export function CampusUpdateActions({ id, title, excerpt, sourceLabel, universit
   };
   return <div className="min-w-0">
     <div className="flex flex-wrap gap-2" aria-label="Share or save this update">
-      <Button type="button" variant="outline" className="min-h-11" disabled={busy} onClick={() => void share()}><Share2 className="mr-2 h-4 w-4" />Share</Button>
-      <Button asChild variant="outline" className="min-h-11"><a href={flyerUrl + '&download=1'} download="unieco-campus-update.png"><Download className="mr-2 h-4 w-4" />Save flyer</a></Button>
+      <Button type="button" variant={compact ? 'ghost' : 'outline'} className={compact ? 'h-11 px-2' : 'min-h-11'} disabled={busy} onClick={() => void share()}><Share2 className="mr-2 h-4 w-4" />Share</Button>
+      <Button asChild variant={compact ? 'ghost' : 'outline'} className={compact ? 'h-11 px-2' : 'min-h-11'}><a href={flyerUrl + '&download=1'} download="unieco-campus-update.png"><Download className="mr-2 h-4 w-4" />Save flyer</a></Button>
       {fileShare && <Button type="button" variant="ghost" className="min-h-11" disabled={busy} onClick={() => void shareImage()}><PhotoIcon className="mr-2 h-4 w-4" />{file ? 'Share image' : 'Prepare image to share'}</Button>}
     </div>
     {manualUrl && <label className="mt-2 grid min-w-0 gap-1 text-xs">Copy this update link<input readOnly className="w-full min-w-0 rounded border bg-background p-2" value={manualUrl} onFocus={(event) => event.currentTarget.select()} /></label>}

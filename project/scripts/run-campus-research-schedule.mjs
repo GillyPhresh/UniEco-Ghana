@@ -43,7 +43,7 @@ export async function sweepCampusResearch({ port, token, runId = randomUUID(), f
   const now = Date.now();
   const windowUtc = new Date(Math.floor(now / WINDOW) * WINDOW).toISOString();
   const stopAt = now + MAX_SWEEP_MS;
-  const totals = { processed: 0, found: 0, added: 0, gap: 0, failures: 0 };
+  const totals = { processed: 0, found: 0, added: 0, published: 0, gap: 0, failures: 0 };
   let offset = 0;
   for (let step = 0; step < 1250; step++) {
     const data = await readBatch({ url, token, offset, runId, windowUtc, stopAt, fetchBatch, delay });
@@ -57,6 +57,7 @@ export async function sweepCampusResearch({ port, token, runId = randomUUID(), f
       totals.processed++;
       totals.found += row.found;
       totals.added += row.added;
+      totals.published += Number.isSafeInteger(row.published) && row.published === 1 ? 1 : 0;
       if (['missing_source', 'shared_source', 'paused'].includes(row.state)) totals.gap++;
       if (row.error || row.state === 'unreachable') totals.failures++;
     }

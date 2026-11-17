@@ -1,8 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { testModules } from './helpers/load-typescript.mjs';
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+test('newsroom search tokens cannot introduce a PostgREST operator and lead artwork is local and credited', () => {
+  const { newsroomSearchTokens, newsroomCampusArt } = testModules()('lib/ai/newsroom.ts');
+  assert.deepEqual(newsroomSearchTokens("Yamfo, (KNUST%')"), ['Yamfo', 'KNUST']);
+  assert.deepEqual(newsroomSearchTokens('KNUST KNUST College'), ['KNUST', 'College']);
+  assert.equal(newsroomCampusArt('acadEmic-city'), null);
+  assert.equal(newsroomCampusArt('academic-city'), '/assets/homepage/academic-city-campus-1200.webp');
+  assert.equal(newsroomCampusArt('__proto__'), null);
+  const feed = read('components/feed/campus-updates.tsx');
+  assert.match(feed, /Lead story/);
+  assert.match(feed, /The Newswire/);
+  assert.match(feed, /Campus file photo/);
+  assert.match(feed, /query\.or\(/);
+  assert.doesNotMatch(feed, /sticky top-/);
+  assert.match(read('app/updates/page.tsx'), /headers: \{ apikey: key, Authorization: 'Bearer ' \+ key \}/);
+});
 
 test('campus updates produce a branded, source-attributed social flyer and story preview', () => {
   const flyer = read('lib/ai/flyer.tsx');

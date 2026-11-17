@@ -27,6 +27,6 @@ test('repeated marketplace and business listing images load lazily and decode as
   assert.match(nextConfig, /hostname: 'images\.pexels\.com', pathname: '\/photos\/\*\*'/);
   assert.match(nextConfig, /hostname: '\*\*\.supabase\.co', pathname: '\/storage\/v1\/object\/public\/\*\*'/);
   assert.doesNotMatch(nextConfig, /images:\s*\{\s*unoptimized:\s*true/);
-  assert.match(campusUpdates, /<CampusUpdateMedia url=\{item\.media_url\}/);
+  assert.match(read('app/updates/[id]/page.tsx'), /<CampusUpdateMedia url=\{item\.media_url\}/);
   assert.doesNotMatch(campusUpdates, /<Image src=\{item\.media_url\}/);
 });

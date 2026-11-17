@@ -1,8 +1,10 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { revalidateTag } from 'next/cache';
 import { privateJson } from '@/lib/ai/admin-access';
 import { acquireResearchSlot, createResearchClient, loadResearchCatalog, queueResearchLeads, scanResearchBatch } from '@/lib/ai/research-service';
 import { readJsonLimited } from '@/lib/http/read-json-limited';
 import { campusFeedUuid } from '@/lib/ai/research-catalog';
+import { newsroomEditionTag } from '@/lib/ai/newsroom';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,7 +25,7 @@ function authorized(request: Request) {
 }
 
 function researchWindowId(utc: string, suffix: string) {
-  const hex = createHash('sha256').update('unieco:campus-research:v1:' + utc + ':' + suffix).digest('hex');
+  const hex = createHash('sha256').update('unieco:campus-research:v2:' + utc + ':' + suffix).digest('hex');
   return hex.slice(0, 8) + '-' + hex.slice(8, 12) + '-5' + hex.slice(13, 16) + '-8' + hex.slice(17, 20) + '-' + hex.slice(20, 32);
 }
 
@@ -93,22 +95,30 @@ export async function POST(request: Request) {
     const catalog = await loadResearchCatalog(db);
     phase = 'scan';
     const { outcomes, nextOffset, total } = await scanResearchBatch(catalog, offset, request.signal);
-    const freshAfter = new Date(Date.now() - 100 * 86_400_000).toISOString();
+    const now = Date.now();
+    const freshAfter = new Date(now - 100 * 86_400_000).toISOString();
+    const autoPublish = caller === 'scheduler' && process.env.UNIECO_DISABLE_CAMPUS_AUTOPUBLISH !== 'true';
     const report = [];
-    const enqueue = async ({ source, state, leads }: (typeof outcomes)[number]) => {
-      const fresh = leads.filter((lead) => lead.published_at && lead.published_at >= freshAfter).slice(0, 2);
+    const enqueue = async ({ source, state, leads, verifiedArticleKeys }: (typeof outcomes)[number]) => {
+      const fresh = leads.filter((lead) => lead.published_at && lead.published_at >= freshAfter)
+        .sort((a, b) => (b.published_at || '').localeCompare(a.published_at || '')).slice(0, 2);
       let added = 0;
+      let published = 0;
       let error = false;
       if (!dryRun && fresh.length && !request.signal.aborted) {
-        try { added = (await queueResearchLeads(db, source, fresh)).added; }
+        try {
+          const result = await queueResearchLeads(db, source, fresh, autoPublish ? { verifiedArticleKeys: verifiedArticleKeys || [], now } : undefined);
+          ({ added, published = 0 } = result);
+        }
         catch { error = true; }
       }
-      return { school: source.schoolSlug, source: source.label, state, found: leads.length, datedRecent: fresh.length, added, error };
+      return { school: source.schoolSlug, source: source.label, state, found: leads.length, datedRecent: fresh.length, added, published, error };
     };
     phase = 'queue';
     for (let index = 0; index < outcomes.length; index += 2) {
       report.push(...await Promise.all(outcomes.slice(index, index + 2).map(enqueue)));
     }
+    if (report.some((item) => item.published > 0)) revalidateTag(newsroomEditionTag);
     if (caller === 'scheduler' && nextOffset === null) {
       phase = 'audit';
       const id = researchWindowId(windowUtc, 'completed');

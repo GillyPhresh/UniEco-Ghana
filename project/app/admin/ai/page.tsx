@@ -164,7 +164,7 @@ function EditorialDesk() {
           <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold">{scan.status}</span><span className="text-muted-foreground">{scan.done} of {scan.total} source records processed</span></div>
           <progress className="h-2 w-full accent-primary" value={scan.done} max={Math.max(1, scan.total)} aria-label="Research progress" />
         </div>}
-        <p className="text-xs leading-5 text-muted-foreground">Scheduled scans send recent, dated leads to review. Manual scans also show undated leads, which need extra checks. No paid AI service is contacted.{coverage?.lastSweep ? ' Last scheduled sweep: ' + updateDate(coverage.lastSweep) + '.' : ''}</p>
+        <p className="text-xs leading-5 text-muted-foreground">Scheduled scans can publish recent, low-risk stories verified on a school’s official site. Sensitive or unconfirmed leads stay in review. No paid AI service is contacted.{coverage?.lastSweep ? ' Last scheduled sweep: ' + updateDate(coverage.lastSweep) + '.' : ''}</p>
       </section>
       <section className={panel}>
         <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Discovered leads</h2><p className={quiet}>Open the publisher, verify the story, then queue it for review.</p></div><Button variant="outline" onClick={() => setTab('review')}>Campus feed review</Button></div>

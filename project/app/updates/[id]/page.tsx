@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Newspaper } from 'lucide-react';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -11,25 +12,20 @@ import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
+import { newsroomCampusArt, newsroomFields, type FeedItem } from '@/lib/ai/newsroom';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 type Props = { params: Promise<{ id: string }> };
-type PublicUpdate = {
-  id: string; source_label: string; university_name: string; title: string;
-  excerpt: string; canonical_url: string; published_at: string | null;
-  media_url: string | null; media_type: 'image' | 'video' | null; category: string;
-};
-
-async function getUpdate(id: string): Promise<PublicUpdate | null> {
+async function getUpdate(id: string): Promise<FeedItem | null> {
   if (!UUID.test(id)) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.from('campus_feed_public_items')
-    .select('id,source_label,university_name,title,excerpt,canonical_url,published_at,media_url,media_type,category')
+    .select(newsroomFields)
     .eq('id', id).maybeSingle();
-  return error || !data ? null : data as PublicUpdate;
+  return error || !data ? null : data as FeedItem;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -55,27 +51,46 @@ export default async function CampusUpdateDetailPage({ params }: Props) {
   const category = updateCategory(item.category);
   const excerpt = updateSummary(item.excerpt, item.title);
   const source = publicSourceUrl(item.canonical_url);
+  const campusPhoto = newsroomCampusArt(item.source_id);
+  const supabase = await createClient();
+  const { data: related } = await supabase.from('campus_feed_public_items').select('id,title,published_at')
+    .eq('source_id', item.source_id).neq('id', item.id).order('published_at', { ascending: false, nullsFirst: false }).order('id').limit(4);
 
   return <>
     <SiteHeader />
-    <main className="container min-h-[65vh] max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
-      <Link href="/updates" className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-primary"><ArrowLeft className="h-4 w-4" />All campus updates</Link>
-      <article className="mt-4 overflow-hidden rounded-3xl border bg-card shadow-sm">
-        <div className="border-b bg-gradient-to-br from-primary/10 via-background to-amber-50/60 p-5 sm:p-8">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-primary"><Newspaper className="h-4 w-4" />{category}</div>
-          <h1 className="mt-4 text-2xl font-bold leading-tight tracking-tight sm:text-4xl">{item.title}</h1>
-          <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground"><span className="font-semibold text-foreground">{item.university_name}</span><span aria-hidden="true">·</span><span>{updateDate(item.published_at, 'long')}</span></div>
-        </div>
-        <div className="space-y-5 p-5 sm:p-8">
-          {excerpt && <p className="whitespace-pre-line text-base leading-7 text-foreground/85">{excerpt}</p>}
+    <main id="main-content" className="newsroom min-h-[65vh] bg-background text-foreground">
+      <div className="mx-auto max-w-[64rem] px-4 py-5 sm:px-7 sm:py-8">
+      <Link href="/updates" className="inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-primary hover:underline"><ArrowLeft className="h-4 w-4" />Campus Updates</Link>
+      <article className="border-t-2 border-foreground py-4 sm:py-6">
+        <header>
+          <div className="newsroom-kicker flex items-center gap-2"><Newspaper className="h-4 w-4" />{category}</div>
+          <h1 className="newsroom-headline mt-3 text-[clamp(1.95rem,5.6vw,3.9rem)] leading-[1.06]">{item.title}</h1>
+          {excerpt && <p className="mt-4 max-w-3xl whitespace-pre-line text-base leading-7 text-muted-foreground sm:text-lg">{excerpt}</p>}
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-3 text-sm text-muted-foreground">
+            <span className="font-bold text-foreground">{item.source_label}</span>{item.published_at && <><span aria-hidden="true">·</span><time dateTime={item.published_at}>{updateDate(item.published_at, 'long')}</time></>}
+          </div>
+        </header>
+        <div className="mt-4 grid gap-5">
+          {campusPhoto && <figure>
+            <div className="relative aspect-[2/1] bg-muted"><Image src={campusPhoto} alt="" fill sizes="(max-width: 1023px) 100vw, 968px" className="object-cover" priority /></div>
+            <figcaption className="mt-1 text-xs text-muted-foreground">Campus file photo · {item.university_name}</figcaption>
+          </figure>}
           <CampusUpdateMedia url={item.media_url} kind={item.media_type} publisher={item.source_label} sourceUrl={item.canonical_url} />
-          <div className="rounded-xl border border-primary/15 bg-primary/[0.035] p-4 text-sm leading-6 text-muted-foreground">UniEco shares source-linked summaries and is not the university or original publisher. Check the source for full details, eligibility, deadlines, and changes.</div>
-          <div className="flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
+          {source && <div><Button asChild className="h-11"><a href={source.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Read the original update <ExternalLink className="ml-2 h-4 w-4" /></a></Button></div>}
+          <div className="flex flex-col gap-3 border-t border-border pt-3">
             <CampusUpdateActions id={item.id} title={item.title} excerpt={excerpt} sourceLabel={item.source_label} universityName={item.university_name} imageShare />
-            {source && <Button asChild variant="outline" className="min-h-11"><a href={source.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Open original source <ExternalLink className="ml-2 h-4 w-4" /></a></Button>}
+            <p className="text-sm text-muted-foreground">UniEco publishes independent summaries. Confirm requirements, deadlines, and changes with the original publisher.</p>
           </div>
         </div>
       </article>
+      {!!related?.length && <section className="mt-6 border-t-2 border-foreground pt-3">
+        <h2 className="newsroom-headline text-2xl">More from {item.source_label}</h2>
+        <ul className="divide-y divide-border">{related.map((story) => <li key={story.id} className="py-3">
+          <Link href={'/updates/' + story.id} className="newsroom-headline text-lg hover:text-primary hover:underline">{story.title}</Link>
+          {story.published_at && <time dateTime={story.published_at} className="mt-1 block text-xs text-muted-foreground">{updateDate(story.published_at)}</time>}
+        </li>)}</ul>
+      </section>}
+      </div>
     </main>
     <SiteFooter />
   </>;

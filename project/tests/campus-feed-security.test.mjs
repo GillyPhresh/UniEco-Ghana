@@ -53,14 +53,16 @@ test('public feed reads the approved-only view and preserves source attribution'
   assert.match(publicPage, /canonical_url/);
   assert.match(publicPage, /rel="noopener noreferrer"/);
   const media = read('components/feed/campus-update-media.tsx');
-  assert.match(publicPage, /<CampusUpdateMedia/);
+  assert.match(read('app/updates/[id]/page.tsx'), /<CampusUpdateMedia/);
   assert.match(media, /publisherHost\(source\.hostname\) !== publisherHost\(media\.hostname\)/);
   assert.doesNotMatch(media, /<iframe|<video|<img/);
 });
 
-test('only private UniEco AI review control can approve; public feed does not auto-publish', () => {
+test('editorial review is private; the public feed cannot change approval state', () => {
   assert.match(review, /Campus feed review/);
   assert.match(review, /Publish update/);
+  assert.match(review, /Unpublish/);
+  assert.doesNotMatch(publicPage, /\.insert\(|\.update\(|\.upsert\(|\.rpc\(/);
   assert.match(review, /minLength=\{10\} maxLength=\{500\}/);
   assert.match(read('components/layout/site-header.tsx'), /href: '\/updates'/);
   assert.match(read('app/admin/ai/page.tsx'), /<CampusFeedReview sources=/);

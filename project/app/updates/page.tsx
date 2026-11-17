@@ -2,6 +2,7 @@ import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { CampusUpdates } from '@/components/feed/campus-updates';
 import { createPublicPageMetadata } from '@/lib/seo/metadata';
+import { newsroomEditionTag, newsroomFields, newsroomPageSize, type FeedItem } from '@/lib/ai/newsroom';
 
 export const metadata = createPublicPageMetadata({
   title: 'Campus Updates',
@@ -9,17 +10,28 @@ export const metadata = createPublicPageMetadata({
   path: '/updates',
 });
 
-export default function UpdatesPage() {
+async function firstEdition(): Promise<FeedItem[] | undefined> {
+  const origin = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!origin || !key) return undefined;
+  try {
+    const url = new URL('/rest/v1/campus_feed_public_items', origin);
+    url.search = new URLSearchParams({ select: newsroomFields, order: 'published_at.desc.nullslast,id.asc', limit: String(newsroomPageSize) }).toString();
+    const response = await fetch(url, { headers: { apikey: key, Authorization: 'Bearer ' + key }, next: { revalidate: 90, tags: [newsroomEditionTag] },
+      signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return undefined;
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows : undefined;
+  } catch { return undefined; }
+}
+
+export default async function UpdatesPage() {
+  const initialItems = await firstEdition();
   return <>
     <SiteHeader />
-    <main className="min-h-[65vh] bg-muted/25">
-      <div className="container py-6 sm:py-10">
-        <div className="mb-6 max-w-3xl sm:mb-8">
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Campus network</p>
-          <h1 className="mt-2 font-display text-2xl font-bold tracking-tight sm:text-4xl">Campus updates</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base">News, events and opportunities from Ghanaian universities. Every post links back to its original source.</p>
-        </div>
-        <CampusUpdates />
+    <main id="main-content" className="newsroom min-h-[65vh] bg-background text-foreground">
+      <div className="mx-auto w-full max-w-[80rem] px-4 pb-12 sm:px-6 lg:px-10">
+        <CampusUpdates initialItems={initialItems} />
       </div>
     </main>
     <SiteFooter />
