@@ -7,11 +7,8 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { RouteGuard } from '@/lib/auth/route-guard';
-import { SiteHeader } from '@/components/layout/site-header';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { EmptyState } from '@/components/shared/empty-state';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -24,8 +21,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import {
-  MessageSquare, Send, ArrowLeft, Search, Paperclip, MoreVertical,
-  Flag, Ban, CheckCheck, X, Image as ImageIcon, FileText, Link2, Trash2, Mic, MapPin, Store, Square,
+  Archive, ArchiveRestore, ArrowUpRight, Camera, Check, ChevronLeft, Ellipsis, House, MessageCircle, MessageSquare,
+  Newspaper, Plus, Send, Search, Paperclip, MoreVertical, Star, UserRound,
+  Flag, Ban, CheckCheck, X, Image as ImageIcon, FileText, Trash2, Mic, MapPin, Store, Square,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import {
@@ -42,18 +40,13 @@ import type { MessageWithMeta, MessageType } from '@/lib/types/communication';
 import { MESSAGE_REPORT_REASONS } from '@/lib/types/communication';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 
-function timeAgo(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diff < 60) return 'Just now';
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-  return date.toLocaleDateString('en-GH', { month: 'short', day: 'numeric' });
+function inboxTime(dateString: string): string {
+  const date = formatMessageDate(dateString);
+  return date === 'Today' ? formatTime(dateString) : date;
 }
 
 function formatTime(dateString: string): string {
-  return new Date(dateString).toLocaleTimeString('en-GH', { hour: 'numeric', minute: '2-digit' });
+  return new Date(dateString).toLocaleTimeString('en-GH', { hour: 'numeric', minute: '2-digit', hour12: true }).toUpperCase();
 }
 
 function formatMessageDate(dateString: string): string {
@@ -67,38 +60,54 @@ function formatMessageDate(dateString: string): string {
 }
 
 function conversationPreview(conv: ConversationWithDetails): string {
-  if (conv.last_message?.body) {
-    try {
-      const payload = JSON.parse(conv.last_message.body) as { latitude?: number; title?: string };
-      if (typeof payload.latitude === 'number') return 'Shared a location';
-      if (payload.title === 'UniEco Ghana Marketplace' || payload.title === 'UniEco business catalogue') return 'Shared a catalogue';
-    } catch { /* regular message text */ }
-    return conv.last_message.body;
+  const message = conv.last_message;
+  if (!message) return 'Start a conversation';
+  switch (message.message_type) {
+    case 'location': return 'Location';
+    case 'product': return 'Catalogue';
+    case 'audio': return 'Voice message';
+    case 'image': return message.body || 'Photo';
+    case 'document': return message.body || 'Document';
+    default: return message.body || 'Attachment';
   }
-  return conv.last_message ? 'Attachment' : 'Start a conversation';
 }
+
+const previewIcons = { location: MapPin, product: Store, audio: Mic, image: Camera, document: FileText };
+type ChatFilter = 'all' | 'unread' | 'favourites' | 'archived';
+type ChatFlags = { favourites: string[]; archived: string[] };
+const emptyChatFlags: ChatFlags = { favourites: [], archived: [] };
+const chatIcon = 'grid h-11 w-11 shrink-0 place-items-center rounded-full transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-40';
 
 function initials(name: string | null | undefined): string {
   return name?.split(' ').filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || '?';
 }
 
+function safeMessageLink(body: string) {
+  try {
+    const url = new URL(body);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+  } catch { return null; }
+}
+
 function ProtectedAttachment({ reference, messageType }: { reference: string; messageType: MessageType }) {
-  const [url, setUrl] = useState<string | null>(null);
+  const [resolved, setResolved] = useState<{ reference: string; url: string | null } | null>(null);
 
   useEffect(() => {
     let active = true;
-    resolveMessageAttachmentUrl(reference).then((resolved) => {
-      if (active) setUrl(resolved);
-    });
+    resolveMessageAttachmentUrl(reference).then((url) => {
+      if (active) setResolved({ reference, url });
+    }).catch(() => { if (active) setResolved({ reference, url: null }); });
     return () => { active = false; };
   }, [reference]);
 
-  if (!url) return <span className="mt-2 text-xs text-muted-foreground">Attachment unavailable or access has expired.</span>;
+  if (resolved?.reference !== reference) return <span role="status" className="text-xs opacity-75">Loading attachment…</span>;
+  const { url } = resolved;
+  if (!url) return <span className="text-xs opacity-75">Attachment unavailable.</span>;
   if (messageType === 'image') {
     return <img src={url} alt="Attachment" className="mt-2 max-w-full rounded-lg" style={{ maxHeight: '240px' }} />;
   }
   if (messageType === 'audio') {
-    return <audio controls preload="metadata" src={url} className="mt-2 max-w-full" aria-label="Voice message" />;
+    return <audio controls preload="metadata" src={url} className="my-1 h-10 w-52 max-w-full" aria-label="Voice message" />;
   }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-2 rounded-lg bg-background/20 px-3 py-2 text-xs font-medium underline">
@@ -126,10 +135,11 @@ function SharedMessageCard({ body, type }: { body: string; type: 'location' | 'p
       url = new URL(url.pathname, url.origin);
       title = url.pathname === '/marketplace' ? 'UniEco Ghana Marketplace' : 'UniEco business catalogue';
     }
-    return <a href={url.toString()} target="_blank" rel="noopener noreferrer" className="mt-1 block min-w-[190px] rounded-xl border border-border/60 bg-background/60 p-3 hover:bg-background">
-      <span className="block text-xs font-bold uppercase tracking-wide text-muted-foreground">{type === 'location' ? '📍 Location' : '🛍 UniEco catalogue'}</span>
-      <span className="mt-1 block text-sm font-semibold">{title}</span>
-      <span className="mt-1 block text-xs underline">{type === 'location' ? 'Open in Maps' : 'Browse marketplace'}</span>
+    const Icon = type === 'location' ? MapPin : Store;
+    return <a href={url.toString()} target="_blank" rel="noopener noreferrer" className="chat-share-card flex min-w-0 items-center gap-2.5 rounded-lg p-2.5 text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-primary/10 text-primary"><Icon className="h-5 w-5" /></span>
+      <span className="min-w-0"><span className="block text-sm font-semibold">{title}</span><span className="block text-xs text-muted-foreground">{type === 'location' ? 'Open in Maps' : 'Browse catalogue'}</span></span>
+      <ArrowUpRight aria-hidden="true" className="ml-auto h-4 w-4 shrink-0 opacity-70" />
     </a>;
   } catch {
     return <p className="text-sm">{type === 'location' ? 'Location shared' : 'Marketplace shared'}</p>;
@@ -167,6 +177,10 @@ function MessagesContent() {
   const [activeRealtimeConnected, setActiveRealtimeConnected] = useState(false);
   const [mobileShowChat, setMobileShowChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [chatFilter, setChatFilter] = useState<ChatFilter>('all');
+  const [chatFlags, setChatFlags] = useState<{ owner: string; flags: ChatFlags } | null>(null);
+  const chatFlagsKey = user?.id ? `unieco:chat-flags:v1:${user.id}` : null;
+  const flags = chatFlagsKey && chatFlags?.owner === chatFlagsKey ? chatFlags.flags : emptyChatFlags;
   const [isTyping, setIsTyping] = useState(false);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [attachmentPreview, setAttachmentPreview] = useState<string | null>(null);
@@ -187,8 +201,10 @@ function MessagesContent() {
   const [locationDraft, setLocationDraft] = useState<{ conversationId: string; latitude: number; longitude: number } | null>(null);
   const [showCatalogShare, setShowCatalogShare] = useState(false);
   const [catalogShareUrl, setCatalogShareUrl] = useState('');
+  const chatAppRef = useRef<HTMLElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const composerGeneration = useRef(0);
@@ -199,6 +215,49 @@ function MessagesContent() {
   const conversationsRef = useRef<ConversationWithDetails[]>([]);
   const activeConversationIdRef = useRef<string | null>(activeConvId);
   const openedNotificationRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!chatFlagsKey) return;
+    let saved: ChatFlags = emptyChatFlags;
+    try {
+      const value = JSON.parse(localStorage.getItem(chatFlagsKey) || '{}') as Partial<ChatFlags> | null;
+      const ids = (input: unknown) => Array.isArray(input) ? input.filter((id): id is string => typeof id === 'string').slice(0, 1000) : [];
+      saved = { favourites: ids(value?.favourites), archived: ids(value?.archived) };
+    } catch { /* preferences may be unavailable in private browsing */ }
+    setChatFlags({ owner: chatFlagsKey, flags: saved });
+  }, [chatFlagsKey]);
+
+  useEffect(() => {
+    if (!chatFlagsKey || chatFlags?.owner !== chatFlagsKey) return;
+    try { localStorage.setItem(chatFlagsKey, JSON.stringify(chatFlags.flags)); } catch { /* in-memory preference still works */ }
+  }, [chatFlags, chatFlagsKey]);
+
+  const toggleChatFlag = (kind: keyof ChatFlags, id: string) => {
+    if (!chatFlagsKey) return;
+    setChatFlags((current) => {
+      const owned = current?.owner === chatFlagsKey ? current.flags : emptyChatFlags;
+      const next = owned[kind].includes(id) ? owned[kind].filter((entry) => entry !== id) : [...owned[kind], id];
+      return { owner: chatFlagsKey, flags: { ...owned, [kind]: next } };
+    });
+  };
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const app = chatAppRef.current;
+    if (!viewport || !app) return;
+    const fit = () => {
+      if (Math.abs(viewport.scale - 1) > 0.01) return;
+      app.style.setProperty('--chat-viewport-height', `${Math.round(viewport.height)}px`);
+      app.style.setProperty('--chat-viewport-top', `${Math.round(viewport.offsetTop)}px`);
+    };
+    fit();
+    viewport.addEventListener('resize', fit);
+    viewport.addEventListener('scroll', fit);
+    return () => {
+      viewport.removeEventListener('resize', fit);
+      viewport.removeEventListener('scroll', fit);
+    };
+  }, []);
 
   useEffect(() => {
     conversationsRef.current = conversations;
@@ -278,6 +337,7 @@ function MessagesContent() {
                 body: message.body,
                 created_at: message.created_at,
                 sender_id: message.sender_id,
+                message_type: message.message_type,
               },
               unread_count: message.recipient_id === user.id && message.conversation_id !== activeConversationIdRef.current
                 ? conversation.unread_count + 1
@@ -462,6 +522,7 @@ function MessagesContent() {
   const openConversation = useCallback(async (conv: ConversationWithDetails) => {
     const requestId = ++conversationRequestRef.current;
     if (activeConversationIdRef.current !== conv.id) {
+      setIsTyping(false);
       resetRichComposer();
       setAttachment(null);
       setAttachmentPreview(null);
@@ -488,6 +549,23 @@ function MessagesContent() {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 100);
   }, [resetRichComposer]);
+
+  const backToChats = () => {
+    sendTypingEvent(false);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    conversationRequestRef.current++;
+    activeConversationIdRef.current = null;
+    setActiveConvId(null);
+    setActiveOtherUser(null);
+    setActiveConv(null);
+    setIsTyping(false);
+    setMessages([]);
+    setNewMessage('');
+    setAttachment(null);
+    setAttachmentPreview(null);
+    resetRichComposer();
+    setMobileShowChat(false);
+  };
 
   // Open notification links only when the conversation appears in the
   // signed-in user's membership-scoped inbox. A URL ID never grants access.
@@ -518,8 +596,11 @@ function MessagesContent() {
     // Permit choosing the same file again after it is removed or sent.
     e.currentTarget.value = '';
     if (file.type.startsWith('image/')) {
+      const generation = composerGeneration.current;
       const reader = new FileReader();
-      reader.onload = (ev) => setAttachmentPreview(ev.target?.result as string);
+      reader.onload = (ev) => {
+        if (generation === composerGeneration.current) setAttachmentPreview(ev.target?.result as string);
+      };
       reader.readAsDataURL(file);
     } else {
       setAttachmentPreview(null);
@@ -726,7 +807,7 @@ function MessagesContent() {
         .map((conversation) => conversation.id === activeConvId ? {
           ...conversation,
           updated_at: sentAt,
-          last_message: { body: preview, created_at: sentAt, sender_id: user?.id || '' },
+          last_message: { body: preview, created_at: sentAt, sender_id: user?.id || '', message_type: msgType },
         } : conversation)
         .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()));
     }
@@ -815,13 +896,15 @@ function MessagesContent() {
     setReportDescription('');
   };
 
-  const filteredConversations = searchQuery
-    ? conversations.filter(
-        (c) =>
-          c.other_participant?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.last_message?.body?.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
-    : conversations;
+  const visibleInbox = conversations.filter(conv => !flags.archived.includes(conv.id));
+  const unreadChats = visibleInbox.filter(conv => conv.unread_count > 0).length;
+  const archivedChats = conversations.length - visibleInbox.length;
+  const term = searchQuery.trim().toLowerCase();
+  const filteredConversations = (chatFilter === 'archived' ? conversations.filter(conv => flags.archived.includes(conv.id)) : visibleInbox)
+    .filter(conv => chatFilter !== 'unread' || conv.unread_count > 0)
+    .filter(conv => chatFilter !== 'favourites' || flags.favourites.includes(conv.id))
+    .filter(conv => !term || conv.other_participant?.full_name?.toLowerCase().includes(term) || conversationPreview(conv).toLowerCase().includes(term));
+  const hasDraft = Boolean(newMessage.trim() || attachment || voiceBlob);
 
   const renderAttachment = (msg: MessageWithMeta) => {
     if (!msg.attachment_url) return null;
@@ -830,75 +913,78 @@ function MessagesContent() {
 
   return (
     <>
-      <SiteHeader />
-      <main className="container px-4 pb-24 pt-4 sm:py-8 lg:pb-8">
-        <div className={`mb-4 sm:mb-6 ${mobileShowChat ? 'hidden lg:block' : 'block'}`}>
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary">Your inbox</p>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Messages</h1>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground">Chat with businesses and people on UniEco Ghana.</p>
-            </div>
-            <span className="hidden rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground sm:inline-flex">Private conversations</span>
-          </div>
-        </div>
-
-        <Card className="-mx-4 overflow-hidden rounded-none border-x-0 shadow-none sm:mx-0 sm:rounded-2xl sm:border sm:shadow-sm">
-          <div className="grid h-[calc(100dvh-9rem)] min-h-[34rem] grid-cols-1 lg:h-[min(46rem,calc(100dvh-12rem))] lg:grid-cols-[minmax(19rem,24rem)_minmax(0,1fr)]">
-            {/* Mobile-first conversation list */}
-            <section className={`min-h-0 flex-col bg-background lg:border-r lg:border-border ${mobileShowChat ? 'hidden lg:flex' : 'flex'}`} aria-label="Conversations">
-              <div className="shrink-0 border-b border-border p-3 sm:p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-base font-semibold text-foreground">Chats</h2>
-                    <p className="text-xs text-muted-foreground">{conversations.length ? `${conversations.length} conversation${conversations.length === 1 ? '' : 's'}` : 'Start a new conversation'}</p>
-                  </div>
-                  <MessageSquare className="h-5 w-5 text-primary" aria-hidden="true" />
+      <main id="main-content" ref={chatAppRef} data-chat-app data-chat-view={mobileShowChat ? 'conversation' : 'inbox'} className="chat-app bg-background text-foreground">
+          <div className="mx-auto grid h-full min-h-0 max-w-[100rem] grid-cols-1 lg:grid-cols-[minmax(20rem,25rem)_minmax(0,1fr)]">
+            <section className={`min-h-0 min-w-0 flex-col bg-background lg:border-r lg:border-border ${mobileShowChat ? 'hidden lg:flex' : 'flex'}`} aria-label="Conversations">
+              <header className="shrink-0 px-4 pb-2 pt-2 sm:px-5">
+                <div className="flex items-center justify-between">
+                  {chatFilter === 'archived' ? <button type="button" aria-label="Back to all chats" className={chatIcon} onClick={() => setChatFilter('all')}><ChevronLeft className="h-6 w-6" /></button>
+                    : <DropdownMenu>
+                      <DropdownMenuTrigger asChild><button type="button" aria-label="Chats menu" className={`${chatIcon} bg-muted`}><Ellipsis className="h-6 w-6" /></button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        <DropdownMenuItem onSelect={() => setChatFilter('archived')}><Archive className="mr-2 h-4 w-4" />Archived chats</DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href="/"><House className="mr-2 h-4 w-4" />UniEco Home</Link></DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>}
+                  <button type="button" aria-label="New chat" onClick={() => setShowNewMessage(true)} className={`${chatIcon} bg-foreground text-background hover:bg-foreground/80`}><Plus className="h-6 w-6" /></button>
                 </div>
-                <Button className="mb-3 h-11 w-full rounded-xl" onClick={() => setShowNewMessage(true)}>
-                  <MessageSquare className="mr-2 h-4 w-4" /> New message
-                </Button>
+                <h1 className="mb-3 mt-4 text-[2.2rem] font-bold leading-none tracking-tight">{chatFilter === 'archived' ? 'Archived' : 'Chats'}</h1>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
                     type="search"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search chats"
+                    placeholder="Search"
                     aria-label="Search conversations"
-                    className="h-11 rounded-xl bg-muted/30 pl-9"
+                    className="h-10 rounded-xl border-0 bg-muted pl-9 text-base shadow-none"
                   />
                 </div>
-              </div>
+                {chatFilter !== 'archived' && <div className="mt-2 flex gap-2 overflow-x-auto [scrollbar-width:none]" aria-label="Filter chats">
+                  {([{ key: 'all', label: 'All' }, { key: 'unread', label: unreadChats ? `Unread ${unreadChats}` : 'Unread' }, { key: 'favourites', label: 'Favourites' }] as const).map(item => (
+                    <button key={item.key} type="button" onClick={() => setChatFilter(item.key)} aria-pressed={chatFilter === item.key}
+                      className="group flex min-h-[44px] shrink-0 items-center rounded-full text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring">
+                      <span className={`flex h-8 items-center rounded-full border border-border px-3.5 ${chatFilter === item.key ? 'chat-filter-selected' : 'bg-muted/35 text-muted-foreground group-hover:bg-muted'}`}>{item.label}</span>
+                    </button>
+                  ))}
+                </div>}
+              </header>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                {chatFilter === 'all' && !term && !loading && <button type="button" onClick={() => setChatFilter('archived')} className="flex min-h-[3.25rem] w-full items-center gap-3.5 px-5 text-left text-sm font-semibold text-muted-foreground hover:bg-muted">
+                  <span className="grid w-12 shrink-0 place-items-center"><Archive className="h-5 w-5" /></span><span className="flex-1">Archived</span>{archivedChats > 0 && <span>{archivedChats}</span>}
+                </button>}
                 {loading ? (
                   <div className="space-y-2 p-3">
                     {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[4.5rem] rounded-xl" />)}
                   </div>
                 ) : filteredConversations.length > 0 ? (
-                  <div className="divide-y divide-border">
+                  <div>
                     {filteredConversations.map((conv) => {
                       const otherName = conv.other_participant?.full_name || 'UniEco contact';
                       const lastMessage = conv.last_message;
+                      const PreviewIcon = lastMessage ? previewIcons[lastMessage.message_type as keyof typeof previewIcons] : undefined;
                       return (
                         <button
                           key={conv.id}
                           onClick={() => openConversation(conv)}
-                          className={`flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition-colors active:bg-muted/70 lg:hover:bg-muted/50 ${activeConvId === conv.id ? 'bg-primary/5 lg:bg-primary/10' : ''}`}
+                          aria-current={activeConvId === conv.id ? 'true' : undefined}
+                          className={`flex min-h-[4.75rem] w-full items-center gap-3 pl-4 pr-3 text-left transition-colors hover:bg-muted/55 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:pl-5 sm:pr-5 ${activeConvId === conv.id ? 'lg:bg-muted' : ''}`}
                         >
-                          <Avatar className="h-12 w-12 shrink-0">
+                          <Avatar className="h-[3.25rem] w-[3.25rem] shrink-0">
                             <AvatarImage src={getPublicAvatarUrl(conv.other_participant?.avatar_url)} alt="" className="object-cover" />
                             <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">{initials(otherName)}</AvatarFallback>
                           </Avatar>
-                          <span className="min-w-0 flex-1">
+                          <span className="flex min-h-[4.75rem] min-w-0 flex-1 flex-col justify-center border-b border-border/75 py-2.5">
                             <span className="flex items-center justify-between gap-2">
-                              <span className={`truncate text-sm ${conv.unread_count > 0 ? 'font-bold text-foreground' : 'font-semibold text-foreground'}`}>{otherName}</span>
-                              {lastMessage && <span className={`shrink-0 text-[11px] ${conv.unread_count > 0 ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{timeAgo(lastMessage.created_at)}</span>}
+                              <span className={`truncate text-[1.02rem] ${conv.unread_count > 0 ? 'font-bold' : 'font-semibold'}`}>{otherName}</span>
+                              {lastMessage && <time dateTime={lastMessage.created_at} className={`shrink-0 text-xs ${conv.unread_count > 0 ? 'font-semibold text-primary' : 'text-muted-foreground'}`}>{inboxTime(lastMessage.created_at)}</time>}
                             </span>
-                            <span className="mt-1 flex items-center gap-1.5">
-                              {lastMessage?.sender_id === user?.id && <CheckCheck className="h-3.5 w-3.5 shrink-0 text-primary" aria-label="Sent by you" />}
-                              <span className={`truncate text-xs ${conv.unread_count > 0 ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{conversationPreview(conv)}</span>
+                            <span className="mt-0.5 flex items-center gap-1 text-muted-foreground">
+                              {lastMessage?.sender_id === user?.id && <Check className="h-4 w-4 shrink-0" aria-label="Sent by you" />}
+                              {PreviewIcon && <PreviewIcon aria-hidden="true" className="h-4 w-4 shrink-0" />}
+                              <span className="truncate text-sm">{conversationPreview(conv)}</span>
+                              {flags.favourites.includes(conv.id) && <Star aria-label="Favourite" className="ml-auto h-3.5 w-3.5 shrink-0 text-primary" />}
                               {conv.unread_count > 0 && <span className="ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">{conv.unread_count}</span>}
                             </span>
                             {conv.order_id && <span className="mt-1 block text-[11px] font-medium text-primary">Order conversation</span>}
@@ -908,73 +994,92 @@ function MessagesContent() {
                     })}
                   </div>
                 ) : (
-                  <div className="flex h-full items-center justify-center p-8 text-center">
+                  <div className="flex min-h-48 items-center justify-center px-6 py-5 text-center">
                     <div className="max-w-xs">
-                      <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary"><MessageSquare className="h-7 w-7" /></span>
-                      <p className="mt-4 text-sm font-semibold text-foreground">{searchQuery ? 'No chats found' : 'Your inbox is ready'}</p>
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground">{searchQuery ? 'Try another name or message.' : 'Message a business from its page, or start a new chat here.'}</p>
-                      {!searchQuery && <Button asChild variant="outline" size="sm" className="mt-4 rounded-xl"><Link href="/discover">Find businesses</Link></Button>}
+                      <p className="text-sm font-semibold">{term ? 'No matching chats' : chatFilter === 'unread' ? 'You’re all caught up' : chatFilter === 'favourites' ? 'No favourite chats yet' : chatFilter === 'archived' ? 'No archived chats' : 'No chats yet'}</p>
+                      {chatFilter === 'favourites' && !term && <p className="mt-1 text-sm text-muted-foreground">Add a favourite from a conversation’s menu.</p>}
+                      {chatFilter === 'all' && !term && <button type="button" onClick={() => setShowNewMessage(true)} className="mt-1 min-h-11 px-3 text-sm font-semibold text-primary">Start a chat</button>}
                     </div>
                   </div>
                 )}
               </div>
+              <nav aria-label="Chat navigation" className="chat-inbox-dock shrink-0 bg-background px-3 pt-1.5">
+                <div className="mx-auto grid max-w-md grid-cols-4 items-center gap-1 rounded-full border border-border bg-muted/50 p-1">
+                  <Link href="/" className="chat-dock-item"><House className="h-[22px] w-[22px]" />Home</Link>
+                  <Link href="/updates" className="chat-dock-item"><Newspaper className="h-[22px] w-[22px]" />Updates</Link>
+                  <button type="button" aria-current="page" onClick={() => { setChatFilter('all'); setSearchQuery(''); }} className="chat-dock-item chat-filter-selected rounded-full"><MessageCircle className="h-[22px] w-[22px]" />Chats</button>
+                  <Link href="/dashboard" className="chat-dock-item"><UserRound className="h-[22px] w-[22px]" />Account</Link>
+                </div>
+              </nav>
             </section>
 
             {/* WhatsApp-style chat panel */}
-            <section className={`min-h-0 min-w-0 flex-col bg-muted/20 ${mobileShowChat ? 'flex' : 'hidden lg:flex'}`} aria-label="Open conversation">
+            <section className={`chat-thread min-h-0 min-w-0 flex-col ${mobileShowChat ? 'flex' : 'hidden lg:flex'}`} aria-label="Open conversation">
               {activeConvId && activeOtherUser ? (
                 <>
-                  <div className="z-10 flex shrink-0 items-center gap-3 border-b border-border bg-background/95 px-3 py-3 backdrop-blur sm:px-4">
-                    <button type="button" onClick={() => { resetRichComposer(); setMobileShowChat(false); }} aria-label="Back to conversations" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted lg:hidden">
-                      <ArrowLeft className="h-5 w-5" />
+                  <header className="chat-header z-10 flex min-h-14 shrink-0 items-center gap-2 border-b border-border/70 px-2 sm:px-4">
+                    <button type="button" onClick={backToChats} aria-label="Back to conversations" className={`${chatIcon} lg:hidden`}>
+                      <ChevronLeft className="h-7 w-7" />
                     </button>
                     <Avatar className="h-10 w-10 shrink-0">
                       <AvatarImage src={getPublicAvatarUrl(activeOtherUser.avatar_url)} alt="" className="object-cover" />
                       <AvatarFallback className="bg-primary/10 text-sm font-semibold text-primary">{initials(activeOtherUser.full_name)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{activeOtherUser.full_name || 'UniEco contact'}</p>
-                      <p className="truncate text-xs text-muted-foreground">{isTyping ? 'Typing…' : activeConv?.order_id ? 'Order conversation' : 'UniEco conversation'}</p>
+                      <h2 className="truncate text-base font-semibold">{activeOtherUser.full_name || 'UniEco contact'}</h2>
+                      {isTyping && <p className="truncate text-xs text-primary" role="status">typing…</p>}
+                      {!isTyping && activeConv?.order_id && <p className="truncate text-xs text-muted-foreground">Order chat</p>}
                     </div>
                     {activeConv?.order_id && <Link href={`/orders/${activeConv.order_id}`} className="hidden rounded-full border border-border px-3 py-1.5 text-xs font-medium text-primary hover:bg-muted sm:inline-flex">View order</Link>}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button type="button" aria-label="Conversation options" className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted"><MoreVertical className="h-5 w-5" /></button>
+                        <button type="button" aria-label="Conversation options" className={chatIcon}><MoreVertical className="h-5 w-5" /></button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {activeConv?.order_id && <DropdownMenuItem asChild><Link href={`/orders/${activeConv.order_id}`}><FileText className="mr-2 h-4 w-4" />View order</Link></DropdownMenuItem>}
+                        <DropdownMenuItem onSelect={() => toggleChatFlag('favourites', activeConvId)}><Star className="mr-2 h-4 w-4" />{flags.favourites.includes(activeConvId) ? 'Remove from favourites' : 'Add to favourites'}</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => { toggleChatFlag('archived', activeConvId); if (!flags.archived.includes(activeConvId)) { backToChats(); setChatFilter('all'); } }}><ArchiveRestore className="mr-2 h-4 w-4" />{flags.archived.includes(activeConvId) ? 'Unarchive chat' : 'Archive chat'}</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowReport(true)}><Flag className="mr-2 h-4 w-4" />Report conversation</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowBlock(true)} className="text-destructive"><Ban className="mr-2 h-4 w-4" />{blocked ? 'Unblock user' : 'Block user'}</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
-                  </div>
+                  </header>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-5">
+                  <div data-chat-history className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2.5 py-3 sm:px-6">
                     {loadingMessages ? (
                       <div className="space-y-3"><Skeleton className="h-12 w-3/4 rounded-2xl" /><Skeleton className="ml-auto h-16 w-2/3 rounded-2xl" /><Skeleton className="h-10 w-1/2 rounded-2xl" /></div>
                     ) : messages.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="mx-auto max-w-3xl space-y-1">
                         {messages.map((msg, index) => {
                           const isMine = msg.sender_id === user?.id;
                           const previousMessage = messages[index - 1];
                           const showDate = !previousMessage || formatMessageDate(previousMessage.created_at) !== formatMessageDate(msg.created_at);
+                          const grouped = !showDate && previousMessage?.sender_id === msg.sender_id && !previousMessage.is_deleted;
+                          const externalLink = msg.message_type === 'link' && msg.body ? safeMessageLink(msg.body) : null;
                           if (msg.is_deleted) {
                             return <div key={msg.id}>{showDate && <div className="my-3 text-center"><span className="rounded-full bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">{formatMessageDate(msg.created_at)}</span></div>}<div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}><div className="rounded-2xl bg-muted px-4 py-2 text-xs italic text-muted-foreground">Message deleted</div></div></div>;
                           }
                           return (
                             <div key={msg.id}>
                               {showDate && <div className="my-3 text-center"><span className="rounded-full bg-background/80 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">{formatMessageDate(msg.created_at)}</span></div>}
-                              <div className={`group flex ${isMine ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[88%] break-words px-3.5 py-2 text-sm shadow-sm sm:max-w-[75%] ${isMine ? 'rounded-2xl rounded-br-md bg-primary text-primary-foreground' : 'rounded-2xl rounded-bl-md bg-background text-foreground'}`}>
+                              <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} ${grouped ? '' : 'mt-2'}`}>
+                                <div data-chat-bubble={isMine ? 'outgoing' : 'incoming'} data-group-start={!grouped || undefined} className="chat-bubble relative min-w-0 max-w-[88%] break-words rounded-xl px-2.5 py-1.5 text-[0.94rem] leading-[1.3] sm:max-w-[75%]">
                                   {msg.message_type === 'location' && msg.body ? <SharedMessageCard body={msg.body} type="location" />
                                     : msg.message_type === 'product' && msg.body ? <SharedMessageCard body={msg.body} type="product" />
-                                      : msg.message_type === 'link' && msg.body ? <a href={msg.body} target="_blank" rel="noopener noreferrer" className="underline">{msg.body}</a>
-                                        : msg.body ? <p className="whitespace-pre-wrap leading-5">{msg.body}</p> : null}
+                                      : externalLink ? <a href={externalLink} target="_blank" rel="noopener noreferrer" className="underline [overflow-wrap:anywhere]">{msg.body}</a>
+                                        : msg.body ? <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.body}</p> : null}
                                   {renderAttachment(msg)}
-                                  <div className={`mt-1 flex items-center justify-end gap-1 ${isMine ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}>
-                                    <span className="text-[10px]">{formatTime(msg.created_at)}</span>
-                                    {isMine && <CheckCheck className={`h-3.5 w-3.5 ${msg.is_read ? '' : 'opacity-50'}`} aria-label={msg.is_read ? 'Read' : 'Sent'} />}
+                                  <div className="mt-0.5 flex items-center justify-end gap-1.5 text-muted-foreground">
+                                    <time dateTime={msg.created_at} className="text-[10px] tabular-nums">{formatTime(msg.created_at)}</time>
+                                    {isMine && (msg.is_read ? <CheckCheck className="chat-read h-4 w-4" aria-label="Read" /> : <Check className="h-3.5 w-3.5" aria-label={msg.id.startsWith('temp-') ? 'Sending' : 'Sent'} />)}
+                                    {isMine && !msg.id.startsWith('temp-') && <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><button type="button" aria-label="Message options" className="grid h-8 w-8 -my-1 -mr-1 place-items-center rounded-full hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"><Ellipsis className="h-4 w-4" /></button></DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onSelect={() => void handleDeleteMessage(msg.id)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete message</DropdownMenuItem>
+                                        {msg.attachment_url && <DropdownMenuItem onSelect={() => void handleDeleteAttachment(msg)} className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Remove attachment</DropdownMenuItem>}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>}
                                   </div>
-                                  {isMine && !msg.id.startsWith('temp-') && <div className="mt-1 hidden gap-2 group-hover:flex"><button onClick={() => handleDeleteMessage(msg.id)} className="text-[11px] text-destructive/80 hover:text-destructive"><Trash2 className="mr-1 inline h-3 w-3" />Delete</button>{msg.attachment_url && <button onClick={() => handleDeleteAttachment(msg)} className="text-[11px] text-destructive/80 hover:text-destructive"><Trash2 className="mr-1 inline h-3 w-3" />Remove attachment</button>}</div>}
                                 </div>
                               </div>
                             </div>
@@ -991,25 +1096,30 @@ function MessagesContent() {
                   {attachment && !attachmentPreview && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"><FileText className="h-4 w-4 shrink-0 text-muted-foreground" /><span className="truncate">{attachment.name}</span><button type="button" aria-label="Remove selected attachment" onClick={() => setAttachment(null)} className="ml-1 text-muted-foreground hover:text-destructive"><X className="h-3.5 w-3.5" /></button></div></div>}
                   {voiceBlob && <div className="shrink-0 border-t border-border bg-background px-3 py-2"><div className="inline-flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2 text-sm"><Mic className="h-4 w-4 text-primary" /><span>Voice note ready · {Math.max(1, Math.round(voiceBlob.size / 1024))} KB</span><button type="button" aria-label="Remove voice note" onClick={() => setVoiceBlob(null)} className="text-muted-foreground"><X className="h-3.5 w-3.5" /></button></div></div>}
 
-                  <div className="shrink-0 border-t border-border bg-background/95 px-3 pt-2 backdrop-blur sm:px-4 sm:pb-3" style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}>
-                    {blocked ? <div className="rounded-xl bg-muted p-3 text-center text-sm text-muted-foreground">You have blocked this user. Unblock them from the menu above to send messages.</div> : <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex flex-wrap items-center gap-2">
+                  <div data-chat-composer className="chat-composer chat-header shrink-0 border-t border-border/75 px-2 pt-1.5 sm:px-4">
+                    {blocked ? <div className="rounded-xl bg-muted p-3 text-center text-sm text-muted-foreground">Unblock this contact to send messages.</div> : <form onSubmit={(e) => { e.preventDefault(); void handleSend(); }} className="mx-auto flex max-w-3xl items-end gap-1.5">
                       <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*,.pdf,.doc,.docx,.txt" />
-                      <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Attach a file" title="Attach a photo or document" disabled={sending || recording} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"><Paperclip className="h-5 w-5" /></button>
-                      <button type="button" onClick={() => void handleVoiceNote()} aria-label={recording ? 'Stop voice recording' : 'Record voice note'} title={recording ? 'Stop recording' : 'Record voice note'} disabled={sending || requestingMicrophone || loadingMessages || Boolean(attachment)} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border transition-colors hover:bg-muted disabled:opacity-50 ${recording ? 'border-red-500 text-red-600' : 'text-muted-foreground'}`}>{recording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}</button>
-                      <button type="button" onClick={sendCurrentLocation} aria-label="Share current location" title="Share current location" disabled={sending || recording || sharingLocation} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted disabled:opacity-50"><MapPin className="h-5 w-5" /></button>
-                      <button type="button" onClick={() => { setCatalogShareUrl(window.location.origin + '/marketplace'); setShowCatalogShare(true); }} aria-label="Share UniEco catalogue" title="Share marketplace or shop catalogue" disabled={sending || recording} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:bg-muted disabled:opacity-50"><Store className="h-5 w-5" /></button>
-                      <div className="flex min-w-0 basis-full items-center gap-2 sm:flex-1">
-                        <Input type="text" value={newMessage} onChange={(e) => handleMessageChange(e.target.value)} placeholder="Type a message" aria-label="Message" className="h-11 min-w-0 rounded-full bg-muted/30 px-4" disabled={sending || loadingMessages} />
-                        <Button type="submit" size="icon" aria-label="Send message" title="Send message" className="h-11 w-11 shrink-0 rounded-full" disabled={(!newMessage.trim() && !attachment && !voiceBlob) || sending || recording || requestingMicrophone || loadingMessages}><Send className="h-5 w-5" /></Button>
-                      </div>
+                      <input ref={cameraInputRef} type="file" className="hidden" onChange={handleFileSelect} accept="image/*" capture="environment" />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild><button type="button" aria-label="Add to message" className={chatIcon} disabled={sending || recording || requestingMicrophone || loadingMessages}><Plus className="h-6 w-6" /></button></DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" side="top" className="w-56" onCloseAutoFocus={event => event.preventDefault()}>
+                          <DropdownMenuItem onSelect={() => cameraInputRef.current?.click()} className="min-h-11"><Camera className="mr-3 h-5 w-5" />Camera</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} className="min-h-11"><Paperclip className="mr-3 h-5 w-5" />Photo or document</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={sendCurrentLocation} disabled={sharingLocation} className="min-h-11"><MapPin className="mr-3 h-5 w-5" />Location</DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => { setCatalogShareUrl(window.location.origin + '/marketplace'); setShowCatalogShare(true); }} className="min-h-11"><Store className="mr-3 h-5 w-5" />Catalogue</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {recording ? <div role="status" className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-full bg-muted px-4 text-sm"><span className="h-2 w-2 rounded-full bg-red-500" />Recording…</div> :
+                        <Input type="text" value={newMessage} onChange={(e) => handleMessageChange(e.target.value)} placeholder="Message" aria-label="Message" className="h-11 min-w-0 flex-1 rounded-full border-0 bg-muted px-4 text-base shadow-none" disabled={sending || loadingMessages} />}
+                      {hasDraft && !recording
+                        ? <button type="submit" aria-label="Send message" className={`${chatIcon} chat-send`} disabled={sending || requestingMicrophone || loadingMessages}><Send className="h-5 w-5" /></button>
+                        : <button type="button" onClick={() => void handleVoiceNote()} aria-label={recording ? 'Stop voice recording' : 'Record voice note'} disabled={sending || requestingMicrophone || loadingMessages} className={`${chatIcon} ${recording ? 'bg-destructive text-destructive-foreground hover:bg-destructive/80' : 'chat-send'}`}>{recording ? <Square className="h-4 w-4 fill-current" /> : <Mic className="h-5 w-5" />}</button>}
                     </form>}
-                    <p className="mt-1.5 hidden text-[11px] text-muted-foreground sm:block">Images, PDF, Word, or text files up to 10 MB.</p>
                   </div>
                 </>
               ) : <div className="flex h-full items-center justify-center p-8 text-center"><div><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary"><MessageSquare className="h-8 w-8" /></span><p className="mt-4 text-sm font-semibold text-foreground">Select a chat to start</p><p className="mt-1 max-w-xs text-sm text-muted-foreground">Your conversations with businesses and students will appear here.</p></div></div>}
             </section>
           </div>
-        </Card>
       </main>
 
       <Dialog open={Boolean(locationDraft)} onOpenChange={open => { if (!open) setLocationDraft(null); }}>

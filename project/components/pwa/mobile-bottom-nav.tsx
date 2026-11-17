@@ -24,6 +24,7 @@ export function MobileBottomNav() {
   if (
     pathname.startsWith('/admin') ||
     pathname.startsWith('/vendor-dashboard') ||
+    pathname === '/dashboard/messages' ||
     pathname.startsWith('/signin') ||
     pathname.startsWith('/signup') ||
     pathname.startsWith('/onboarding') ||

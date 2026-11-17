@@ -408,3 +408,77 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .campus-heart-burst { display: none; }
 }
+
+/* Messages owns its viewport. Only the chat list and thread scroll. */
+body:has([data-chat-app]) { overflow: hidden; }
+
+.chat-app {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 8%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 34%;
+  --border: 0 0% 88%;
+  --primary: 153 78% 25%;
+  --primary-foreground: 0 0% 100%;
+  --ring: var(--primary);
+  --chat-wall: #f2eee7;
+  --chat-pattern: rgb(95 74 54 / 9%);
+  --chat-incoming: #fff;
+  --chat-outgoing: #d8f7e4;
+  --chat-share: rgb(13 66 46 / 6%);
+  --chat-read: #1769a5;
+  position: fixed;
+  inset-inline: 0;
+  top: var(--chat-viewport-top, 0px);
+  height: var(--chat-viewport-height, 100dvh);
+  padding-top: env(safe-area-inset-top);
+  overflow: hidden;
+}
+
+.dark .chat-app {
+  --background: 0 0% 5%;
+  --foreground: 0 0% 97%;
+  --muted: 0 0% 15%;
+  --muted-foreground: 0 0% 73%;
+  --border: 0 0% 20%;
+  --primary: 150 70% 55%;
+  --primary-foreground: 160 60% 8%;
+  --chat-wall: #0b1514;
+  --chat-pattern: rgb(220 240 228 / 8%);
+  --chat-incoming: #202c2c;
+  --chat-outgoing: #153d31;
+  --chat-share: rgb(0 0 0 / 20%);
+  --chat-read: #72d8ff;
+}
+
+.chat-thread {
+  background-color: var(--chat-wall);
+  background-image: radial-gradient(circle at 8px 8px, var(--chat-pattern) 1px, transparent 1.5px),
+    radial-gradient(circle at 22px 22px, var(--chat-pattern) 1px, transparent 1.5px);
+  background-size: 30px 30px;
+}
+
+.chat-header { background: hsl(var(--background)); }
+.chat-filter-selected { background: hsl(var(--primary) / 0.15); color: hsl(var(--primary)); }
+.chat-bubble { background: var(--chat-incoming); }
+.chat-bubble[data-chat-bubble="outgoing"] { background: var(--chat-outgoing); }
+.chat-bubble[data-group-start][data-chat-bubble="outgoing"] { border-top-right-radius: 0.2rem; }
+.chat-bubble[data-group-start][data-chat-bubble="incoming"] { border-top-left-radius: 0.2rem; }
+.chat-share-card { background: var(--chat-share); }
+.chat-read { color: var(--chat-read); }
+.chat-send { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+.chat-send:hover { background: hsl(var(--primary) / 0.85); }
+.chat-composer, .chat-inbox-dock { padding-bottom: max(0.4rem, env(safe-area-inset-bottom)); }
+
+.chat-dock-item {
+  display: flex;
+  min-height: 2.75rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  font-size: 0.67rem;
+  font-weight: 600;
+}
+
+.chat-dock-item:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }

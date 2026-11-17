@@ -63,3 +63,34 @@ test('email and push alerts contain no message text, location, or attachment dat
   assert.match(migration, /'text','image','document','link','audio','location','product'/);
   assert.match(migration, /p_message_type NOT IN/);
 });
+
+test('mobile chats own the viewport and put attachments in one accessible composer menu', async () => {
+  const [page, css, nav, invite] = await Promise.all([
+    read('app/dashboard/messages/page.tsx'), read('app/globals.css'),
+    read('components/pwa/mobile-bottom-nav.tsx'), read('components/pwa/install-prompt.tsx'),
+  ]);
+  assert.doesNotMatch(page, /<SiteHeader|<Card/);
+  assert.match(page, /data-chat-app data-chat-view=/);
+  assert.match(page, /window\.visualViewport/);
+  assert.match(css, /height: var\(--chat-viewport-height, 100dvh\)/);
+  assert.match(css, /\.chat-composer[^}]*env\(safe-area-inset-bottom\)/);
+  assert.match(nav, /pathname === '\/dashboard\/messages'/);
+  assert.match(invite, /pathname !== '\/dashboard\/messages'/);
+  assert.match(page, /data-chat-composer[^]*?aria-label="Add to message"[^]*?Photo or document[^]*?Location[^]*?Catalogue/);
+  assert.match(page, /capture="environment"/);
+  assert.match(page, /hasDraft && !recording[^]*?aria-label="Send message"[^]*?Record voice note/);
+  assert.match(page, /aria-label="Message options"/);
+  assert.doesNotMatch(page, /group-hover:flex/);
+  assert.match(page, /url\.protocol === 'https:' \|\| url\.protocol === 'http:'/);
+});
+
+test('local inbox preferences are account-scoped and closing a thread releases its read state', async () => {
+  const [page, client] = await Promise.all([read('app/dashboard/messages/page.tsx'), read('lib/data/communication-client.ts')]);
+  assert.match(page, /unieco:chat-flags:v1:\$\{user\.id\}/);
+  assert.match(page, /chatFlags\?\.owner !== chatFlagsKey/);
+  assert.match(page, /filter\(conv => chatFilter !== 'unread' \|\| conv\.unread_count > 0\)/);
+  assert.match(page, /filter\(conv => chatFilter !== 'favourites' \|\| flags\.favourites\.includes\(conv\.id\)\)/);
+  assert.match(page, /const backToChats = \(\) => \{[^]*?activeConversationIdRef\.current = null;[^]*?resetRichComposer\(\);/);
+  assert.match(client, /select\('body, created_at, sender_id, message_type'\)/);
+  assert.match(page, /case 'audio': return 'Voice message'/);
+});

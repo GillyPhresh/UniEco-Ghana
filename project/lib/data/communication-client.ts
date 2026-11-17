@@ -120,7 +120,7 @@ export async function getConversations(
       getConversationRecipient(conv.id),
       supabase
         .from('messages')
-        .select('body, created_at, sender_id')
+        .select('body, created_at, sender_id, message_type')
         .eq('conversation_id', conv.id)
         .eq('is_deleted', false)
         .order('created_at', { ascending: false })

@@ -115,6 +115,7 @@ export interface ConversationWithDetails {
     body: string | null;
     created_at: string;
     sender_id: string;
+    message_type: MessageType;
   } | null;
   unread_count: number;
 }

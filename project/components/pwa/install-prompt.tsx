@@ -14,7 +14,8 @@ import {
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 
 export function InstallPrompt() {
-  const isHomeFeed = usePathname() === '/';
+  const pathname = usePathname();
+  const isHomeFeed = pathname === '/';
   const {
     inviteVisible,
     installed,
@@ -30,7 +31,7 @@ export function InstallPrompt() {
   return (
     <>
       <AnimatePresence>
-        {inviteVisible && !installed && !isHomeFeed && (
+        {inviteVisible && !installed && !isHomeFeed && pathname !== '/dashboard/messages' && (
           <motion.aside
             initial={{ y: 24, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
