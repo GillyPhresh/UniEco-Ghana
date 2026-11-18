@@ -25,20 +25,19 @@ test('school search fits narrow phones and offers a searchable selection control
   assert.match(picker, /max-h-\[min\(18rem,calc\(100dvh-12rem\)\)\]/);
 });
 
-test('mobile footer links collapse into accessible groups while remaining expanded on desktop', async () => {
+test('footer navigation stays visible and uses comfortable tap targets on mobile and desktop', async () => {
   const footer = await read('components/layout/site-footer.tsx');
-  assert.match(footer, /<details key=\{heading\} className="group/);
-  assert.match(footer, /<summary className="flex min-h-12/);
-  assert.match(footer, /hidden[\s\S]*group-open:block[\s\S]*md:block/);
-  assert.match(footer, /container py-7 sm:py-12 lg:py-16/);
+  assert.match(footer, /aria-label="Footer navigation"/);
+  assert.match(footer, /grid-cols-2[\s\S]*sm:grid-cols-3/);
+  assert.match(footer, /min-h-11/);
+  assert.match(footer, /max-w-7xl/);
 });
 
 test('public footer replaces the student-built slogan with useful onboarding and support cues', async () => {
   const footer = await read('components/layout/site-footer.tsx');
   assert.doesNotMatch(footer, /Built for students, by students\. Made in Ghana\./);
-  assert.match(footer, /Choose your institution to\s+see what is available/);
   assert.match(footer, /Find your place on UniEco/);
-  assert.match(footer, /href="\/universities"[\s\S]*Explore institutions/);
+  assert.match(footer, /href="\/universities"[\s\S]*Find my school/);
   assert.match(footer, /href="\/signup"[\s\S]*Join UniEco/);
   assert.match(footer, /Contact UniEco support/);
 });
