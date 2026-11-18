@@ -27,7 +27,8 @@ test('campus updates produce a branded, source-attributed social flyer and story
   const detail = read('app/updates/[id]/page.tsx');
   assert.match(flyer, /width: 1080, height: 1350/);
   assert.match(flyer, /updateSummary\(data\.excerpt, data\.title/);
-  assert.match(flyer, /UniEco Ghana is an independent publisher/);
+  assert.match(flyer, /const source = oneLine\(data\.source_label, 85, 'Original publisher'\)/);
+  assert.match(flyer, /— \{source\}<\/span>/);
   assert.match(detail, /openGraph: \{ type: 'article'/);
   assert.match(detail, /api\/campus-feed\/alert-card\?id=/);
   assert.match(detail, /alternates: \{ canonical: url \}/);

@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  security-audit:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,10 +27,46 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: project/package-lock.json
-      - run: npm ci
-      - run: npm run env:check:default
       - run: npm audit --audit-level=moderate
+
+  code-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: project/package-lock.json
+      - id: install
+        run: npm ci
+      - id: environment
+        run: npm run env:check:default
       - run: npm run lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.environment.outcome == 'success' }}
       - run: npm test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.environment.outcome == 'success' }}
       - run: npm run typecheck
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.environment.outcome == 'success' }}
       - run: npm run build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.environment.outcome == 'success' }}
+
+  verify:
+    # Preserve the existing status check name. Neither upstream job may
+    # fail, be cancelled, or be skipped for this combined check to pass.
+    if: ${{ always() }}
+    needs: [security-audit, code-checks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require security audit and code checks
+        env:
+          AUDIT_RESULT: ${{ needs.security-audit.result }}
+          CODE_RESULT: ${{ needs.code-checks.result }}
+        run: |
+          printf 'Security audit: %s\nCode checks: %s\n' "$AUDIT_RESULT" "$CODE_RESULT"
+          if [[ "$AUDIT_RESULT" != success || "$CODE_RESULT" != success ]]; then
+            exit 1
+          fi

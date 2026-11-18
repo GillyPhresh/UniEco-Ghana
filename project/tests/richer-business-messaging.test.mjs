@@ -74,7 +74,9 @@ test('mobile chats own the viewport and put attachments in one accessible compos
   assert.match(page, /window\.visualViewport/);
   assert.match(css, /height: var\(--chat-viewport-height, 100dvh\)/);
   assert.match(css, /\.chat-composer[^}]*env\(safe-area-inset-bottom\)/);
-  assert.match(nav, /pathname === '\/dashboard\/messages'/);
+  assert.match(nav, /const HIDDEN_SECTIONS = \[[^\]]*'\/dashboard\/messages'/);
+  assert.match(nav, /HIDDEN_SECTIONS\.some\(\(section\) => withinSection\(pathname, section\)\)\) return null/);
+  assert.match(nav, /return pathname === section \|\| \(section !== '\/' && pathname\.startsWith\(`\$\{section\}\/`\)\)/);
   assert.match(invite, /pathname !== '\/dashboard\/messages'/);
   assert.match(page, /data-chat-composer[^]*?aria-label="Add to message"[^]*?Photo or document[^]*?Location[^]*?Catalogue/);
   assert.match(page, /capture="environment"/);
