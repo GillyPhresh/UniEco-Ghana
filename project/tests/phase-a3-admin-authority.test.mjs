@@ -997,7 +997,8 @@ test('subscription operations use a bounded super-admin read model and audited s
   assert.ok(exportHandler.indexOf("supabase.auth.getUser()") < exportHandler.indexOf('readLimitedJson(request)'), 'authentication happens before reading the body');
   assert.match(csvHelper, /rpc\(options\.rpcName/);
   assert.match(csvHelper, /Cache-Control': 'private, no-store, max-age=0/);
-  assert.match(csvHelper, /safeText\.replace/);
+  assert.match(csvHelper, /import \{ csvCell \} from '@\/lib\/server\/spreadsheet-csv'/);
+  assert.match(csvHelper, /csvCell\(record\[column\.key\]\)/);
   assert.match(csvHelper, /nosniff/);
   assert.match(page, /downloadAdminCsv\('subscriptions', filter\)/);
   assert.doesNotMatch(page, /exportToCsv|s\.payment_reference|s\.provider_reference/);
@@ -1044,7 +1045,8 @@ test('payment and invoice administration use narrow authorized readers and serve
   assert.match(csvHelper, /5,000-record limit/);
   assert.match(csvHelper, /private, no-store/);
   assert.match(csvHelper, /nosniff/);
-  assert.match(csvHelper, /safeText\.replace/);
+  assert.match(csvHelper, /import \{ csvCell \} from '@\/lib\/server\/spreadsheet-csv'/);
+  assert.match(csvHelper, /csvCell\(record\[column\.key\]\)/);
   assert.match(paymentRoute, /export_admin_payments/);
   assert.match(invoiceRoute, /export_admin_invoices/);
   for (const page of [paymentPage, invoicePage]) {

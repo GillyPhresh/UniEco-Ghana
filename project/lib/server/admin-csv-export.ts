@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { csvCell } from '@/lib/server/spreadsheet-csv';
 
 interface AdminCsvExportOptions {
   allowedStatuses: ReadonlySet<string>;
@@ -39,12 +40,6 @@ async function readLimitedJson(request: NextRequest): Promise<LimitedJsonResult>
   } finally {
     reader.releaseLock();
   }
-}
-
-function csvCell(value: unknown): string {
-  const text = value === null || value === undefined ? '' : String(value);
-  const safeText = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${safeText.replace(/"/g, '""')}"`;
 }
 
 export async function handleAdminCsvExport(request: NextRequest, options: AdminCsvExportOptions) {

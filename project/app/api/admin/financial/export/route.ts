@@ -1,15 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { csvCell } from '@/lib/server/spreadsheet-csv';
 import type { AdminFinancialSummary } from '@/lib/types/payment';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-function csvCell(value: string | number): string {
-  const text = String(value);
-  const safeText = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
-  return `"${safeText.replace(/"/g, '""')}"`;
-}
 
 export async function POST(request: NextRequest) {
   if (request.headers.get('origin') !== request.nextUrl.origin) {
