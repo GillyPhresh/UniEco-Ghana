@@ -506,8 +506,7 @@ body:has([data-chat-app]) { overflow: hidden; }
 }
 
 .newsroom-headline {
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 700;
+  font-weight: 750;
   letter-spacing: -0.03em;
   overflow-wrap: break-word;
 }

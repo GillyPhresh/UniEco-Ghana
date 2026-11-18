@@ -132,7 +132,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
         <p className="newsroom-kicker">UniEco Ghana <span aria-hidden="true">/</span> News desk</p>
         <Link href={briefing} className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 text-xs font-bold text-primary hover:underline sm:text-sm">Campus briefing <ArrowUpRight className="h-4 w-4" /></Link>
       </div>
-      <h1 className="newsroom-headline text-[clamp(2.4rem,6vw,4.9rem)] leading-[0.97]">Campus Updates</h1>
+      <h1 className="newsroom-headline text-[clamp(2rem,5.5vw,4.5rem)] leading-[1.08]">Campus Updates</h1>
       <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-base sm:leading-6">News, events and opportunities from Ghana’s tertiary institutions.</p>
     </header>
     <nav className="flex gap-5 overflow-x-auto border-b border-border [scrollbar-width:none] sm:gap-7" aria-label="News sections">
@@ -173,7 +173,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
           <article className="min-w-0">
             <div className="newsroom-kicker mb-2">Lead story</div>
             <StoryMeta item={lead} />
-            <h2 className="newsroom-headline mb-3 mt-2 text-[clamp(1.65rem,4vw,3.1rem)] leading-[1.07]"><Link href={'/updates/' + lead.id} className="hover:text-primary">{lead.title}</Link></h2>
+            <h2 className="newsroom-headline mb-3 mt-2 text-[clamp(1.65rem,3.8vw,3rem)] leading-[1.12]"><Link href={'/updates/' + lead.id} className="hover:text-primary">{lead.title}</Link></h2>
             <LeadArtwork item={lead} />
             <div className="border-b border-border pb-4 pt-3">
               {updateSummary(lead.excerpt, lead.title) && <p className="line-clamp-3 text-sm leading-6 text-muted-foreground sm:text-base">{updateSummary(lead.excerpt, lead.title)}</p>}

@@ -64,7 +64,7 @@ export default async function CampusUpdateDetailPage({ params }: Props) {
       <article className="border-t-2 border-foreground py-4 sm:py-6">
         <header>
           <div className="newsroom-kicker flex items-center gap-2"><Newspaper className="h-4 w-4" />{category}</div>
-          <h1 className="newsroom-headline mt-3 text-[clamp(1.95rem,5.6vw,3.9rem)] leading-[1.06]">{item.title}</h1>
+          <h1 className="newsroom-headline mt-3 text-[clamp(1.85rem,5.2vw,3.75rem)] leading-[1.12]">{item.title}</h1>
           {excerpt && <p className="mt-4 max-w-3xl whitespace-pre-line text-base leading-7 text-muted-foreground sm:text-lg">{excerpt}</p>}
           <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-border py-3 text-sm text-muted-foreground">
             <span className="font-bold text-foreground">{item.source_label}</span>{item.published_at && <><span aria-hidden="true">·</span><time dateTime={item.published_at}>{updateDate(item.published_at, 'long')}</time></>}
