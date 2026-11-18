@@ -12,6 +12,6 @@ test('site notification badge clears on logout and ignores requests from a prior
   assert.match(source, /let active = true/);
   assert.match(source, /if \(active\) setUnreadNotifs\(count\)/);
   assert.match(source, /return \(\) => \{ active = false; \}/);
-  assert.match(source, /\[user\?\.id\]/);
+  assert.match(source, /\[user\?\.id, showPaymentReminders\]/);
   assert.match(source, /count=\{user \? unreadNotifs : 0\}/);
 });

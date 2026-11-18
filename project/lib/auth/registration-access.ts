@@ -45,6 +45,12 @@ export function canInitializePaystack(access: RegistrationAccess | null, purpose
   return !access.buyer_restricted && access.can_paystack;
 }
 
+export function registrationReminderRole(access: RegistrationAccess | null): 'student' | 'vendor' | null {
+  if (!access || access.buyer_restricted || ['super_admin', 'moderator', 'university_admin'].includes(access.role ?? '')) return null;
+  if (canInitializePaystack(access, 'vendor_registration')) return 'vendor';
+  return canInitializePaystack(access, 'student_registration') ? 'student' : null;
+}
+
 export function parseRegistrationAccess(value: unknown): RegistrationAccess | null {
   if (!value || typeof value !== 'object') return null;
   const data = value as Partial<RegistrationAccess>;

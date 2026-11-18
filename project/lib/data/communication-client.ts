@@ -308,6 +308,7 @@ export async function getNotifications(
   limit = 20,
   category?: NotificationCategory,
   unreadOnly = false,
+  includeRegistrationReminders = true,
 ): Promise<NotificationWithMeta[]> {
   let query = supabase
     .from('notifications')
@@ -321,24 +322,29 @@ export async function getNotifications(
   if (unreadOnly) {
     query = query.eq('is_read', false);
   }
+  if (!includeRegistrationReminders) query = query.neq('type', 'registration_payment_required');
 
   const { data } = await query;
   return (data || []) as NotificationWithMeta[];
 }
 
-export async function getUnreadNotificationCount(): Promise<number> {
-  const { count } = await supabase
+export async function getUnreadNotificationCount(includeRegistrationReminders = true): Promise<number> {
+  let query = supabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('is_read', false);
+  if (!includeRegistrationReminders) query = query.neq('type', 'registration_payment_required');
+  const { count } = await query;
   return count || 0;
 }
 
-export async function getUnreadCountsByCategory(): Promise<Record<string, number>> {
-  const { data } = await supabase
+export async function getUnreadCountsByCategory(includeRegistrationReminders = true): Promise<Record<string, number>> {
+  let query = supabase
     .from('notifications')
     .select('category')
     .eq('is_read', false);
+  if (!includeRegistrationReminders) query = query.neq('type', 'registration_payment_required');
+  const { data } = await query;
 
   if (!data) return {};
   const counts: Record<string, number> = {};

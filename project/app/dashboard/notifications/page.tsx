@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { registrationReminderRole } from '@/lib/auth/registration-access';
 import { RouteGuard } from '@/lib/auth/route-guard';
 import { SiteHeader } from '@/components/layout/site-header';
 import { Card, CardContent } from '@/components/ui/card';
@@ -79,6 +80,8 @@ export default function NotificationsPage() {
 }
 
 function NotificationsContent() {
+  const { registrationAccess } = useAuth();
+  const showPaymentReminders = Boolean(registrationReminderRole(registrationAccess));
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<NotificationWithMeta[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('all');
@@ -88,13 +91,13 @@ function NotificationsContent() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const [notifs, counts] = await Promise.all([
-      getNotifications(100),
-      getUnreadCountsByCategory(),
+      getNotifications(100, undefined, false, showPaymentReminders),
+      getUnreadCountsByCategory(showPaymentReminders),
     ]);
     setNotifications(notifs);
     setUnreadCounts(counts);
     setLoading(false);
-  }, []);
+  }, [showPaymentReminders]);
 
   useEffect(() => {
     loadData();
@@ -203,7 +206,9 @@ function NotificationsContent() {
             <div className="space-y-3 pr-4">
               {filtered.map((n) => {
                 const Icon = TYPE_ICONS[n.type || ''] || Bell;
-                const actionUrl = normalizeNotificationActionUrl(n.action_url || n.link);
+                const paymentReminder = n.type === 'registration_payment_required';
+                if (paymentReminder && !showPaymentReminders) return null;
+                const actionUrl = paymentReminder ? '/payments/registration-checkout' : normalizeNotificationActionUrl(n.action_url || n.link);
                 return (
                   <Card
                     key={n.id}
@@ -213,7 +218,14 @@ function NotificationsContent() {
                       {actionUrl ? (
                         <Link
                           href={actionUrl}
-                          onClick={() => !n.is_read && handleMarkRead(n.id)}
+                          prefetch={paymentReminder ? false : undefined}
+                          onClick={(event) => {
+                            if (!n.is_read) void handleMarkRead(n.id);
+                            if (paymentReminder && event.button === 0 && !event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey) {
+                              event.preventDefault();
+                              window.location.assign(actionUrl);
+                            }
+                          }}
                           className="flex min-w-0 flex-1 items-start gap-3 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-primary"
                           aria-label={`Open notification: ${n.title}`}
                         >

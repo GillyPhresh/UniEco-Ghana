@@ -33,7 +33,11 @@ export default function OnboardingPage() {
     // particular, a seller returning from Paystack after signing back in
     // must check the same payment instead of starting another one.
     const requestedPath = new URL(requestedNext, window.location.origin).pathname;
-    if (['/institution-admin-invite', '/payments/callback', '/payments/registration-checkout'].includes(requestedPath)) {
+    if (requestedPath === '/payments/registration-checkout') {
+      window.location.replace(requestedNext);
+      return;
+    }
+    if (['/institution-admin-invite', '/payments/callback'].includes(requestedPath)) {
       router.replace(requestedNext);
       return;
     }

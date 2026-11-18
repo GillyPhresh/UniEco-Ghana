@@ -47,7 +47,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { ROLE_LABELS, isVendor } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
-import { getUnreadNotificationCount } from '@/lib/data/student-client';
+import { getUnreadNotificationCount } from '@/lib/data/communication-client';
+import { registrationReminderRole } from '@/lib/auth/registration-access';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 
 const networkLinks = [
@@ -65,6 +66,7 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
   const [scrolled, setScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, loading, signOut, registrationAccess } = useAuth();
+  const showPaymentReminders = Boolean(registrationReminderRole(registrationAccess));
   const referralHref = registrationAccess?.can_vendor_referral ? '/vendor-dashboard/referrals'
     : registrationAccess?.can_student_referral ? '/dashboard/referrals' : null;
   const { installed, installApp } = useInstallPrompt();
@@ -82,12 +84,12 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
     let active = true;
     setUnreadNotifs(0);
     if (user?.id) {
-      getUnreadNotificationCount()
+      getUnreadNotificationCount(showPaymentReminders)
         .then((count) => { if (active) setUnreadNotifs(count); })
         .catch(() => { if (active) setUnreadNotifs(0); });
     }
     return () => { active = false; };
-  }, [user?.id]);
+  }, [user?.id, showPaymentReminders]);
 
   const handleSignOut = async () => {
     await signOut();

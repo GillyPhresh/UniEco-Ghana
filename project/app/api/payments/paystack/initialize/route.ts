@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient, createClient as createTokenClient } from '@supabase/supabase-js';
 import { chargePaystackMobileMoney, getPaystackMode, initializePaystackTransaction, paystackIsEnabled, PaystackCheckoutError, permittedChannels, type PaystackMobileMoneyProvider } from '@/lib/payments/paystack.server';
+import { registrationCheckoutOrigin, saveHostedRegistrationCheckout } from '@/lib/payments/registration-checkout.server';
 import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation.server';
 import { siteConfig } from '@/lib/constants/site';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
@@ -435,10 +436,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ reference: charge.reference, status: 'pending', mobileMoney: { status: charge.status, displayText: charge.displayText } }, { headers: { 'Cache-Control': 'no-store' } });
     }
 
-    const callbackUrl = `${appUrl()}/payments/callback`;
+    const registration = payment.payment_type === 'student_registration' || payment.payment_type === 'vendor_registration';
+    const callbackUrl = `${registration ? registrationCheckoutOrigin(request.url) : appUrl()}/payments/callback`;
     const checkout = await initializePaystackTransaction({ email: user.email, amountGhs: Number(payment.amount), reference: payment.payment_reference, callbackUrl, channels, metadata });
     const { error: markError } = await admin.rpc('record_paystack_checkout_initialized', { p_payment_reference: payment.payment_reference, p_provider_environment: getPaystackMode() });
     if (markError) return NextResponse.json({ error: 'Checkout was created but could not be recorded safely. Please contact support.' }, { status: 422 });
+    if (registration) {
+      const { data: saved } = await admin.from('payments').select('id')
+        .eq('payment_reference', checkout.reference).eq('user_id', user.id)
+        .eq('payment_type', payment.payment_type).eq('provider', 'paystack').maybeSingle();
+      if (saved) await saveHostedRegistrationCheckout(admin, saved.id, checkout.authorizationUrl);
+    }
     return NextResponse.json({ reference: checkout.reference, authorizationUrl: checkout.authorizationUrl, status: 'pending' }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (error) {
     if (error instanceof RequestBodyTooLargeError) return NextResponse.json({ error: 'Request body is too large.' }, { status: 413, headers: { 'Cache-Control': 'no-store' } });

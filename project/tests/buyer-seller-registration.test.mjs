@@ -70,9 +70,8 @@ test('signup routes preserve the destination without moving referral codes betwe
 test('both Paystack routes and the payment ledger enforce registration boundaries before provider calls', () => {
   const checkout = read('app/payments/registration-checkout/route.ts');
   const init = read('app/api/payments/paystack/initialize/route.ts');
-  for (const route of [checkout, init]) {
-    assert.match(route, /rpc\('get_my_registration_access'\)[\s\S]*if \(!canInitializePaystack[\s\S]*await initializePaystackTransaction/);
-  }
+  assert.match(init, /rpc\('get_my_registration_access'\)[\s\S]*if \(!canInitializePaystack[\s\S]*await initializePaystackTransaction/);
+  assert.match(checkout, /rpc\('get_my_registration_access'\)[\s\S]*registrationReminderRole\(access\)[\s\S]*if \(!role\)[\s\S]*await initializePaystackTransaction/);
   assert.match(migration, /NEW\.payment_type NOT IN \('student_registration', 'vendor_registration'\)[\s\S]*\(access_state ->> 'can_paystack'\)::boolean IS NOT TRUE/);
   assert.match(migration, /CREATE TRIGGER prevent_buyer_student_registration_payment BEFORE INSERT ON public\.payments/);
   const marketplace = read('app/checkout/page.tsx');
