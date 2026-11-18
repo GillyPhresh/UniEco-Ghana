@@ -7,6 +7,7 @@ import { ArrowRight, ArrowUpRight, Building2, ChevronDown, CircleAlert, External
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { CampusUpdateActions } from '@/components/feed/campus-update-actions';
+import { ReaderRecommendations } from '@/components/feed/reader-recommendations';
 import { schoolSourceId } from '@/lib/ai/research-catalog';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
@@ -156,6 +157,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
         <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
       </div>
     </form>
+    {!campus.startsWith('no-feed:') && <ReaderRecommendations key={campus} source={campus === 'all' ? null : campus} sourceLabel={selectedLabel} />}
     {error && <div role="alert" className="my-4 flex flex-wrap items-center gap-3 border-l-4 border-destructive bg-muted px-4 py-3 text-sm">
       <CircleAlert className="h-5 w-5 shrink-0 text-destructive" /><p className="flex-1">{items.length ? 'Some updates could not be fetched.' : 'Updates could not load.'}</p>
       <Button variant="outline" size="sm" onClick={() => void load(false, Boolean(items.length))}><RefreshCw className="mr-2 h-4 w-4" />Retry</Button>

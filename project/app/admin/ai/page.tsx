@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, BrainCircuit, ClipboardCheck, FileText, Globe2, Image as PhotoIcon, Loader2, Newspaper, Search, ShieldCheck, Video } from 'lucide-react';
+import { ArrowUpRight, BrainCircuit, ClipboardCheck, FileText, Globe2, Image as PhotoIcon, Lightbulb, Loader2, Newspaper, Search, ShieldCheck, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,10 @@ import { Input } from '@/components/ui/input';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate } from '@/lib/ai/update-copy';
 import { CampusFeedReview } from './campus-feed-review';
+import { PlatformIntelligence } from '@/components/admin/platform-intelligence';
 import { coverageLabels, editorialRequest, type Candidate, type Coverage, type Outcome, type SourceOption } from './editorial-types';
 
-const tabs = [['research', 'Research', Search], ['review', 'Review', ClipboardCheck], ['flyers', 'Flyers', FileText], ['coverage', 'Coverage', Globe2], ['assistant', 'Assistant', BrainCircuit]] as const;
+const tabs = [['research', 'Research', Search], ['review', 'Review', ClipboardCheck], ['flyers', 'Flyers', FileText], ['coverage', 'Coverage', Globe2], ['assistant', 'Assistant', BrainCircuit], ['intelligence', 'Intelligence', Lightbulb]] as const;
 type Tab = (typeof tabs)[number][0];
 const fieldClass = 'min-h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary';
 const panel = 'min-w-0 space-y-4 rounded-2xl border bg-card p-4 sm:p-6';
@@ -150,6 +151,8 @@ function EditorialDesk() {
       {tabs.map(([id, label, Icon]) => <Button key={id} type="button" size="sm" className="min-h-10" variant={tab === id ? 'default' : 'ghost'}
         aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}><Icon className="mr-1.5 h-4 w-4" />{label}</Button>)}
     </nav>
+
+    {tab === 'intelligence' && <PlatformIntelligence onResearch={() => setTab('research')} />}
 
     {tab === 'research' && <>
       <section className={panel} aria-labelledby="editorial-research">
