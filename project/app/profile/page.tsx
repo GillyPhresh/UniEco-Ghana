@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { RouteGuard } from '@/lib/auth/route-guard';
@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RegistrationOptionPicker, registrationStringOptions } from '@/components/registration/registration-option-picker';
 import { ACADEMIC_DEPARTMENTS, ACADEMIC_FACULTIES, ACADEMIC_PROGRAMMES } from '@/lib/registration/academic-catalog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfilePhotoCrop } from '@/components/profile/profile-photo-crop';
+import { MAX_SOURCE_BYTES } from '@/lib/profile/photo-crop';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
@@ -61,6 +63,10 @@ function ProfileContent() {
   const [phone, setPhone] = useState(user?.profile?.phone || '');
   const [bio, setBio] = useState(user?.profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(getPublicAvatarUrl(user?.profile?.avatar_url));
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoMessage, setPhotoMessage] = useState<{ text: string; error?: boolean } | null>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+  const photoButton = useRef<HTMLButtonElement>(null);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -131,7 +137,6 @@ function ProfileContent() {
         full_name: fullName,
         phone,
         bio,
-        avatar_url: avatarUrl || null,
       })
       .eq('id', user!.id);
 
@@ -145,20 +150,39 @@ function ProfileContent() {
     setSaving(false);
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleAvatarSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.currentTarget.files?.[0];
+    e.currentTarget.value = '';
     if (!file || !user) return;
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/avatar-${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(path, file);
-    if (uploadError) {
-      setError('Could not upload photo');
-      return;
+    setPhotoMessage(null);
+    const photoTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/heic', 'image/heif'];
+    const cameraFilename = /\.(?:jpe?g|png|webp|avif|heic|heif)$/i.test(file.name);
+    if (!photoTypes.includes(file.type) && !((!file.type || file.type === 'application/octet-stream') && cameraFilename)) {
+      setPhotoMessage({ text: 'Choose a JPEG, PNG, WebP, AVIF or phone photo.', error: true });
+    } else if (!file.size || file.size > MAX_SOURCE_BYTES) {
+      setPhotoMessage({ text: 'Choose a photo smaller than 25 MB.', error: true });
+    } else {
+      setSelectedPhoto(file);
     }
-    const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-    setAvatarUrl(data.publicUrl);
+  };
+
+  const saveProfilePhoto = async (image: Blob) => {
+    if (!user || image.type !== 'image/jpeg') throw new Error('Could not prepare the photo. Try again.');
+    const path = `${user.id}/avatar-${crypto.randomUUID()}.jpg`;
+    const avatars = supabase.storage.from('avatars');
+    const { error: uploadError } = await avatars.upload(path, image, {
+      contentType: 'image/jpeg', cacheControl: '31536000', upsert: false,
+    });
+    if (uploadError) throw new Error('Could not upload your photo. Try again.');
+
+    const { data: { publicUrl } } = avatars.getPublicUrl(path);
+    const { error: updateError } = await supabase
+      .from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id).select('id').single();
+    if (updateError) throw new Error('Could not save your new profile photo. Try again.');
+
+    setAvatarUrl(publicUrl);
+    setPhotoMessage({ text: 'Profile photo saved.' });
+    void refreshProfile().catch(() => undefined);
   };
 
   const handleChangePassword = async () => {
@@ -352,12 +376,22 @@ function ProfileContent() {
                       {initials}
                     </AvatarFallback>
                   </Avatar>
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary">
-                    <Upload className="h-4 w-4" />
+                  <Button ref={photoButton} type="button" variant="outline" className="min-h-11"
+                    onClick={() => photoInput.current?.click()}>
+                    <Upload aria-hidden="true" className="h-4 w-4" />
                     Change photo
-                    <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-                  </label>
+                  </Button>
+                  <input ref={photoInput} type="file" hidden
+                    accept="image/jpeg,image/png,image/webp,image/avif,image/heic,image/heif,.heic,.heif"
+                    onChange={handleAvatarSelection} />
                 </div>
+                {photoMessage && <p role={photoMessage.error ? 'alert' : 'status'}
+                  className={photoMessage.error ? 'text-sm text-destructive' : 'text-sm text-muted-foreground'}>
+                  {photoMessage.text}
+                </p>}
+                {selectedPhoto && <ProfilePhotoCrop file={selectedPhoto}
+                  onClose={() => setSelectedPhoto(null)} onSave={saveProfilePhoto}
+                  onRestoreFocus={() => photoButton.current?.focus()} />}
 
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Full name</Label>
