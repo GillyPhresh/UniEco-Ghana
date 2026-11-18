@@ -2,74 +2,32 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Home, MapPinned, ShoppingCart, Newspaper, Search, SquarePlus, User } from 'lucide-react';
+import { Home, MapPinned, ShoppingCart, Newspaper, User } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
-  { href: '/campus-mate', label: 'Mate', icon: MapPinned },
-  { href: '/updates', label: 'Updates', icon: Newspaper },
-  { href: '/dashboard', label: 'Account', icon: User },
+  { href: '/', label: 'Home', icon: Home, sections: ['/community'] },
+  { href: '/marketplace', label: 'Shop', icon: ShoppingCart, sections: ['/business', '/cart', '/orders', '/wishlist', '/categories'] },
+  { href: '/campus-mate', label: 'Mate', icon: MapPinned, sections: [] },
+  { href: '/updates', label: 'Updates', icon: Newspaper, sections: ['/events'] },
+  { href: '/dashboard', label: 'Account', icon: User, sections: ['/profile'] },
+] as const;
+
+const HIDDEN_SECTIONS = [
+  '/admin', '/vendor-dashboard', '/dashboard/messages', '/signin', '/signup',
+  '/onboarding', '/auth', '/forgot-password', '/verify-email', '/payments', '/checkout',
 ];
+
+function withinSection(pathname: string, section: string) {
+  return pathname === section || (section !== '/' && pathname.startsWith(`${section}/`));
+}
 
 export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  // Don't show on admin or vendor dashboard — they have their own layouts
-  if (
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/vendor-dashboard') ||
-    pathname === '/dashboard/messages' ||
-    pathname.startsWith('/signin') ||
-    pathname.startsWith('/signup') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/verify-email') ||
-    pathname.startsWith('/payments') ||
-    pathname.startsWith('/checkout')
-  ) {
-    return null;
-  }
-
-  if (pathname === '/') {
-    const target = 'grid min-h-11 min-w-0 place-items-center text-foreground transition-opacity hover:opacity-65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring';
-    const avatar = getPublicAvatarUrl(user?.profile?.avatar_url);
-    return (
-      <nav data-home-feed-bottom-navigation aria-label="Mobile bottom navigation"
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background lg:hidden"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="mx-auto grid h-12 max-w-xl grid-cols-5">
-          <Link href="/" aria-label="Home" aria-current="page" className={target}><Home aria-hidden="true" className="h-6 w-6 fill-current" /></Link>
-          <Link href="/search" aria-label="Search" className={target}><Search aria-hidden="true" className="h-6 w-6" /></Link>
-          <button type="button" aria-label="Create post" className={target} onClick={() => window.dispatchEvent(new Event('unieco:open-post-composer'))}><SquarePlus aria-hidden="true" className="h-6 w-6" /></button>
-          <Link href="/updates" aria-label="Campus updates" className={target}><Newspaper aria-hidden="true" className="h-6 w-6" /></Link>
-          <Link href={user ? '/profile' : '/signin'} aria-label={user ? 'Profile' : 'Sign in'} className={target}>
-            <Avatar aria-hidden="true" className="h-7 w-7 border border-border">
-              {avatar && <AvatarImage src={avatar} alt="" />}
-              <AvatarFallback className="bg-background"><User className="h-5 w-5" /></AvatarFallback>
-            </Avatar>
-          </Link>
-        </div>
-      </nav>
-    );
-  }
-
-  // Adjust the last item based on auth state
-  const items = user
-    ? NAV_ITEMS
-    : [
-        { href: '/', label: 'Home', icon: Home },
-        { href: '/marketplace', label: 'Shop', icon: ShoppingCart },
-        { href: '/campus-mate', label: 'Mate', icon: MapPinned },
-        { href: '/updates', label: 'Updates', icon: Newspaper },
-        { href: '/signin', label: 'Sign in', icon: User },
-      ];
+  if (HIDDEN_SECTIONS.some((section) => withinSection(pathname, section))) return null;
 
   return (
     <nav
@@ -78,26 +36,23 @@ export function MobileBottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto grid min-h-[3.75rem] max-w-xl grid-cols-5 items-stretch gap-1 px-2 pb-1 pt-1">
-        {items.map((item) => {
-          const isCurrent =
-            pathname === item.href ||
-            (item.href !== '/' && pathname.startsWith(item.href));
-          const isActive = isCurrent;
+        {NAV_ITEMS.map((item) => {
+          const isActive = withinSection(pathname, item.href) || item.sections.some((section) => withinSection(pathname, section));
+          const href = item.label === 'Account' && !user ? '/signin?next=%2Fdashboard' : item.href;
+          const current = isActive && (pathname === item.href ? 'page' : 'location');
           const Icon = item.icon;
           return (
             <Link
               key={item.href}
-              href={item.href}
-              prefetch
+              href={href}
               className={cn(
-                'relative flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 transition-colors duration-100',
+                'relative flex min-h-[3.25rem] min-w-0 touch-manipulation flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 transition-colors duration-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
                 isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground',
               )}
-              aria-label={item.label}
-              aria-current={isCurrent ? 'page' : undefined}
+              aria-current={current || undefined}
             >
               <span className={cn('flex h-9 w-10 items-center justify-center transition-colors', isActive ? 'text-foreground' : 'text-muted-foreground')}>
-                <Icon className="h-[23px] w-[23px]" strokeWidth={isActive ? 2.6 : 1.8} fill={isActive && item.href === '/' ? 'currentColor' : 'none'} />
+                <Icon aria-hidden="true" className="h-[23px] w-[23px]" strokeWidth={isActive ? 2.6 : 1.8} fill={isActive && item.href === '/' ? 'currentColor' : 'none'} />
               </span>
               <span className="text-[10px] font-medium leading-none">{item.label}</span>
             </Link>

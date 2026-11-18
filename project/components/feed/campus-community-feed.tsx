@@ -310,7 +310,6 @@ export function CampusCommunityFeed() {
   }, [authLoading, canPost, registrationAccess?.buyer_restricted, user]);
 
   useEffect(() => {
-    window.addEventListener('unieco:open-post-composer', openComposer);
     const params = new URLSearchParams(window.location.search);
     if (!authLoading && params.has('createPost')) {
       if (params.get('createPost') === '1') openComposer();
@@ -318,7 +317,6 @@ export function CampusCommunityFeed() {
       const query = params.toString();
       window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
     }
-    return () => window.removeEventListener('unieco:open-post-composer', openComposer);
   }, [authLoading, openComposer]);
 
   const loadPage = useCallback(async (append = false) => {
