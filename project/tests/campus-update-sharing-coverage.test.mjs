@@ -33,14 +33,18 @@ test('campus updates produce a branded, source-attributed social flyer and story
   assert.match(detail, /alternates: \{ canonical: url \}/);
 });
 
-test('sharing uses native file share where available, with a link-copy and image-download fallback', () => {
+test('the main share action sends JPEG files and never substitutes a story link', () => {
   const actions = read('components/feed/campus-update-actions.tsx');
   const feed = read('components/feed/campus-updates.tsx');
   assert.match(actions, /navigator\.canShare\(\{ files: \[file\] \}\)/);
-  assert.match(actions, /navigator\.share\(\{ title, text: message, url: pageUrl \}\)/);
+  assert.match(actions, /navigator\.share\(\{ files: \[file\], title \}\)/);
+  assert.doesNotMatch(actions, /navigator\.share\([^\n]*\burl\b/);
+  assert.match(actions, /type: 'image\/jpeg'/);
   assert.match(actions, /navigator\.clipboard\.writeText/);
-  assert.match(actions, /download="unieco-campus-update\.png"/);
+  assert.match(actions, /const filename = 'unieco-campus-update\.jpg'/);
+  assert.match(actions, /download=\{filename\}/);
   assert.match(feed, /<CampusUpdateActions/);
+  assert.match(feed, /<CampusUpdateActions id=\{item\.id\} title=\{item\.title\} compact shareOnly/);
 });
 
 test('public and management views cover the full university directory without claiming missing official sources', () => {

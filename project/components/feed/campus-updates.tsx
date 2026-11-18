@@ -179,7 +179,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
               {updateSummary(lead.excerpt, lead.title) && <p className="line-clamp-3 text-sm leading-6 text-muted-foreground sm:text-base">{updateSummary(lead.excerpt, lead.title)}</p>}
               <div className="mt-2 flex flex-wrap items-center gap-x-4">
                 <Link href={'/updates/' + lead.id} className="inline-flex min-h-[44px] items-center gap-2 text-sm font-bold text-primary hover:underline">Read story <ArrowRight className="h-4 w-4" /></Link>
-                <CampusUpdateActions id={lead.id} title={lead.title} excerpt={updateSummary(lead.excerpt, lead.title)} sourceLabel={lead.source_label} universityName={lead.university_name} compact />
+                <CampusUpdateActions key={lead.id} id={lead.id} title={lead.title} compact preload />
               </div>
             </div>
           </article>
@@ -234,6 +234,9 @@ function NewsHeadline({ item, summary = false }: { item: FeedItem; summary?: boo
     <StoryMeta item={item} />
     <h3 className="newsroom-headline mt-1 text-lg leading-tight sm:text-xl"><Link href={'/updates/' + item.id} className="hover:text-primary hover:underline">{item.title}</Link></h3>
     {excerpt && <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{excerpt}</p>}
-    {summary && original && <a href={original.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="mt-1 inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Original source <ExternalLink className="h-3.5 w-3.5" /></a>}
+    <div className="mt-1 flex flex-wrap items-center gap-x-2">
+      {summary && original && <a href={original.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Original source <ExternalLink className="h-3.5 w-3.5" /></a>}
+      <CampusUpdateActions id={item.id} title={item.title} compact shareOnly />
+    </div>
   </article>;
 }

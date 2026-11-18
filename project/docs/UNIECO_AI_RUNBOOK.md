@@ -13,7 +13,9 @@ Open **Management → UniEco AI** as a super administrator.
 - **Review:** Verify the institution, article, dates and relevance, then approve
   with an audit note or reject it. Draft flyer previews are authenticated and
   watermarked. A published story can be unpublished with a reason.
-- **Flyers:** A published update has a shareable link and a portrait PNG. The
+- **Flyers:** A published update has a 1080 × 1350 photo-led flyer. **Share**
+  sends a JPEG file on compatible devices; **Download JPEG** and **Copy story
+  link** are separate fallbacks. The legacy PNG URL still works. The
   public **Campus briefing** groups approved items by school or all campuses and
   by time range. Choose **All updates** to include undated approved articles.
   Every numbered page can be printed or downloaded separately.
@@ -30,17 +32,42 @@ and the checked-in profile/branding source inventory. Each official news/notice
 page, advertised RSS/Atom feed and article is limited to its verified publisher.
 Verified pages can reveal their own article photos, direct videos or public
 embedded videos. UniEco links to the publisher on approved releases. Private
-photo previews use a bounded sanitized thumbnail; the app does not rehost an
-external publisher's media or play it automatically.
+photo previews use a bounded sanitized thumbnail. Flyers do not copy images
+from page metadata unless an exact image carries supported reuse terms.
 
 Connections use HTTPS with explicit host validation, pinned public DNS addresses,
 redirect checks, short timeouts, byte limits, and publisher crawl rules. HTML/XML
 are parsed as data, never executed. No external page can choose a tool or write to
 the app. A manual lead has a 30-minute proof bound to the signed-in super admin.
-Queued records are deduplicated and frozen; the scanner cannot approve or alter
-reviewed content. Public pages and flyer APIs read the approved-only view.
+Queued records are deduplicated; a narrow scheduled policy may approve verified
+routine stories on matching campus domains without overwriting rejected or
+reviewed records. Public pages and flyer APIs read the approved-only view.
 Do not add social feeds, arbitrary redirectors, or shared hosting domains to the
 research inventory without a defined source and publication policy.
+
+### Flyer photographs and portraits
+
+- For a matching official `.edu.gh` article, the flyer can use a same-host
+  Schema.org `ImageObject` declared in that article's `image` field. The exact
+  image must carry its own CC0 or CC BY 4.0 license URL and creator credit.
+  An ordinary photo in an article, Open Graph tag or search result does not
+  establish permission to redistribute it.
+- Up to two circles are shown only for a named, public-role `Person` explicitly
+  identified in the article's `about` or `mentions` relationship, named in its
+  title or excerpt, and accompanied by a credited, reusable portrait. The
+  article byline is never used as a subject, and the app doesn't search by face
+  or assume two people with a similar name are the same.
+- If reuse or identity cannot be confirmed, the flyer uses a clearly marked
+  context photo and leaves out the unverified portrait. Bundled fallback
+  credits: [Maxx Sas — Balme Library](https://www.pexels.com/photo/university-of-ghana-balme-library-in-accra-36079525/)
+  [Tanha Tamanna Syed — robotics workbench](https://www.pexels.com/photo/robotics-kit-components-on-a-workbench-35652403/),
+  [Tima Miroshnichenko — laboratory equipment](https://www.pexels.com/photo/close-up-photo-of-laboratory-apparatuses-5428263/),
+  and [mitbg000 — lecture room](https://www.pexels.com/photo/rows-of-desks-and-chairs-in-a-classroom-19199263/),
+  used as cropped context under the [Pexels License](https://www.pexels.com/license/).
+- Public renders use the same DNS-checked, robots-aware fetcher as research,
+  cap image size and dimensions, strip metadata, and degrade to bundled photos
+  if the publisher is unavailable. A released article must still exist in the
+  public view on every request. A file already downloaded cannot be recalled.
 
 ## Running and checking production
 

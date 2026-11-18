@@ -2,8 +2,10 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import sharp from 'sharp';
 import type { ReactNode } from 'react';
 import { oneLine, updateCategory, updateDate, updateSummary } from './update-copy';
+import { resolveFlyerVisual } from './flyer-media';
 
 export type FlyerItem = {
   id: string;
@@ -13,6 +15,8 @@ export type FlyerItem = {
   university_name: string;
   published_at: string | null;
   category: string;
+  source_id?: string;
+  canonical_url?: string;
 };
 
 export const flyerSize = { width: 1080, height: 1350 };
@@ -25,6 +29,17 @@ const fallbackSummary = 'Read the original publisher’s notice for details and 
 const row = { display: 'flex', flexDirection: 'row' as const };
 const col = { display: 'flex', flexDirection: 'column' as const };
 let logoPromise: Promise<string | null> | undefined;
+type FlyerFont = { name: string; weight: 400 | 700; data: ArrayBuffer };
+let fontsPromise: Promise<FlyerFont[]> | undefined;
+
+function flyerFonts() {
+  fontsPromise ??= Promise.all(([[400, 'Regular'], [700, 'Bold']] as const).map(async ([weight, variant]) => ({
+    name: 'Noto Sans',
+    weight,
+    data: new Uint8Array(await readFile(join(process.cwd(), 'public', 'assets', 'flyers', 'NotoSans-' + variant + '.ttf'))).buffer,
+  }))).catch(() => []);
+  return fontsPromise;
+}
 
 function logoData() {
   logoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-main-logo.png'))
@@ -73,33 +88,77 @@ async function renderLetter(content: ReactNode, serial: string, filename: string
   );
 }
 
-export function renderUpdateFlyer(data: FlyerItem, options: { draft?: boolean; download?: boolean } = {}) {
-  const title = oneLine(data.title, 180, 'Campus update');
-  const summary = updateSummary(data.excerpt, data.title, 305) || fallbackSummary;
-  const school = oneLine(data.university_name, 92, 'Ghana tertiary network');
-  const source = oneLine(data.source_label, 95, 'Original publisher');
-  return renderLetter(<div style={{ ...col, flex: 1, width: '100%', minHeight: 0 }}>
-    <div style={{ ...col, marginTop: 53, gap: 18, flex: 1 }}>
-      <div style={{ ...row, alignSelf: 'flex-start', background: '#dcefe1', borderRadius: 8, padding: '10px 15px' }}>
-        <span style={label}>{updateCategory(data.category).toUpperCase()}</span>
+export type UpdateFlyerOptions = { draft?: boolean; download?: boolean; format?: 'png' | 'jpeg' };
+
+export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOptions = {}) {
+  const [logo, visual, fonts] = await Promise.all([logoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
+  const title = oneLine(data.title, 220, 'Campus update');
+  const summary = updateSummary(data.excerpt, data.title, title.length > 150 ? 142 : 194);
+  const source = oneLine(data.source_label, 85, 'Original publisher');
+  const portraits = visual.portraits.slice(0, 2);
+  const requiresCreditLink = [visual.background, ...portraits].some((photo) => photo.attributionRequired);
+  const credits = [visual.background.credit, ...portraits.map((photo) => photo.credit)];
+  const dedupedCredits = Array.from(new Set(credits));
+  const format = options.format || 'png';
+  const filename = (options.draft ? 'unieco-draft-update' : 'unieco-campus-update') + (format === 'jpeg' ? '.jpg' : '.png');
+  const headers = {
+    'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    'Content-Disposition': (options.download ? 'attachment' : 'inline') + '; filename="' + filename + '"',
+    ...(options.draft ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
+  };
+
+  const card = new ImageResponse(
+    <div style={{ ...col, width: '100%', height: '100%', position: 'relative', fontFamily: 'Noto Sans', background: '#faf8f0', color: ink }}>
+      <div style={{ ...row, height: 704, width: '100%', position: 'relative', flexShrink: 0, background: '#12382d' }}>
+        <img src={visual.background.src} alt="" width={1080} height={704} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
+        <div style={{ ...row, position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', backgroundImage: 'linear-gradient(180deg, rgba(7,24,18,0.48) 0%, transparent 30%, transparent 65%, rgba(7,24,18,0.88) 100%)' }} />
+        <div style={{ ...row, alignItems: 'center', position: 'absolute', top: 38, left: 48, gap: 12, padding: '9px 20px 9px 10px', borderRadius: 13, background: '#fffdf7' }}>
+          {logo && <img src={logo} alt="" width={65} height={65} style={{ objectFit: 'contain' }} />}
+          <div style={{ ...col, gap: 3 }}>
+            <span style={{ color: ink, fontWeight: 900, fontSize: 28, lineHeight: 1.1 }}>UniEco Ghana</span>
+            <span style={{ ...label, fontSize: 13 }}>CAMPUS NEWS DESK</span>
+          </div>
+        </div>
+        {options.draft && <span style={{ position: 'absolute', right: 48, top: 48, padding: '10px 14px', background: '#9b2e22', color: '#fff', fontWeight: 800, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
+        <span style={{ position: 'absolute', bottom: 27, left: 50, background: 'rgba(8,30,22,0.88)', padding: '9px 14px', borderRadius: 4, color: '#fffaf0', fontSize: 18, fontWeight: 700 }}>
+          {visual.background.description}
+        </span>
+        {portraits.length > 0 && <div style={{ ...row, position: 'absolute', right: 48, bottom: 23, gap: 15, alignItems: 'flex-end' }}>
+          {portraits.map((portrait) => <div key={portrait.name} style={{ ...col, width: 188, alignItems: 'center', gap: 7 }}>
+            <div style={{ ...row, width: 154, height: 154, borderRadius: 77, overflow: 'hidden', border: '6px solid #fffdf7', background: '#e9eee4' }}>
+              <img src={portrait.src} alt="" width={142} height={142} style={{ objectFit: 'cover' }} />
+            </div>
+            <span style={{ fontSize: 17, fontWeight: 800, color: '#fffdf7', textAlign: 'center', padding: '4px 10px', background: '#0d3025', borderRadius: 5 }}>{portrait.name}</span>
+          </div>)}
+        </div>}
       </div>
-      <span style={{ fontSize: 22, lineHeight: 1.2, color: green, fontWeight: 700 }}>{school}</span>
-      <div style={{ ...col, padding: '4px 0 8px 23px', borderLeft: '6px solid #d9ad43', gap: 24 }}>
-        <span style={{ fontSize: title.length > 131 ? 53 : title.length > 76 ? 61 : 74, letterSpacing: -2, lineHeight: 1.08, fontWeight: 800, wordBreak: 'break-word' }}>{title}</span>
-        <span style={{ color: subtle, fontSize: 31, lineHeight: 1.34 }}>{summary}</span>
+      <div style={{ ...row, width: '100%', height: 7, flexShrink: 0 }}>
+        <div style={{ width: '33%', background: '#ad2635' }} /><div style={{ width: '34%', background: '#e9b843' }} /><div style={{ width: '33%', background: '#087450' }} />
       </div>
-      <div style={{ ...col, marginTop: 22, padding: '21px 25px', gap: 8, background: '#eef2e7', borderRadius: 14 }}>
-        <span style={label}>ORIGINAL PUBLISHER</span>
-        <span style={{ fontSize: 25, fontWeight: 700, lineHeight: 1.18 }}>{source}</span>
-        <span style={{ fontSize: 20, color: subtle }}>{updateDate(data.published_at)}</span>
+      <div style={{ ...col, width: '100%', padding: '25px 50px 0', gap: 15 }}>
+        <div style={{ ...row, alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+          <span style={{ padding: '8px 15px', fontSize: 17, fontWeight: 800, letterSpacing: 2, color: '#fffdf4', background: '#09583f' }}>{updateCategory(data.category).toUpperCase()}</span>
+          {data.published_at && <span style={{ color: green, fontSize: 20, fontWeight: 800 }}>{updateDate(data.published_at).toUpperCase()}</span>}
+        </div>
+        <span style={{ fontSize: title.length > 168 ? 45 : title.length > 115 ? 51 : title.length > 74 ? 58 : 67, fontWeight: 900, lineHeight: 1.03, letterSpacing: -1.6, wordBreak: 'break-word' }}>{title}</span>
+        {summary && <span style={{ fontSize: title.length > 150 ? 25 : 28, color: subtle, lineHeight: 1.22, wordBreak: 'break-word' }}>{summary}</span>}
+        <span style={{ color: green, fontSize: 21, fontWeight: 800 }}>Source: {source}</span>
       </div>
-    </div>
-    <div style={{ ...col, borderTop: '2px solid ' + line, paddingTop: 22, gap: 9 }}>
-      <span style={{ fontSize: 20, fontWeight: 700, color: green, letterSpacing: 0.5 }}>{options.draft ? 'FOR MANAGEMENT REVIEW ONLY' : 'READ THE UPDATE ON UNIECO'}</span>
-      <span style={{ fontSize: 18, color: ink }}>{options.draft ? 'Verify the original source and dates before sharing.' : 'uniecoghana.com/updates/' + data.id}</span>
-      <span style={{ fontSize: 16, color: subtle }}>UniEco Ghana is an independent publisher. Consult the named source for full details.</span>
-    </div>
-  </div>, options.draft ? 'Editorial preview' : 'Campus update', options.draft ? 'unieco-draft-update.png' : 'unieco-campus-update.png', options);
+      <div style={{ ...col, position: 'absolute', width: 980, left: 50, bottom: 24, borderTop: '2px solid ' + line, paddingTop: 9, gap: 6 }}>
+        <div style={{ ...row, justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 16, color: green, fontWeight: 900, letterSpacing: 1 }}>{options.draft ? 'FOR MANAGEMENT REVIEW ONLY' : 'UNIECO GHANA · CAMPUS UPDATES'}</span>
+          {!options.draft && <span style={{ fontSize: 15, color: ink }}>uniecoghana.com/updates/{data.id}</span>}
+        </div>
+        {dedupedCredits.map((credit, index) => <span key={credit} style={{ fontSize: 15, color: subtle }}>{index ? 'Portrait: ' : 'Photo: '}{credit}</span>)}
+        {requiresCreditLink && <span style={{ fontSize: 14, color: subtle }}>Photos cropped · creativecommons.org/licenses/by/4.0 · Source details on UniEco</span>}
+        <span style={{ fontSize: 14, color: subtle }}>UniEco Ghana is an independent publisher. See the original source for full details.</span>
+      </div>
+    </div>, { ...flyerSize, headers, ...(fonts.length ? { fonts } : {}) },
+  );
+  if (format === 'png') return card;
+  const bytes = await sharp(Buffer.from(await card.arrayBuffer()), { limitInputPixels: 1_500_000 })
+    .flatten({ background: '#faf8f0' }).jpeg({ quality: 89, mozjpeg: true }).toBuffer();
+  return new Response(new Uint8Array(bytes), { headers: { ...headers, 'Content-Type': 'image/jpeg' } });
 }
 
 export function renderBulletinFlyer(data: { items: FlyerItem[]; heading: string; period: string; page: number; pages: number; link: string }, download = false) {

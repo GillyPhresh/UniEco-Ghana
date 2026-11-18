@@ -13,7 +13,7 @@ const item = {
   published_at: '2026-11-11T11:00:00Z', category: 'news',
 };
 
-async function checkPng(response) {
+async function checkPng(response, letterhead = false) {
   assert.equal(response.headers.get('content-type'), 'image/png');
   assert.equal(response.headers.get('cache-control'), 'no-store');
   const png = Buffer.from(await response.arrayBuffer());
@@ -21,6 +21,11 @@ async function checkPng(response) {
   assert.equal(png.readUInt32BE(16), 1080);
   assert.equal(png.readUInt32BE(20), 1350);
   assert.ok(png.length > 15_000);
+  if (!letterhead) {
+    const photo = await sharp(png).extract({ left: 96, top: 145, width: 865, height: 420 }).stats();
+    assert.ok(photo.channels.slice(0, 3).every((channel) => channel.stdev > 24), 'lead region contains a photograph, not a blank placeholder');
+    return;
+  }
   const footer = await sharp(png).extract({ left: 400, top: 1130, width: 400, height: 100 }).removeAlpha().raw().toBuffer();
   let linePixels = 0;
   for (let i = 0; i < footer.length; i += 3) {
@@ -41,13 +46,23 @@ test('draft flyer does not produce a cacheable or indexable public asset', async
   await checkPng(response);
 });
 
+test('JPEG sharing exports a real, compact portrait-format file', async () => {
+  const response = await renderUpdateFlyer({ ...item, title: 'Academic City Robotics Club wins Engineers League at 2026 Ghana Robotics Competition' }, { format: 'jpeg', download: true });
+  assert.equal(response.headers.get('content-type'), 'image/jpeg');
+  assert.match(response.headers.get('content-disposition'), /^attachment; filename="unieco-campus-update\.jpg"/);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  const meta = await sharp(bytes).metadata();
+  assert.deepEqual([meta.format, meta.width, meta.height], ['jpeg', 1080, 1350]);
+  assert.ok(bytes.length > 25_000 && bytes.length < 1_200_000);
+});
+
 test('briefing renders a numbered page with multiple source-attributed updates', async () => {
   const response = await renderBulletinFlyer({
     items: [item, { ...item, id: 'item-2' }, { ...item, id: 'item-3' }],
     heading: 'Campus network', period: 'Last 30 days', page: 2, pages: 3, link: 'uniecoghana.com/updates/bulletin',
   }, true);
   assert.match(response.headers.get('content-disposition'), /briefing-2[.]png/);
-  await checkPng(response);
+  await checkPng(response, true);
 });
 
 test('strips duplicated headline, publisher contact, and publication metadata from short summaries', () => {

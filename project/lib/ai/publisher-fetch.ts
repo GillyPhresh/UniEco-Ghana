@@ -59,7 +59,7 @@ type FetchOptions = {
   allowsPath?: (url: URL) => boolean;
 };
 
-export type PublisherDocument = { url: string; mime: string; bytes: Buffer; indexable: boolean };
+export type PublisherDocument = { url: string; mime: string; bytes: Buffer; indexable: boolean; imagesAllowed?: boolean };
 
 /** Approved hosts only, including every redirect. HTTPS validates TLS for the original host,
  * while the socket uses the exact IP already checked (no second DNS lookup). */
@@ -112,6 +112,7 @@ export async function fetchPublisher(value: string, hosts: readonly string[], op
         res.once('end', () => resolve({
           url: url.href, mime, bytes: Buffer.concat(chunks, size),
           indexable: !/\b(?:noindex|nosnippet|none)\b/i.test(String(res.headers['x-robots-tag'] || '')),
+          imagesAllowed: !/\b(?:noimageindex|noindex|nosnippet|none)\b|\bmax-snippet\s*:/i.test(String(res.headers['x-robots-tag'] || '')),
         }));
         res.on('data', (chunk: Buffer) => {
           size += chunk.length;

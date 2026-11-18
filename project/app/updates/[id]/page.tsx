@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const item = await getUpdate(id);
   if (!item) return { title: 'Campus update not found', robots: { index: false, follow: false } };
   const url = `${siteConfig.url}/updates/${item.id}`;
-  const image = `${siteConfig.url}/api/campus-feed/alert-card?id=${encodeURIComponent(item.id)}`;
+  const image = `${siteConfig.url}/api/campus-feed/alert-card?id=${encodeURIComponent(item.id)}&format=jpeg`;
   const description = updateSummary(item.excerpt, item.title, 180) || `A source-linked campus update from ${item.university_name}.`;
   return {
     title: `${item.title} | ${item.university_name}`,
@@ -78,7 +78,7 @@ export default async function CampusUpdateDetailPage({ params }: Props) {
           <CampusUpdateMedia url={item.media_url} kind={item.media_type} publisher={item.source_label} sourceUrl={item.canonical_url} />
           {source && <div><Button asChild className="h-11"><a href={source.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Read the original update <ExternalLink className="ml-2 h-4 w-4" /></a></Button></div>}
           <div className="flex flex-col gap-3 border-t border-border pt-3">
-            <CampusUpdateActions id={item.id} title={item.title} excerpt={excerpt} sourceLabel={item.source_label} universityName={item.university_name} imageShare />
+            <CampusUpdateActions id={item.id} title={item.title} preload />
             <p className="text-sm text-muted-foreground">UniEco publishes independent summaries. Confirm requirements, deadlines, and changes with the original publisher.</p>
           </div>
         </div>
