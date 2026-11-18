@@ -38,9 +38,14 @@ export function CampusNearbyDiscovery({ campus }: { campus: string }) {
     try {
       const params = new URLSearchParams({ q: query, campus });
       const response = await fetch(`/api/maps/open-places/search?${params}`, { cache: 'no-store' });
-      const payload = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().includes('application/json')) {
+        throw new Error('Nearby places are temporarily unavailable. Please try again.');
+      }
+      const payload: { error?: string; places?: NearbyPlace[]; campusAddress?: string } = await response.json();
       if (!response.ok) throw new Error(payload.error || 'Nearby search is temporarily unavailable.');
-      setPlaces(Array.isArray(payload.places) ? payload.places : []);
+      if (!Array.isArray(payload.places)) throw new Error('Nearby places returned an unexpected response. Please try again.');
+      setPlaces(payload.places);
       setCampusAddress(typeof payload.campusAddress === 'string' ? payload.campusAddress : '');
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Nearby search is temporarily unavailable.');
