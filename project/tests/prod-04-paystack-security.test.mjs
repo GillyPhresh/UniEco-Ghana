@@ -15,8 +15,10 @@ test('Paystack initialization is server-only, GHS-only, and guarded by explicit 
   assert.match(adapter, /key\.startsWith\('sk_test_'/);
   assert.match(adapter, /currency: 'GHS'/);
   assert.match(adapter, /Math\.round\(input\.amountGhs \* 100\)/);
-  assert.match(route, /create_subscription_payment_intent/);
-  assert.match(route, /p_auto_renew: body\.autoRenew === true/);
+  const subscriptions = await read('lib/payments/vendor-subscription.server.ts');
+  assert.match(route, /initializeVendorSubscription/);
+  assert.match(subscriptions, /create_subscription_payment_intent/);
+  assert.match(subscriptions, /p_auto_renew: false/);
   assert.match(route, /create_marketplace_payment_intent/);
   assert.match(route, /record_paystack_checkout_initialized/);
   assert.doesNotMatch(route, /NEXT_PUBLIC_PAYSTACK_SECRET/);

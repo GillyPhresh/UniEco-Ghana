@@ -7,6 +7,7 @@ import { Loader2, CheckCircle2, Clock3, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
 import { safeInternalPath, withNext } from '@/lib/auth/redirects';
+import { vendorSubscriptionPath } from '@/lib/payments/vendor-subscription';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -20,6 +21,7 @@ export default function PaymentCallbackPage() {
 function PaymentCallbackContent() {
   const params = useSearchParams();
   const reference = params.get('reference') || params.get('trxref');
+  const vendorPayment = (result: Payment | null) => result?.payment_type === 'subscription' || (!result?.payment_type && params.get('flow') === 'subscription');
   const [payment, setPayment] = useState<Payment | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
@@ -29,7 +31,7 @@ function PaymentCallbackContent() {
     setRegistrationNext(safeInternalPath(window.sessionStorage.getItem('unieco_registration_next')));
   }, []);
   useEffect(() => {
-    if (!reference) { setError('No payment reference was provided.'); return; }
+    if (!reference) { setError('No payment reference was provided.'); setChecking(false); return; }
     setError(null);
     setChecking(true);
     let cancelled = false;
@@ -86,20 +88,21 @@ function PaymentCallbackContent() {
   const canRetryPayment = ['failed', 'cancelled', 'abandoned'].includes(payment?.status || '');
   const needsSupport = ['reconciliation_required', 'refunded', 'partially_refunded'].includes(payment?.status || '');
   const failed = canRetryPayment || needsSupport;
+  const isVendorPayment = vendorPayment(payment);
   const successHref = payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration'
     ? withNext('/onboarding/complete?registration=paid', registrationNext)
-    : '/dashboard/payment-history';
+    : isVendorPayment ? vendorSubscriptionPath : '/dashboard/payment-history';
   const registrationHref = payment?.payment_type === 'student_registration'
     ? withNext('/onboarding/student?payment_required=1', registrationNext)
     : payment?.payment_type === 'vendor_registration'
       ? withNext('/onboarding/vendor?payment_required=1', registrationNext)
-      : '/dashboard/payment-history';
-  const actionHref = needsSupport ? 'mailto:support@uniecoghana.com' : successful ? successHref : canRetryPayment ? registrationHref : '/dashboard/payment-history';
+      : isVendorPayment ? vendorSubscriptionPath : '/dashboard/payment-history';
+  const actionHref = needsSupport ? 'mailto:support@uniecoghana.com' : successful ? successHref : canRetryPayment ? registrationHref : isVendorPayment ? vendorSubscriptionPath : '/dashboard/payment-history';
   const actionLabel = successful && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')
     ? 'Continue to UniEco'
     : needsSupport ? 'Contact support' : canRetryPayment && (payment?.payment_type === 'student_registration' || payment?.payment_type === 'vendor_registration')
       ? 'Try payment again'
-      : 'View payment history';
+      : isVendorPayment ? 'Back to vendor subscription' : 'View payment history';
   return <main className="mx-auto flex min-h-[70vh] max-w-xl items-center px-4"><section className="w-full rounded-2xl border bg-card p-7 text-center shadow-sm">
     {!payment && !error && <><Loader2 className="mx-auto h-10 w-10 animate-spin text-primary" /><h1 className="mt-4 text-xl font-bold">Checking your payment</h1><p className="mt-2 text-sm text-muted-foreground">We are waiting for Paystack’s verified result.</p></>}
     {payment && <>{successful ? <CheckCircle2 className="mx-auto h-11 w-11 text-success" /> : failed ? <XCircle className="mx-auto h-11 w-11 text-destructive" /> : <Clock3 className="mx-auto h-11 w-11 text-warning" />}<h1 className="mt-4 text-xl font-bold">{successful ? 'Payment confirmed' : failed ? 'Payment needs attention' : 'Payment is pending'}</h1><p className="mt-2 text-sm text-muted-foreground">{successful ? 'Paystack confirmed your payment.' : needsSupport ? 'Contact support about this payment before trying again.' : canRetryPayment ? 'This attempt did not complete.' : 'If you chose Mobile Money, approve the prompt on your phone. Don’t pay again while this payment is pending.'}</p><p className="mt-4 font-medium">{payment.currency} {Number(payment.amount).toFixed(2)}</p></>}
@@ -107,7 +110,7 @@ function PaymentCallbackContent() {
     <div className="mt-6 flex flex-wrap justify-center gap-2">
       {reference && !checking && !successful && !failed && <Button type="button" onClick={() => setRetry((value) => value + 1)}>Check payment again</Button>}
       <Button asChild variant={!successful && !failed ? 'outline' : 'default'}><Link href={actionHref}>{actionLabel}</Link></Button>
-      {successful && <Button asChild variant="outline"><Link prefetch={false} href="/dashboard/transactions?show=receipts">View receipts</Link></Button>}
+      {successful && <Button asChild variant="outline"><Link prefetch={false} href={isVendorPayment ? '/vendor-dashboard/invoices' : '/dashboard/transactions?show=receipts'}>{isVendorPayment ? 'View invoices' : 'View receipts'}</Link></Button>}
     </div>
   </section></main>;
 }

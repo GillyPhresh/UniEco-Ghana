@@ -7,13 +7,15 @@ import { reconcilePaystackPayment } from '@/lib/payments/paystack-reconciliation
 import { siteConfig } from '@/lib/constants/site';
 import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-limited';
 import { canInitializePaystack, parseRegistrationAccess, type PaystackPurpose } from '@/lib/auth/registration-access';
+import { vendorSubscriptionIdPattern } from '@/lib/payments/vendor-subscription';
+import { billingJson, initializeVendorSubscription } from '@/lib/payments/vendor-subscription.server';
 
 export const dynamic = 'force-dynamic';
 
 type RequestBody = {
   purpose?: PaystackPurpose;
   vendorId?: string; orderId?: string; idempotencyKey?: string;
-  autoRenew?: boolean;
+  acceptedPrice?: number; checkoutVersion?: string | null;
   mobileMoney?: { phone?: string; provider?: PaystackMobileMoneyProvider };
   registration?: { universityId?: string; phone?: string; studentIdNumber?: string; program?: string; faculty?: string; department?: string; level?: string; admissionYear?: number; graduationYear?: number | null; studentDocumentPath?: string | null; referralCode?: string | null };
 };
@@ -38,6 +40,15 @@ export async function POST(request: NextRequest) {
     if (typeof body?.idempotencyKey !== 'string' || !/^[A-Za-z0-9._=-]{8,120}$/.test(body.idempotencyKey)) return NextResponse.json({ error: 'A valid idempotency key is required.' }, { status: 400 });
     if (!body.purpose || !['subscription', 'marketplace', 'student_registration', 'vendor_registration'].includes(body.purpose)) {
       return NextResponse.json({ error: 'Unsupported payment purpose.' }, { status: 400 });
+    }
+    if (body.purpose === 'subscription') {
+      const origin = request.headers.get('origin');
+      const fetchSite = request.headers.get('sec-fetch-site');
+      if ((fetchSite && fetchSite !== 'same-origin') ||
+          (origin && origin !== new URL(request.url).origin && origin !== registrationCheckoutOrigin(request.url)) ||
+          request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
+        return billingJson({ error: 'Open your vendor subscription page to continue.' }, 403);
+      }
     }
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -67,6 +78,22 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
+    if (body.purpose === 'subscription') {
+      if (typeof body.vendorId !== 'string' || !vendorSubscriptionIdPattern.test(body.vendorId) || body.mobileMoney ||
+          (body.checkoutVersion !== null && (typeof body.checkoutVersion !== 'string' || !vendorSubscriptionIdPattern.test(body.checkoutVersion)))) {
+        return billingJson({ error: 'Open your vendor subscription page to review the payment first.' }, 400);
+      }
+      try {
+        return await initializeVendorSubscription({
+          admin, caller: rpcClient, vendorId: body.vendorId, actor: { id: user.id, email: user.email, role: access.role },
+          acceptedPrice: body.acceptedPrice, checkoutVersion: body.checkoutVersion, requestUrl: request.url,
+        });
+      } catch (error) {
+        const code = error instanceof PaystackCheckoutError ? error.code : 'billing_error';
+        console.error('[vendor-subscription-checkout] failed', { code });
+        return billingJson({ error: 'Checkout could not open. Refresh billing to check for a pending payment before trying again.' }, code === 'timeout' ? 504 : 503);
+      }
+    }
     let studentRegistration = body.registration;
     if (body.purpose === 'student_registration' && studentRegistration && !studentRegistration.referralCode) {
       // A referral is part of the original registration record. On a resume,
@@ -203,10 +230,7 @@ export async function POST(request: NextRequest) {
 
     let intent: unknown;
     let intentError: { code?: string; message: string } | null = null;
-    if (body.purpose === 'subscription' && body.vendorId) {
-      const result = await rpcClient.rpc('create_subscription_payment_intent', { p_vendor_id: body.vendorId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_auto_renew: body.autoRenew === true, p_idempotency_key: body.idempotencyKey });
-      intent = result.data; intentError = result.error;
-    } else if (body.purpose === 'marketplace' && body.orderId) {
+    if (body.purpose === 'marketplace' && body.orderId) {
       const result = await rpcClient.rpc('create_marketplace_payment_intent', { p_order_id: body.orderId, p_provider: 'paystack', p_mobile_number: null, p_mobile_network: null, p_idempotency_key: body.idempotencyKey });
       intent = result.data; intentError = result.error;
     } else if (body.purpose === 'student_registration' && studentRegistration) {

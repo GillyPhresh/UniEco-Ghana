@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
-      .select('payment_reference,status,provider')
+      .select('payment_reference,status,provider,payment_type,amount,currency,failure_reason,updated_at')
       .eq('payment_reference', reference)
       .eq('user_id', user.id)
       .maybeSingle();

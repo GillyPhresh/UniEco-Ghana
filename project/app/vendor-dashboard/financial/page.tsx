@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getVendorFinancialSummary } from '@/lib/data/payment-client';
 import type { VendorFinancialSummary } from '@/lib/types/payment';
 import { PAYMENT_STATUSES } from '@/lib/types/payment';
+import { vendorSubscriptionCoverage, vendorSubscriptionPlans } from '@/lib/payments/vendor-subscription';
 import { Wallet, TrendingUp, Calendar, CreditCard, Clock, CheckCircle } from 'lucide-react';
 
 export default function VendorFinancialDashboardPage() {
@@ -65,7 +66,9 @@ function Content() {
   }
 
   const sub = summary?.subscription;
-  const isSubActive = sub?.status === 'active';
+  const coverage = vendorSubscriptionCoverage(sub?.status ?? null, sub?.ends_at ?? null);
+  const isSubActive = coverage === 'active';
+  const planName = sub?.plan === 'student_vendor' || sub?.plan === 'external_vendor' ? vendorSubscriptionPlans[sub.plan].name : 'No paid plan';
 
   return (
     <VendorDashboardLayout vendorName={vendor.business_name || ''} isVerified={vendor.is_verified || false} subscriptionStatus={sub?.status || 'none'}>
@@ -93,7 +96,7 @@ function Content() {
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                 <CreditCard className="h-4 w-4 text-primary" />
               </div>
-              <p className="mt-3 text-2xl font-bold text-foreground capitalize">{sub?.plan || 'Free'}</p>
+              <p className="mt-3 text-2xl font-bold text-foreground">{planName}</p>
               <p className="text-xs text-muted-foreground">Current Plan</p>
             </CardContent>
           </Card>
@@ -129,24 +132,17 @@ function Content() {
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-foreground capitalize">{sub.plan.replace('_', ' ')}</span>
-                    <Badge className={isSubActive ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'}>{sub.status}</Badge>
-                    {sub.auto_renew && <Badge variant="outline" className="text-xs">Auto-renew</Badge>}
+                    <span className="text-sm font-medium text-foreground">{planName}</span>
+                    <Badge className={isSubActive ? 'bg-success/10 text-success' : 'bg-muted text-muted-foreground'}>{coverage === 'none' ? 'Not active' : coverage}</Badge>
                   </div>
                   {sub.ends_at && (
                     <p className="text-xs text-muted-foreground">
                       {isSubActive
-                        ? `Renews on ${new Date(sub.ends_at).toLocaleDateString('en-GH')}`
-                        : `Expired on ${new Date(sub.ends_at).toLocaleDateString('en-GH')}`}
+                        ? `Paid access until ${new Date(sub.ends_at).toLocaleDateString('en-GH', { timeZone: 'Africa/Accra' })}`
+                        : `Previous coverage: ${new Date(sub.ends_at).toLocaleDateString('en-GH', { timeZone: 'Africa/Accra' })}`}
                     </p>
                   )}
                 </div>
-                {summary?.upcomingRenewalDate && (
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Next billing</p>
-                    <p className="text-sm font-medium text-foreground">{new Date(summary.upcomingRenewalDate).toLocaleDateString('en-GH')}</p>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
