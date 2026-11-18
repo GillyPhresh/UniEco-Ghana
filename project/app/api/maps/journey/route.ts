@@ -4,6 +4,8 @@ import { readJsonLimited, RequestBodyTooLargeError } from '@/lib/http/read-json-
 import { journeyModes, MAX_ROUTE_RESPONSE_BYTES, parseJourneyRequest, parseValhallaRoute } from '@/lib/campus-mate/journey';
 import { getCampusRoutingEndpoint } from '@/lib/campus-mate/routing-config.server';
 import { siteConfig } from '@/lib/constants/site';
+import { createClient as createTokenClient } from '@supabase/supabase-js';
+import { getSupabaseConfig } from '@/lib/supabase/config';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +13,34 @@ const cacheHeaders = { 'Cache-Control': 'private, no-store, max-age=0', 'X-Robot
 const bursts = new Map<string, { expires: number; count: number }>();
 const WINDOW_MS = 60_000;
 let inFlight = 0;
+
+async function routingCaller(request: NextRequest) {
+  const cookieClient = await createClient();
+  const token = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  const supabase = token ? (() => {
+    const { url, anonKey } = getSupabaseConfig();
+    return createTokenClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: 'Bearer ' + token } },
+    });
+  })() : cookieClient;
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return { error: fail(401, 'Sign in to plan your trip.') };
+  const endpoint = getCampusRoutingEndpoint();
+  if (!endpoint) return { error: fail(503, 'In-app routing is unavailable. Open Google Maps for directions.') };
+  if (endpoint.protocol === 'http:') {
+    const { data: role, error: roleError } = await supabase.rpc('current_app_role');
+    if (roleError) return { error: fail(503, 'We couldn’t check pilot access. Refresh and try again.') };
+    if (role !== 'super_admin') return { error: fail(403, 'Real routes are in a super-admin pilot. Open Google Maps for directions.') };
+  }
+  return { user, endpoint };
+}
+
+export async function GET(request: NextRequest) {
+  const caller = await routingCaller(request);
+  if (caller.error) return caller.error;
+  return NextResponse.json({ enabled: true, pilot: caller.endpoint.protocol === 'http:' }, { headers: cacheHeaders });
+}
 
 function fail(status: number, error: string, retryAfter?: string) {
   return NextResponse.json({ error }, { status, headers: retryAfter ? { ...cacheHeaders, 'Retry-After': retryAfter } : cacheHeaders });
@@ -40,16 +70,9 @@ export async function POST(request: NextRequest) {
   if (request.headers.get('content-type')?.split(';')[0].trim().toLowerCase() !== 'application/json') {
     return fail(415, 'Route requests must use JSON.');
   }
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return fail(401, 'Sign in to plan your trip.');
-
-  const endpoint = getCampusRoutingEndpoint();
-  if (!endpoint) return fail(503, 'In-app route previews aren’t enabled yet. You can still open directions.');
-  if (endpoint.protocol === 'http:') {
-    const { data: role, error: roleError } = await supabase.rpc('current_app_role');
-    if (roleError || role !== 'super_admin') return fail(403, 'In-app route previews aren’t available yet. You can still open directions.');
-  }
+  const caller = await routingCaller(request);
+  if (caller.error) return caller.error;
+  const { user, endpoint } = caller;
   if (inFlight >= 3 || !reserve(user.id)) return fail(429, 'Too many route requests. Wait a moment and try again.', '30');
   let input;
   try {

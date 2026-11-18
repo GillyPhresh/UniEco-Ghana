@@ -147,7 +147,7 @@ test('the private pilot rejects members and role errors before contacting the ro
   try {
     assert.equal((await api.POST(request())).status, 403);
     role = 'super_admin'; roleError = true;
-    assert.equal((await api.POST(request())).status, 403);
+    assert.equal((await api.POST(request())).status, 503);
     assert.equal(upstreamCalls, 0);
     roleError = false;
     assert.equal((await api.POST(request())).status, 200);
@@ -157,6 +157,40 @@ test('the private pilot rejects members and role errors before contacting the ro
     if (originalToken === undefined) delete process.env.CAMPUS_MATE_VALHALLA_TOKEN;
     else process.env.CAMPUS_MATE_VALHALLA_TOKEN = originalToken;
   }
+});
+
+test('route access revalidates the browser token and its role without sending a route request', async () => {
+  let role = 'student';
+  let valid = true;
+  let tokenCalls = 0;
+  const api = testModules({
+    '@/lib/supabase/server': { createClient: async () => ({ auth: { getUser: async () => { throw Error('must use token-scoped client'); } } }) },
+    '@/lib/supabase/config': { getSupabaseConfig: () => ({ url: 'https://fixture.supabase.co', anonKey: 'anon-read' }) },
+    '@supabase/supabase-js': { createClient: (url, key, config) => {
+      assert.equal(url, 'https://fixture.supabase.co');
+      assert.equal(key, 'anon-read');
+      assert.equal(config.global.headers.Authorization, 'Bearer browser-test-session');
+      tokenCalls++;
+      return { auth: { getUser: async jwt => {
+        assert.equal(jwt, 'browser-test-session');
+        return { data: { user: valid ? { id: 'caller' } : null } };
+      } },
+        rpc: async name => { assert.equal(name, 'current_app_role'); return { data: role }; } };
+    } },
+    '@/lib/campus-mate/routing-config.server': { getCampusRoutingEndpoint: () => new URL(privatePilotUrl) },
+  })('app/api/maps/journey/route.ts');
+  const request = () => new Request('https://www.uniecoghana.com/api/maps/journey', { headers: { Authorization: 'Bearer browser-test-session' } });
+  assert.equal((await api.GET(request())).status, 403);
+  role = 'super_admin';
+  const response = await api.GET(request());
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('cache-control'), /private, no-store/);
+  const body = await response.json();
+  assert.deepEqual(body, { enabled: true, pilot: true });
+  assert.doesNotMatch(JSON.stringify(body), /railway|token|caller/);
+  valid = false;
+  assert.equal((await api.GET(request())).status, 401);
+  assert.equal(tokenCalls, 3);
 });
 
 test('item-to-store navigation and route animation do not expose private place coordinates', async () => {
