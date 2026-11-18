@@ -1,0 +1,28 @@
+.strideA,
+.strideB {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .moving .strideA {
+    animation: stride 660ms ease-in-out infinite alternate;
+  }
+  .moving .strideB {
+    animation: stride 660ms ease-in-out infinite alternate-reverse;
+  }
+  .moving .wheel {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: spin 440ms linear infinite;
+  }
+}
+
+@keyframes stride {
+  from { transform: rotate(-13deg); }
+  to { transform: rotate(17deg); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

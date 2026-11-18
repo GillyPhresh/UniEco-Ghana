@@ -160,9 +160,9 @@ export async function getFeaturedVendors(limit = 8) {
   return (data || []) as unknown as VendorWithRelations[];
 }
 
-export async function getVendorsByUniversity(universityId: string, limit = 20) {
+export async function getVendorsByUniversity(universityId: string, limit = 20, vendorId?: string) {
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from('vendors')
     .select(`
       *,
@@ -170,7 +170,9 @@ export async function getVendorsByUniversity(universityId: string, limit = 20) {
       location:locations!locations_owner_id_fkey(label, address_line, city, latitude, longitude)
     `)
     .eq('is_active', true)
-    .eq('university_id', universityId)
+    .eq('university_id', universityId);
+  if (vendorId) query = query.eq('id', vendorId);
+  const { data } = await query
     .order('rating_avg', { ascending: false })
     .limit(limit);
   return (data || []) as unknown as VendorWithRelations[];

@@ -28,9 +28,16 @@ import type { Product, Review } from '@/lib/types';
 import { trackAnalyticsEvent } from '@/lib/data/analytics-client';
 import {
   ShoppingCart, Heart, Share2, MessageSquare, Store, Package,
-  ArrowLeft, Check, AlertCircle, Truck,
+  ArrowLeft, Check, AlertCircle, Truck, Navigation,
 } from 'lucide-react';
 import { toast } from 'sonner';
+
+type ProductVendor = {
+  id: string; owner_id: string; is_temporarily_closed: boolean; business_name: string; business_slug: string;
+  logo_url: string | null; is_verified: boolean; delivery_available: boolean;
+  location_public_visibility: string | null; location_verification_status: string | null;
+  university: { slug: string } | { slug: string }[] | null;
+};
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -52,7 +59,13 @@ function ProductDetailContent({ productId }: { productId: string }) {
   const userId = user?.id;
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
-  const [vendor, setVendor] = useState<{ id: string; owner_id: string; is_temporarily_closed: boolean; business_name: string; business_slug: string; logo_url: string | null; is_verified: boolean; delivery_available: boolean } | null>(null);
+  const [vendor, setVendor] = useState<ProductVendor | null>(null);
+  const storeUniversity = vendor?.university;
+  const storeCampus = Array.isArray(storeUniversity) ? storeUniversity[0]?.slug : storeUniversity?.slug;
+  const storeJourney = vendor && storeCampus && vendor.location_public_visibility === 'business_location'
+    && vendor.location_verification_status === 'verified'
+    ? `/campus-mate?campus=${encodeURIComponent(storeCampus)}&place=${encodeURIComponent(vendor.id)}#campus-journey`
+    : null;
   const [similar, setSimilar] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [inWishlist, setInWishlist] = useState(false);
@@ -79,7 +92,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
 
       const { data: business } = await supabase
         .from('businesses')
-        .select('vendor:vendors(id, owner_id, is_temporarily_closed, business_name, business_slug, logo_url, is_verified, delivery_available)')
+        .select('vendor:vendors(id, owner_id, is_temporarily_closed, business_name, business_slug, logo_url, is_verified, delivery_available, location_public_visibility, location_verification_status, university:universities(slug))')
         .eq('id', p.business_id)
         .maybeSingle();
       if (requestId !== loadRequestId.current) return;
@@ -238,6 +251,9 @@ function ProductDetailContent({ productId }: { productId: string }) {
             </Link>
           )}
 
+          {storeJourney && <Link href={storeJourney} className="mb-3 inline-flex min-h-11 items-center gap-2 self-start rounded-xl border border-primary/30 bg-primary/5 px-3 text-sm font-semibold text-primary hover:bg-primary/10">
+            <Navigation className="h-4 w-4" aria-hidden="true" /> Plan a trip to this store
+          </Link>}
           <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{product.name}</h1>
 
           {/* Tags */}

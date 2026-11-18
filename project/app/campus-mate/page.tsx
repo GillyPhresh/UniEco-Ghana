@@ -5,6 +5,7 @@ import { getUpcomingCampusEvents, getUniversities, getVendorsByUniversity } from
 import { presentCampus } from '@/lib/data/campus-presentation';
 import { secureCampusPhoto } from '@/lib/campus-mate/categories';
 import { createClient } from '@/lib/supabase/server';
+import { getCampusRoutingEndpoint } from '@/lib/campus-mate/routing-config.server';
 
 export const metadata: Metadata = {
   title: 'Campus Mate — Find your way around campus',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 type CampusMatePageProps = {
-  searchParams?: Promise<{ campus?: string | string[] }>;
+  searchParams?: Promise<{ campus?: string | string[]; place?: string | string[] }>;
 };
 
 function firstParam(value: string | string[] | undefined) {
@@ -67,9 +68,12 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
     );
   }
 
-  const [vendors, events] = await Promise.all([
+  const requestedPlace = firstParam(params.place);
+  const vendorId = requestedPlace && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestedPlace) ? requestedPlace : null;
+  const [vendors, events, featuredVendor] = await Promise.all([
     getVendorsByUniversity(selectedUniversity.id, 100),
     getUpcomingCampusEvents(selectedUniversity.id, 50),
+    vendorId ? getVendorsByUniversity(selectedUniversity.id, 1, vendorId) : Promise.resolve([]),
   ]);
   const presentation = presentCampus(selectedUniversity);
   const campusPhotos = presentation.photos.filter(photo => secureCampusPhoto(photo.src));
@@ -108,7 +112,7 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
   } satisfies CampusMateUniversity));
 
   const places: CampusMatePlace[] = [
-    ...vendors.map((vendor) => {
+    ...[...featuredVendor, ...vendors.filter(vendor => vendor.id !== featuredVendor[0]?.id)].map((vendor) => {
       const location = Array.isArray(vendor.location) ? vendor.location[0] : vendor.location;
       const publicLocation = vendor.location_public_visibility === 'business_location' && vendor.location_verification_status === 'verified';
       return {
@@ -152,7 +156,8 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
   return (
     <>
       <SiteHeader />
-      <CampusMateExperience key={campusUniversity.id} university={campusUniversity} universities={campusUniversities} places={places} />
+      <CampusMateExperience key={campusUniversity.id + ':' + (vendorId || '')} university={campusUniversity} universities={campusUniversities}
+        places={places} initialPlaceId={featuredVendor[0]?.id} routingEnabled={Boolean(getCampusRoutingEndpoint())} />
     </>
   );
 }

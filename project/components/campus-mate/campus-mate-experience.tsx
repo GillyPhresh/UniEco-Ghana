@@ -10,20 +10,20 @@ import {
   ExternalLink,
   LocateFixed,
   Loader2,
-  Map,
   MapPinned,
   Navigation,
   Share2,
   Search,
   Store,
-  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UniversityLogo, UniversityMedia } from '@/components/universities/university-media';
 import { CatalogPhoto } from '@/components/marketplace/catalog-photo';
 import { CampusPlaceCard } from '@/components/campus-mate/campus-place-card';
+import { CampusJourneyPlanner, type JourneyPlace } from '@/components/campus-mate/campus-journey-planner';
 import { campusMateCategories, findCampusMateCategory, campusPlaceTelephone, campusPlaceWebsite } from '@/lib/campus-mate/categories';
-import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
+import { getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
+import { isJourneyPoint } from '@/lib/campus-mate/journey';
 import { cn } from '@/lib/utils';
 
 export type CampusMateUniversity = {
@@ -83,6 +83,8 @@ type CampusMateExperienceProps = {
   university: CampusMateUniversity;
   universities: CampusMateUniversity[];
   places: CampusMatePlace[];
+  initialPlaceId?: string;
+  routingEnabled: boolean;
 };
 
 type Coordinates = { latitude: number; longitude: number };
@@ -143,13 +145,10 @@ function getPlaceCoordinates(place: CampusMatePlace) {
     : null;
 }
 
-export function CampusMateExperience({ university, universities, places }: CampusMateExperienceProps) {
+export function CampusMateExperience({ university, universities, places, initialPlaceId, routingEnabled }: CampusMateExperienceProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<(typeof filters)[number]['id']>('all');
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [mapTarget, setMapTarget] = useState(campusSearchText(university));
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapOpen, setMapOpen] = useState(false);
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(initialPlaceId || null);
   const [deviceLocation, setDeviceLocation] = useState<Coordinates | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState('');
@@ -161,12 +160,11 @@ export function CampusMateExperience({ university, universities, places }: Campu
   const [shareMessage, setShareMessage] = useState('');
   const [resultsLimit, setResultsLimit] = useState(12);
   const nearbyRequest = useRef<AbortController | null>(null);
-  const mapPanel = useRef<HTMLElement>(null);
+  const mapPanel = useRef<HTMLDivElement>(null);
   const resultsPanel = useRef<HTMLElement>(null);
   useEffect(() => () => nearbyRequest.current?.abort(), []);
 
-  const campusMapUrl = `https://www.google.com/maps?q=${encodeURIComponent(mapTarget)}&output=embed`;
-  const campusDirectionsUrl = getGoogleMapsSearchUrl(mapTarget);
+  const campusDirectionsUrl = getGoogleMapsSearchUrl(campusSearchText(university));
 
   const visiblePlaces = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -193,7 +191,20 @@ export function CampusMateExperience({ university, universities, places }: Campu
   }, [activeFilter, deviceLocation, places, searchQuery]);
 
   const selectedPlace = places.find(place => place.id === selectedPlaceId) ?? null;
-  const selectedMapName = selectedPlace?.name || selectedGooglePlace?.name;
+  const toStoredPlace = (place: CampusMatePlace): JourneyPlace => {
+    const position = getPlaceCoordinates(place);
+    return { id: 'unieco:' + place.id, name: place.name, position: isJourneyPoint(position) ? position : null,
+      address: place.address ? placeSearchText(place, university) : null, details: place.href };
+  };
+  const toCommunityPlace = (place: DiscoveredPlace): JourneyPlace => {
+    const position = { latitude: place.latitude, longitude: place.longitude };
+    return { id: 'osm:' + place.id, name: place.name,
+      position: place.source === 'OpenStreetMap' && isJourneyPoint(position) ? position : null,
+      address: [place.name, place.address].filter(Boolean).join(', ') };
+  };
+  const journeyDestination = selectedPlace ? toStoredPlace(selectedPlace) : selectedGooglePlace ? toCommunityPlace(selectedGooglePlace) : null;
+  const journeyStarts = [...places.map(toStoredPlace), ...googlePlaces.map(toCommunityPlace)]
+    .filter(place => place.position).sort((a, b) => a.name.localeCompare(b.name));
 
   const visibleGooglePlaces = useMemo(() => {
     if (!deviceLocation) return googlePlaces;
@@ -218,6 +229,11 @@ export function CampusMateExperience({ university, universities, places }: Campu
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         const location = { latitude: coords.latitude, longitude: coords.longitude };
+        if (!isJourneyPoint(location)) {
+          setLocationMessage('You’re outside the route preview area. Choose a mapped campus place as your starting point.');
+          setLocating(false);
+          return;
+        }
         setDeviceLocation(location);
         setLocationMessage('Places with a matched map pin are sorted by distance.');
         setLocating(false);
@@ -232,38 +248,26 @@ export function CampusMateExperience({ university, universities, places }: Campu
     );
   };
 
-  const showMap = () => {
-    setMapOpen(true);
+  const showJourney = () => {
     mapPanel.current?.focus({ preventScroll: true });
     mapPanel.current?.scrollIntoView({ block: 'start' });
-  };
-
-  const changeMapTarget = (target: string) => {
-    if (target === mapTarget) return;
-    setMapLoaded(false);
-    setMapTarget(target);
   };
 
   const choosePlace = (place: CampusMatePlace) => {
     setSelectedPlaceId(place.id);
     setSelectedGooglePlace(null);
-    const coords = getPlaceCoordinates(place);
-    changeMapTarget(coords ? `${coords.latitude}, ${coords.longitude}` : place.address ? placeSearchText(place, university) : campusSearchText(university));
-    showMap();
+    showJourney();
   };
 
   const chooseGooglePlace = (place: DiscoveredPlace) => {
     setSelectedPlaceId(null);
     setSelectedGooglePlace(place);
-    changeMapTarget(place.latitude != null && place.longitude != null && isValidCoordinate(place.latitude, place.longitude)
-      ? `${place.latitude}, ${place.longitude}` : [place.name, place.address].filter(Boolean).join(', '));
-    showMap();
+    showJourney();
   };
 
   const clearSelection = () => {
     setSelectedPlaceId(null);
     setSelectedGooglePlace(null);
-    changeMapTarget(campusSearchText(university));
   };
 
   const shareCampus = async () => {
@@ -366,13 +370,13 @@ export function CampusMateExperience({ university, universities, places }: Campu
           <div className="min-w-0 p-4 sm:p-7 lg:p-9">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[.14em] text-emerald-100"><Compass className="h-4 w-4" aria-hidden="true" /> Campus Mate</p>
             <h1 id="campus-mate-heading" className="mt-3 text-[clamp(1.7rem,6vw,3.1rem)] font-extrabold leading-tight tracking-tight">Explore your campus</h1>
-            <p className="mt-2 max-w-md text-sm leading-6 text-emerald-50/90">Find food, shops, services and events. Get directions when you’re ready to go.</p>
+            <p className="mt-2 max-w-md text-sm leading-6 text-emerald-50/90">Find food, shops, services and events. Pick a place, choose a ride, and see the journey before you go.</p>
             <div className="mt-4 flex items-center gap-2.5">
               <span className="h-10 w-10 shrink-0 rounded-xl bg-white/95 p-1"><UniversityLogo src={university.logo_url} name={university.name} shortName={campusName} alt="" /></span>
               <div className="min-w-0"><p className="break-words text-sm font-bold">{campusName}</p><p className="text-xs text-emerald-100/90">{campusLocation}</p></div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button type="button" onClick={showMap} className="min-h-11 rounded-xl bg-emerald-100 font-bold text-emerald-950 hover:bg-white"><Map className="mr-2 h-4 w-4" aria-hidden="true" /> Open map</Button>
+              <Button type="button" onClick={showJourney} className="min-h-11 rounded-xl bg-emerald-100 font-bold text-emerald-950 hover:bg-white"><Navigation className="mr-2 h-4 w-4" aria-hidden="true" /> Plan a trip</Button>
               <button type="button" onClick={requestLocation} disabled={locating} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/30 px-3 text-sm font-semibold hover:bg-white/10 disabled:opacity-60">
                 {locating ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> : <LocateFixed className="h-4 w-4" aria-hidden="true" />} Near me
               </button>
@@ -444,16 +448,12 @@ export function CampusMateExperience({ university, universities, places }: Campu
 
           {visiblePlaces.length ? <div className={cardGrid}>
             {visiblePlaces.slice(0, resultsLimit).map(({ place, distance }) => {
-              const coords = getPlaceCoordinates(place);
-              const directions = coords || place.address ? getGoogleMapsDirectionsUrl({
-                latitude: coords?.latitude, longitude: coords?.longitude, address: placeSearchText(place, university),
-              }, deviceLocation ?? undefined) : null;
               return <CampusPlaceCard key={place.kind + '-' + place.id} name={place.name} source={place.kind}
                 category={place.kind === 'event' ? 'Campus event' : place.category}
                 address={place.address || (place.kind === 'business' ? 'Exact location not published' : null)}
                 date={formatDate(place.start_time)} distance={distance} rating={place.rating} verified={place.verified}
                 photo={place.image_url} logo={place.logo_url} backdrop={findCampusMateCategory(place.category)?.photo.image}
-                active={selectedPlaceId === place.id} directions={directions} details={place.href} onMap={() => choosePlace(place)} />;
+                active={selectedPlaceId === place.id} details={place.href} onJourney={() => choosePlace(place)} />;
             })}
           </div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-card p-4 sm:p-5">
             <div><p className="font-bold">No matching UniEco listings yet</p><p className="mt-1 text-xs text-muted-foreground">Try a different category or search the wider area.</p></div>
@@ -472,34 +472,23 @@ export function CampusMateExperience({ university, universities, places }: Campu
               </div> : <div className={cardGrid}>
                 {visibleGooglePlaces.map(place => {
                   const coords = place.latitude != null && place.longitude != null && isValidCoordinate(place.latitude, place.longitude) ? { latitude: place.latitude, longitude: place.longitude } : null;
-                  const directions = getGoogleMapsDirectionsUrl({ ...coords, address: [place.name, place.address].filter(Boolean).join(', ') }, deviceLocation ?? undefined);
                   return <CampusPlaceCard key={place.id} name={place.name} source="community" category={place.category} address={place.address}
                     distance={deviceLocation && coords ? distanceInKm(deviceLocation, coords) : null}
                     backdrop={findCampusMateCategory(place.category)?.photo.image}
-                    active={selectedGooglePlace?.id === place.id} directions={directions} externalDetails={campusPlaceWebsite(place.osmUrl)}
-                    telephone={campusPlaceTelephone(place.phone)} website={campusPlaceWebsite(place.websiteUri)} onMap={() => chooseGooglePlace(place)} />;
+                    active={selectedGooglePlace?.id === place.id} externalDetails={campusPlaceWebsite(place.osmUrl)}
+                    telephone={campusPlaceTelephone(place.phone)} website={campusPlaceWebsite(place.websiteUri)} onJourney={() => chooseGooglePlace(place)} />;
                 })}
               </div>}
             <p className="text-[11px] leading-5 text-muted-foreground">Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap contributors</a>. Coverage varies by campus.</p>
           </section>}
         </section>
 
-        <section ref={mapPanel} tabIndex={-1} aria-labelledby="campus-map" className="scroll-mt-20 overflow-hidden rounded-2xl border bg-card focus:outline-none">
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
-            <div><h2 id="campus-map" className="text-lg font-extrabold">Campus map</h2><p className="mt-1 break-words text-xs text-muted-foreground">{selectedMapName || campusName}{selectedPlace && !getPlaceCoordinates(selectedPlace) && !selectedPlace.address ? ' · Showing the campus area only' : ''}</p></div>
-            <div className="flex flex-wrap gap-2">
-              {!mapOpen && <Button type="button" variant="outline" className="min-h-11" onClick={showMap}>Load map</Button>}
-              {mapOpen && <Button type="button" variant="outline" className="min-h-11" onClick={() => { setMapOpen(false); setMapLoaded(false); }}><X className="mr-1.5 h-4 w-4" aria-hidden="true" /> Close map</Button>}
-              {selectedMapName && <Button type="button" variant="ghost" className="min-h-11" onClick={clearSelection}>Reset map</Button>}
-              {campusDirectionsUrl && <Button variant="outline" className="min-h-11" asChild><a href={campusDirectionsUrl} target="_blank" rel="noopener noreferrer">Open Google Maps <ArrowUpRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" /></a></Button>}
-            </div>
-          </div>
-          {mapOpen && <div className="relative h-[300px] border-t bg-muted sm:h-[380px]">
-            <iframe key={campusMapUrl} title={'Google Maps view of ' + (selectedMapName || campusName)} src={campusMapUrl} className="absolute inset-0 h-full w-full border-0"
-              referrerPolicy="strict-origin" allowFullScreen onLoad={() => setMapLoaded(true)} />
-            {!mapLoaded && <p role="status" className="pointer-events-none absolute left-3 top-3 rounded-full border bg-card px-3 py-1.5 text-xs font-semibold">Loading map…</p>}
-          </div>}
-        </section>
+        <div id="campus-journey" ref={mapPanel} tabIndex={-1} className="scroll-mt-20 focus:outline-none">
+          <CampusJourneyPlanner key={journeyDestination?.id || 'empty'} destination={journeyDestination}
+            startingPlaces={journeyStarts} deviceLocation={deviceLocation} onLocate={requestLocation}
+            locating={locating} locationMessage={locationMessage} onClear={clearSelection}
+            mapFallback={campusDirectionsUrl} enabled={routingEnabled} />
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <Link href={'/university/' + university.slug} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-primary">View campus profile <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>

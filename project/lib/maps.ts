@@ -43,12 +43,14 @@ export function isSupportedGoogleMapsUrl(raw: string | null | undefined) {
   } catch { return false; }
 }
 
-export function getGoogleMapsDirectionsUrl(destination: MapDestination, origin?: MapDestination) {
+export function getGoogleMapsDirectionsUrl(destination: MapDestination, origin?: MapDestination,
+  travelMode?: 'walking' | 'bicycling' | 'two-wheeler' | 'driving') {
   const destinationValue = isValidCoordinate(destination.latitude, destination.longitude)
     ? `${destination.latitude},${destination.longitude}`
     : destination.address?.trim() || (destination.placeId ? 'Destination' : null);
   if (!destinationValue) return null;
   const params = new URLSearchParams({ api: '1', destination: destinationValue });
+  if (travelMode) params.set('travelmode', travelMode);
   if (destination.placeId) params.set('destination_place_id', destination.placeId);
   if (origin) {
     const originValue = isValidCoordinate(origin.latitude, origin.longitude)

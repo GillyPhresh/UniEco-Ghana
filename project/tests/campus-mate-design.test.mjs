@@ -55,15 +55,18 @@ test('Campus Mate prefers actual covers, labels category photos and shows commun
 });
 
 test('directions respect the public-location setting; maps and geolocation are user-initiated', async () => {
-  const [route, experience] = await Promise.all([read('app/campus-mate/page.tsx'), read('components/campus-mate/campus-mate-experience.tsx')]);
+  const [route, experience, planner] = await Promise.all([read('app/campus-mate/page.tsx'), read('components/campus-mate/campus-mate-experience.tsx'),
+    read('components/campus-mate/campus-journey-planner.tsx')]);
   assert.match(route, /location_public_visibility === 'business_location' && vendor\.location_verification_status === 'verified'/);
   for (const field of ['address', 'latitude', 'longitude']) {
     assert.match(route, new RegExp(field + ': publicLocation \\?'));
   }
-  assert.match(experience, /const \[mapOpen, setMapOpen\] = useState\(false\)/);
-  assert.match(experience, /mapOpen && <div[^]*?<iframe/);
+  assert.doesNotMatch(experience, /<iframe|output=embed/);
+  assert.match(experience, /<CampusJourneyPlanner/);
+  assert.match(planner, /onClick=\{onLocate\}/);
+  assert.match(planner, /onClick=\{\(\) => void plan\(\)\}/);
   assert.match(experience, /onClick=\{requestLocation\}/);
-  assert.doesNotMatch(experience, /setMapTarget\([^)]*location\.latitude/);
+  assert.doesNotMatch(experience, /watchPosition/);
   assert.match(experience, /nearbyRequest\.current\?\.abort\(\)/);
   assert.match(experience, /signal: controller\.signal/);
 });

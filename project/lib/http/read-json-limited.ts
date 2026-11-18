@@ -5,7 +5,7 @@ export class RequestBodyTooLargeError extends Error {
   }
 }
 
-export async function readJsonLimited<T = unknown>(request: Request, maxBytes: number): Promise<T> {
+export async function readJsonLimited<T = unknown>(request: Pick<Request, 'headers' | 'body'>, maxBytes: number): Promise<T> {
   const contentLength = Number(request.headers.get('content-length'));
   if (Number.isFinite(contentLength) && contentLength > maxBytes) throw new RequestBodyTooLargeError();
   if (!request.body) throw new SyntaxError('Request body is empty.');
