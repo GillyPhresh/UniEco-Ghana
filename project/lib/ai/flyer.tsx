@@ -20,6 +20,10 @@ export type FlyerItem = {
 };
 
 export const flyerSize = { width: 1080, height: 1350 };
+const updateCardSize = { width: 1080, height: 1440 };
+const leadHeight = 852;
+const newsRed = '#a31722';
+const newsInk = '#242323';
 const ink = '#102c24';
 const green = '#096347';
 const subtle = '#465c53';
@@ -93,12 +97,14 @@ export type UpdateFlyerOptions = { draft?: boolean; download?: boolean; format?:
 export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOptions = {}) {
   const [logo, visual, fonts] = await Promise.all([logoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
   const title = oneLine(data.title, 220, 'Campus update');
-  const summary = updateSummary(data.excerpt, data.title, title.length > 150 ? 142 : 194);
+  const summary = updateSummary(data.excerpt, data.title, title.length > 135 ? 82 : 138);
   const source = oneLine(data.source_label, 85, 'Original publisher');
   const portraits = visual.portraits.slice(0, 2);
   const requiresCreditLink = [visual.background, ...portraits].some((photo) => photo.attributionRequired);
-  const credits = [visual.background.credit, ...portraits.map((photo) => photo.credit)];
-  const dedupedCredits = Array.from(new Set(credits));
+  const portraitCredits = Array.from(new Set(portraits.map((portrait) => portrait.credit))).join(' / ');
+  const photoNote = visual.background.description.startsWith('Illustrative photo') ? visual.background.description + ' · ' : 'Photo: ';
+  const portraitNames = portraits.map((portrait) => oneLine(portrait.name, 46)).join(' · ');
+  const titleSize = title.length > 172 ? 39 : title.length > 134 ? 43 : title.length > 98 ? 48 : title.length > 62 ? 53 : 59;
   const format = options.format || 'png';
   const filename = (options.draft ? 'unieco-draft-update' : 'unieco-campus-update') + (format === 'jpeg' ? '.jpg' : '.png');
   const headers = {
@@ -108,56 +114,54 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
   };
 
   const card = new ImageResponse(
-    <div style={{ ...col, width: '100%', height: '100%', position: 'relative', fontFamily: 'Noto Sans', background: '#faf8f0', color: ink }}>
-      <div style={{ ...row, height: 704, width: '100%', position: 'relative', flexShrink: 0, background: '#12382d' }}>
-        <img src={visual.background.src} alt="" width={1080} height={704} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
-        <div style={{ ...row, position: 'absolute', left: 0, top: 0, width: '100%', height: '100%', backgroundImage: 'linear-gradient(180deg, rgba(7,24,18,0.48) 0%, transparent 30%, transparent 65%, rgba(7,24,18,0.88) 100%)' }} />
-        <div style={{ ...row, alignItems: 'center', position: 'absolute', top: 38, left: 48, gap: 12, padding: '9px 20px 9px 10px', borderRadius: 13, background: '#fffdf7' }}>
-          {logo && <img src={logo} alt="" width={65} height={65} style={{ objectFit: 'contain' }} />}
-          <div style={{ ...col, gap: 3 }}>
-            <span style={{ color: ink, fontWeight: 900, fontSize: 28, lineHeight: 1.1 }}>UniEco Ghana</span>
-            <span style={{ ...label, fontSize: 13 }}>CAMPUS NEWS DESK</span>
-          </div>
+    <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
+      <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
+        <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
+        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 45, left: 72, width: 142, height: 138, background: '#ffffff' }}>
+          {logo ? <img src={logo} alt="UniEco Ghana" width={121} height={117} style={{ objectFit: 'contain' }} />
+            : <span style={{ fontSize: 28, fontWeight: 700, color: ink }}>UniEco</span>}
         </div>
-        {options.draft && <span style={{ position: 'absolute', right: 48, top: 48, padding: '10px 14px', background: '#9b2e22', color: '#fff', fontWeight: 800, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
-        <span style={{ position: 'absolute', bottom: 27, left: 50, background: 'rgba(8,30,22,0.88)', padding: '9px 14px', borderRadius: 4, color: '#fffaf0', fontSize: 18, fontWeight: 700 }}>
-          {visual.background.description}
-        </span>
-        {portraits.length > 0 && <div style={{ ...row, position: 'absolute', right: 48, bottom: 23, gap: 15, alignItems: 'flex-end' }}>
-          {portraits.map((portrait) => <div key={portrait.name} style={{ ...col, width: 188, alignItems: 'center', gap: 7 }}>
-            <div style={{ ...row, width: 154, height: 154, borderRadius: 77, overflow: 'hidden', border: '6px solid #fffdf7', background: '#e9eee4' }}>
-              <img src={portrait.src} alt="" width={142} height={142} style={{ objectFit: 'cover' }} />
+        {options.draft && <span style={{ position: 'absolute', right: 72, top: 45, padding: '10px 14px', background: newsRed, color: '#fff', fontWeight: 700, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
+        {portraits.length > 0 && <div style={{ ...row, position: 'absolute', bottom: 72, left: 100, right: 100, justifyContent: portraits.length === 1 ? 'flex-end' : 'space-between' }}>
+          {portraits.map((portrait) =>
+            <div key={portrait.name} style={{ ...row, flexShrink: 0, width: 272, height: 272, borderRadius: 136, overflow: 'hidden', border: '10px solid #fff', background: '#fff' }}>
+              <img src={portrait.src} alt={portrait.name} width={252} height={252} style={{ objectFit: 'cover' }} />
             </div>
-            <span style={{ fontSize: 17, fontWeight: 800, color: '#fffdf7', textAlign: 'center', padding: '4px 10px', background: '#0d3025', borderRadius: 5 }}>{portrait.name}</span>
-          </div>)}
+          )}
         </div>}
-      </div>
-      <div style={{ ...row, width: '100%', height: 7, flexShrink: 0 }}>
-        <div style={{ width: '33%', background: '#ad2635' }} /><div style={{ width: '34%', background: '#e9b843' }} /><div style={{ width: '33%', background: '#087450' }} />
-      </div>
-      <div style={{ ...col, width: '100%', padding: '25px 50px 0', gap: 15 }}>
-        <div style={{ ...row, alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-          <span style={{ padding: '8px 15px', fontSize: 17, fontWeight: 800, letterSpacing: 2, color: '#fffdf4', background: '#09583f' }}>{updateCategory(data.category).toUpperCase()}</span>
-          {data.published_at && <span style={{ color: green, fontSize: 20, fontWeight: 800 }}>{updateDate(data.published_at).toUpperCase()}</span>}
+        <div style={{ ...row, position: 'absolute', bottom: 0, width: '100%', height: 52, alignItems: 'center', justifyContent: 'space-between', padding: '0 80px 0 100px', background: 'rgba(245,245,245,0.44)' }}>
+          <div style={{ ...row, gap: 6, alignItems: 'flex-end', height: 52 }}>
+            <div style={{ width: 19, height: 65, background: newsRed }} />
+            <div style={{ width: 19, height: 49, background: newsRed }} />
+          </div>
+          {data.published_at && Number.isFinite(Date.parse(data.published_at)) &&
+            <span style={{ padding: '4px 11px', background: '#fff', color: newsRed, fontSize: 19, fontWeight: 700 }}>{updateDate(data.published_at, 'long').toUpperCase()}</span>}
         </div>
-        <span style={{ fontSize: title.length > 168 ? 45 : title.length > 115 ? 51 : title.length > 74 ? 58 : 67, fontWeight: 900, lineHeight: 1.03, letterSpacing: -1.6, wordBreak: 'break-word' }}>{title}</span>
-        {summary && <span style={{ fontSize: title.length > 150 ? 25 : 28, color: subtle, lineHeight: 1.22, wordBreak: 'break-word' }}>{summary}</span>}
-        <span style={{ color: green, fontSize: 21, fontWeight: 800 }}>Source: {source}</span>
       </div>
-      <div style={{ ...col, position: 'absolute', width: 980, left: 50, bottom: 24, borderTop: '2px solid ' + line, paddingTop: 9, gap: 6 }}>
-        <div style={{ ...row, justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 16, color: green, fontWeight: 900, letterSpacing: 1 }}>{options.draft ? 'FOR MANAGEMENT REVIEW ONLY' : 'UNIECO GHANA · CAMPUS UPDATES'}</span>
-          {!options.draft && <span style={{ fontSize: 15, color: ink }}>uniecoghana.com/updates/{data.id}</span>}
+      <div style={{ ...col, flex: 1, minHeight: 0, width: '100%', padding: '24px 100px 21px', backgroundImage: 'linear-gradient(145deg, #fafaf9 0%, #e9e9e7 100%)' }}>
+        <div style={{ ...row, alignItems: 'center', marginBottom: 14 }}>
+          <span style={{ padding: '5px 13px', fontSize: 25, fontWeight: 700, color: '#fff', background: newsRed }}>{updateCategory(data.category).toUpperCase()}</span>
         </div>
-        {dedupedCredits.map((credit, index) => <span key={credit} style={{ fontSize: 15, color: subtle }}>{index ? 'Portrait: ' : 'Photo: '}{credit}</span>)}
-        {requiresCreditLink && <span style={{ fontSize: 14, color: subtle }}>Photos cropped · creativecommons.org/licenses/by/4.0 · Source details on UniEco</span>}
-        <span style={{ fontSize: 14, color: subtle }}>UniEco Ghana is an independent publisher. See the original source for full details.</span>
+        <span style={{ fontSize: titleSize, fontWeight: 400, lineHeight: 1.13, letterSpacing: -0.8, wordBreak: 'break-word' }}>{title}</span>
+        {summary && <span style={{ marginTop: 12, fontSize: 26, color: '#444444', lineHeight: 1.2, wordBreak: 'break-word' }}>{summary}</span>}
+        <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', flexGrow: 1, marginTop: 12, gap: 3, textAlign: 'right' }}>
+          {portraitNames && <span style={{ fontSize: 20, color: newsInk }}>Pictured: {portraitNames}</span>}
+          <span style={{ color: newsRed, fontSize: 25, fontWeight: 700 }}>— {source}</span>
+        </div>
       </div>
-    </div>, { ...flyerSize, headers, ...(fonts.length ? { fonts } : {}) },
+      <div style={{ ...col, width: '100%', flexShrink: 0, background: '#e5e5e3', borderTop: '2px solid #c8c8c5', padding: '12px 80px 16px 100px', gap: 4 }}>
+        <div style={{ ...row, justifyContent: 'flex-end', alignItems: 'center' }}>
+          <span style={{ fontSize: 19, color: newsInk, fontWeight: 700 }}>{options.draft ? 'FOR MANAGEMENT REVIEW ONLY' : 'uniecoghana.com/updates/' + data.id}</span>
+        </div>
+        <span style={{ fontSize: 15, color: '#474747' }}>{photoNote}{visual.background.credit}</span>
+        {portraitCredits && <span style={{ fontSize: 15, color: '#474747' }}>Portraits: {portraitCredits}</span>}
+        {requiresCreditLink && <span style={{ fontSize: 14, color: '#474747' }}>Photos cropped · creativecommons.org/licenses/by/4.0 · Source details on UniEco</span>}
+      </div>
+    </div>, { ...updateCardSize, headers, ...(fonts.length ? { fonts } : {}) },
   );
   if (format === 'png') return card;
-  const bytes = await sharp(Buffer.from(await card.arrayBuffer()), { limitInputPixels: 1_500_000 })
-    .flatten({ background: '#faf8f0' }).jpeg({ quality: 89, mozjpeg: true }).toBuffer();
+  const bytes = await sharp(Buffer.from(await card.arrayBuffer()), { limitInputPixels: updateCardSize.width * updateCardSize.height })
+    .flatten({ background: '#eeeeec' }).jpeg({ quality: 89, mozjpeg: true }).toBuffer();
   return new Response(new Uint8Array(bytes), { headers: { ...headers, 'Content-Type': 'image/jpeg' } });
 }
 

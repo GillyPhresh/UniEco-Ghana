@@ -19,11 +19,16 @@ async function checkPng(response, letterhead = false) {
   const png = Buffer.from(await response.arrayBuffer());
   assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   assert.equal(png.readUInt32BE(16), 1080);
-  assert.equal(png.readUInt32BE(20), 1350);
+  assert.equal(png.readUInt32BE(20), letterhead ? 1350 : 1440);
   assert.ok(png.length > 15_000);
   if (!letterhead) {
     const photo = await sharp(png).extract({ left: 96, top: 145, width: 865, height: 420 }).stats();
     assert.ok(photo.channels.slice(0, 3).every((channel) => channel.stdev > 24), 'lead region contains a photograph, not a blank placeholder');
+    const colorAt = (x, y) => sharp(png).extract({ left: x, top: y, width: 1, height: 1 }).removeAlpha().raw().toBuffer().then((p) => [...p]);
+    assert.deepEqual(await colorAt(76, 49), [255, 255, 255], 'small white corner logo tile');
+    assert.deepEqual(await colorAt(105, 889), [163, 23, 34], 'red category tag below the full-bleed photo');
+    const footer = await colorAt(105, 1435);
+    assert.ok(footer.every((component) => component > 215 && component < 240), 'thin, light-gray credits footer');
     return;
   }
   const footer = await sharp(png).extract({ left: 400, top: 1130, width: 400, height: 100 }).removeAlpha().raw().toBuffer();
@@ -52,8 +57,28 @@ test('JPEG sharing exports a real, compact portrait-format file', async () => {
   assert.match(response.headers.get('content-disposition'), /^attachment; filename="unieco-campus-update\.jpg"/);
   const bytes = Buffer.from(await response.arrayBuffer());
   const meta = await sharp(bytes).metadata();
-  assert.deepEqual([meta.format, meta.width, meta.height], ['jpeg', 1080, 1350]);
+  assert.deepEqual([meta.format, meta.width, meta.height], ['jpeg', 1080, 1440]);
   assert.ok(bytes.length > 25_000 && bytes.length < 1_200_000);
+});
+
+test('places two verified portraits side by side within the bottom of the lead photo, with white circular frames', async () => {
+  const photo = async (color, name) => ({
+    src: 'data:image/png;base64,' + (await sharp({ create: { width: 300, height: 300, channels: 3, background: color } }).png().toBuffer()).toString('base64'),
+    description: 'Publisher photo', credit: 'Test university', name,
+  });
+  const visual = {
+    background: await photo('#211c2b'),
+    portraits: [await photo('#137aa7', 'First verified subject'), await photo('#65512e', 'Second verified subject')],
+  };
+  const { renderUpdateFlyer: render } = testModules({
+    './flyer-media': { resolveFlyerVisual: async () => visual },
+  })('lib/ai/flyer.tsx');
+  const bytes = Buffer.from(await (await render(item)).arrayBuffer());
+  const colorAt = (x, y) => sharp(bytes).extract({ left: x, top: y, width: 1, height: 1 }).removeAlpha().raw().toBuffer().then((p) => [...p]);
+  assert.deepEqual(await colorAt(236, 644), [19, 122, 167]);
+  assert.deepEqual(await colorAt(844, 644), [101, 81, 46]);
+  assert.deepEqual(await colorAt(236, 512), [255, 255, 255]);
+  assert.deepEqual(await colorAt(104, 512), [33, 28, 43], 'corners are clipped to expose the lead image');
 });
 
 test('briefing renders a numbered page with multiple source-attributed updates', async () => {
