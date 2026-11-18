@@ -46,6 +46,10 @@ export async function POST(request: NextRequest) {
 
   const endpoint = getCampusRoutingEndpoint();
   if (!endpoint) return fail(503, 'In-app route previews aren’t enabled yet. You can still open directions.');
+  if (endpoint.protocol === 'http:') {
+    const { data: role, error: roleError } = await supabase.rpc('current_app_role');
+    if (roleError || role !== 'super_admin') return fail(403, 'In-app route previews aren’t available yet. You can still open directions.');
+  }
   if (inFlight >= 3 || !reserve(user.id)) return fail(429, 'Too many route requests. Wait a moment and try again.', '30');
   let input;
   try {
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
 
   inFlight++;
   try {
-    const token = process.env.CAMPUS_MATE_VALHALLA_TOKEN;
+    const token = endpoint.protocol === 'https:' ? process.env.CAMPUS_MATE_VALHALLA_TOKEN : undefined;
     const response = await fetch(endpoint, {
       method: 'POST', cache: 'no-store', redirect: 'error',
       signal: AbortSignal.timeout(8_000),

@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { BOLT_PROJECT_REF, PRODUCTION_PROJECT_REF, STAGING_PROJECT_REF } from './environment-validation.mjs';
 import { scheduleCampusResearch } from './run-campus-research-schedule.mjs';
+import { verifyCampusMatePilot } from './campus-mate-pilot-smoke.mjs';
 
 const environment = process.env.UNIECO_ENV;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -55,6 +56,7 @@ const researchNonce = canRunResearch ? randomBytes(32).toString('hex') : '';
 const child = spawn(process.execPath, [nextBinary, 'start'], {
   cwd: process.cwd(), env: { ...process.env, UNIECO_RESEARCH_SCHEDULER_NONCE: researchNonce }, stdio: 'inherit',
 });
+void verifyCampusMatePilot().catch(() => console.warn('[campus-mate] private pilot smoke could not run'));
 const stopResearch = researchNonce ? scheduleCampusResearch(port, researchNonce) : () => undefined;
 child.on('error', (error) => { console.error(`Unable to start Next.js: ${error.message}`); process.exit(1); });
 child.on('exit', (code, signal) => { stopResearch(); process.exit(code ?? (signal ? 1 : 0)); });

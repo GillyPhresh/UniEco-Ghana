@@ -153,11 +153,19 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
     })),
   ];
 
+  const routingEndpoint = getCampusRoutingEndpoint();
+  let routingEnabled = Boolean(routingEndpoint);
+  if (routingEndpoint?.protocol === 'http:') {
+    const supabase = await createClient();
+    const { data: role, error } = await supabase.rpc('current_app_role');
+    routingEnabled = !error && role === 'super_admin';
+  }
+
   return (
     <>
       <SiteHeader />
       <CampusMateExperience key={campusUniversity.id + ':' + (vendorId || '')} university={campusUniversity} universities={campusUniversities}
-        places={places} initialPlaceId={featuredVendor[0]?.id} routingEnabled={Boolean(getCampusRoutingEndpoint())} />
+        places={places} initialPlaceId={featuredVendor[0]?.id} routingEnabled={routingEnabled} />
     </>
   );
 }

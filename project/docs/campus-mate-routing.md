@@ -33,3 +33,17 @@ Mate's page payload or linked from a marketplace item.
 No Supabase migration is required for this feature. Until a provider is
 configured, learners can try the clearly labeled animation demo or use the
 external directions link.
+
+## Temporary private production pilot
+
+For the approved short pilot only, the app accepts
+`http://campus-mate-valhalla-pilot.railway.internal:8002/route` in
+production, with no public domain and an explicit unexpired UTC timestamp in
+`CAMPUS_MATE_VALHALLA_PILOT_UNTIL` (ISO seconds with `Z`, at most 24 hours
+ahead). Only super admins can use this private endpoint. Neither private
+addresses nor authentication headers are sent to the browser. Once the lease
+expires or is removed, requests fall back to their normal unavailable state.
+The billing lease must also be enforced on the Valhalla process: use a fixed
+deadline, never restart automatically, and avoid a persistent volume for a
+short smoke test. A startup check makes at most four bounded requests with
+fixed public sample pins and writes only success metrics to the web service log.

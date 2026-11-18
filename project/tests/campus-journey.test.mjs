@@ -11,6 +11,7 @@ const from = { latitude: 5.648, longitude: -0.188 };
 const to = { latitude: 5.657, longitude: -0.186 };
 const shape = [from, { latitude: 5.650, longitude: -0.186 }, to];
 const input = { mode: 'walk', from, to };
+const privatePilotUrl = 'http://campus-mate-valhalla-pilot.railway.internal:8002/route';
 
 function polyline(points) {
   let last = [0, 0];
@@ -51,6 +52,21 @@ test('route inputs are bounded to different local points and cannot choose a pro
     { ...input, to: { latitude: '5.654', longitude: 0 } },
     { ...input, from: { latitude: Infinity, longitude: 0 } },
   ]) assert.equal(parseJourneyRequest(invalid), null);
+});
+
+test('only the exact private Railway endpoint is accepted during an active production pilot', () => {
+  const { getCampusRoutingEndpoint } = testModules({ 'server-only': {} })('lib/campus-mate/routing-config.server.ts');
+  const now = Date.parse('2026-11-18T12:00:00Z');
+  const env = { UNIECO_ENV: 'production', CAMPUS_MATE_VALHALLA_URL: privatePilotUrl, CAMPUS_MATE_VALHALLA_PILOT_UNTIL: '2026-11-18T14:00:00Z' };
+  assert.equal(getCampusRoutingEndpoint(env, now)?.href, privatePilotUrl);
+  for (const change of [
+    { UNIECO_ENV: 'staging' }, { CAMPUS_MATE_VALHALLA_URL: privatePilotUrl + '?x=1' },
+    { CAMPUS_MATE_VALHALLA_URL: privatePilotUrl.replace('.internal', '.internal.example.test') },
+    { CAMPUS_MATE_VALHALLA_URL: privatePilotUrl.replace(':8002', ':9000') },
+    { CAMPUS_MATE_VALHALLA_PILOT_UNTIL: undefined }, { CAMPUS_MATE_VALHALLA_PILOT_UNTIL: '2026-11-18T12:00:00Z' },
+    { CAMPUS_MATE_VALHALLA_PILOT_UNTIL: '2026-11-20T12:00:00Z' },
+  ]) assert.equal(getCampusRoutingEndpoint({ ...env, ...change }, now), null);
+  assert.equal(getCampusRoutingEndpoint({ CAMPUS_MATE_VALHALLA_URL: 'https://router.example.test/route' }, now)?.protocol, 'https:');
 });
 
 test('decode provider geometry, reject malformed paths and route endpoints far from the chosen pins', () => {
@@ -103,6 +119,44 @@ test('the route API rejects unsigned and cross-site callers and sends only bound
     assert.equal(upstream.body.costing, 'motorcycle');
     assert.deepEqual(Object.keys(upstream.body).sort(), ['costing', 'language', 'locations', 'units']);
   } finally { globalThis.fetch = actualFetch; }
+});
+
+test('the private pilot rejects members and role errors before contacting the router', async () => {
+  let role = 'student';
+  let roleError = false;
+  let upstreamCalls = 0;
+  const api = testModules({
+    '@/lib/supabase/server': { createClient: async () => ({
+      auth: { getUser: async () => ({ data: { user: { id: 'pilot-caller' } } }) },
+      rpc: async (name) => { assert.equal(name, 'current_app_role'); return { data: role, error: roleError }; },
+    }) },
+    '@/lib/campus-mate/routing-config.server': { getCampusRoutingEndpoint: () => new URL(privatePilotUrl) },
+  })('app/api/maps/journey/route.ts');
+  const url = 'https://www.uniecoghana.com/api/maps/journey';
+  const request = () => Object.assign(new Request(url, { method: 'POST',
+    headers: { origin: 'https://www.uniecoghana.com', 'Content-Type': 'application/json' }, body: JSON.stringify(input) }), { nextUrl: new URL(url) });
+  const actualFetch = globalThis.fetch;
+  const originalToken = process.env.CAMPUS_MATE_VALHALLA_TOKEN;
+  process.env.CAMPUS_MATE_VALHALLA_TOKEN = 'must-not-be-forwarded';
+  globalThis.fetch = async (target, options) => {
+    upstreamCalls++;
+    assert.equal(String(target), privatePilotUrl);
+    assert.equal(options.headers.Authorization, undefined);
+    return Response.json(valhalla);
+  };
+  try {
+    assert.equal((await api.POST(request())).status, 403);
+    role = 'super_admin'; roleError = true;
+    assert.equal((await api.POST(request())).status, 403);
+    assert.equal(upstreamCalls, 0);
+    roleError = false;
+    assert.equal((await api.POST(request())).status, 200);
+    assert.equal(upstreamCalls, 1);
+  } finally {
+    globalThis.fetch = actualFetch;
+    if (originalToken === undefined) delete process.env.CAMPUS_MATE_VALHALLA_TOKEN;
+    else process.env.CAMPUS_MATE_VALHALLA_TOKEN = originalToken;
+  }
 });
 
 test('item-to-store navigation and route animation do not expose private place coordinates', async () => {
