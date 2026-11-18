@@ -6,9 +6,10 @@ import { presentCampus } from '@/lib/data/campus-presentation';
 import { secureCampusPhoto } from '@/lib/campus-mate/categories';
 import { createClient } from '@/lib/supabase/server';
 import { getCampusRoutingEndpoint } from '@/lib/campus-mate/routing-config.server';
+import { getCampusMateProducts } from '@/lib/data/campus-mate-products';
 
 export const metadata: Metadata = {
-  title: 'Campus Mate — Find your way around campus',
+  title: 'Campus Mate — Food, shops & everyday essentials',
   description: 'Find campus businesses, events, services and useful places with UniEco Ghana Campus Mate.',
   robots: { index: false, follow: false, noarchive: true },
 };
@@ -70,10 +71,11 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
 
   const requestedPlace = firstParam(params.place);
   const vendorId = requestedPlace && /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(requestedPlace) ? requestedPlace : null;
-  const [vendors, events, featuredVendor] = await Promise.all([
+  const [vendors, events, featuredVendor, catalog] = await Promise.all([
     getVendorsByUniversity(selectedUniversity.id, 100),
     getUpcomingCampusEvents(selectedUniversity.id, 50),
     vendorId ? getVendorsByUniversity(selectedUniversity.id, 1, vendorId) : Promise.resolve([]),
+    getCampusMateProducts(selectedUniversity.id),
   ]);
   const presentation = presentCampus(selectedUniversity);
   const campusPhotos = presentation.photos.filter(photo => secureCampusPhoto(photo.src));
@@ -165,7 +167,8 @@ export default async function CampusMatePage({ searchParams }: CampusMatePagePro
     <>
       <SiteHeader />
       <CampusMateExperience key={campusUniversity.id + ':' + (vendorId || '')} university={campusUniversity} universities={campusUniversities}
-        places={places} initialPlaceId={featuredVendor[0]?.id} routingEnabled={routingEnabled} />
+        places={places} products={catalog.products} productsUnavailable={catalog.unavailable}
+        initialPlaceId={featuredVendor[0]?.id} routingEnabled={routingEnabled} />
     </>
   );
 }

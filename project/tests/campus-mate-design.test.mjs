@@ -65,7 +65,8 @@ test('directions respect the public-location setting; maps and geolocation are u
   assert.match(experience, /<CampusJourneyPlanner/);
   assert.match(planner, /onClick=\{onLocate\}/);
   assert.match(planner, /onClick=\{\(\) => void plan\(\)\}/);
-  assert.match(experience, /onClick=\{requestLocation\}/);
+  assert.match(experience, /label: 'Near me', icon: LocateFixed, action: requestLocation/);
+  assert.match(experience, /onClick=\{item\.action\}/);
   assert.doesNotMatch(experience, /watchPosition/);
   assert.match(experience, /nearbyRequest\.current\?\.abort\(\)/);
   assert.match(experience, /signal: controller\.signal/);

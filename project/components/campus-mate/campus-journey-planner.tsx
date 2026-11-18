@@ -162,7 +162,7 @@ export function CampusJourneyPlanner({ destination, startingPlaces, deviceLocati
     <div className="grid min-w-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,.85fr)]">
       <div className="min-w-0 bg-[#0b2724]">
         {route || (demo && !destination) ? <JourneyDiagram points={points} mode={mode} progress={progress} playing={playing} demo={demo} /> :
-          <div className="flex min-h-44 flex-col justify-center gap-3 p-5 text-white sm:p-7">
+          <div className="flex min-h-[176px] flex-col justify-center gap-3 p-5 text-white sm:p-7">
             <MapPin className="h-8 w-8 text-emerald-200" aria-hidden />
             <p className="text-lg font-bold">{destination ? 'Your route to ' + destination.name : 'Where would you like to go?'}</p>
             <p className="text-sm leading-6 text-emerald-50">{busy ? 'Finding a mapped route…' : destination ? 'Choose your starting point and travel mode below. Your real route appears here after it is calculated.' : 'Choose a place from the campus results to get started.'}</p>
@@ -188,7 +188,7 @@ export function CampusJourneyPlanner({ destination, startingPlaces, deviceLocati
               const Icon = journeyIcons[key];
               return <button type="button" key={key} aria-pressed={key === mode}
                 onClick={() => { if (key !== mode) { const keepDemo = demo; reset(); setMode(key); if (keepDemo) setDemo(true); } }}
-                className={cn('flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-0.5 text-[10px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:text-xs',
+                className={cn('flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-0.5 text-[10px] font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring sm:text-xs',
                   key === mode ? 'border-primary bg-primary/10 text-primary' : 'hover:bg-muted')}>
                 <Icon className="h-5 w-5" aria-hidden /><span>{journeyModes[key].label}</span>
               </button>;
@@ -197,12 +197,12 @@ export function CampusJourneyPlanner({ destination, startingPlaces, deviceLocati
         </fieldset>
         {destination?.position && available && !checkingAccess && <div className="space-y-2">
           <label className="flex min-w-0 flex-col gap-1.5 text-xs font-bold">Starting point
-            <select value={startChoice} onChange={(event) => { reset(); setStartChoice(event.target.value); }} className="min-h-11 min-w-0 w-full rounded-xl border bg-background px-2.5 text-sm font-medium">
+            <select value={startChoice} onChange={(event) => { reset(); setStartChoice(event.target.value); }} className="min-h-[44px] min-w-0 w-full rounded-xl border bg-background px-2.5 text-sm font-medium">
               <option value="device">My location</option>
               {startingPlaces.filter(place => place.id !== destination.id).map(place => <option value={place.id} key={place.id}>{place.name}</option>)}
             </select>
           </label>
-          {startChoice === 'device' && !deviceLocation && <Button type="button" variant="outline" disabled={locating} onClick={onLocate} className="min-h-11 w-full">
+          {startChoice === 'device' && !deviceLocation && <Button type="button" variant="outline" disabled={locating} onClick={onLocate} className="min-h-[44px] w-full">
             {locating ? <Loader2 className="mr-1.5 h-4 w-4 motion-safe:animate-spin" /> : <LocateFixed className="mr-1.5 h-4 w-4" />} Use my location
           </Button>}
           {startChoice === 'device' && !deviceLocation && locationMessage && <p role="status" className="text-xs text-muted-foreground">{locationMessage}</p>}
@@ -214,7 +214,7 @@ export function CampusJourneyPlanner({ destination, startingPlaces, deviceLocati
         {checkingAccess && <p role="status" className="text-sm text-muted-foreground">Checking route access…</p>}
         {!checkingAccess && !available && <div role="status" className="space-y-2 rounded-xl border p-3">
           <p className="text-sm text-muted-foreground">{accessMessage || 'Routing is unavailable. Open Google Maps for directions.'}</p>
-          <Button type="button" variant="outline" className="min-h-11" onClick={() => setAccessAttempt(value => value + 1)}>Recheck route access</Button>
+          <Button type="button" variant="outline" className="min-h-[44px]" onClick={() => setAccessAttempt(value => value + 1)}>Recheck route access</Button>
         </div>}
         {error && <p role="status" className="rounded-xl border border-amber-600/35 bg-amber-500/10 p-2.5 text-xs leading-5">{error}</p>}
         {route && <div aria-live="polite" className="grid grid-cols-2 divide-x rounded-xl border bg-muted/30">
@@ -222,16 +222,16 @@ export function CampusJourneyPlanner({ destination, startingPlaces, deviceLocati
           <span className="px-3 py-2.5 text-xs text-muted-foreground"><strong className="block text-lg font-extrabold text-foreground">{formatJourneyDistance(route.metres)}</strong>Route distance</span>
         </div>}
         <div className="flex flex-wrap gap-2">
-          {destination?.position && available && !checkingAccess && <Button type="button" disabled={!origin || busy || locating || samePoint || tooFar} onClick={() => void plan()} className="min-h-11 flex-1 rounded-xl">
+          {destination?.position && available && !checkingAccess && <Button type="button" disabled={!origin || busy || locating || samePoint || tooFar} onClick={() => void plan()} className="min-h-[44px] flex-1 rounded-xl">
             {busy ? <><Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" /> Finding route…</> : <><Flag className="mr-2 h-4 w-4" /> {route ? 'Recalculate' : 'Preview route'}</>}
           </Button>}
-          {(handoff || (!destination && mapFallback)) && <Button variant="outline" asChild className="min-h-11 rounded-xl">
+          {(handoff || (!destination && mapFallback)) && <Button variant="outline" asChild className="min-h-[44px] rounded-xl">
             <a href={(handoff || mapFallback)!} target="_blank" rel="noopener noreferrer">Google Maps <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" /></a>
           </Button>}
-          {!destination && !route && !busy && <Button type="button" variant="ghost" className="min-h-11 rounded-xl" onClick={() => {
+          {!destination && !route && !busy && <Button type="button" variant="ghost" className="min-h-[44px] rounded-xl" onClick={() => {
             reset(); setDemo(true); setPlaying(!window.matchMedia('(prefers-reduced-motion: reduce)').matches);
           }}>Try animation</Button>}
-          {destination?.details && <Button variant="ghost" className="min-h-11 rounded-xl" asChild><a href={destination.details}>Place details <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" /></a></Button>}
+          {destination?.details && <Button variant="ghost" className="min-h-[44px] rounded-xl" asChild><a href={destination.details}>Place details <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" /></a></Button>}
         </div>
         {route?.steps.length ? <details open className="rounded-xl border p-3 text-sm">
           <summary className="cursor-pointer font-bold">Route steps</summary>

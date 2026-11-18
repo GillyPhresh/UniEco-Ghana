@@ -36,7 +36,8 @@ export function CampusPlaceCard({ name, category, source, address, date, distanc
 }) {
   const Icon = source === 'event' ? CalendarDays : source === 'community' ? Compass : Store;
   return <article className={cn('group flex min-w-0 flex-col overflow-hidden rounded-[1.35rem] border bg-card transition-shadow hover:shadow-md', active && 'border-primary ring-2 ring-primary/20')}>
-    <PlaceArtwork key={JSON.stringify([photo, logo, backdrop])} photo={photo} logo={logo} backdrop={backdrop} icon={Icon} />
+    {source === 'community' ? <div className="flex items-center gap-3 border-b bg-primary/5 px-4 py-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><MapPin className="h-5 w-5" aria-hidden="true" /></span><span className="text-xs font-semibold text-muted-foreground">Nearby map listing</span></div>
+      : <PlaceArtwork key={JSON.stringify([photo, logo, backdrop])} photo={photo} logo={logo} backdrop={backdrop} icon={Icon} />}
     <div className="flex flex-1 flex-col gap-2.5 p-3.5 sm:p-4">
       <div className="flex flex-wrap items-center justify-between gap-1">
         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">{category}</span>
@@ -45,7 +46,7 @@ export function CampusPlaceCard({ name, category, source, address, date, distanc
       </div>
       <div>
         <h3 className="break-words text-base font-bold leading-tight tracking-tight">{name}</h3>
-        {address && <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span className="break-words">{address}</span></p>}
+        {address && <p className="mt-1.5 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span className="line-clamp-2 break-words">{address}</span></p>}
         {date && <p className="mt-1 text-xs font-semibold text-primary">{date}</p>}
       </div>
       {((typeof rating === 'number' && rating > 0) || distance != null) && <div className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
@@ -53,11 +54,11 @@ export function CampusPlaceCard({ name, category, source, address, date, distanc
         {distance != null && <span>{distance < 1 ? `${Math.round(distance * 1000)} m` : `${distance.toFixed(1)} km`} away</span>}
       </div>}
       <div className="mt-auto flex flex-wrap gap-2 pt-2 text-xs font-semibold">
-        <button type="button" aria-pressed={Boolean(active)} onClick={onJourney} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-primary px-3 text-primary-foreground hover:opacity-90"><Navigation className="h-3.5 w-3.5" aria-hidden="true" /> Plan trip</button>
-        {details && <Link href={details} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-primary hover:bg-muted">Details <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>}
-        {externalDetails && <a href={externalDetails} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 text-primary hover:bg-muted">Source <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></a>}
-        {telephone && <a href={telephone} className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Phone className="h-3.5 w-3.5" aria-hidden="true" /> Call</a>}
-        {website && <a href={website} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 rounded-xl px-2 hover:bg-muted"><Globe2 className="h-3.5 w-3.5" aria-hidden="true" /> Website</a>}
+        {details && <Link href={details} className="inline-flex min-h-[44px] items-center gap-1 rounded-xl bg-primary px-3 text-primary-foreground hover:opacity-90">{source === 'event' ? 'View event' : 'Open shop'} <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>}
+        <button type="button" aria-pressed={Boolean(active)} onClick={onJourney} className={cn('inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3', details ? 'border hover:bg-muted' : 'bg-primary text-primary-foreground hover:opacity-90')}><Navigation className="h-3.5 w-3.5" aria-hidden="true" /> Directions</button>
+        {externalDetails && <a href={externalDetails} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-1 rounded-xl px-2 text-primary hover:bg-muted">Source <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" /></a>}
+        {telephone && <a href={telephone} className="inline-flex min-h-[44px] items-center gap-1 rounded-xl px-2 hover:bg-muted"><Phone className="h-3.5 w-3.5" aria-hidden="true" /> Call</a>}
+        {website && <a href={website} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-1 rounded-xl px-2 hover:bg-muted"><Globe2 className="h-3.5 w-3.5" aria-hidden="true" /> Website</a>}
       </div>
     </div>
   </article>;

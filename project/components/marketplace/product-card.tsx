@@ -71,8 +71,7 @@ export function ProductCard({ product, onView }: { product: ProductCardItem; onV
   return (
     <Card className="group flex h-full min-w-0 flex-col overflow-hidden rounded-2xl transition-shadow hover:shadow-md">
       <Link href={`/marketplace/product/${product.id}`} onClick={onView}
-        className="block flex-1 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-        aria-label={`View ${product.name}`}>
+        className="block flex-1 outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
         <div className="relative aspect-square overflow-hidden bg-muted">
           <CatalogPhoto sources={[product.image_url, ...(product.images ?? [])]} alt="" sizes={sizes} />
           {discounted && <span className="absolute left-2 top-2 rounded-full bg-emerald-900 px-2 py-1 text-xs font-semibold text-white">−{Math.round((1 - displayPrice / product.price) * 100)}%</span>}
