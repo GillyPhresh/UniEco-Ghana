@@ -34,11 +34,18 @@ test('install prompt uses browser consent and a stable manifest identity', () =>
   const manifest = read('app/manifest.ts');
   assert.match(manifest, /id: '\/'/);
   assert.match(manifest, /display: 'standalone'/);
-  assert.match(manifest, /unieco-official-favicon-v2\.png/);
   assert.match(manifest, /unieco-app-icon-192\.png/);
+  assert.match(manifest, /unieco-app-icon-512\.png/);
+  assert.match(manifest, /unieco-app-icon-maskable-512\.png/);
   const icon = fs.readFileSync(path.join(projectRoot, 'public/unieco-app-icon-192.png'));
   assert.equal(icon.readUInt32BE(16), 192);
   assert.equal(icon.readUInt32BE(20), 192);
+  for (const [file, size] of [['unieco-app-icon-512.png', 512], ['unieco-app-icon-maskable-512.png', 512], ['unieco-app-icon-apple-180.png', 180]]) {
+    const output = fs.readFileSync(path.join(projectRoot, 'public', file));
+    assert.equal(output.readUInt32BE(16), size);
+    assert.equal(output.readUInt32BE(20), size);
+  }
+  assert.match(read('app/layout.tsx'), /unieco-app-icon-apple-180\.png/);
   assert.match(hook, /navigatorWithInstall\.install\(\)/);
   assert.match(hook, /promptEvent\.prompt\(\)/);
   assert.match(hook, /dismissedRef/);
