@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'UniEco Ghana — Connecting Students, Businesses & Opportunities',
-    short_name: 'UniEco',
+    name: 'UniEco Ghana',
+    short_name: 'UniEco Ghana',
     description:
       'The campus marketplace and community platform for every tertiary institution in Ghana.',
     id: '/',
@@ -19,7 +19,8 @@ export default function manifest(): MetadataRoute.Manifest {
     dir: 'ltr',
     icons: [
       { src: '/unieco-app-icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-      { src: '/unieco-official-favicon-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/unieco-app-icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: '/unieco-app-icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
     ],
     shortcuts: [
       { name: 'Discover Businesses', url: '/discover?source=pwa_shortcut', description: 'Find campus businesses near you' },

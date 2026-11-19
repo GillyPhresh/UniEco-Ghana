@@ -58,7 +58,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [{ url: '/unieco-official-favicon-v2.png', type: 'image/png', sizes: '512x512' }],
     shortcut: '/unieco-official-favicon-v2.png',
-    apple: '/unieco-official-favicon-v2.png',
+    apple: [{ url: '/unieco-app-icon-apple-180.png', type: 'image/png', sizes: '180x180' }],
   },
   robots: {
     index: true,
