@@ -89,6 +89,8 @@ function StudentOnboarding() {
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftReady, setDraftReady] = useState(false);
   const submitLock = useRef(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const contactLock = useRef(false);
   const upgradingBuyer = registrationAccess?.buyer_restricted === true;
   const feeLabel = registrationFeeLabel(registrationAccess?.student_fee);
   const [form, setForm] = useState<FormData>({
@@ -223,13 +225,30 @@ function StudentOnboarding() {
     return null;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const err = validateStep();
     if (err) {
       setError(err);
       return;
     }
     setError(null);
+    if (step === 0) {
+      if (contactLock.current) return;
+      contactLock.current = true;
+      setSavingContact(true);
+      try {
+        const { error: saveError } = await supabase.rpc('save_my_registration_contact_step', {
+          p_lane: 'student', p_phone: normalizeGhanaPhone(form.phone),
+        });
+        if (saveError) throw saveError;
+      } catch {
+        setError('Your number was not saved. Check your connection and tap Continue to retry.');
+        return;
+      } finally {
+        contactLock.current = false;
+        setSavingContact(false);
+      }
+    }
     setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
@@ -437,12 +456,14 @@ function StudentOnboarding() {
                   className="h-12 text-base"
                   placeholder="e.g. 0244 123 456"
                   value={form.phone}
+                  disabled={savingContact}
                   onChange={(e) => updateForm('phone', e.target.value)}
                 />
               </div>
 
-              <Button onClick={handleNext} className="min-h-12 w-full">
-                Continue
+              <p className="text-sm text-muted-foreground">Continue to save your number. UniEco support can use it to help with unfinished registration.</p>
+              <Button onClick={handleNext} disabled={savingContact} className="min-h-12 w-full">
+                {savingContact ? 'Saving…' : 'Continue'}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </motion.div>

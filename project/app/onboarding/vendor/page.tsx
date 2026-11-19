@@ -94,6 +94,8 @@ function VendorOnboarding() {
   const [draftReady, setDraftReady] = useState(false);
   const paymentAttemptKeyRef = useRef<string | null>(null);
   const submitLock = useRef(false);
+  const [savingContact, setSavingContact] = useState(false);
+  const contactLock = useRef(false);
   const isStudent = user?.vendorProfile?.vendor_type === 'student_vendor'
     || (user?.role === 'student' && registrationAccess?.allowed === true && user.studentProfile?.is_verified_student === true);
   const coveredByStudentPayment = isStudent && registrationAccess?.student_business_covered === true;
@@ -204,13 +206,35 @@ function VendorOnboarding() {
     return null;
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     const validationError = validateStep();
     if (validationError) {
       setError(validationError);
       return;
     }
     setError(null);
+    if (step === 1 && registrationAccess?.can_pay_vendor_registration) {
+      if (contactLock.current) return;
+      const address = form.contact_email?.trim() || '';
+      if (address && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) {
+        setError('Check the business email address or leave it blank.');
+        return;
+      }
+      contactLock.current = true;
+      setSavingContact(true);
+      try {
+        const { error: saveError } = await supabase.rpc('save_my_registration_contact_step', {
+          p_lane: 'external_vendor', p_phone: normalizeGhanaPhone(form.contact_phone), p_business_email: address || null,
+        });
+        if (saveError) throw saveError;
+      } catch {
+        setError('Your contacts were not saved. Check your connection and tap Continue to retry.');
+        return;
+      } finally {
+        contactLock.current = false;
+        setSavingContact(false);
+      }
+    }
     setStep((current) => Math.min(current + 1, VENDOR_STEPS.length - 1));
   };
 
@@ -570,6 +594,7 @@ function VendorOnboarding() {
                 maxLength={15}
                 placeholder="e.g. 0244 123 456"
                 value={form.contact_phone}
+                disabled={savingContact}
                 onChange={(e) => updateForm('contact_phone', e.target.value)}
               />
             </div>
@@ -582,15 +607,17 @@ function VendorOnboarding() {
                 maxLength={160}
                 placeholder="business@example.com"
                 value={form.contact_email}
+                disabled={savingContact}
                 onChange={(e) => updateForm('contact_email', e.target.value)}
               />
             </div>
           </div>
 
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handleBack} className="flex-1"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
-            <Button onClick={handleNext} className="flex-1">Continue to finish <ArrowRight className="ml-2 h-4 w-4" /></Button>
+            <Button variant="outline" disabled={savingContact} onClick={handleBack} className="flex-1"><ArrowLeft className="mr-2 h-4 w-4" />Back</Button>
+            <Button disabled={savingContact} onClick={handleNext} className="flex-1">{savingContact ? 'Saving…' : 'Continue to finish'} <ArrowRight className="ml-2 h-4 w-4" /></Button>
           </div>
+          {registrationAccess?.can_pay_vendor_registration && <p className="text-sm text-muted-foreground">Continue to save your business contacts. UniEco support can use them to help with unfinished registration.</p>}
             </>
           )}
 
