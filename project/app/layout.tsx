@@ -21,8 +21,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
   title: {
-    default: `${siteConfig.name} | Ghana's Campus Marketplace & Community`,
+    default: siteConfig.name,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
     locale: siteConfig.locale,
     url: siteConfig.url,
     siteName: siteConfig.name,
-    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    title: siteConfig.name,
     description: siteConfig.description,
     images: [
       {
@@ -51,14 +52,14 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    title: siteConfig.name,
     description: siteConfig.description,
     images: ['/unieco-official-logo.png'],
   },
   icons: {
-    icon: [{ url: '/unieco-official-favicon-v2.png', type: 'image/png', sizes: '512x512' }],
-    shortcut: '/unieco-official-favicon-v2.png',
-    apple: [{ url: '/unieco-app-icon-apple-180.png', type: 'image/png', sizes: '180x180' }],
+    icon: [{ url: '/unieco-brand-icon-20261119-v3.png', type: 'image/png', sizes: '512x512' }],
+    shortcut: '/unieco-brand-icon-20261119-v3.png',
+    apple: [{ url: '/unieco-app-icon-apple-20261119-v3.png', type: 'image/png', sizes: '180x180' }],
   },
   robots: {
     index: true,

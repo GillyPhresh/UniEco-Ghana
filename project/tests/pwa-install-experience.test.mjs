@@ -34,18 +34,21 @@ test('install prompt uses browser consent and a stable manifest identity', () =>
   const manifest = read('app/manifest.ts');
   assert.match(manifest, /id: '\/'/);
   assert.match(manifest, /display: 'standalone'/);
-  assert.match(manifest, /unieco-app-icon-192\.png/);
-  assert.match(manifest, /unieco-app-icon-512\.png/);
-  assert.match(manifest, /unieco-app-icon-maskable-512\.png/);
-  const icon = fs.readFileSync(path.join(projectRoot, 'public/unieco-app-icon-192.png'));
+  assert.match(manifest, /unieco-app-icon-20261119-v3-192\.png/);
+  assert.match(manifest, /unieco-app-icon-20261119-v3-512\.png/);
+  assert.match(manifest, /unieco-app-icon-20261119-v3-maskable-512\.png/);
+  const icon = fs.readFileSync(path.join(projectRoot, 'public/unieco-app-icon-20261119-v3-192.png'));
   assert.equal(icon.readUInt32BE(16), 192);
   assert.equal(icon.readUInt32BE(20), 192);
-  for (const [file, size] of [['unieco-app-icon-512.png', 512], ['unieco-app-icon-maskable-512.png', 512], ['unieco-app-icon-apple-180.png', 180]]) {
+  for (const [file, size] of [['unieco-app-icon-20261119-v3-512.png', 512], ['unieco-app-icon-20261119-v3-maskable-512.png', 512], ['unieco-app-icon-apple-20261119-v3.png', 180], ['unieco-brand-icon-20261119-v3.png', 512]]) {
     const output = fs.readFileSync(path.join(projectRoot, 'public', file));
     assert.equal(output.readUInt32BE(16), size);
     assert.equal(output.readUInt32BE(20), size);
   }
-  assert.match(read('app/layout.tsx'), /unieco-app-icon-apple-180\.png/);
+  assert.match(read('app/layout.tsx'), /unieco-app-icon-apple-20261119-v3\.png/);
+  assert.match(read('app/layout.tsx'), /default: siteConfig\.name/);
+  assert.match(read('app/layout.tsx'), /applicationName: siteConfig\.name/);
+  assert.match(read('app/layout.tsx'), /title: siteConfig\.name/);
   assert.match(hook, /navigatorWithInstall\.install\(\)/);
   assert.match(hook, /promptEvent\.prompt\(\)/);
   assert.match(hook, /dismissedRef/);
