@@ -46,7 +46,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
 import { ROLE_LABELS, isVendor } from '@/lib/auth/permissions';
 import { Loader2 } from 'lucide-react';
-import { getUnreadNotificationCount } from '@/lib/data/communication-client';
+import { useCommunicationUnread } from '@/hooks/use-communication-unread';
 import { registrationReminderRole } from '@/lib/auth/registration-access';
 import { useInstallPrompt } from '@/hooks/use-install-prompt';
 
@@ -70,7 +70,7 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
     : registrationAccess?.can_student_referral ? '/dashboard/referrals' : null;
   const { installed, installApp } = useInstallPrompt();
   const router = useRouter();
-  const [unreadNotifs, setUnreadNotifs] = useState(0);
+  const unread = useCommunicationUnread(user?.id, showPaymentReminders);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -78,17 +78,6 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  useEffect(() => {
-    let active = true;
-    setUnreadNotifs(0);
-    if (user?.id) {
-      getUnreadNotificationCount(showPaymentReminders)
-        .then((count) => { if (active) setUnreadNotifs(count); })
-        .catch(() => { if (active) setUnreadNotifs(0); });
-    }
-    return () => { active = false; };
-  }, [user?.id, showPaymentReminders]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -135,8 +124,8 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
 
         <div className="ml-auto flex shrink-0 items-center gap-0 sm:gap-1.5">
           <HeaderIconLink href="/search" label="Search" icon={Search} className="lg:hidden" />
-          <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} className={user ? undefined : 'lg:hidden'} />
-          <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={user ? unreadNotifs : 0} className={user ? undefined : 'lg:hidden'} />
+          <HeaderIconLink href="/dashboard/messages" label="Messages" icon={MessageSquare} count={unread.messages} className={user ? undefined : 'lg:hidden'} />
+          <HeaderIconLink href="/dashboard/notifications" label="Notifications" icon={Bell} count={unread.notifications} className={user ? undefined : 'lg:hidden'} />
           {loading ? (
             <Loader2 aria-hidden="true" className="hidden h-5 w-5 animate-spin text-muted-foreground lg:block" />
           ) : user ? (

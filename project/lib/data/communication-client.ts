@@ -7,6 +7,7 @@
  */
 
 import { supabase } from '@/lib/supabase/client';
+import { announceUnreadChange, nonChatNotificationTypes } from '@/lib/notifications/unread-events';
 import type {
   ConversationWithDetails,
   MessageWithMeta,
@@ -207,11 +208,13 @@ export async function sendMessage(
 
 export async function deleteMessage(messageId: string): Promise<{ error: string | null }> {
   const { error } = await supabase.rpc('soft_delete_direct_message', { p_message_id: messageId });
+  if (!error) announceUnreadChange();
   return { error: error?.message || null };
 }
 
 export async function markMessagesRead(conversationId: string): Promise<void> {
-  await supabase.rpc('mark_direct_messages_read', { p_conversation_id: conversationId });
+  const { error } = await supabase.rpc('mark_direct_messages_read', { p_conversation_id: conversationId });
+  if (!error) announceUnreadChange();
 }
 
 // ============================================================
@@ -309,6 +312,7 @@ export async function getNotifications(
   category?: NotificationCategory,
   unreadOnly = false,
   includeRegistrationReminders = true,
+  includeMessages = true,
 ): Promise<NotificationWithMeta[]> {
   let query = supabase
     .from('notifications')
@@ -323,6 +327,7 @@ export async function getNotifications(
     query = query.eq('is_read', false);
   }
   if (!includeRegistrationReminders) query = query.neq('type', 'registration_payment_required');
+  if (!includeMessages) query = query.neq('category', 'messages').or(nonChatNotificationTypes);
 
   const { data } = await query;
   return (data || []) as NotificationWithMeta[];
@@ -338,12 +343,13 @@ export async function getUnreadNotificationCount(includeRegistrationReminders = 
   return count || 0;
 }
 
-export async function getUnreadCountsByCategory(includeRegistrationReminders = true): Promise<Record<string, number>> {
+export async function getUnreadCountsByCategory(includeRegistrationReminders = true, includeMessages = true): Promise<Record<string, number>> {
   let query = supabase
     .from('notifications')
     .select('category')
     .eq('is_read', false);
   if (!includeRegistrationReminders) query = query.neq('type', 'registration_payment_required');
+  if (!includeMessages) query = query.neq('category', 'messages').or(nonChatNotificationTypes);
   const { data } = await query;
 
   if (!data) return {};
@@ -356,15 +362,18 @@ export async function getUnreadCountsByCategory(includeRegistrationReminders = t
 }
 
 export async function markNotificationRead(id: string): Promise<void> {
-  await supabase.rpc('set_own_notification_read_state', { p_notification_id: id, p_is_read: true });
+  const { error } = await supabase.rpc('set_own_notification_read_state', { p_notification_id: id, p_is_read: true });
+  if (!error) announceUnreadChange();
 }
 
 export async function markAllNotificationsRead(category?: NotificationCategory): Promise<void> {
-  await supabase.rpc('mark_all_own_notifications_read', { p_category: category && category !== 'general' ? category : null });
+  const { error } = await supabase.rpc('mark_all_own_notifications_read', { p_category: category && category !== 'general' ? category : null });
+  if (!error) announceUnreadChange();
 }
 
 export async function deleteNotification(id: string): Promise<void> {
-  await supabase.rpc('dismiss_own_notification', { p_notification_id: id });
+  const { error } = await supabase.rpc('dismiss_own_notification', { p_notification_id: id });
+  if (!error) announceUnreadChange();
 }
 
 // ============================================================

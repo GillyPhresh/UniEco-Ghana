@@ -91,8 +91,8 @@ function NotificationsContent() {
   const loadData = useCallback(async () => {
     setLoading(true);
     const [notifs, counts] = await Promise.all([
-      getNotifications(100, undefined, false, showPaymentReminders),
-      getUnreadCountsByCategory(showPaymentReminders),
+      getNotifications(100, undefined, false, showPaymentReminders, false),
+      getUnreadCountsByCategory(showPaymentReminders, false),
     ]);
     setNotifications(notifs);
     setUnreadCounts(counts);
@@ -129,7 +129,7 @@ function NotificationsContent() {
   const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
   const categories: { key: FilterCategory; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: totalUnread },
-    ...NOTIFICATION_CATEGORIES_FULL.map((c) => ({
+    ...NOTIFICATION_CATEGORIES_FULL.filter(c => c.key !== 'messages').map((c) => ({
       key: c.key as FilterCategory,
       label: c.label,
       count: unreadCounts[c.key] || 0,
