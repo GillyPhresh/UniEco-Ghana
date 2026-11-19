@@ -25,7 +25,7 @@ async function checkPng(response, letterhead = false) {
     const photo = await sharp(png).extract({ left: 96, top: 145, width: 865, height: 420 }).stats();
     assert.ok(photo.channels.slice(0, 3).every((channel) => channel.stdev > 24), 'lead region contains a photograph, not a blank placeholder');
     const colorAt = (x, y) => sharp(png).extract({ left: x, top: y, width: 1, height: 1 }).removeAlpha().raw().toBuffer().then((p) => [...p]);
-    assert.deepEqual(await colorAt(76, 49), [255, 255, 255], 'small white corner logo tile');
+    assert.notDeepEqual(await colorAt(76, 49), [255, 255, 255], 'the lead photo is not covered by a white logo tile');
     assert.deepEqual(await colorAt(105, 889), [163, 23, 34], 'red category tag below the full-bleed photo');
     const footer = await colorAt(105, 1435);
     assert.ok(footer.every((component) => component > 215 && component < 240), 'thin, light-gray credits footer');

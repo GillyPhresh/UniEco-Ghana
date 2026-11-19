@@ -19,14 +19,15 @@ test('a published story uses its current article photo with honest attribution, 
   assert.deepEqual(findFlyerPhotoEvidence(html(), article, title, paragraph), { portraits: [] }, 'unapproved calls do not gain photo access');
 });
 
-test('the share flyer overlays the transparent UniEco logo directly on the story photo', async () => {
+test('the flyer keeps the transparent UniEco logo compact below the statement instead of placing it over the story photo', async () => {
   const [renderer, logo] = await Promise.all([
     import('node:fs/promises').then(({ readFile }) => readFile(new URL('../lib/ai/flyer.tsx', import.meta.url), 'utf8')),
     sharp('public/unieco-flyer-mark.png').metadata(),
   ]);
   assert.match(renderer, /'unieco-flyer-mark\.png'/);
-  assert.doesNotMatch(renderer, /background: '#ffffff' \}\}>\s*\{logo/);
-  assert.ok(Math.abs(logo.width - logo.height) < 20, 'trimmed logo proportions fit the photo overlay');
+  assert.match(renderer, /width="88" height="88" style=\{\{ objectFit: 'contain', flexShrink: 0 \}\}/);
+  assert.doesNotMatch(renderer, /position: 'absolute', top: 38, left: 44/);
+  assert.ok(Math.abs(logo.width - logo.height) < 20, 'trimmed logo proportions fit the footer signature');
   assert.equal(logo.hasAlpha, true, 'logo retains transparent pixels instead of a white tile');
 });
 

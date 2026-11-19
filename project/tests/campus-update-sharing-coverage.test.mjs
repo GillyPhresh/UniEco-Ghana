@@ -39,13 +39,17 @@ test('campus updates produce a branded, source-attributed social flyer and story
   assert.match(detail, /alternates: \{ canonical: url \}/);
 });
 
-test('news flyers use a prominent UniEco logo, an editorial quotation mark and brand social footer', () => {
+test('news flyers place a compact transparent UniEco logo below the statement and use a clean editorial social footer', () => {
   const flyer = read('lib/ai/flyer.tsx');
-  assert.match(flyer, /width: 194, height: 194/);
+  assert.match(flyer, /width="88" height="88" style=\{\{ objectFit: 'contain', flexShrink: 0 \}\}/);
+  assert.doesNotMatch(flyer, /width: 194, height: 194/);
+  assert.doesNotMatch(flyer, /background: '#fff'.*boxShadow/);
   assert.match(flyer, /<svg aria-hidden="true" width=\{132\} height=\{108\}/);
   assert.match(flyer, /<path fill=\{newsRed\}/);
-  assert.match(flyer, /UNIECO GHANA  ·  uniecoghana\.com/);
-  assert.match(flyer, /@UniEcoGhana/);
+  assert.match(flyer, /uniecoghana\.com/);
+  assert.match(flyer, /@uniecoghana/);
+  assert.match(flyer, /Pictured: \{portraitNames\}[\s\S]*— \{source\}/);
+  assert.match(flyer, /<svg aria-hidden="true" width=\{19\} height=\{19\} viewBox="0 0 24 24">/);
   assert.doesNotMatch(flyer, /width: 19, height: 65/);
 });
 

@@ -136,10 +136,6 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
       <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
         <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
-        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 38, left: 44, width: 194, height: 194, background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.28)' }}>
-          {logo ? <img src={logo} alt="UniEco Ghana" width={184} height={184} style={{ objectFit: 'contain' }} />
-            : <span style={{ fontSize: 28, fontWeight: 700, color: ink }}>UniEco</span>}
-        </div>
         {options.draft && <span style={{ position: 'absolute', right: 72, top: 45, padding: '10px 14px', background: newsRed, color: '#fff', fontWeight: 700, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
         {portraits.length > 0 && <div style={{ ...row, position: 'absolute', bottom: 72, left: 100, right: 100, justifyContent: portraits.length === 1 ? 'flex-end' : 'space-between' }}>
           {portraits.map((portrait) =>
@@ -162,25 +158,26 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
         </div>
         <span style={{ fontSize: titleSize, fontWeight: 400, lineHeight: 1.13, letterSpacing: -0.8, wordBreak: 'break-word' }}>{title}</span>
         {summary && <span style={{ marginTop: 12, fontSize: 26, color: '#444444', lineHeight: 1.2, wordBreak: 'break-word' }}>{summary}</span>}
-        <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', flexGrow: 1, marginTop: 12, gap: 3, textAlign: 'right' }}>
-          {portraitNames && <span style={{ fontSize: 20, color: newsInk }}>Pictured: {portraitNames}</span>}
-          <span style={{ color: newsRed, fontSize: 25, fontWeight: 700 }}>— {source}</span>
+        <div style={{ ...row, alignItems: 'flex-end', justifyContent: 'space-between', flexGrow: 1, minHeight: 88, marginTop: 12, gap: 18 }}>
+          {logo ? <img src={logo} alt="UniEco Ghana" width="88" height="88" style={{ objectFit: 'contain', flexShrink: 0 }} />
+            : <span style={{ fontSize: 22, fontWeight: 700, color: ink }}>UniEco Ghana</span>}
+          <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', gap: 4, textAlign: 'right' }}>
+            {portraitNames && <span style={{ fontSize: 18, color: newsInk }}>Pictured: {portraitNames}</span>}
+            <span style={{ color: newsRed, fontSize: 25, fontWeight: 700 }}>— {source}</span>
+          </div>
         </div>
       </div>
       <div style={{ ...col, width: '100%', flexShrink: 0, background: '#e5e5e3', borderTop: '2px solid #c8c8c5', padding: '10px 62px 12px', gap: 5 }}>
         <div style={{ ...row, justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 17, color: newsInk, fontWeight: 700 }}>{options.draft ? 'UNIECO GHANA · MANAGEMENT PREVIEW' : 'UNIECO GHANA  ·  uniecoghana.com'}</span>
-          <div style={{ ...row, alignItems: 'center', gap: 10, color: '#242323' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, border: '2px solid #242323', borderRadius: 5, padding: '1px 4px' }}>IG</span>
-            <span style={{ fontSize: 20, fontWeight: 700 }}>f</span>
-            <span style={{ fontSize: 18, fontWeight: 700 }}>X</span>
-            <span style={{ fontSize: 15, fontWeight: 700 }}>@UniEcoGhana</span>
+          <span style={{ fontSize: 17, color: newsInk, fontWeight: 700 }}>{options.draft ? 'UNIECO GHANA · MANAGEMENT PREVIEW' : 'uniecoghana.com'}</span>
+          <div style={{ ...row, alignItems: 'center', gap: 9, color: '#242323' }}>
+            <svg aria-hidden="true" width={19} height={19} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#242323" strokeWidth="2.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="#242323" strokeWidth="2.2"/><circle cx="18" cy="6.5" r="1.4" fill="#242323"/></svg>
+            <svg aria-hidden="true" width={17} height={19} viewBox="0 0 24 24"><path fill="#242323" d="M14.2 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H8v3.1h2.8v8z"/></svg>
+            <svg aria-hidden="true" width={19} height={19} viewBox="0 0 24 24"><path fill="#242323" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-7.4L5.5 22H2.3l7.3-8.4L1.8 2h6.5l4.4 6.8zm-1.1 17.9h1.7L7.3 4H5.5z"/></svg>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>@uniecoghana</span>
           </div>
         </div>
-        {!options.draft && <span style={{ fontSize: 14, color: newsInk, fontWeight: 700 }}>uniecoghana.com/updates/{data.id}</span>}
-        <span style={{ fontSize: 14, color: '#474747' }}>{photoNote}{visual.background.credit}</span>
-        {portraitCredits && <span style={{ fontSize: 15, color: '#474747' }}>Portraits: {portraitCredits}</span>}
-        {requiresCreditLink && <span style={{ fontSize: 14, color: '#474747' }}>Photos cropped · creativecommons.org/licenses/by/4.0 · Source details on UniEco</span>}
+        <span style={{ fontSize: 13, color: '#474747' }}>{photoNote}{visual.background.credit}{portraitCredits ? ' · Portraits: ' + portraitCredits : ''}{requiresCreditLink ? ' · CC BY 4.0 · Full credits on UniEco' : ''}</span>
       </div>
     </div>, { ...updateCardSize, headers, ...(fonts.length ? { fonts } : {}) },
   );
