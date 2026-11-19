@@ -1,18 +1,18 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Newspaper } from 'lucide-react';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { CampusUpdateActions } from '@/components/feed/campus-update-actions';
 import { CampusUpdateMedia } from '@/components/feed/campus-update-media';
+import { CampusUpdatePhoto } from '@/components/feed/campus-update-photo';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
-import { newsroomCampusArt, newsroomFields, type FeedItem } from '@/lib/ai/newsroom';
+import { newsroomFields, type FeedItem } from '@/lib/ai/newsroom';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: `${item.title} | ${item.university_name}`,
     description,
     alternates: { canonical: url },
-    openGraph: { type: 'article', title: item.title, description, url, siteName: 'UniEco Ghana', locale: 'en_GH', images: [{ url: image, width: 1080, height: 1350, alt: `UniEco Ghana campus update: ${item.title}` }] },
+    openGraph: { type: 'article', title: item.title, description, url, siteName: 'UniEco Ghana', locale: 'en_GH', images: [{ url: image, width: 1080, height: 1440, alt: `UniEco Ghana campus update: ${item.title}` }] },
     twitter: { card: 'summary_large_image', title: item.title, description, images: [image] },
   };
 }
@@ -51,7 +51,6 @@ export default async function CampusUpdateDetailPage({ params }: Props) {
   const category = updateCategory(item.category);
   const excerpt = updateSummary(item.excerpt, item.title);
   const source = publicSourceUrl(item.canonical_url);
-  const campusPhoto = newsroomCampusArt(item.source_id);
   const supabase = await createClient();
   const { data: related } = await supabase.from('campus_feed_public_items').select('id,title,published_at')
     .eq('source_id', item.source_id).neq('id', item.id).order('published_at', { ascending: false, nullsFirst: false }).order('id').limit(4);
@@ -71,10 +70,7 @@ export default async function CampusUpdateDetailPage({ params }: Props) {
           </div>
         </header>
         <div className="mt-4 grid gap-5">
-          {campusPhoto && <figure>
-            <div className="relative aspect-[2/1] bg-muted"><Image src={campusPhoto} alt="" fill sizes="(max-width: 1023px) 100vw, 968px" className="object-cover" priority /></div>
-            <figcaption className="mt-1 text-xs text-muted-foreground">Campus file photo · {item.university_name}</figcaption>
-          </figure>}
+          <CampusUpdatePhoto item={item} sizes="(max-width: 1023px) 100vw, 968px" priority />
           <CampusUpdateMedia url={item.media_url} kind={item.media_type} publisher={item.source_label} sourceUrl={item.canonical_url} />
           {source && <div><Button asChild className="h-11"><a href={source.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">Read the original update <ExternalLink className="ml-2 h-4 w-4" /></a></Button></div>}
           <div className="flex flex-col gap-3 border-t border-border pt-3">

@@ -1,8 +1,9 @@
 import { ArrowUpRight, Image as PhotoIcon, PlayCircle } from 'lucide-react';
 import { officialPublisherUrl, publisherHost } from '@/lib/ai/public-source-url';
 
-/** Keep media with its original publisher unless we have separate reuse
- * permission. No cross-site embeds, autoplay, iframes, or public media proxy. */
+/** Full-size media and videos stay with their original publisher. The selected
+ * story thumbnail is handled separately by the approved-item photo renderer.
+ * No arbitrary cross-site embeds, autoplay, iframes or visitor-supplied URLs. */
 export function CampusUpdateMedia({ url, kind, publisher, sourceUrl }: {
   url: string | null; kind: 'image' | 'video' | null; publisher: string; sourceUrl: string;
 }) {

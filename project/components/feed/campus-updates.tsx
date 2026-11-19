@@ -2,16 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, ArrowUpRight, Building2, ChevronDown, CircleAlert, ExternalLink, Loader2, Newspaper, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
 import { CampusUpdateActions } from '@/components/feed/campus-update-actions';
+import { CampusUpdatePhoto } from '@/components/feed/campus-update-photo';
 import { ReaderRecommendations } from '@/components/feed/reader-recommendations';
 import { schoolSourceId } from '@/lib/ai/research-catalog';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
-import { newsroomCampusArt, newsroomFields, newsroomPageSize as pageSize, newsroomSearchTokens, type FeedItem } from '@/lib/ai/newsroom';
+import { newsroomFields, newsroomPageSize as pageSize, newsroomSearchTokens, type FeedItem } from '@/lib/ai/newsroom';
 
 type FeedSource = { source_id: string; source_label: string; university_name: string; source_kind: 'campus' | 'opportunities' };
 type CampusOption = { value: string; label: string };
@@ -209,15 +209,8 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
 }
 
 function LeadArtwork({ item }: { item: FeedItem }) {
-  const image = newsroomCampusArt(item.source_id);
-  return <Link href={'/updates/' + item.id} aria-label={'Read: ' + item.title} className="newsroom-lead-art relative isolate block aspect-[2/1] overflow-hidden bg-muted">
-    {image ? <>
-      <Image src={image} alt="" fill sizes="(max-width: 1023px) 100vw, 780px" priority className="object-cover" />
-      <span className="absolute bottom-2 left-2 max-w-[90%] bg-black/75 px-2 py-1 text-[10px] text-white">Campus file photo · {item.source_label}</span>
-    </> : <span aria-hidden="true" className="newsroom-artwork-mark absolute inset-0 flex flex-col justify-center p-5 sm:p-10">
-      <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">UniEco Ghana</span>
-      <span className="newsroom-headline mt-1 max-w-[90%] text-3xl text-white sm:text-5xl">{updateCategory(item.category)}</span>
-    </span>}
+  return <Link href={'/updates/' + item.id} aria-label={'Read: ' + item.title} className="newsroom-lead-art relative isolate block overflow-hidden bg-muted">
+    <CampusUpdatePhoto item={item} sizes="(max-width: 1023px) 100vw, 780px" priority />
   </Link>;
 }
 

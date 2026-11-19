@@ -5,7 +5,7 @@ import { testModules } from './helpers/load-typescript.mjs';
 
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('newsroom search tokens cannot introduce a PostgREST operator and lead artwork is local and credited', () => {
+test('newsroom search tokens cannot introduce a PostgREST operator and lead artwork is story-bound and credited', () => {
   const { newsroomSearchTokens, newsroomCampusArt } = testModules()('lib/ai/newsroom.ts');
   assert.deepEqual(newsroomSearchTokens("Yamfo, (KNUST%')"), ['Yamfo', 'KNUST']);
   assert.deepEqual(newsroomSearchTokens('KNUST KNUST College'), ['KNUST', 'College']);
@@ -15,7 +15,12 @@ test('newsroom search tokens cannot introduce a PostgREST operator and lead artw
   const feed = read('components/feed/campus-updates.tsx');
   assert.match(feed, /Lead story/);
   assert.match(feed, /The Newswire/);
-  assert.match(feed, /Campus file photo/);
+  assert.match(feed, /<CampusUpdatePhoto item=\{item\}/);
+  const photo = read('components/feed/campus-update-photo.tsx');
+  assert.match(photo, /api\/campus-feed\/alert-card\?id=/);
+  assert.match(photo, /&format=photo/);
+  assert.match(photo, /Campus file photo/);
+  assert.match(photo, /unoptimized=\{!fallback\}/);
   assert.match(feed, /query\.or\(/);
   assert.doesNotMatch(feed, /sticky top-/);
   assert.match(read('components/pwa/install-prompt.tsx'), /const isReadingUpdates = pathname === '\/updates' \|\| pathname.startsWith\('\/updates\/'\)/);

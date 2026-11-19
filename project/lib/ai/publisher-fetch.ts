@@ -3,6 +3,7 @@ import { request } from 'node:https';
 import { BlockList, isIP } from 'node:net';
 import { checkServerIdentity } from 'node:tls';
 import { sourceLink } from './public-source-url';
+import { blocksPublisherImagePreview } from './publisher-image-policy';
 
 const blocked = new BlockList();
 for (const [prefix, bits] of [
@@ -57,6 +58,7 @@ type FetchOptions = {
   signal?: AbortSignal;
   allowMissing?: boolean;
   allowsPath?: (url: URL) => boolean;
+  timeoutMs?: number;
 };
 
 export type PublisherDocument = { url: string; mime: string; bytes: Buffer; indexable: boolean; imagesAllowed?: boolean };
@@ -64,7 +66,8 @@ export type PublisherDocument = { url: string; mime: string; bytes: Buffer; inde
 /** Approved hosts only, including every redirect. HTTPS validates TLS for the original host,
  * while the socket uses the exact IP already checked (no second DNS lookup). */
 export async function fetchPublisher(value: string, hosts: readonly string[], options: FetchOptions): Promise<PublisherDocument> {
-  const signal = publisherDeadline(4_500, options.signal);
+  const timeout = options.timeoutMs == null || !Number.isFinite(options.timeoutMs) ? 4_500 : Math.max(100, Math.min(10_000, options.timeoutMs));
+  const signal = publisherDeadline(timeout, options.signal);
   let target = sourceLink(value, value, hosts);
   const visited = new Set<string>();
 
@@ -112,7 +115,7 @@ export async function fetchPublisher(value: string, hosts: readonly string[], op
         res.once('end', () => resolve({
           url: url.href, mime, bytes: Buffer.concat(chunks, size),
           indexable: !/\b(?:noindex|nosnippet|none)\b/i.test(String(res.headers['x-robots-tag'] || '')),
-          imagesAllowed: !/\b(?:noimageindex|noindex|nosnippet|none)\b|\bmax-snippet\s*:/i.test(String(res.headers['x-robots-tag'] || '')),
+          imagesAllowed: !blocksPublisherImagePreview(String(res.headers['x-robots-tag'] || '')),
         }));
         res.on('data', (chunk: Buffer) => {
           size += chunk.length;

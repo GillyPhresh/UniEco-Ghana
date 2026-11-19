@@ -17,6 +17,8 @@ export type FlyerItem = {
   category: string;
   source_id?: string;
   canonical_url?: string;
+  media_url?: string | null;
+  media_type?: 'image' | 'video' | null;
 };
 
 export const flyerSize = { width: 1080, height: 1350 };
@@ -94,6 +96,22 @@ async function renderLetter(content: ReactNode, serial: string, filename: string
 
 export type UpdateFlyerOptions = { draft?: boolean; download?: boolean; format?: 'png' | 'jpeg' };
 
+/** The news page uses the same story-bound visual as the shareable flyer. */
+export async function renderUpdatePhoto(data: FlyerItem) {
+  const [visual, fonts] = await Promise.all([resolveFlyerVisual(data), flyerFonts()]);
+  const photo = visual.background;
+  const caption = /^(Illustrative photo|Campus file photo)/.test(photo.description)
+    ? photo.description : 'Photo: ' + photo.credit;
+  const image = new ImageResponse(<div style={{ ...row, position: 'relative', width: 1080, height: 600, fontFamily: 'Noto Sans', background: '#192d27' }}>
+    <img src={photo.src} alt="" width={1080} height={600} style={{ objectFit: 'cover' }} />
+    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', padding: '14px 24px', fontSize: 23, color: '#fff', background: 'rgba(0,0,0,0.78)' }}>{oneLine(caption, 130)}</div>
+  </div>, { width: 1080, height: 600, ...(fonts.length ? { fonts } : {}) });
+  const bytes = await sharp(Buffer.from(await image.arrayBuffer()), { limitInputPixels: 1080 * 600 })
+    .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
+  return new Response(new Uint8Array(bytes), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'no-store',
+    'X-UniEco-Photo-Type': photo.description === 'Publisher photo' ? 'story' : 'fallback' } });
+}
+
 export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOptions = {}) {
   const [logo, visual, fonts] = await Promise.all([logoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
   const title = oneLine(data.title, 220, 'Campus update');
@@ -102,13 +120,14 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
   const portraits = visual.portraits.slice(0, 2);
   const requiresCreditLink = [visual.background, ...portraits].some((photo) => photo.attributionRequired);
   const portraitCredits = Array.from(new Set(portraits.map((portrait) => portrait.credit))).join(' / ');
-  const photoNote = visual.background.description.startsWith('Illustrative photo') ? visual.background.description + ' · ' : 'Photo: ';
+  const photoNote = /^(Illustrative photo|Campus file photo)/.test(visual.background.description) ? visual.background.description + ' · ' : 'Photo: ';
   const portraitNames = portraits.map((portrait) => oneLine(portrait.name, 46)).join(' · ');
   const titleSize = title.length > 172 ? 39 : title.length > 134 ? 43 : title.length > 98 ? 48 : title.length > 62 ? 53 : 59;
   const format = options.format || 'png';
   const filename = (options.draft ? 'unieco-draft-update' : 'unieco-campus-update') + (format === 'jpeg' ? '.jpg' : '.png');
   const headers = {
     'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+    'X-UniEco-Photo-Type': visual.background.description === 'Publisher photo' ? 'story' : 'fallback',
     'Content-Disposition': (options.download ? 'attachment' : 'inline') + '; filename="' + filename + '"',
     ...(options.draft ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
   };
