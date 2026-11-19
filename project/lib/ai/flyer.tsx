@@ -48,7 +48,7 @@ function flyerFonts() {
 }
 
 function logoData() {
-  logoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-main-logo.png'))
+  logoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-flyer-mark.png'))
     .then((bytes) => 'data:image/png;base64,' + bytes.toString('base64'), () => null);
   return logoPromise;
 }
@@ -136,8 +136,8 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
       <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
         <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
-        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 45, left: 72, width: 142, height: 138, background: '#ffffff' }}>
-          {logo ? <img src={logo} alt="UniEco Ghana" width={121} height={117} style={{ objectFit: 'contain' }} />
+        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 45, left: 72, width: 148, height: 148, filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.48))' }}>
+          {logo ? <img src={logo} alt="UniEco Ghana" width={144} height={144} style={{ objectFit: 'contain' }} />
             : <span style={{ fontSize: 28, fontWeight: 700, color: ink }}>UniEco</span>}
         </div>
         {options.draft && <span style={{ position: 'absolute', right: 72, top: 45, padding: '10px 14px', background: newsRed, color: '#fff', fontWeight: 700, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}

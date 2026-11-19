@@ -19,6 +19,17 @@ test('a published story uses its current article photo with honest attribution, 
   assert.deepEqual(findFlyerPhotoEvidence(html(), article, title, paragraph), { portraits: [] }, 'unapproved calls do not gain photo access');
 });
 
+test('the share flyer overlays the transparent UniEco logo directly on the story photo', async () => {
+  const [renderer, logo] = await Promise.all([
+    import('node:fs/promises').then(({ readFile }) => readFile(new URL('../lib/ai/flyer.tsx', import.meta.url), 'utf8')),
+    sharp('public/unieco-flyer-mark.png').metadata(),
+  ]);
+  assert.match(renderer, /'unieco-flyer-mark\.png'/);
+  assert.doesNotMatch(renderer, /background: '#ffffff' \}\}>\s*\{logo/);
+  assert.ok(Math.abs(logo.width - logo.height) < 20, 'trimmed logo proportions fit the photo overlay');
+  assert.equal(logo.hasAlpha, true, 'logo retains transparent pixels instead of a white tile');
+});
+
 test('story images must match both the current article and the publisher, not merely an OG tag or a supplied URL', () => {
   for (const raw of [html({ heading: 'Different story' }), html({ canonical: 'https://other.edu.gh/news/ceremony' }),
     html({ robots: 'noimageindex' }), html({ body: false }), html({ image: 'https://other.edu.gh/photo.jpg' }),
