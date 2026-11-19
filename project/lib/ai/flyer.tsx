@@ -136,8 +136,8 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
       <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
         <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
-        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 45, left: 72, width: 148, height: 148, filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.48))' }}>
-          {logo ? <img src={logo} alt="UniEco Ghana" width={144} height={144} style={{ objectFit: 'contain' }} />
+        <div style={{ ...row, alignItems: 'center', justifyContent: 'center', position: 'absolute', top: 38, left: 44, width: 194, height: 194, background: '#fff', boxShadow: '0 4px 16px rgba(0,0,0,0.28)' }}>
+          {logo ? <img src={logo} alt="UniEco Ghana" width={184} height={184} style={{ objectFit: 'contain' }} />
             : <span style={{ fontSize: 28, fontWeight: 700, color: ink }}>UniEco</span>}
         </div>
         {options.draft && <span style={{ position: 'absolute', right: 72, top: 45, padding: '10px 14px', background: newsRed, color: '#fff', fontWeight: 700, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
@@ -148,14 +148,13 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
             </div>
           )}
         </div>}
-        <div style={{ ...row, position: 'absolute', bottom: 0, width: '100%', height: 52, alignItems: 'center', justifyContent: 'space-between', padding: '0 80px 0 100px', background: 'rgba(245,245,245,0.44)' }}>
-          <div style={{ ...row, gap: 6, alignItems: 'flex-end', height: 52 }}>
-            <div style={{ width: 19, height: 65, background: newsRed }} />
-            <div style={{ width: 19, height: 49, background: newsRed }} />
-          </div>
+        <div style={{ ...row, position: 'absolute', bottom: 0, width: '100%', height: 52, alignItems: 'center', justifyContent: 'flex-end', padding: '0 80px', background: 'rgba(245,245,245,0.44)' }}>
           {data.published_at && Number.isFinite(Date.parse(data.published_at)) &&
             <span style={{ padding: '4px 11px', background: '#fff', color: newsRed, fontSize: 19, fontWeight: 700 }}>{updateDate(data.published_at, 'long').toUpperCase()}</span>}
         </div>
+        <svg aria-hidden="true" width={132} height={108} viewBox="0 0 132 108" style={{ position: 'absolute', left: 48, bottom: -4 }}>
+          <path fill={newsRed} d="M0 0h42v34c0 28-12 49-36 68L0 87c12-11 18-23 18-36H0V0zm58 0h42v34c0 28-12 49-36 68l-6-15c12-11 18-23 18-36H58V0z" />
+        </svg>
       </div>
       <div style={{ ...col, flex: 1, minHeight: 0, width: '100%', padding: '24px 100px 21px', backgroundImage: 'linear-gradient(145deg, #fafaf9 0%, #e9e9e7 100%)' }}>
         <div style={{ ...row, alignItems: 'center', marginBottom: 14 }}>
@@ -168,11 +167,18 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
           <span style={{ color: newsRed, fontSize: 25, fontWeight: 700 }}>— {source}</span>
         </div>
       </div>
-      <div style={{ ...col, width: '100%', flexShrink: 0, background: '#e5e5e3', borderTop: '2px solid #c8c8c5', padding: '12px 80px 16px 100px', gap: 4 }}>
-        <div style={{ ...row, justifyContent: 'flex-end', alignItems: 'center' }}>
-          <span style={{ fontSize: 19, color: newsInk, fontWeight: 700 }}>{options.draft ? 'FOR MANAGEMENT REVIEW ONLY' : 'uniecoghana.com/updates/' + data.id}</span>
+      <div style={{ ...col, width: '100%', flexShrink: 0, background: '#e5e5e3', borderTop: '2px solid #c8c8c5', padding: '10px 62px 12px', gap: 5 }}>
+        <div style={{ ...row, justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 17, color: newsInk, fontWeight: 700 }}>{options.draft ? 'UNIECO GHANA · MANAGEMENT PREVIEW' : 'UNIECO GHANA  ·  uniecoghana.com'}</span>
+          <div style={{ ...row, alignItems: 'center', gap: 10, color: '#242323' }}>
+            <span style={{ fontSize: 15, fontWeight: 700, border: '2px solid #242323', borderRadius: 5, padding: '1px 4px' }}>IG</span>
+            <span style={{ fontSize: 20, fontWeight: 700 }}>f</span>
+            <span style={{ fontSize: 18, fontWeight: 700 }}>X</span>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>@UniEcoGhana</span>
+          </div>
         </div>
-        <span style={{ fontSize: 15, color: '#474747' }}>{photoNote}{visual.background.credit}</span>
+        {!options.draft && <span style={{ fontSize: 14, color: newsInk, fontWeight: 700 }}>uniecoghana.com/updates/{data.id}</span>}
+        <span style={{ fontSize: 14, color: '#474747' }}>{photoNote}{visual.background.credit}</span>
         {portraitCredits && <span style={{ fontSize: 15, color: '#474747' }}>Portraits: {portraitCredits}</span>}
         {requiresCreditLink && <span style={{ fontSize: 14, color: '#474747' }}>Photos cropped · creativecommons.org/licenses/by/4.0 · Source details on UniEco</span>}
       </div>

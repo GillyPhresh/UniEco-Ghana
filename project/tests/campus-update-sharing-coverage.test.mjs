@@ -39,6 +39,16 @@ test('campus updates produce a branded, source-attributed social flyer and story
   assert.match(detail, /alternates: \{ canonical: url \}/);
 });
 
+test('news flyers use a prominent UniEco logo, an editorial quotation mark and brand social footer', () => {
+  const flyer = read('lib/ai/flyer.tsx');
+  assert.match(flyer, /width: 194, height: 194/);
+  assert.match(flyer, /<svg aria-hidden="true" width=\{132\} height=\{108\}/);
+  assert.match(flyer, /<path fill=\{newsRed\}/);
+  assert.match(flyer, /UNIECO GHANA  ·  uniecoghana\.com/);
+  assert.match(flyer, /@UniEcoGhana/);
+  assert.doesNotMatch(flyer, /width: 19, height: 65/);
+});
+
 test('the main share action sends JPEG files and never substitutes a story link', () => {
   const actions = read('components/feed/campus-update-actions.tsx');
   const feed = read('components/feed/campus-updates.tsx');
