@@ -49,6 +49,7 @@ test('install prompt uses browser consent and a stable manifest identity', () =>
   assert.match(read('app/layout.tsx'), /default: siteConfig\.name/);
   assert.match(read('app/layout.tsx'), /applicationName: siteConfig\.name/);
   assert.match(read('app/layout.tsx'), /title: siteConfig\.name/);
+  assert.match(read('app/page.tsx'), /title: 'UniEco Ghana'/);
   assert.match(hook, /navigatorWithInstall\.install\(\)/);
   assert.match(hook, /promptEvent\.prompt\(\)/);
   assert.match(hook, /dismissedRef/);

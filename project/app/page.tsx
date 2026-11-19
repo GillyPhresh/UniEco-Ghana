@@ -3,7 +3,7 @@ import { CampusCommunityFeed } from '@/components/feed/campus-community-feed';
 import { createPublicPageMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = createPublicPageMetadata({
-  title: 'Ghana’s Campus Marketplace, Businesses & Community',
+  title: 'UniEco Ghana',
   description: 'Discover campus businesses, student services, university events, and community updates with UniEco Ghana.',
   path: '/',
 });
