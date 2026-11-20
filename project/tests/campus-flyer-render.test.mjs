@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import sharp from 'sharp';
 import { testModules } from './helpers/load-typescript.mjs';
@@ -6,6 +7,7 @@ import { testModules } from './helpers/load-typescript.mjs';
 const use = testModules();
 const { renderUpdateFlyer, renderBulletinFlyer } = use('lib/ai/flyer.tsx');
 const { updateSummary } = use('lib/ai/update-copy.ts');
+const flyerSource = readFileSync(new URL('../lib/ai/flyer.tsx', import.meta.url), 'utf8');
 const item = {
   id: 'a123be10-21b0-49fa-a333-83a5ada39fd3', title: 'Campus health and research community briefing for tertiary students',
   excerpt: 'Campus health and research community briefing for tertiary students. Check the university website for instructions and additional evidence related to the campus event.',
@@ -59,6 +61,18 @@ test('JPEG sharing exports a real, compact portrait-format file', async () => {
   const meta = await sharp(bytes).metadata();
   assert.deepEqual([meta.format, meta.width, meta.height], ['jpeg', 1080, 1440]);
   assert.ok(bytes.length > 25_000 && bytes.length < 1_200_000);
+});
+
+test('update flyer uses the official transparent logo as a restrained top-left watermark and branded footer', async () => {
+  const logo = await sharp(readFileSync(new URL('../public/unieco-official-logo.png', import.meta.url))).metadata();
+  assert.equal(logo.hasAlpha, true, 'the approved logo remains transparent, without a white image background');
+  assert.match(flyerSource, /public', 'unieco-official-logo\.png/);
+  assert.match(flyerSource, /top: 34, left: 40/);
+  assert.match(flyerSource, /opacity: 0\.9/);
+  assert.match(flyerSource, /uniecoghana\.com/);
+  assert.match(flyerSource, /@uniecoghana/);
+  assert.match(flyerSource, /cx="12" cy="12" r="9\.25"/);
+  assert.match(flyerSource, /viewBox="0 0 24 24"/);
 });
 
 test('places two verified portraits side by side within the bottom of the lead photo, with white circular frames', async () => {

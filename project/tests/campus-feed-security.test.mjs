@@ -100,7 +100,7 @@ test('branded alert image can only render a public approved feed item', () => {
   assert.match(alertCard, /renderUpdateFlyer/);
   const renderer = read('lib/ai/flyer.tsx');
   assert.match(renderer, /ImageResponse/);
-  assert.match(renderer, /unieco-flyer-mark\.png/);
+  assert.match(renderer, /unieco-official-logo\.png/);
   assert.match(renderer, /'Content-Disposition'/);
 });
 

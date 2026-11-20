@@ -35,7 +35,8 @@ const label = { fontSize: 18, fontWeight: 700, color: green, letterSpacing: 2.1 
 const fallbackSummary = 'Read the original publisher’s notice for details and the next steps.';
 const row = { display: 'flex', flexDirection: 'row' as const };
 const col = { display: 'flex', flexDirection: 'column' as const };
-let logoPromise: Promise<string | null> | undefined;
+let letterheadLogoPromise: Promise<string | null> | undefined;
+let updateFlyerLogoPromise: Promise<string | null> | undefined;
 type FlyerFont = { name: string; weight: 400 | 700; data: ArrayBuffer };
 let fontsPromise: Promise<FlyerFont[]> | undefined;
 
@@ -48,10 +49,16 @@ function flyerFonts() {
   return fontsPromise;
 }
 
-function logoData() {
-  logoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-flyer-mark.png'))
+function letterheadLogoData() {
+  letterheadLogoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-flyer-mark.png'))
     .then((bytes) => 'data:image/png;base64,' + bytes.toString('base64'), () => null);
-  return logoPromise;
+  return letterheadLogoPromise;
+}
+
+function updateFlyerLogoData() {
+  updateFlyerLogoPromise ??= readFile(join(process.cwd(), 'public', 'unieco-official-logo.png'))
+    .then((bytes) => 'data:image/png;base64,' + bytes.toString('base64'), () => null);
+  return updateFlyerLogoPromise;
 }
 
 function Letterhead({ logo, serial, draft }: { logo: string | null; serial: string; draft?: boolean }) {
@@ -76,7 +83,7 @@ function Letterhead({ logo, serial, draft }: { logo: string | null; serial: stri
 }
 
 async function renderLetter(content: ReactNode, serial: string, filename: string, options: { draft?: boolean; download?: boolean } = {}) {
-  const logo = await logoData();
+  const logo = await letterheadLogoData();
   return new ImageResponse(
     <div style={{ ...col, width: '100%', height: '100%', padding: 31, background: '#e4eee5', color: ink }}>
       <div style={{ ...col, width: '100%', height: '100%', padding: '37px 43px 33px', borderRadius: 28, border: '1px solid #c8d8ca', background: '#fcfbf3' }}>
@@ -114,7 +121,7 @@ export async function renderUpdatePhoto(data: FlyerItem) {
 }
 
 export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOptions = {}) {
-  const [logo, visual, fonts] = await Promise.all([logoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
+  const [logo, visual, fonts] = await Promise.all([updateFlyerLogoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
   const title = oneLine(data.title, 220, 'Campus update');
   const summary = updateSummary(data.excerpt, data.title, title.length > 135 ? 82 : 138);
   const source = oneLine(data.source_label, 85, 'Original publisher');
@@ -137,6 +144,9 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
       <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
         <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
+        {logo && <div style={{ position: 'absolute', top: 34, left: 40, width: 142, height: 122, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 7, borderRadius: 12, background: 'rgba(255,255,255,0.22)' }}>
+          <img src={logo} alt="UniEco Ghana" width="128" height="108" style={{ objectFit: 'contain', opacity: 0.9 }} />
+        </div>}
         {options.draft && <span style={{ position: 'absolute', right: 72, top: 45, padding: '10px 14px', background: newsRed, color: '#fff', fontWeight: 700, fontSize: 19 }}>DRAFT · NOT PUBLIC</span>}
         {portraits.length > 0 && <div style={{ ...row, position: 'absolute', bottom: 72, left: 100, right: 100, justifyContent: portraits.length === 1 ? 'flex-end' : 'space-between' }}>
           {portraits.map((portrait) =>
@@ -159,18 +169,17 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
         </div>
         <span style={{ fontSize: titleSize, fontWeight: 400, lineHeight: 1.13, letterSpacing: -0.8, wordBreak: 'break-word' }}>{title}</span>
         {summary && <span style={{ marginTop: 12, fontSize: 26, color: '#444444', lineHeight: 1.2, wordBreak: 'break-word' }}>{summary}</span>}
-        <div style={{ ...row, alignItems: 'flex-end', justifyContent: 'space-between', flexGrow: 1, minHeight: 88, marginTop: 12, gap: 18 }}>
-          {logo ? <img src={logo} alt="UniEco Ghana" width="88" height="88" style={{ objectFit: 'contain', flexShrink: 0 }} />
-            : <span style={{ fontSize: 22, fontWeight: 700, color: ink }}>UniEco Ghana</span>}
-          <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', gap: 4, textAlign: 'right' }}>
+        <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', flexGrow: 1, width: '100%', minHeight: 88, marginTop: 12, gap: 4, textAlign: 'right' }}>
             {portraitNames && <span style={{ fontSize: 18, color: newsInk }}>Pictured: {portraitNames}</span>}
             <span style={{ color: newsRed, fontSize: 25, fontWeight: 700 }}>— {source}</span>
-          </div>
         </div>
       </div>
       <div style={{ ...col, width: '100%', flexShrink: 0, background: '#e5e5e3', borderTop: '2px solid #c8c8c5', padding: '10px 62px 12px', gap: 5 }}>
         <div style={{ ...row, justifyContent: 'space-between', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 17, color: newsInk, fontWeight: 700 }}>{options.draft ? 'UNIECO GHANA · MANAGEMENT PREVIEW' : 'uniecoghana.com'}</span>
+          <span style={{ ...row, alignItems: 'center', gap: 7, fontSize: 17, color: newsInk, fontWeight: 700 }}>
+            <svg aria-hidden="true" width={20} height={20} viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.25" fill="none" stroke="#242323" strokeWidth="1.8"/><path d="M2.9 12h18.2M12 2.8c2.45 2.55 3.7 5.62 3.7 9.2s-1.25 6.65-3.7 9.2c-2.45-2.55-3.7-5.62-3.7-9.2S9.55 5.35 12 2.8z" fill="none" stroke="#242323" strokeWidth="1.55"/></svg>
+            {options.draft ? 'UNIECO GHANA · MANAGEMENT PREVIEW' : 'uniecoghana.com'}
+          </span>
           <div style={{ ...row, alignItems: 'center', gap: 9, color: '#242323' }}>
             <svg aria-hidden="true" width={19} height={19} viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="#242323" strokeWidth="2.5"/><circle cx="12" cy="12" r="4" fill="none" stroke="#242323" strokeWidth="2.2"/><circle cx="18" cy="6.5" r="1.4" fill="#242323"/></svg>
             <svg aria-hidden="true" width={17} height={19} viewBox="0 0 24 24"><path fill="#242323" d="M14.2 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.3 0-1.3-.1-2.5-.1-2.5 0-4.2 1.5-4.2 4.3v2.1H8v3.1h2.8v8z"/></svg>

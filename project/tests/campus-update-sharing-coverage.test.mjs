@@ -39,15 +39,19 @@ test('campus updates produce a branded, source-attributed social flyer and story
   assert.match(detail, /alternates: \{ canonical: url \}/);
 });
 
-test('news flyers place a compact transparent UniEco logo below the statement and use a clean editorial social footer', () => {
+test('news flyers place the transparent official logo as a light top-left watermark and use the editorial social footer', () => {
   const flyer = read('lib/ai/flyer.tsx');
-  assert.match(flyer, /width="88" height="88" style=\{\{ objectFit: 'contain', flexShrink: 0 \}\}/);
+  assert.match(flyer, /public', 'unieco-official-logo\.png/);
+  assert.match(flyer, /top: 34, left: 40/);
+  assert.match(flyer, /opacity: 0\.9/);
+  assert.doesNotMatch(flyer, /width="88" height="88" style=\{\{ objectFit: 'contain', flexShrink: 0 \}\}/);
   assert.doesNotMatch(flyer, /width: 194, height: 194/);
   assert.doesNotMatch(flyer, /background: '#fff'.*boxShadow/);
   assert.match(flyer, /<svg aria-hidden="true" width=\{132\} height=\{108\}/);
   assert.match(flyer, /<path fill=\{newsRed\}/);
   assert.match(flyer, /uniecoghana\.com/);
   assert.match(flyer, /@uniecoghana/);
+  assert.match(flyer, /cx="12" cy="12" r="9\.25"/);
   assert.match(flyer, /Pictured: \{portraitNames\}[\s\S]*— \{source\}/);
   assert.match(flyer, /<svg aria-hidden="true" width=\{19\} height=\{19\} viewBox="0 0 24 24">/);
   assert.doesNotMatch(flyer, /width: 19, height: 65/);
