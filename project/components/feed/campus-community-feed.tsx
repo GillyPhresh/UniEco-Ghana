@@ -719,7 +719,7 @@ export function CampusCommunityFeed() {
                 <span className="relative block h-16 w-16 rounded-full p-0.5">
                   <Avatar className="h-full w-full border border-border">
                     {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
-                    <AvatarFallback className="bg-muted text-sm font-bold text-foreground">{user ? initials(user.profile?.full_name || 'You') : <ImagePlus className="h-5 w-5" />}</AvatarFallback>
+                    <AvatarFallback className="bg-muted text-sm font-bold text-foreground">{user ? initials(user.profile?.public_nickname || 'You') : <ImagePlus className="h-5 w-5" />}</AvatarFallback>
                   </Avatar>
                   <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-foreground text-background ring-2 ring-background"><Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" /></span>
                 </span>

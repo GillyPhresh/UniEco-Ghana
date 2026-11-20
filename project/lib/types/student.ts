@@ -70,7 +70,7 @@ export interface ReviewWithDetails {
   is_approved: boolean;
   created_at: string;
   reviewer: {
-    full_name: string | null;
+    public_nickname: string | null;
     avatar_url: string | null;
   } | null;
   vendor: {

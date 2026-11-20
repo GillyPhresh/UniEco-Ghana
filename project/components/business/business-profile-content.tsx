@@ -31,7 +31,7 @@ interface BusinessProfileContentProps {
   gallery: BusinessGalleryItem[];
   products: (Product & { business: { id: string; name: string; slug: string } })[];
   services: (Service & { business: { id: string; name: string; slug: string } })[];
-  reviews: (Review & { reviewer: { full_name: string | null; avatar_url: string | null } | null })[];
+  reviews: (Review & { reviewer: { public_nickname: string | null; avatar_url: string | null } | null })[];
   relatedVendors: VendorWithRelations[];
 }
 
@@ -397,13 +397,13 @@ export function BusinessProfileContent({
                       <div className="flex items-start gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                            {reviewerInitials(review.reviewer?.full_name || null)}
+                            {reviewerInitials(review.reviewer?.public_nickname || null)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <p className="text-sm font-medium text-foreground">
-                              {review.reviewer?.full_name || 'Anonymous'}
+                              {review.reviewer?.public_nickname || 'Campus member'}
                             </p>
                             <span className="text-xs text-muted-foreground">
                               {new Date(review.created_at).toLocaleDateString('en-GH', {

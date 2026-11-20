@@ -60,6 +60,7 @@ function ProfileContent() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState(user?.profile?.full_name || '');
+  const [publicNickname, setPublicNickname] = useState(user?.profile?.public_nickname || '');
   const [phone, setPhone] = useState(user?.profile?.phone || '');
   const [bio, setBio] = useState(user?.profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(getPublicAvatarUrl(user?.profile?.avatar_url));
@@ -129,12 +130,18 @@ function ProfileContent() {
   }, [user]);
 
   const handleSaveProfile = async () => {
+    const nickname = publicNickname.trim();
+    if (nickname && (nickname.length < 2 || nickname.length > 30 || /[\u0000-\u001f\u007f]/.test(nickname))) {
+      setError('Your public nickname must be 2–30 characters and cannot contain control characters.');
+      return;
+    }
     setSaving(true);
     setError(null);
     const { error } = await supabase
       .from('profiles')
       .update({
         full_name: fullName,
+        public_nickname: nickname || null,
         phone,
         bio,
       })
@@ -239,7 +246,7 @@ function ProfileContent() {
     router.push('/');
   };
 
-  const initials = (user?.profile?.full_name || user?.email || 'U')
+  const initials = (user?.profile?.public_nickname || user?.profile?.full_name || user?.email || 'U')
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -260,7 +267,7 @@ function ProfileContent() {
           </Avatar>
           <div className="flex-1">
             <h1 className="font-display text-2xl font-bold text-foreground">
-              {user?.profile?.full_name || user?.email}
+              {user?.profile?.public_nickname || 'Campus member'}
             </h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -394,8 +401,15 @@ function ProfileContent() {
                   onRestoreFocus={() => photoButton.current?.focus()} />}
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Full name</Label>
-                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <Label htmlFor="publicNickname">Public nickname</Label>
+                  <Input id="publicNickname" autoComplete="nickname" minLength={2} maxLength={30} value={publicNickname} onChange={(e) => setPublicNickname(e.target.value)} placeholder="Choose how others see you" />
+                  <p className="text-xs text-muted-foreground">Shown on your public profile, campus posts, comments, reviews, and chats. Your account name stays private for payments and support. Leave blank to appear as “Campus member”.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Account name (private)</Label>
+                  <Input id="fullName" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Used privately for account, payment, and management records—not public profile display.</p>
                 </div>
 
                 <div className="space-y-2">

@@ -256,12 +256,12 @@ export async function getVendorReviews(vendorId: string) {
     .from('reviews')
     .select(`
       *,
-      reviewer:profiles!reviews_reviewer_id_fkey(full_name, avatar_url)
+      reviewer:profiles!reviews_reviewer_id_fkey(public_nickname, avatar_url)
     `)
     .eq('vendor_id', vendorId)
     .eq('is_approved', true)
     .order('created_at', { ascending: false });
-  return (data || []) as unknown as (Review & { reviewer: { full_name: string | null; avatar_url: string | null } | null })[];
+  return (data || []) as unknown as (Review & { reviewer: { public_nickname: string | null; avatar_url: string | null } | null })[];
 }
 
 export async function getRelatedVendors(vendor: Vendor, limit = 4) {
