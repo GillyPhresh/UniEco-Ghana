@@ -102,6 +102,16 @@ function ProfileContent() {
   const [interestsSaved, setInterestsSaved] = useState(false);
   const [profileCompletion, setProfileCompletion] = useState(0);
 
+  // Auth profile data loads asynchronously. Hydrate the controlled fields when
+  // it arrives so the nickname input does not stay blank after first render.
+  useEffect(() => {
+    if (!user?.profile) return;
+    setFullName(user.profile.full_name || '');
+    setPublicNickname(user.profile.public_nickname || '');
+    setPhone(user.profile.phone || '');
+    setBio(user.profile.bio || '');
+  }, [user?.id, user?.profile?.full_name, user?.profile?.public_nickname, user?.profile?.phone, user?.profile?.bio]);
+
   useEffect(() => {
     if (user?.profile?.notification_settings) {
       setNotifSettings((prev) => ({ ...prev, ...user.profile!.notification_settings as object }));
@@ -137,24 +147,31 @@ function ProfileContent() {
     }
     setSaving(true);
     setError(null);
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        full_name: fullName,
-        public_nickname: nickname || null,
-        phone,
-        bio,
-      })
-      .eq('id', user!.id);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName,
+          public_nickname: nickname || null,
+          phone,
+          bio,
+        })
+        .eq('id', user!.id)
+        .select('id, public_nickname')
+        .maybeSingle();
 
-    if (error) {
-      setError(error.message);
-    } else {
+      if (error) throw error;
+      if (!data) throw new Error('Your profile was not updated. Refresh the page and try again.');
+
+      setPublicNickname(data.public_nickname || '');
       setSaved(true);
-      await refreshProfile();
+      await refreshProfile().catch(() => undefined);
       setTimeout(() => setSaved(false), 3000);
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not save your profile. Please try again.');
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleAvatarSelection = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,7 +263,7 @@ function ProfileContent() {
     router.push('/');
   };
 
-  const initials = (user?.profile?.public_nickname || user?.profile?.full_name || user?.email || 'U')
+  const initials = (user?.profile?.public_nickname || 'Campus member')
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -260,7 +277,7 @@ function ProfileContent() {
         {/* Profile header card */}
         <div className="mb-8 flex flex-col items-start gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 border-2 border-primary/20">
-            <AvatarImage src={avatarUrl} alt={user?.profile?.full_name || 'Profile'} />
+            <AvatarImage src={avatarUrl} alt={user?.profile?.public_nickname || 'Profile'} />
             <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
               {initials}
             </AvatarFallback>

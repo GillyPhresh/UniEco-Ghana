@@ -90,7 +90,8 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
     router.push(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
   };
 
-  const initials = (user?.profile?.full_name || user?.email || 'U')
+  const publicName = user?.profile?.public_nickname?.trim() || 'Campus member';
+  const initials = publicName
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -139,16 +140,16 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
                 <DropdownMenuTrigger asChild>
                   <button className="hidden items-center gap-2 rounded-lg p-1 transition-colors hover:bg-muted lg:flex" aria-label="Open account menu">
                     <Avatar className="h-8 w-8 border border-primary/20 sm:h-9 sm:w-9">
-                      <AvatarImage src={getPublicAvatarUrl(user.profile?.avatar_url)} alt={user.profile?.full_name || ''} />
+                      <AvatarImage src={getPublicAvatarUrl(user.profile?.avatar_url)} alt={publicName} />
                       <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">{initials}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden max-w-24 truncate text-sm font-semibold text-foreground xl:inline">{user.profile?.full_name?.split(' ')[0] || user.email}</span>
+                    <span className="hidden max-w-24 truncate text-sm font-semibold text-foreground xl:inline">{publicName.split(' ')[0]}</span>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
                   <DropdownMenuLabel>
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-semibold">{user.profile?.full_name || user.email}</span>
+                      <span className="text-sm font-semibold">{publicName}</span>
                       <span className="truncate text-xs text-muted-foreground">{user.email}</span>
                       <Badge variant="secondary" className="mt-1 w-fit text-xs">{ROLE_LABELS[user.role]}</Badge>
                     </div>

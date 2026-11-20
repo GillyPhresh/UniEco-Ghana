@@ -118,7 +118,8 @@ function DashboardContent() {
 
   if (!user) return null;
 
-  const firstName = user.profile?.full_name?.split(' ')[0] || 'there';
+  const publicName = user.profile?.public_nickname?.trim() || 'Campus member';
+  const firstName = publicName.split(' ')[0];
   const uniName = user.profile?.university_id
     ? user.studentProfile?.program_of_study
       ? 'your campus'
@@ -326,7 +327,7 @@ function DashboardContent() {
                 <div className="-mt-7 flex h-14 w-14 items-center justify-center rounded-2xl border-4 border-card bg-primary/10 text-lg font-bold text-primary shadow-sm">
                   {firstName.slice(0, 1).toUpperCase()}
                 </div>
-                <p className="mt-3 font-display text-base font-bold text-foreground">{user.profile?.full_name || 'UniEco member'}</p>
+                <p className="mt-3 font-display text-base font-bold text-foreground">{publicName}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{user.studentProfile?.program_of_study || 'Member of the UniEco Ghana network'}</p>
                 <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-xs">
                   <span className="text-muted-foreground">Profile strength</span>

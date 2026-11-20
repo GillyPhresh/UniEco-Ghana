@@ -11,6 +11,9 @@ test('profiles let users set a separate private account name and public nickname
   assert.match(profile, /Account name \(private\)/);
   assert.match(profile, /Leave blank to appear as “Campus member”/);
   assert.match(profile, /nickname\.length > 30/);
+  assert.match(profile, /\.select\('id, public_nickname'\)/);
+  assert.match(profile, /if \(!data\) throw new Error\('Your profile was not updated/);
+  assert.match(profile, /setPublicNickname\(user\.profile\.public_nickname \|\| ''\)/);
 });
 
 test('migration grants users only their own nickname field and prevents public full-name fallback', () => {
@@ -35,6 +38,15 @@ test('public community profiles, posts, comments and chat lookup use the privacy
   assert.match(migration, /public\.public_profile_display_name\(profile\.id\)/);
   assert.match(migration, /public\.public_profile_display_name\(p\.id\)/);
   assert.match(migration, /COALESCE\(p\.public_nickname,''\) ILIKE/);
+});
+
+test('signed-in navigation and dashboard show the chosen public nickname, never the private account name', () => {
+  const header = read('components/layout/site-header.tsx');
+  const dashboard = read('app/dashboard/page.tsx');
+  assert.match(header, /const publicName = user\?\.profile\?\.public_nickname\?\.trim\(\) \|\| 'Campus member'/);
+  assert.doesNotMatch(header, /user\.profile\?\.full_name/);
+  assert.match(dashboard, /user\.profile\?\.public_nickname\?\.trim\(\)/);
+  assert.doesNotMatch(dashboard, /user\.profile\?\.full_name/);
 });
 
 test('public product and business reviews request nicknames rather than account names', () => {
