@@ -27,12 +27,14 @@ function SourceSelect({ sources, value, onChange, label, disabled = false }: {
   sources: SourceOption[]; value: string; onChange: (value: string) => void; label: string; disabled?: boolean;
 }) {
   const schools = sources.filter((source) => source.schoolSlug);
-  const national = sources.filter((source) => !source.schoolSlug);
+  const news = sources.filter((source) => !source.schoolSlug && source.sourceKind === 'news');
+  const opportunities = sources.filter((source) => !source.schoolSlug && source.sourceKind === 'opportunities');
   return <label className="grid min-w-0 gap-1 text-sm font-semibold">{label}
     <select className={fieldClass} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
-      <option value="all">All campuses and opportunities</option>
+      <option value="all">All campuses, news and scholarships</option>
       <optgroup label={'Schools (' + schools.length + ')'}>{schools.map((source) => <option key={source.id} value={source.id}>{source.label}{source.state === 'ready' ? '' : ' · ' + coverageLabels[source.state]}</option>)}</optgroup>
-      {national.length > 0 && <optgroup label="National sources">{national.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</optgroup>}
+      {news.length > 0 && <optgroup label="News publishers">{news.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</optgroup>}
+      {opportunities.length > 0 && <optgroup label="Scholarships and opportunities">{opportunities.map((source) => <option key={source.id} value={source.id}>{source.label}</option>)}</optgroup>}
     </select>
   </label>;
 }
@@ -139,7 +141,7 @@ function EditorialDesk() {
       <div className="mb-4 h-1 w-16 rounded bg-gradient-to-r from-red-500 via-amber-300 to-emerald-400" />
       <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-200">UniEco Ghana · Editorial desk</p>
       <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">UniEco AI</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50/85">Research official campus sources, review evidence and media, and create branded updates ready to share.</p>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50/85">Research trusted tertiary, Ghanaian and international news, and official scholarship sources. Review the evidence and source media before preparing branded updates.</p>
       <p className="mt-3 flex items-center gap-2 text-xs font-semibold text-emerald-100"><ShieldCheck className="h-4 w-4 shrink-0" />Super-admin only · Publication and notifications need separate approval</p>
     </header>
 
@@ -156,7 +158,7 @@ function EditorialDesk() {
 
     {tab === 'research' && <>
       <section className={panel} aria-labelledby="editorial-research">
-        <div><h2 id="editorial-research" className="text-lg font-bold">Find campus updates</h2><p className={quiet}>Scan official news, event and notice pages for one school, or work through the entire directory in small batches.</p></div>
+        <div><h2 id="editorial-research" className="text-lg font-bold">Find verified updates</h2><p className={quiet}>Scan a school, a trusted news publisher or an official scholarship source. Leads remain private until an administrator checks and publishes them.</p></div>
         <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
           <SourceSelect sources={sources} value={source} onChange={(value) => { setSource(value); setLimit(12); setResume(null); }} label="Publisher to scan" disabled={scan?.active} />
           {scan?.active ? <Button type="button" className="min-h-11" variant="outline" onClick={() => controller.current?.abort()}>Pause scan</Button>
@@ -167,7 +169,7 @@ function EditorialDesk() {
           <div className="flex flex-wrap justify-between gap-2"><span className="font-semibold">{scan.status}</span><span className="text-muted-foreground">{scan.done} of {scan.total} source records processed</span></div>
           <progress className="h-2 w-full accent-primary" value={scan.done} max={Math.max(1, scan.total)} aria-label="Research progress" />
         </div>}
-        <p className="text-xs leading-5 text-muted-foreground">Scheduled scans can publish recent, low-risk stories verified on a school’s official site. Sensitive or unconfirmed leads stay in review. No paid AI service is contacted.{coverage?.lastSweep ? ' Last scheduled sweep: ' + updateDate(coverage.lastSweep) + '.' : ''}</p>
+        <p className="text-xs leading-5 text-muted-foreground">Only recent, low-risk stories verified on a school’s official site may be published automatically. General news, scholarship offers, sensitive stories and unconfirmed leads remain private until a Super Admin verifies them. No paid AI service is contacted.{coverage?.lastSweep ? ' Last scheduled sweep: ' + updateDate(coverage.lastSweep) + '.' : ''}</p>
       </section>
       <section className={panel}>
         <div className="flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-lg font-bold">Discovered leads</h2><p className={quiet}>Open the publisher, verify the story, then queue it for review.</p></div><Button variant="outline" onClick={() => setTab('review')}>Campus feed review</Button></div>

@@ -8,6 +8,7 @@ const read = (relative) => fs.readFileSync(path.join(project, relative), 'utf8')
 const migration = read('supabase/migrations/20261101170000_0174_moderated_campus_feed.sql');
 const expansion = read('supabase/migrations/20261107100000_0185_expand_campus_feed_school_sources.sql');
 const opportunitySources = read('supabase/migrations/20261107120000_0186_official_opportunity_sources.sql');
+const broaderSources = read('supabase/migrations/20261120100000_0214_general_news_and_scholarship_sources.sql');
 const ingest = read('app/api/internal/campus-feed/ingest/route.ts');
 const admin = read('app/api/admin/campus-feed/route.ts');
 const publicPage = read('components/feed/campus-updates.tsx');
@@ -79,13 +80,35 @@ test('official opportunity sources stay moderated and use a narrow public source
   assert.match(read('feed_worker/ingest.py'), /Confirm current eligibility/);
 });
 
+test('trusted Ghanaian and international publishers are source-allowlisted without bypassing review', () => {
+  assert.match(broaderSources, /source_kind IN \('campus', 'opportunities', 'news'\)/);
+  for (const id of ['ghana-news-agency', 'myjoyonline', '3news', 'associated-press', 'cambridge-press', 'bank-of-ghana',
+    'getfund-local-scholarships', 'ug-scholarships', 'knust-scholarships', 'commonwealth-shared-scholarships', 'manchester-scholarships', 'oxford-reach-scholarship']) {
+    assert.ok(broaderSources.includes(`('${id}'`), `migration registers ${id}`);
+  }
+  assert.match(broaderSources, /BEGIN;[\s\S]*COMMIT;/);
+  assert.match(broaderSources, /security_invoker\s*=\s*true[\s\S]*security_barrier\s*=\s*true/);
+  assert.doesNotMatch(broaderSources, /INSERT INTO public\.campus_feed_items|status\s*=\s*'approved'/i);
+  assert.match(read('lib/ai/research-service.ts'), /sourceKind: source\.registration\?\.source_kind/);
+  assert.match(publicPage, /News publishers/);
+  assert.match(publicPage, /Scholarships and national opportunities/);
+  assert.match(read('app/admin/ai/page.tsx'), /Leads remain private until an administrator checks and publishes them/);
+});
+
 test('branded alert image can only render a public approved feed item', () => {
   assert.match(alertCard, /campus_feed_public_items/);
   assert.match(alertCard, /renderUpdateFlyer/);
   const renderer = read('lib/ai/flyer.tsx');
   assert.match(renderer, /ImageResponse/);
-  assert.match(renderer, /unieco-main-logo\.png/);
+  assert.match(renderer, /unieco-flyer-mark\.png/);
   assert.match(renderer, /'Content-Disposition'/);
+});
+
+test('public item queries stay within the current view and derive source kind from its safe source projection', () => {
+  assert.doesNotMatch(read('lib/ai/newsroom.ts'), /newsroomFields\s*=\s*['"][^'"]*source_kind/);
+  assert.match(alertCard, /campus_feed_public_sources/);
+  assert.match(alertCard, /source_kind/);
+  assert.match(read('components/feed/campus-updates.tsx'), /sourceKinds\.current/);
 });
 
 test('manual worker uses secrets only and production runs without GitHub scheduling', () => {

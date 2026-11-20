@@ -24,7 +24,11 @@ export async function GET(request: Request) {
     .select('id,title,excerpt,source_id,source_label,university_name,published_at,category,media_url,media_type')
     .eq('id', id).maybeSingle();
   if (error || !data) return privateJson({ error: 'Preview not available.' }, 404);
-  if (format === 'flyer') return renderUpdateFlyer(data, { draft: true });
+  const { data: source, error: sourceError } = await db.from('campus_feed_sources')
+    .select('source_kind').eq('id', data.source_id).maybeSingle();
+  if (sourceError || !source) return privateJson({ error: 'Preview source is unavailable.' }, 503);
+  const flyerItem = { ...data, source_kind: source.source_kind };
+  if (format === 'flyer') return renderUpdateFlyer(flyerItem, { draft: true });
   if (!data.media_url || data.media_type !== 'image') return privateJson({ error: 'No photo to preview.' }, 404);
   const release = acquireResearchSlot('preview:' + auth.userId);
   if (!release) return privateJson({ error: 'Image preview is busy. Try again shortly.' }, 429);

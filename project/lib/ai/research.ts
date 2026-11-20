@@ -150,9 +150,9 @@ export function parsePublisherIndex(raw: string, page: string, source: ResearchS
     if (newsIndex.test(path)) { indexes.push(url); return; }
     if (stopPage.test(path) || (anchor.closest('nav, header').length && !anchor.closest('article').length)) return;
     const heading = anchor.closest('h1, h2, h3, h4, article, .entry-title, .post-title, .news-title').length > 0;
-    const articleLike = updatePath.test(path) || (heading && relevant.test(label)) || (
-      source.registration?.source_kind === 'opportunities' && /\b(?:grant|enterprise|scholarship|training|programme|opportunit)/i.test(label)
-    );
+    const articleLike = updatePath.test(path) || (heading && relevant.test(label))
+      || (source.registration?.source_kind === 'news' && heading && label.length >= 18)
+      || (source.registration?.source_kind === 'opportunities' && /\b(?:grant|enterprise|scholarship|training|programme|opportunit)/i.test(label));
     const title = headline(label);
     if (!title || !articleLike || path === '/') return;
     const context = anchor.closest('article, .post, .news-item, .news-card');

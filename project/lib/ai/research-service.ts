@@ -166,5 +166,6 @@ export async function queueResearchLeads(db: SupabaseClient, source: ResearchSou
 
 export function displayResearchSource(source: ResearchSource) {
   return { id: source.id, schoolSlug: source.schoolSlug, label: source.label, state: source.state,
+    sourceKind: source.registration?.source_kind ?? 'campus',
     website: source.website, registered: source.registered, feedSourceId: source.registration?.id ?? null };
 }

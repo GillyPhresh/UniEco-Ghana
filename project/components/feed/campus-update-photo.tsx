@@ -5,11 +5,12 @@ import { useState } from 'react';
 import { newsroomCampusArt, type FeedItem } from '@/lib/ai/newsroom';
 
 export function CampusUpdatePhoto({ item, priority = false, sizes }: {
-  item: Pick<FeedItem, 'id' | 'title' | 'source_id' | 'source_label'>; priority?: boolean; sizes: string;
+  item: Pick<FeedItem, 'id' | 'title' | 'source_id' | 'source_kind' | 'source_label'>; priority?: boolean; sizes: string;
 }) {
   const [failed, setFailed] = useState<string | null>(null);
   const fallback = failed === item.id;
-  const src = fallback ? newsroomCampusArt(item.source_id) : '/api/campus-feed/alert-card?id=' + encodeURIComponent(item.id) + '&format=photo';
+  const src = fallback ? item.source_kind === 'campus' ? newsroomCampusArt(item.source_id) : null
+    : '/api/campus-feed/alert-card?id=' + encodeURIComponent(item.id) + '&format=photo';
   return <div className="relative aspect-[2/1] overflow-hidden bg-muted">
     {src ? <>
       <Image src={src} alt={'Image for: ' + item.title} fill sizes={sizes} unoptimized={!fallback} priority={priority}

@@ -1,6 +1,7 @@
 export type SourceOption = {
   id: string;
   schoolSlug: string | null;
+  sourceKind: 'campus' | 'opportunities' | 'news';
   label: string;
   website: string | null;
   state: 'ready' | 'missing_source' | 'shared_source' | 'paused';

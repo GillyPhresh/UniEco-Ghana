@@ -27,12 +27,15 @@ test('social previews reference an existing image asset', () => {
 test('search engines and installed apps use the official UniEco logo favicon', async () => {
   const metadata = read('app/layout.tsx');
   const manifest = read('app/manifest.ts');
-  assert.match(metadata, /unieco-official-favicon-v2\.png/);
-  assert.match(manifest, /unieco-official-favicon-v2\.png/);
+  assert.match(metadata, /unieco-brand-icon-20261119-v3\.png/);
+  assert.match(manifest, /unieco-app-icon-20261119-v3-512\.png/);
   assert.doesNotMatch(metadata, /unieco-search-icon\.svg/);
   assert.doesNotMatch(manifest, /unieco-search-icon\.svg/);
-  assert.match(metadata, /apple: '\/unieco-official-favicon-v2\.png'/);
+  assert.match(metadata, /apple: \[\{ url: '\/unieco-app-icon-apple-20261119-v3\.png'/);
   assert.match(manifest, /sizes: '512x512', type: 'image\/png'/);
+  for (const icon of ['unieco-brand-icon-20261119-v3.png', 'unieco-app-icon-apple-20261119-v3.png', 'unieco-app-icon-20261119-v3-512.png']) {
+    assert.ok(fs.existsSync(path.join(root, 'public', icon)), `the installed app icon exists: ${icon}`);
+  }
   assert.match(metadata, /url: `\$\{siteConfig\.url\}\/unieco-official-logo\.png`/);
   const icon = fs.readFileSync(path.join(root, 'public/unieco-official-favicon-v2.png'));
   const official = fs.readFileSync(path.join(root, 'public/unieco-official-logo.png'));

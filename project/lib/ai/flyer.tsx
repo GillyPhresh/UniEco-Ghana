@@ -15,6 +15,7 @@ export type FlyerItem = {
   university_name: string;
   published_at: string | null;
   category: string;
+  source_kind?: 'campus' | 'opportunities' | 'news';
   source_id?: string;
   canonical_url?: string;
   media_url?: string | null;
@@ -100,7 +101,7 @@ export type UpdateFlyerOptions = { draft?: boolean; download?: boolean; format?:
 export async function renderUpdatePhoto(data: FlyerItem) {
   const [visual, fonts] = await Promise.all([resolveFlyerVisual(data), flyerFonts()]);
   const photo = visual.background;
-  const caption = /^(Illustrative photo|Campus file photo)/.test(photo.description)
+  const caption = /^(Illustrative photo|Campus file photo|Editorial illustration)/.test(photo.description)
     ? photo.description : 'Photo: ' + photo.credit;
   const image = new ImageResponse(<div style={{ ...row, position: 'relative', width: 1080, height: 600, fontFamily: 'Noto Sans', background: '#192d27' }}>
     <img src={photo.src} alt="" width={1080} height={600} style={{ objectFit: 'cover' }} />
@@ -120,7 +121,7 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
   const portraits = visual.portraits.slice(0, 2);
   const requiresCreditLink = [visual.background, ...portraits].some((photo) => photo.attributionRequired);
   const portraitCredits = Array.from(new Set(portraits.map((portrait) => portrait.credit))).join(' / ');
-  const photoNote = /^(Illustrative photo|Campus file photo)/.test(visual.background.description) ? visual.background.description + ' · ' : 'Photo: ';
+  const photoNote = /^(Illustrative photo|Campus file photo|Editorial illustration)/.test(visual.background.description) ? visual.background.description + ' · ' : 'Photo: ';
   const portraitNames = portraits.map((portrait) => oneLine(portrait.name, 46)).join(' · ');
   const titleSize = title.length > 172 ? 39 : title.length > 134 ? 43 : title.length > 98 ? 48 : title.length > 62 ? 53 : 59;
   const format = options.format || 'png';

@@ -18,7 +18,7 @@ export type FeedRegistration = {
   website_url: string;
   feed_url: string;
   source_domain: string;
-  source_kind: 'campus' | 'opportunities';
+  source_kind: 'campus' | 'opportunities' | 'news';
   enabled: boolean;
 };
 
@@ -138,6 +138,6 @@ export function buildResearchCatalog(schools: ResearchSchool[], rows: FeedRegist
   }
   return [
     ...campus,
-    ...rows.filter((row) => row.source_kind === 'opportunities').map((row) => registrationSource(row, null, row.label)),
+    ...rows.filter((row) => row.source_kind !== 'campus').map((row) => registrationSource(row, null, row.label)),
   ];
 }

@@ -25,7 +25,10 @@ async function getUpdate(id: string): Promise<FeedItem | null> {
   const { data, error } = await supabase.from('campus_feed_public_items')
     .select(newsroomFields)
     .eq('id', id).maybeSingle();
-  return error || !data ? null : data as FeedItem;
+  if (error || !data) return null;
+  const { data: source } = await supabase.from('campus_feed_public_sources')
+    .select('source_kind').eq('source_id', data.source_id).maybeSingle();
+  return { ...data, source_kind: source?.source_kind } as FeedItem;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

@@ -122,6 +122,26 @@ test('only approved HTTPS publisher hosts can be attempted; mixed public/private
   assert.throws(() => choosePublicAddress([{ family: 4, address: '1.1.1.1' }, { family: 4, address: '10.0.0.9' }]));
 });
 
+test('general-news publishers and official scholarship publishers are independently catalogued', () => {
+  const sources = buildResearchCatalog([], [
+    { id: 'ghana-news-agency', label: 'Ghana News Agency', university_name: 'Ghana', website_url: 'https://gna.org.gh/',
+      feed_url: 'https://gna.org.gh/', source_domain: 'gna.org.gh', source_kind: 'news', enabled: true },
+    { id: 'commonwealth-shared-scholarships', label: 'Commonwealth Scholarship Commission', university_name: 'International scholarships',
+      website_url: 'https://cscuk.fcdo.gov.uk/shared/', feed_url: 'https://cscuk.fcdo.gov.uk/shared/',
+      source_domain: 'cscuk.fcdo.gov.uk', source_kind: 'opportunities', enabled: true },
+  ]);
+  assert.equal(sources.length, 2);
+  assert.deepEqual(sources.map(({ registration }) => registration.source_kind), ['news', 'opportunities']);
+  assert.ok(sources.every((source) => source.state === 'ready' && source.schoolSlug === null));
+  const [publisher] = sources;
+  const page = 'https://gna.org.gh/news/';
+  const index = `<main><article><h2><a href="/2026/11/student-team-wins-national-robotics-challenge/">Ghana's student team wins national robotics challenge</a></h2></article></main>`;
+  const parsed = parsePublisherIndex(index, page, publisher, now);
+  assert.equal(parsed.candidates.length, 1);
+  assert.match(parsed.candidates[0].title, /robotics challenge/i);
+  assert.equal(publisher.schoolSlug, null, 'general news source is not misidentified as a tertiary school');
+});
+
 test('the transport uses the validated socket IP with verified publisher TLS and re-checks redirects', async () => {
   const attempts = [];
   const load = testModules({

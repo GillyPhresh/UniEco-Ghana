@@ -13,7 +13,7 @@ import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
 import { newsroomFields, newsroomPageSize as pageSize, newsroomSearchTokens, type FeedItem } from '@/lib/ai/newsroom';
 
-type FeedSource = { source_id: string; source_label: string; university_name: string; source_kind: 'campus' | 'opportunities' };
+type FeedSource = { source_id: string; source_label: string; university_name: string; source_kind: 'campus' | 'opportunities' | 'news' };
 type CampusOption = { value: string; label: string };
 
 const categories = [
@@ -31,6 +31,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
   const [loading, setLoading] = useState(initialItems === undefined);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
+  const sourceKinds = useRef(new Map<string, FeedSource['source_kind']>());
   const [hasMore, setHasMore] = useState(initialItems?.length === pageSize);
   const offset = useRef(initialItems?.length || 0);
   const newestRequest = useRef(0);
@@ -65,7 +66,9 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
       const { data, error: queryError } = await query;
       if (requestId !== newestRequest.current) return;
       if (queryError) throw queryError;
-      const page = (data || []) as FeedItem[];
+      const page = ((data || []) as Omit<FeedItem, 'source_kind'>[]).map((item) => ({
+        ...item, source_kind: sourceKinds.current.get(item.source_id),
+      }));
       setItems((current) => append ? Array.from(new Map([...current, ...page].map((item) => [item.id, item])).values()) : page);
       offset.current = append ? from + page.length : page.length;
       setHasMore(page.length === pageSize);
@@ -100,6 +103,8 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
     ]).then(([sourceResult, universityResult]) => {
       if (!active) return;
       const sourceRows = (sourceResult.data || []) as FeedSource[];
+      sourceKinds.current = new Map(sourceRows.map((source) => [source.source_id, source.source_kind]));
+      setItems((current) => current.map((item) => ({ ...item, source_kind: sourceKinds.current.get(item.source_id) })));
       setSources(sourceRows);
       const normalizeName = (value: string) => value.toLocaleLowerCase().replace(/[^a-z0-9]/g, '');
       const campusSources = sourceRows.filter((source) => source.source_kind === 'campus');
@@ -131,10 +136,10 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
     <header className="border-b border-border pb-3 pt-3 sm:pb-6 sm:pt-8">
       <div className="flex items-center justify-between gap-3">
         <p className="newsroom-kicker">UniEco Ghana <span aria-hidden="true">/</span> News desk</p>
-        <Link href={briefing} className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 text-xs font-bold text-primary hover:underline sm:text-sm">Campus briefing <ArrowUpRight className="h-4 w-4" /></Link>
+        <Link href={briefing} className="inline-flex min-h-[44px] shrink-0 items-center gap-1.5 text-xs font-bold text-primary hover:underline sm:text-sm">Updates briefing <ArrowUpRight className="h-4 w-4" /></Link>
       </div>
       <h1 className="newsroom-headline text-[clamp(2rem,5.5vw,4.5rem)] leading-[1.08]">Campus Updates</h1>
-      <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-base sm:leading-6">News, events and opportunities from Ghana’s tertiary institutions.</p>
+      <p className="mt-2 max-w-xl text-sm leading-5 text-muted-foreground sm:mt-3 sm:text-base sm:leading-6">Campus stories, trusted Ghanaian and global news, and verified scholarship opportunities—with every update linked to its original source.</p>
     </header>
     <nav className="flex gap-5 overflow-x-auto border-b border-border [scrollbar-width:none] sm:gap-7" aria-label="News sections">
       {categories.map(([value, label]) => <button key={value} type="button" aria-pressed={category === value} onClick={() => setCategory(value)}
@@ -150,9 +155,10 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
         <Building2 aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <label htmlFor="campus-feed-campus" className="sr-only">Filter by university or source</label>
         <select id="campus-feed-campus" value={campus} onChange={(event) => setCampus(event.target.value)} className="h-11 w-full appearance-none truncate rounded-md border border-border bg-background pl-9 pr-8 text-sm font-semibold outline-none focus:ring-2 focus:ring-ring">
-          <option value="all">All campuses</option>
+          <option value="all">All updates and sources</option>
           <optgroup label={`Tertiary institutions (${campuses.length})`}>{campuses.map((school) => <option key={school.value} value={school.value}>{school.label}</option>)}</optgroup>
-          <optgroup label="National sources">{sources.filter((source) => source.source_kind === 'opportunities').map((source) => <option key={source.source_id} value={source.source_id}>{source.source_label}</option>)}</optgroup>
+          <optgroup label="News publishers">{sources.filter((source) => source.source_kind === 'news').map((source) => <option key={source.source_id} value={source.source_id}>{source.source_label}</option>)}</optgroup>
+          <optgroup label="Scholarships and national opportunities">{sources.filter((source) => source.source_kind === 'opportunities').map((source) => <option key={source.source_id} value={source.source_id}>{source.source_label}</option>)}</optgroup>
         </select>
         <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
       </div>

@@ -117,6 +117,21 @@ test('unknown schools receive a neutral labeled illustration rather than a Legon
   assert.doesNotMatch(result.background.credit + result.background.description, /Legon|Balme|Maxx/);
 });
 
+test('general-news and scholarship flyers use editorial artwork instead of an unrelated campus photograph', async () => {
+  const { resolveFlyerVisual } = testModules()('lib/ai/flyer-media.ts');
+  for (const source_kind of ['news', 'opportunities']) {
+    const result = await resolveFlyerVisual({ id: 'national-' + source_kind, source_kind, source_label: 'Official source',
+      title: 'Current public update', excerpt: '', university_name: 'Ghana' }, false);
+    assert.equal(result.background.description, 'Editorial illustration');
+    assert.equal(result.background.credit, 'UniEco Ghana');
+    const image = Buffer.from(result.background.src.split(',')[1], 'base64');
+    const metadata = await sharp(image).metadata();
+    assert.equal(metadata.width, 1080);
+    assert.equal(metadata.height, 852);
+    assert.doesNotMatch(result.background.description, /Photo|campus/i);
+  }
+});
+
 test('the public photo endpoint uses only approved stored media and rechecks visibility on cache hits', async () => {
   const id = '1bb72701-5287-464e-90dc-643817312d4d';
   let current = { id, title, source_id: 'test-school', source_label: published.publisher, canonical_url: article.href,
@@ -124,6 +139,13 @@ test('the public photo endpoint uses only approved stored media and rechecks vis
   let renders = 0;
   const get = testModules({
     '@/lib/supabase/server': { createClient: async () => ({ from: view => {
+      if (view === 'campus_feed_public_sources') return { select: fields => {
+        assert.equal(fields, 'source_kind');
+        return { eq: (_, sourceId) => {
+          assert.equal(sourceId, current?.source_id || 'test-school');
+          return { maybeSingle: async () => ({ data: { source_kind: 'news' }, error: null }) };
+        } };
+      } };
       assert.equal(view, 'campus_feed_public_items');
       return { select: fields => {
         assert.ok(fields.includes('media_url') && fields.includes('media_type'));
@@ -133,6 +155,7 @@ test('the public photo endpoint uses only approved stored media and rechecks vis
     '@/lib/ai/flyer': { renderUpdatePhoto: async data => {
       renders++;
       assert.equal(data.media_url, published.mediaUrl);
+      assert.equal(data.source_kind, 'news');
       return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
     } },
   })('app/api/campus-feed/alert-card/route.tsx').GET;

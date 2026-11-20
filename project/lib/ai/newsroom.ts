@@ -1,6 +1,7 @@
 export type FeedItem = {
   id: string;
   source_id: string;
+  source_kind?: 'campus' | 'opportunities' | 'news';
   source_label: string;
   university_name: string;
   title: string;
@@ -14,6 +15,8 @@ export type FeedItem = {
 
 export const newsroomPageSize = 18;
 export const newsroomEditionTag = 'campus-newsroom-public-edition';
+// Keep item reads compatible with the narrow public-item view. Source kind is
+// joined from the separately exposed public source directory in the UI/API.
 export const newsroomFields = 'id,source_id,source_label,university_name,title,excerpt,canonical_url,published_at,media_url,media_type,category';
 
 export function newsroomSearchTokens(input: string) {

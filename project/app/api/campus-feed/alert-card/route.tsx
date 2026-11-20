@@ -20,17 +20,21 @@ export async function GET(request: Request) {
     .select('id,source_id,source_label,university_name,title,excerpt,published_at,category,canonical_url,media_url,media_type').eq('id', id).maybeSingle();
   if (error) return new Response('Flyer temporarily unavailable.', { status: 503, headers });
   if (!data) return unavailable();
+  const { data: source, error: sourceError } = await supabase.from('campus_feed_public_sources')
+    .select('source_kind').eq('source_id', data.source_id).maybeSingle();
+  if (sourceError || !source) return new Response('Flyer temporarily unavailable.', { status: 503, headers });
+  const flyerItem = { ...data, source_kind: source.source_kind };
   // Always check visibility before serving a cached raster, including a
   // previously copied flyer link after an editor has unpublished the story.
   const format = params.get('format') === 'photo' ? 'photo' : params.get('format') === 'jpeg' ? 'jpeg' : 'png';
-  const key = JSON.stringify([format, data]);
+  const key = JSON.stringify([format, flyerItem]);
   try {
     let stored = completed.get(key);
     if (stored && stored.until <= Date.now()) { completed.delete(key); stored = undefined; }
     let task = rendering.get(key);
     if (!stored && !task) {
       if (rendering.size >= 3) return new Response('Flyer generation is busy. Please try again.', { status: 429, headers: { ...headers, 'Retry-After': '3' } });
-      task = (format === 'photo' ? renderUpdatePhoto(data) : renderUpdateFlyer(data, { format }))
+      task = (format === 'photo' ? renderUpdatePhoto(flyerItem) : renderUpdateFlyer(flyerItem, { format }))
         .then(async image => ({ bytes: await image.arrayBuffer(), photoKind: image.headers.get('X-UniEco-Photo-Type') || 'fallback' }))
         .then(({ bytes, photoKind }) => {
         if (!bytes.byteLength || bytes.byteLength > maxCardBytes) throw new Error('Invalid flyer size');

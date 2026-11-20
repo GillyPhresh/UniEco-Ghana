@@ -59,10 +59,14 @@ test('fallback artwork matches a broad topic, never an inferred person or an exa
 
 test('a cached JPEG is still unavailable after its story is withdrawn', async () => {
   const id = '1bb72701-5287-464e-90dc-643817312d4d';
-  let publicData = { id, title, canonical_url: article.href };
+  let publicData = { id, source_id: 'test-source', title, canonical_url: article.href };
   let renders = 0;
   const get = testModules({
     '@/lib/supabase/server': { createClient: async () => ({ from(view) {
+      if (view === 'campus_feed_public_sources') return { select: () => ({ eq: (_, sourceId) => {
+        assert.equal(sourceId, 'test-source');
+        return { maybeSingle: async () => ({ data: { source_kind: 'campus' }, error: null }) };
+      } }) };
       assert.equal(view, 'campus_feed_public_items');
       return { select: () => ({ eq: (_, lookup) => {
         assert.equal(lookup, id);
