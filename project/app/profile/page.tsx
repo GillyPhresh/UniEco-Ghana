@@ -63,6 +63,8 @@ function ProfileContent() {
   const [error, setError] = useState<string | null>(null);
   const [fullName, setFullName] = useState(user?.profile?.full_name || '');
   const [publicNickname, setPublicNickname] = useState(user?.profile?.public_nickname || '');
+  const [nameChoice, setNameChoice] = useState<boolean | null>(null);
+  const showRegisteredName = nameChoice ?? user?.profile?.show_registered_name ?? false;
   const [phone, setPhone] = useState(user?.profile?.phone || '');
   const [bio, setBio] = useState(user?.profile?.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(getPublicAvatarUrl(user?.profile?.avatar_url));
@@ -155,6 +157,7 @@ function ProfileContent() {
         .update({
           full_name: fullName,
           public_nickname: nickname || null,
+          ...(nameChoice === null ? {} : { show_registered_name: nameChoice }),
           phone,
           bio,
         })
@@ -422,13 +425,18 @@ function ProfileContent() {
                 <div className="space-y-2">
                   <Label htmlFor="publicNickname">Public nickname</Label>
                   <Input id="publicNickname" autoComplete="nickname" minLength={2} maxLength={30} value={publicNickname} onChange={(e) => setPublicNickname(e.target.value)} placeholder="Choose how others see you" />
-                  <p className="text-xs text-muted-foreground">Shown on your public profile, campus posts, comments, reviews, and chats. Leave blank to show your registered name.</p>
+                  <p className="text-xs text-muted-foreground">A nickname always takes priority on posts, stories, comments, reviews and chats, including older ones.</p>
+                  <label className="flex min-h-11 items-center gap-2 text-sm">
+                    <input type="checkbox" checked={showRegisteredName} onChange={e => setNameChoice(e.target.checked)} />
+                    Show my registered name when I have no nickname
+                  </label>
+                  <p className="text-sm">Public name after saving: <strong>{publicDisplayName({ public_nickname: publicNickname, full_name: fullName, show_registered_name: showRegisteredName })}</strong></p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Registered name</Label>
                   <Input id="fullName" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">This is your public name unless you choose a nickname.</p>
+                  <p className="text-xs text-muted-foreground">Use the setting above to choose whether others see this name.</p>
                 </div>
 
                 <div className="space-y-2">

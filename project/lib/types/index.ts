@@ -83,6 +83,7 @@ export interface Profile {
   email: string;
   full_name: string | null;
   public_nickname: string | null;
+  show_registered_name?: boolean;
   phone: string | null;
   avatar_url: string | null;
   bio: string | null;

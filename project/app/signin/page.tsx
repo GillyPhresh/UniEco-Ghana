@@ -75,6 +75,7 @@ function SignInContent() {
           </div>
         )}
 
+        <p className="text-xs text-muted-foreground">New to UniEco? Your registered name is public until you choose a nickname or change your name setting in Profile.</p>
         <Button
           variant="outline"
           className="w-full"

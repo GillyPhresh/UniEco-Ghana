@@ -134,6 +134,9 @@ function DashboardContent() {
       <main className="workspace-page min-h-[calc(100vh-7rem)] py-6 sm:py-10">
         <div className="container max-w-7xl">
         {/* Welcome area */}
+        {user.profile?.show_registered_name === false && !user.profile.public_nickname && (
+          <aside className="mb-4 rounded-xl border p-4 text-sm">Your registered name is still private. <Link className="font-semibold text-primary underline" href="/profile#publicNickname">Choose your public name</Link> for posts, stories and chats.</aside>
+        )}
         <div className="mb-6 rounded-2xl border border-border/80 bg-card p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

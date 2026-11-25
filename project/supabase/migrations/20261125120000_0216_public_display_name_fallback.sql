@@ -1,10 +1,16 @@
 -- Public callers receive one display name, never a pair of names.
 BEGIN;
 
+-- No existing profile has consented to the registered-name fallback.
+-- Enable the default for future rows only after the signup notice is live.
+ALTER TABLE public.profiles ADD COLUMN show_registered_name boolean NOT NULL DEFAULT false;
+GRANT UPDATE (show_registered_name) ON public.profiles TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.public_profile_display_name(p_user_id uuid)
 RETURNS text LANGUAGE sql STABLE SECURITY DEFINER SET search_path = '' AS $$
   SELECT coalesce((SELECT coalesce(nullif(btrim(p.public_nickname), ''),
-    CASE WHEN p.full_name !~ '@|^[+()[:digit:][:space:].-]+$'
+    CASE WHEN NOT p.show_registered_name THEN 'UniEco user'
+         WHEN p.full_name !~ '@|^[+()[:digit:][:space:].-]+$'
          THEN nullif(regexp_replace(p.full_name, '^[[:space:]]+|[[:space:]]+$', '', 'g'), '') END)
     FROM public.profiles p WHERE p.id = p_user_id), 'Unnamed user')
 $$;

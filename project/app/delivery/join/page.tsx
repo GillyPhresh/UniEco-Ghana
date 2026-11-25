@@ -48,6 +48,7 @@ export default function CourierJoinPage() {
         <Button asChild variant="outline"><Link href="/delivery">Back to delivery</Link></Button>
       </div>
       : <form onSubmit={onSubmit} className="space-y-3">
+        <p className="text-xs text-muted-foreground">Your display name is public. You can choose a nickname or hide your registered name in Profile.</p>
         <div className="space-y-1"><Label htmlFor="courier-account-name">Display name</Label><Input className="min-h-[44px]" id="courier-account-name" autoComplete="nickname" required minLength={2} maxLength={50} value={name} onChange={event => setName(event.target.value)} /></div>
         <div className="space-y-1"><Label htmlFor="courier-account-email">Email address</Label><Input className="min-h-[44px]" id="courier-account-email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} /></div>
         <div className="space-y-1"><Label htmlFor="courier-password">Password</Label><Input className="min-h-[44px]" id="courier-password" type="password" autoComplete="new-password" minLength={8} maxLength={72} required value={password} onChange={event => setPassword(event.target.value)} /></div>

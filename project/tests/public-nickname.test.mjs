@@ -11,7 +11,7 @@ test('profiles let users set a nickname separately from the registered name', ()
   assert.match(profile, /public_nickname: nickname \|\| null/);
   assert.match(profile, /Public nickname/);
   assert.match(profile, /Registered name/);
-  assert.match(profile, /Leave blank to show your registered name/);
+  assert.match(profile, /Show my registered name when I have no nickname/);
   assert.match(profile, /nickname\.length > 30/);
   assert.match(profile, /\.select\('id, public_nickname'\)/);
   assert.match(profile, /if \(!data\) throw new Error\('Your profile was not updated/);
@@ -48,7 +48,11 @@ test('personal names prefer the nickname, then the registered name, never contac
     ['  Kiki  ', 'Akua Mensah', 'Kiki'], [null, ' Akua Mensah ', 'Akua Mensah'],
     ['   ', 'Akua Mensah', 'Akua Mensah'], [null, '', 'Unnamed user'],
     [null, 'hidden@example.test', 'Unnamed user'], [null, '+233 555 123456', 'Unnamed user'],
-  ]) assert.equal(publicDisplayName({public_nickname: nickname, full_name: registered}), expected);
+  ]) assert.equal(publicDisplayName({public_nickname: nickname, full_name: registered, show_registered_name: true}), expected);
+  for (const flag of [false, undefined]) {
+    assert.equal(publicDisplayName({full_name: 'Kwame', show_registered_name: flag}), 'UniEco user');
+    assert.equal(publicDisplayName({public_nickname: 'Kiki', full_name: 'Kwame', show_registered_name: flag}), 'Kiki');
+  }
   for (const page of ['app/profile/page.tsx', 'components/layout/site-header.tsx', 'app/dashboard/page.tsx'])
     assert.match(read(page), /publicDisplayName\(user\?\.profile\)/);
 });
