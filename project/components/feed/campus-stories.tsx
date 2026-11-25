@@ -45,8 +45,9 @@ export function CampusStories({canPost,userId,avatar}:{canPost:boolean;userId:st
     const timer=setTimeout(()=>setRows(list=>list?.filter(active)??null),Math.max(0,next-Date.now()+1));
     return ()=>clearTimeout(timer);
   },[rows]);
-  const story=rows?.find(s=>s.id===selected && active(s));
-  const nextId=story && rows ? rows[rows.indexOf(story)+1]?.id ?? null : null;
+  const sequence=rows ? [...rows.filter(s=>s.mine),...rows.filter(s=>!s.mine)] : [];
+  const story=sequence.find(s=>s.id===selected && active(s));
+  const nextId=story ? sequence[sequence.indexOf(story)+1]?.id ?? null : null;
   const [paused,setPaused]=useState(false);
   useEffect(()=>{
     if(!story || paused || ['mp4','webm'].includes(story.ext)) return;
@@ -72,15 +73,24 @@ export function CampusStories({canPost,userId,avatar}:{canPost:boolean;userId:st
     finally{lock.current=false;setBusy(false);}
   }
   if(!rows)return error?<button type="button" className="p-3 text-sm" onClick={()=>void refresh()}>Stories unavailable · Retry</button>:null;
-  const index=rows.findIndex(s=>s.id===selected);
+  const index=sequence.findIndex(s=>s.id===selected);
+  const own=sequence.find(s=>s.mine);
+  const openStory=(id:string)=>{setPaused(false);setSelected(id)};
+  const ring='mx-auto grid h-[4.75rem] w-[4.75rem] shrink-0 overflow-hidden rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-fuchsia-600 p-[3px]';
   return <section aria-label="Campus stories" className="border-b border-border/40">
     <h2 className="sr-only">Stories · shared for 24 hours</h2>
     <div className="flex items-start gap-3 overflow-x-auto px-3 py-3 [scrollbar-width:none]">
-      {canPost && <button type="button" aria-label="Add story" onClick={()=>setCompose(true)} className="w-[4.75rem] shrink-0 text-center">
-        <span className="relative mx-auto grid size-[4.25rem] place-items-center rounded-full bg-muted text-xl">{avatar?<img src={avatar} alt="" className="size-full rounded-full object-cover"/>:'You'}<span className="absolute -bottom-0.5 -right-0.5 grid size-6 place-items-center rounded-full border-2 border-background bg-foreground font-bold leading-none text-background">+</span></span>
-        <span className="mt-1 block text-xs">Your story</span></button>}
-      {rows.map(s=><button type="button" key={s.id} onClick={()=>{setPaused(false);setSelected(s.id)}} aria-label={'View story by '+s.author_name} className="w-[4.75rem] shrink-0 text-center">
-        <span className="mx-auto grid size-[4.25rem] place-items-stretch rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-fuchsia-600 p-[3px]"><span className="grid place-items-center overflow-hidden rounded-full border-[3px] border-background bg-muted font-bold">{['jpg','png','webp'].includes(s.ext)?<img loading="lazy" src={'/api/community/story-media?id='+s.id} alt="" className="size-full object-cover"/>:s.author_name.slice(0,2).toUpperCase()}</span></span><span className="mt-1 block truncate text-xs">{s.mine?'You':s.author_name}</span></button>)}
+      {(canPost || own) && <div className="relative w-20 shrink-0 text-center">
+        <button type="button" aria-label={own?'View your story':'Add story'} onClick={()=>own?openStory(own.id):setCompose(true)} className="block w-full">
+          <span className={own?ring:'mx-auto grid h-[4.75rem] w-[4.75rem] place-items-stretch p-[3px]'}>
+            <span className="grid min-h-0 min-w-0 place-items-center overflow-hidden rounded-full border-2 border-background bg-muted">{avatar?<img src={avatar} alt="" className="h-full w-full object-cover"/>:'You'}</span>
+          </span><span className="mt-1 block truncate text-xs">Your story</span>
+        </button>
+        {canPost && (own ? <button type="button" aria-label="Add story" onClick={()=>setCompose(true)} className="absolute right-0 top-9 grid h-11 w-11 place-items-end"><span className="grid h-6 w-6 place-items-center rounded-full border-2 border-background bg-foreground font-bold leading-none text-background">+</span></button>
+          : <span aria-hidden="true" className="pointer-events-none absolute right-0 top-[3.4rem] grid h-6 w-6 place-items-center rounded-full border-2 border-background bg-foreground font-bold leading-none text-background">+</span>)}
+      </div>}
+      {sequence.filter(s=>!s.mine).map(s=><button type="button" key={s.id} onClick={()=>openStory(s.id)} aria-label={'View story by '+s.author_name} className="w-20 shrink-0 text-center">
+        <span className={ring}><span className="grid min-h-0 min-w-0 place-items-center overflow-hidden rounded-full border-[3px] border-background bg-muted font-bold">{['jpg','png','webp'].includes(s.ext)?<img loading="lazy" src={'/api/community/story-media?id='+s.id} alt="" className="h-full w-full object-cover"/>:s.author_name.slice(0,2).toUpperCase()}</span></span><span className="mt-1 block truncate text-xs">{s.author_name}</span></button>)}
       {!canPost && rows.length===0 && <p className="text-xs text-muted-foreground">No active stories yet.</p>}
     </div>
     <Dialog open={compose && canPost} onOpenChange={v=>{if(!busy)setCompose(v)}}><DialogContent><DialogTitle>Create a story</DialogTitle><DialogDescription>Visible to signed-in campus readers for 24 hours. This will not create a feed post.</DialogDescription>
@@ -94,7 +104,7 @@ export function CampusStories({canPost,userId,avatar}:{canPost:boolean;userId:st
         {!['mp4','webm'].includes(story.ext) && <button type="button" aria-pressed={paused} onClick={()=>setPaused(!paused)} className="min-h-11 text-sm">{paused?'Resume story':'Pause story'}</button>}
         {story.ext!=='text' && (['mp4','webm'].includes(story.ext)?<video key={story.id} src={'/api/community/story-media?id='+story.id} controls playsInline autoPlay onEnded={()=>setSelected(nextId)} className="max-h-[52dvh] w-full"/>:<img src={'/api/community/story-media?id='+story.id} alt={story.caption||'Campus story photo'} className="max-h-[52dvh] w-full object-contain"/>)}
         {story.caption && <p className="whitespace-pre-wrap break-words rounded-xl bg-white/10 p-4">{story.caption}</p>}
-        <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={index<=0} onClick={()=>setSelected(rows[index-1].id)}>Previous</Button><Button variant="outline" disabled={index+1>=rows.length} onClick={()=>setSelected(rows[index+1].id)}>Next</Button>
+        <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={index<=0} onClick={()=>openStory(sequence[index-1].id)}>Previous</Button><Button variant="outline" disabled={index+1>=sequence.length} onClick={()=>openStory(sequence[index+1].id)}>Next</Button>
         {story.mine && <Button variant="ghost" onClick={async()=>{if(!window.confirm('Remove this story now?'))return;const result=await supabase.rpc('remove_campus_story',{p_id:story.id});if(result.error){toast.error('Could not remove story.');return;}setSelected(null);await refresh();}}>Remove</Button>}</div></>}
     </DialogContent></Dialog>
   </section>;

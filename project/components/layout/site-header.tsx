@@ -16,7 +16,6 @@ import {
   GraduationCap,
   Heart,
   Plus,
-  SquarePlay,
   Send,
   UserRound,
   Home,
@@ -107,10 +106,13 @@ export function SiteHeader({ feedNavigation, feedControls }: { feedNavigation?: 
   return (
     <header data-home-feed-header={isFeedHeader ? '' : undefined} role="banner" className={`sticky top-0 z-50 w-full border-b border-border/80 transition-shadow ${isFeedHeader ? 'bg-background' : 'bg-card/95 backdrop-blur-xl'} ${!isFeedHeader && scrolled ? 'shadow-sm' : ''}`}>
       <div className={`mx-auto flex max-w-7xl items-center gap-1 px-2 sm:gap-3 sm:px-6 ${isFeedHeader ? 'h-14' : 'h-16'}`}>
-        {feedControls && <div className="grid w-full grid-cols-[44px_1fr_44px] items-center justify-items-center lg:hidden">
-          {feedControls.create ? <button className="grid size-11 place-items-center" aria-label="Create a campus post" onClick={feedControls.create}><Plus size={28}/></button> : <span/>}
+        {feedControls && <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center justify-items-center lg:hidden [&>:first-child]:justify-self-start">
+          {feedControls.create ? <button className="grid h-11 w-11 place-items-center" aria-label="Create a campus post" onClick={feedControls.create}><Plus size={28}/></button> : <span/>}
           {feedNavigation}
-          <Link href={user ? '/dashboard/notifications' : '/signin?next=%2Fdashboard%2Fnotifications'} aria-label={`Activity, ${unread.notifications} unread`} className="relative grid size-11 place-items-center"><Heart size={25}/>{unread.notifications>0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-rose-500"/>}</Link>
+          <div className="flex justify-self-end">
+            <Link href={user ? '/dashboard/notifications' : '/signin?next=%2Fdashboard%2Fnotifications'} aria-label={`Activity, ${unread.notifications} unread`} className="relative grid h-11 w-11 place-items-center"><Heart size={25}/>{unread.notifications>0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500"/>}</Link>
+            <Link href={user?'/dashboard/messages':'/signin?next=%2Fdashboard%2Fmessages'} aria-label={`Messages, ${unread.messages} unread`} className="relative grid h-11 w-11 place-items-center"><Send/>{unread.messages>0 && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500"/>}</Link>
+          </div>
         </div>}
         {isFeedHeader ? <div className="hidden lg:block">{feedNavigation}</div> : <Logo />}
 
@@ -134,12 +136,12 @@ export function SiteHeader({ feedNavigation, feedControls }: { feedNavigation?: 
           ))}
         </nav>}
 
-        {feedControls && <nav aria-label="Mobile bottom navigation" className="fixed inset-x-0 bottom-0 grid grid-cols-5 place-items-center border-t border-border bg-background py-1 [padding-bottom:calc(.25rem+env(safe-area-inset-bottom))] lg:hidden">
-          <button aria-label="Home feed" aria-pressed={!feedControls.clips} className="grid size-11 place-items-center" onClick={()=>feedControls.select(false)}><Home fill={feedControls.clips?'none':'currentColor'}/></button>
-          <button aria-label="Campus clips" aria-pressed={feedControls.clips} className="grid size-11 place-items-center" onClick={()=>feedControls.select(true)}><SquarePlay strokeWidth={feedControls.clips?3:2}/></button>
-          <Link href={user?'/dashboard/messages':'/signin?next=%2Fdashboard%2Fmessages'} aria-label={`Messages, ${unread.messages} unread`} className="relative grid size-11 place-items-center"><Send/>{unread.messages>0 && <span className="absolute right-1 top-1 size-2 rounded-full bg-rose-500"/>}</Link>
-          <Link href="/search" aria-label="Search UniEco" className="grid size-11 place-items-center"><Search/></Link>
-          <Link href={user?'/profile':'/signin?next=%2Fprofile'} aria-label="Your profile" className="grid size-11 place-items-center"><Avatar className="size-7"><AvatarImage src={getPublicAvatarUrl(user?.profile?.avatar_url)} alt=""/><AvatarFallback><UserRound size={21}/></AvatarFallback></Avatar></Link>
+        {feedControls && <nav aria-label="Mobile bottom navigation" className="fixed inset-x-0 bottom-0 grid grid-cols-5 items-center border-t border-border bg-background [padding-bottom:env(safe-area-inset-bottom)] lg:hidden [&>*]:grid [&>*]:h-12 [&>*]:min-w-0 [&>*]:place-items-center">
+          <button aria-label="Home" aria-current="page" onClick={()=>feedControls.select(false)}><Home fill="currentColor"/></button>
+          <Link href="/marketplace" aria-label="Shop"><Store/></Link>
+          <Link href="/campus-mate" aria-label="Campus Mate"><MapPinned/></Link>
+          <Link href="/updates" aria-label="Updates"><Newspaper/></Link>
+          <Link href={user?'/dashboard':'/signin?next=%2Fdashboard'} aria-label="Account"><Avatar className="h-6 w-6"><AvatarImage className="object-cover" src={getPublicAvatarUrl(user?.profile?.avatar_url)} alt=""/><AvatarFallback><UserRound size={21}/></AvatarFallback></Avatar></Link>
         </nav>}
         <div className={`ml-auto shrink-0 items-center gap-0 sm:gap-1.5 ${feedControls?'hidden lg:flex':'flex'}`}>
           <HeaderIconLink href="/search" label="Search" icon={Search} className="lg:hidden" />

@@ -363,11 +363,11 @@ html {
 }
 
 .dark :is([data-campus-feed="social"], [data-campus-feed-composer]) {
-  --background: 0 0% 5%;
+  --background: 207 31% 6%;
   --foreground: 0 0% 95%;
   --card: 0 0% 7%;
   --card-foreground: 0 0% 95%;
-  --muted: 0 0% 14%;
+  --muted: 215 16% 16%;
   --muted-foreground: 0 0% 69%;
   --border: 0 0% 19%;
 }

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import React from 'react';
 import {testModules} from './helpers/load-typescript.mjs';
 const read = file => readFileSync(new URL('../'+file, import.meta.url),'utf8');
 
@@ -21,11 +22,11 @@ test('the first worker claim does not interrupt an open sheet, but an actual upd
 test('Home has a social tab bar without rendering the marketplace bar twice',()=>{
   const header=read('components/layout/site-header.tsx');
   const bar=header.slice(header.indexOf('{feedControls && <nav'),header.indexOf('</nav>}',header.indexOf('{feedControls && <nav')));
-  for(const action of ['feedControls.select(false)','feedControls.select(true)',"'/dashboard/messages'",'href="/search"', "'/profile'"])
-    assert.ok(bar.includes(action),action);
+  assert.deepEqual([...bar.matchAll(/aria-label="([^"]+)"/g)].map(m=>m[1]),['Mobile bottom navigation','Home','Shop','Campus Mate','Updates','Account']);
+  for(const action of ['feedControls.select(false)','href="/marketplace"','href="/campus-mate"','href="/updates"', "'/dashboard'","'/signin?next=%2Fdashboard'"]) assert.ok(bar.includes(action),action);
   assert.match(read('components/pwa/mobile-bottom-nav.tsx'),/pathname === '\/' \|\| HIDDEN_SECTIONS/);
-  assert.match(bar,/unread\.messages/);
-  assert.doesNotMatch(bar,/unread\.notifications/);
+  assert.match(header, /aria-label={`Messages, \${unread\.messages} unread`}/);
+  assert.doesNotMatch(bar,/unread\.(messages|notifications)/);
 });
 
 test('reposts and private sends are explicit actions using the existing permission-checked paths',()=>{
@@ -36,4 +37,34 @@ test('reposts and private sends are explicit actions using the existing permissi
   assert.match(sheet,/getOrCreateConversation\(recipient\)/);
   assert.match(sheet,/sendMessage\(conv.id,recipient,url,'link'\)/);
   assert.match(read('components/feed/community-post-actions.tsx'),/registrationAccess\?\.can_publish && <button[^>]*onClick=/);
+});
+
+test('own stories share one watch button, with a separate permission-checked composer',()=>{
+  const expires_at=new Date(Date.now()+60000).toISOString();
+  const rows=['other','mine1','mine2'].map(id=>({id,mine:id!=='other',author_name:id==='other'?'Ama':'Jo',ext:'jpg',expires_at}));
+  let cursor=0;
+  const state=[rows];
+  const hooks={...React,useCallback:fn=>fn,useEffect:()=>{},useRef:value=>({current:value}),
+    useState:initial=>{const i=cursor++;if(!(i in state))state[i]=initial;return [state[i],value=>{state[i]=value}]}};
+  const {CampusStories}=testModules({react:hooks,'@/lib/supabase/client':{supabase:{}},
+    '@/components/ui/button':{Button:'button'},'@/components/ui/dialog':{Dialog:'dialog',DialogContent:'div',DialogDescription:'p',DialogTitle:'h3'}})('components/feed/campus-stories.tsx');
+  function render(canPost=true){
+    cursor=0;
+    const nodes=[];
+    function walk(node){if(Array.isArray(node))return node.forEach(walk);if(node?.props){nodes.push(node);walk(node.props.children)}}
+    walk(CampusStories({canPost,userId:'viewer',avatar:'avatar.jpg'}));
+    return nodes;
+  }
+  const by=(nodes,label)=>nodes.find(n=>n.props['aria-label']===label);
+  let nodes=render();
+  assert.ok(by(nodes,'View story by Ama'));
+  assert.equal(by(nodes,'View story by Jo'),undefined);
+  by(nodes,'View your story').props.onClick();
+  nodes=render();
+  assert.ok(nodes.some(n=>n.props.src?.endsWith('id=mine1')));
+  nodes.find(n=>n.props.children==='Next').props.onClick();
+  assert.ok(render().some(n=>n.props.src?.endsWith('id=mine2')));
+  assert.equal(by(render(false),'Add story'),undefined);
+  by(render(),'Add story').props.onClick();
+  assert.equal(render().find(n=>n.type==='dialog').props.open,true);
 });

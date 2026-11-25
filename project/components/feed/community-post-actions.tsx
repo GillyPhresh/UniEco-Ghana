@@ -281,7 +281,7 @@ export function CommunityPostActions({
   const repostTarget = textOnly && /^Reposted on UniEco: https?:\/\/[^/\s]+\/\?post=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(postCaption);
   const longCaption = !textOnly && postCaption.length > 158;
   const captionText = longCaption && !captionExpanded ? `${postCaption.slice(0, 153).trimEnd()}…` : postCaption;
-  const iconAction = 'inline-flex h-11 min-w-11 px-1 shrink-0 touch-manipulation items-center justify-center rounded-md text-foreground transition-opacity hover:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
+  const iconAction = 'inline-flex h-11 min-w-[44px] px-1 shrink-0 touch-manipulation items-center justify-center rounded-md text-foreground transition-opacity hover:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
   const myPost = user?.id === authorId;
 
   const menu = (
@@ -300,7 +300,7 @@ export function CommunityPostActions({
 
   return (
     <>
-      {renderHeader(<>{user && !myPost && <button type="button" aria-pressed={state.following_author} disabled={Boolean(busy)} onClick={()=>void toggle('follow')} className="min-h-11 px-1 text-sm font-semibold"><span className="rounded-lg bg-muted px-3 py-1.5">{state.following_author?'Following':'Follow'}</span></button>}{menu}</>)}
+      {renderHeader(<>{user && !myPost && <button type="button" aria-pressed={state.following_author} disabled={Boolean(busy)} onClick={()=>void toggle('follow')} className="h-11 px-1 text-sm font-semibold"><span className="rounded-lg bg-muted px-3 py-1.5">{state.following_author?'Following':'Follow'}</span></button>}{menu}</>)}
       {shareMode && <PostShareSheet mode={shareMode} postId={postId} canSend={!!user} close={()=>setShareMode(null)} copy={()=>sharePost(true)} external={()=>sharePost()}/>}
       {repostTarget?<Link href={'/?post='+repostTarget[1]} className="mx-3 mb-2 flex min-h-14 items-center gap-3 rounded-xl border px-4 font-semibold"><Repeat2/> View original post</Link>:textOnly && postCaption && <p className="whitespace-pre-wrap break-words px-4 pb-4 pt-1 text-[15px] leading-relaxed sm:px-5">{postCaption}</p>}
       {renderMedia(likeFromPhoto)}

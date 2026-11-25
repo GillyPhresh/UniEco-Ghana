@@ -686,6 +686,8 @@ export function CampusCommunityFeed() {
               {scopes.map(item => <DropdownMenuRadioItem key={item.id} value={item.id} className="min-h-11">{item.label}</DropdownMenuRadioItem>)}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={()=>{setClips(!clips);window.scrollTo({top:0,behavior:'instant'})}} className="min-h-[44px] gap-2"><Film className="h-4 w-4"/>{clips?'Show all posts':'Campus clips'}</DropdownMenuItem>
+            <DropdownMenuItem asChild className="min-h-[44px] gap-2"><Link href="/search"><Search className="h-4 w-4"/>Search UniEco</Link></DropdownMenuItem>
             {['Marketplace','Campus Mate','Updates'].map((name,index)=><DropdownMenuItem key={name} asChild className="min-h-11"><Link href={['/marketplace','/campus-mate','/updates'][index]}>{name}</Link></DropdownMenuItem>)}
             <DropdownMenuItem onSelect={refresh} disabled={refreshing || loadingView} className="min-h-11 gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh feed</DropdownMenuItem>
             {user && <DropdownMenuItem asChild className="min-h-11 gap-2"><Link href="/community/saved"><Bookmark className="h-4 w-4" aria-hidden="true" /> Saved posts</Link></DropdownMenuItem>}
