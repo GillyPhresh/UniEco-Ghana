@@ -26,6 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { CommunityPostActions, emptyCommunitySocialState, type CommunityMutation, type CommunitySocialState } from '@/components/feed/community-post-actions';
 import { CampusPostMedia } from '@/components/feed/campus-post-media';
+import { CampusStories } from '@/components/feed/campus-stories';
 import { appendCampusFeed, pageCampusFeed, type FeedScope } from '@/lib/community/feed-experience';
 import { MAX_ATTACHMENT_BYTES, VIDEO_PREPARATION_TIMEOUT_MS, VIDEO_FILE_EXTENSION, readableSize, safeFileName, withRequestTimeout } from '@/lib/community/media-client';
 
@@ -711,6 +712,7 @@ export function CampusCommunityFeed() {
 
         <section ref={timelineRef} className="mx-auto w-full min-w-0 max-w-[36rem] scroll-mt-[var(--site-header-height)]" aria-labelledby="campus-community-heading">
           <h1 id="campus-community-heading" className="sr-only">Campus feed</h1>
+          {!authLoading && user && <CampusStories key={user.id} userId={user.id} canPost={canPost} />}
           <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
             <h2 className="text-lg font-bold">Campus posts</h2>
             {showPostEntry && <Button type="button" onClick={openComposer} aria-label="Create a campus post" className="min-h-11 rounded-full">

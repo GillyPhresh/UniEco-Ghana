@@ -5,6 +5,7 @@ import { acquireResearchSlot, createResearchClient, loadResearchCatalog, queueRe
 import { readJsonLimited } from '@/lib/http/read-json-limited';
 import { campusFeedUuid } from '@/lib/ai/research-catalog';
 import { newsroomEditionTag } from '@/lib/ai/newsroom';
+import { cleanExpiredStories } from '@/lib/community/cleanup-stories';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
     }
     if (report.some((item) => item.published > 0)) revalidateTag(newsroomEditionTag);
     if (caller === 'scheduler' && nextOffset === null) {
+      await cleanExpiredStories(db).catch(() => console.warn('Expired story cleanup will retry next sweep.'));
       phase = 'audit';
       const id = researchWindowId(windowUtc, 'completed');
       const schools = catalog.filter((source) => source.schoolSlug);
