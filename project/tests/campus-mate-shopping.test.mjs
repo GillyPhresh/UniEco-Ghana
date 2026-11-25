@@ -91,8 +91,20 @@ test('selected shops offer their shop and map directions first; unavailable rout
   assert.match(page, /Your selected place/);
   assert.match(page, /href="\/business\/campus-kitchen"/);
   assert.match(page, /Get directions/);
+  assert.match(page, /Travel by/);
+  for (const mode of ['walking', 'bicycling', 'two-wheeler', 'driving']) assert.ok(page.includes(`value="${mode}"`), mode);
+  assert.match(page, /destination=7\.34%2C-2\.33&amp;travelmode=walking/);
   assert.match(page, /https:\/\/www\.google\.com\/maps\/dir\//);
   assert.doesNotMatch(page, /Optional route preview|route-preview-mounted|Try animation|Recheck route access/);
+});
+
+test('empty campuses still offer campus directions and a nearby search before the catalogue', () => {
+  const page = renderExperience({ items: [] });
+  assert.match(page, /To campus/);
+  assert.match(page, /destination=Test\+College%2C\+Sunyani%2C\+Bono%2C\+Ghana/);
+  assert.match(page, /Find nearby food/);
+  assert.ok(page.indexOf('Find nearby food') < page.indexOf('Shop your campus'));
+  assert.doesNotMatch(page, /Discover everyday essentials|Travel by/);
 });
 
 test('map-only places never display a stock shop photo, verified badge or an ordering action', () => {

@@ -30,9 +30,14 @@ the API does not cache routes. Check the provider's retention policy before
 sending user locations. A private vendor location is not included in Campus
 Mate's page payload or linked from a marketplace item.
 
-No Supabase migration is required for this feature. Until a provider is
-configured, learners can try the clearly labeled animation demo or use the
-external directions link.
+No Supabase migration is required. The public-facing directions workflow does
+not depend on Valhalla: **To campus** opens the selected institution in Google
+Maps. Choosing **Directions** on a mapped listing lets the user pick walking,
+bicycle, motorbike or car before opening Google Maps. Available directions
+depend on Maps coverage. No device origin is attached to the handoff.
+Listings without a public address or pin do not offer a directions button.
+The optional in-app preview is shown only when configured and the destination
+has a supported pin; students are not offered a demo in place of directions.
 
 ## Temporary private production pilot
 

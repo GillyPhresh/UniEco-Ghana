@@ -26,7 +26,6 @@ import { CampusPlaceCard } from '@/components/campus-mate/campus-place-card';
 import { CampusJourneyPlanner, type JourneyPlace } from '@/components/campus-mate/campus-journey-planner';
 import { CampusMateCatalog } from '@/components/campus-mate/campus-mate-catalog';
 import type { CampusMateProduct } from '@/lib/data/campus-mate-products';
-import { marketPhotography } from '@/lib/marketplace/photography';
 import { campusMateCategories, findCampusMateCategory, campusPlaceTelephone, campusPlaceWebsite } from '@/lib/campus-mate/categories';
 import { getGoogleMapsDirectionsUrl, getGoogleMapsSearchUrl, isValidCoordinate } from '@/lib/maps';
 import { isJourneyPoint } from '@/lib/campus-mate/journey';
@@ -168,6 +167,7 @@ export function CampusMateExperience({ university, universities, places, product
   const [shareMessage, setShareMessage] = useState('');
   const [resultsLimit, setResultsLimit] = useState(12);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [travelMode, setTravelMode] = useState<'walking' | 'bicycling' | 'two-wheeler' | 'driving'>('walking');
   const nearbyRequest = useRef<AbortController | null>(null);
   const mapPanel = useRef<HTMLDivElement>(null);
   const resultsPanel = useRef<HTMLElement>(null);
@@ -258,8 +258,10 @@ export function CampusMateExperience({ university, universities, places, product
   };
 
   const showJourney = () => {
-    mapPanel.current?.focus({ preventScroll: true });
-    mapPanel.current?.scrollIntoView({ block: 'start' });
+    requestAnimationFrame(() => {
+      mapPanel.current?.focus({ preventScroll: true });
+      mapPanel.current?.scrollIntoView({ block: 'start' });
+    });
   };
 
   const choosePlace = (place: CampusMatePlace) => {
@@ -366,37 +368,38 @@ export function CampusMateExperience({ university, universities, places, product
   const cardGrid = 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3';
   const destinationDirections = journeyDestination ? getGoogleMapsDirectionsUrl({
     ...journeyDestination.position, address: journeyDestination.address,
-  }) : null;
+  }, undefined, travelMode) : null;
   const updateCategory = (id: (typeof filters)[number]['id'], query?: string) => {
     setActiveFilter(id);
     setSearchQuery('');
     setResultsLimit(12);
     resetNearby();
-    if (query) {
-      void searchGooglePlaces(query);
-      resultsPanel.current?.scrollIntoView({ block: 'start' });
-    }
+    clearSelection();
+    const nearbyQuery = query ?? filters.find(item => item.id === id)?.query;
+    if (nearbyQuery) void searchGooglePlaces(nearbyQuery);
+    requestAnimationFrame(() => resultsPanel.current?.scrollIntoView({ block: 'start' }));
   };
 
   return (
-    <main data-campus-mate-layout="everyday-discovery" className="min-h-[calc(100dvh-4rem)] bg-background pb-8 [--primary:162_73%_27%] [--muted-foreground:215_16%_40%] dark:[--primary:160_81%_44%] dark:[--muted-foreground:215_20%_65%]">
-      <div className="mx-auto w-full max-w-6xl space-y-6 px-4 py-4 sm:space-y-8 sm:px-6 sm:py-6">
-        <section aria-labelledby="campus-mate-heading" className="space-y-5">
+    <main data-campus-mate-layout="everyday-discovery" className="min-h-[calc(100dvh-4rem)] bg-background pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-8 [--primary:162_73%_27%] [--muted-foreground:215_16%_40%] dark:[--primary:160_81%_44%] dark:[--muted-foreground:215_20%_65%]">
+      <div className="mx-auto w-full max-w-6xl space-y-4 px-3 py-3 sm:space-y-8 sm:px-6 sm:py-6">
+        <section aria-labelledby="campus-mate-heading" className="space-y-3">
           <div className="flex min-w-0 items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className="h-11 w-11 shrink-0 rounded-2xl border bg-card p-1.5"><UniversityLogo src={university.logo_url} name={university.name} shortName={campusName} alt="" /></span>
               <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.15em] text-primary">Campus Mate</p><p className="truncate text-sm font-bold">{campusName}</p><p className="truncate text-[11px] text-muted-foreground">{campusLocation}</p></div>
             </div>
+            <a href={getGoogleMapsDirectionsUrl({ address: campusSearchText(university) })!} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-xl bg-primary/10 px-2 text-xs font-semibold text-primary"><Navigation className="h-4 w-4" aria-hidden="true" /> To campus</a>
             <Link href="/cart" aria-label="Open shopping cart" className="grid h-11 w-11 shrink-0 place-items-center rounded-full border bg-card"><ShoppingBag className="h-5 w-5" aria-hidden="true" /></Link>
           </div>
-          <div><h1 id="campus-mate-heading" className="text-[clamp(1.65rem,5.5vw,2.5rem)] font-extrabold leading-tight tracking-tight">What do you need today?</h1><p className="mt-1.5 text-sm text-muted-foreground">Food, shops and everyday campus essentials.</p></div>
+          <div><h1 id="campus-mate-heading" className="text-[clamp(1.65rem,5.5vw,2.5rem)] font-extrabold leading-tight tracking-tight">What do you need today?</h1><p className="mt-1.5 text-sm text-muted-foreground">Find a place, get directions or shop near your campus.</p></div>
         </section>
 
         <section aria-label="Campus and place search" className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
           <label className="relative flex min-w-0 flex-col gap-1.5 text-xs font-bold">
             <span className="inline-flex items-center gap-1 text-muted-foreground"><MapPin className="h-3.5 w-3.5" aria-hidden="true" /> Around your campus</span>
             <select value={university.slug} onChange={(event) => { window.location.href = '/campus-mate?campus=' + encodeURIComponent(event.target.value); }}
-              className="h-12 w-full min-w-0 appearance-none rounded-2xl border bg-card pl-3 pr-9 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring">
+              className="h-12 w-full min-w-0 truncate appearance-none rounded-2xl border bg-card pl-3 pr-9 text-base sm:text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring">
               {universities.map(item => <option key={item.id} value={item.slug}>{item.short_name || item.name} · {item.city || item.region || 'Ghana'}</option>)}
             </select>
             <ChevronRight className="pointer-events-none absolute bottom-4 right-3 h-4 w-4 rotate-90 text-muted-foreground" aria-hidden="true" />
@@ -407,8 +410,8 @@ export function CampusMateExperience({ university, universities, places, product
               <div className="relative min-w-0 flex-1">
                 <Search className="pointer-events-none absolute left-3 top-4 h-4 w-4 text-muted-foreground" aria-hidden="true" />
                 <input id="campus-mate-search" value={searchQuery} maxLength={80} placeholder="Food, shops, products…"
-                  onChange={(event) => { setSearchQuery(event.target.value); setActiveFilter('all'); setResultsLimit(12); resetNearby(); }}
-                  className="h-12 w-full rounded-2xl border bg-card pl-9 pr-2 text-sm focus-visible:ring-2 focus-visible:ring-ring" />
+                  onChange={(event) => { setSearchQuery(event.target.value); setActiveFilter('all'); setResultsLimit(12); resetNearby(); clearSelection(); }}
+                  className="h-12 w-full rounded-2xl border bg-card pl-9 pr-2 text-base sm:text-sm focus-visible:ring-2 focus-visible:ring-ring" />
               </div>
               <Button type="submit" aria-label="Search nearby places" disabled={googlePlacesLoading || widerSearch.length < 2} className="h-12 w-12 shrink-0 rounded-2xl px-0"><Search className="h-5 w-5" aria-hidden="true" /></Button>
             </div>
@@ -424,7 +427,7 @@ export function CampusMateExperience({ university, universities, places, product
           ].map(item => {
             const Icon = item.icon;
             const content = <><Icon className="h-5 w-5 text-primary" aria-hidden="true" /><span>{item.label}</span></>;
-            const style = 'flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted/50 px-1 text-[11px] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring';
+            const style = 'flex min-h-[48px] min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl bg-muted/50 px-1 text-[11px] font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring';
             return item.href ? <Link key={item.label} href={item.href} className={style}>{content}</Link>
               : <button key={item.label} type="button" onClick={item.action} disabled={item.label === 'Near me' && locating} className={style}>{content}</button>;
           })}
@@ -436,29 +439,38 @@ export function CampusMateExperience({ university, universities, places, product
             <h2 id="campus-essentials" className="text-lg font-extrabold tracking-tight sm:text-xl">Explore by category</h2>
             <button type="button" onClick={() => updateCategory('all')} className="min-h-[44px] px-2 text-xs font-semibold text-primary">See all</button>
           </div>
-          <div className="grid grid-cols-4 gap-x-2 gap-y-4 sm:gap-4 lg:grid-cols-8">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
             {campusMateCategories.map((category, index) => <button key={category.id} type="button" aria-pressed={activeFilter === category.id}
               onClick={() => updateCategory(category.id, category.query)}
-              className={cn('group min-w-0 rounded-2xl text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', activeFilter === category.id && 'text-primary')}>
-              <span className={cn('relative block aspect-square overflow-hidden rounded-[1.2rem] border bg-muted', activeFilter === category.id && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}><CatalogPhoto sources={[category.photo.image]} alt="" sizes="(max-width: 639px) 22vw, (max-width: 1023px) 22vw, 130px" priority={index < 4} fallback={Store} /></span>
-              <span className="flex min-h-[44px] items-center justify-center px-0.5 text-[11px] font-bold leading-tight sm:text-xs">{category.label}</span>
+              className={cn('group flex min-w-0 items-center gap-2 rounded-xl border bg-card p-1 text-left sm:flex-col sm:gap-0 sm:border-0 sm:bg-transparent sm:p-0 sm:text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', activeFilter === category.id && 'text-primary')}>
+              <span className={cn('relative block aspect-square w-12 shrink-0 overflow-hidden rounded-lg sm:w-full sm:rounded-2xl border bg-muted', activeFilter === category.id && 'ring-2 ring-primary ring-offset-2 ring-offset-background')}><CatalogPhoto sources={[category.photo.image]} alt="" sizes="(max-width: 639px) 48px, (max-width: 1023px) 22vw, 130px" priority={index < 4} fallback={Store} /></span>
+              <span className="flex min-h-[44px] items-center justify-center px-0.5 text-xs font-bold leading-tight sm:text-xs">{category.label}</span>
             </button>)}
           </div>
         </section>
 
-        {activeFilter === 'all' && !searchQuery && <section aria-label="Discover everyday essentials" className="grid grid-cols-2 gap-3">
-          {[
-            { title: 'Good food. Close by.', label: 'Find food', id: 'Food & Drinks' as const, query: 'food', photo: marketPhotography.food.image },
-            { title: 'Your everyday shop.', label: 'Find groceries', id: 'Supermarkets' as const, query: 'supermarket', photo: marketPhotography.shop.image },
-          ].map(item => <button key={item.id} type="button" onClick={() => updateCategory(item.id, item.query)} className="group relative min-h-[176px] overflow-hidden rounded-2xl bg-emerald-950 text-left text-white sm:min-h-[224px]">
-            <CatalogPhoto sources={[item.photo]} alt="" sizes="(max-width: 639px) 45vw, 550px" />
-            <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-black/5" />
-            <span className="relative flex min-h-[176px] flex-col justify-end gap-2 p-3 sm:min-h-[224px] sm:p-5"><span className="max-w-48 text-lg font-extrabold leading-tight sm:text-2xl">{item.title}</span><span className="inline-flex items-center gap-1 text-xs font-semibold">{item.label}<ChevronRight className="h-4 w-4" aria-hidden="true" /></span></span>
-          </button>)}
-        </section>}
-
-        {activeFilter !== 'event' && <CampusMateCatalog universityId={university.id} products={products}
-          unavailable={productsUnavailable} category={activeFilter} query={searchQuery} />}
+        <div id="campus-journey" ref={mapPanel} tabIndex={-1} className="scroll-mt-20 empty:hidden focus:outline-none">
+          {journeyDestination && <section aria-labelledby="selected-place-heading" className="space-y-4 rounded-3xl border bg-card p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="mb-1 text-[10px] font-bold uppercase tracking-[.15em] text-primary">Your selected place</p><h2 id="selected-place-heading" className="break-words text-xl font-extrabold tracking-tight">{journeyDestination.name}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{journeyDestination.address || 'Ask the business for its exact location.'}</p></div><button type="button" onClick={clearSelection} aria-label="Close selected place" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted"><X className="h-4 w-4" aria-hidden="true" /></button></div>
+            {destinationDirections && <label className="flex flex-wrap items-center gap-2 text-sm font-semibold">Travel by
+              <select value={travelMode} onChange={event => setTravelMode(event.target.value as typeof travelMode)} className="min-h-[44px] rounded-xl border bg-background px-3 text-base">
+                <option value="walking">Foot</option><option value="bicycling">Bicycle</option><option value="two-wheeler">Motorbike</option><option value="driving">Car</option>
+              </select></label>}
+            <div className="flex flex-wrap gap-2">
+              {selectedPlace?.href && <Button asChild className="min-h-[44px] rounded-xl"><Link href={selectedPlace.href}>{selectedPlace.kind === 'event' ? 'View event' : 'Open shop'}<ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" /></Link></Button>}
+              {destinationDirections && <Button asChild variant="outline" className="min-h-[44px] rounded-xl"><a href={destinationDirections} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1.5 h-4 w-4" aria-hidden="true" /> Get directions in Google Maps</a></Button>}
+              {selectedGooglePlace && campusPlaceTelephone(selectedGooglePlace.phone) && <Button asChild variant="outline" className="min-h-[44px] rounded-xl"><a href={campusPlaceTelephone(selectedGooglePlace.phone)!}>Call business</a></Button>}
+            </div>
+            {selectedGooglePlace && <p className="text-xs leading-5 text-muted-foreground">Map listing only. Contact this business directly; it does not accept orders through UniEco.</p>}
+            {routingEnabled && journeyDestination.position && <details open={previewOpen} onToggle={event => setPreviewOpen(event.currentTarget.open)} className="border-t pt-3">
+              <summary className="min-h-[44px] cursor-pointer py-3 text-sm font-semibold">Optional route preview</summary>
+              {previewOpen && <CampusJourneyPlanner key={journeyDestination.id} destination={journeyDestination}
+                startingPlaces={journeyStarts} deviceLocation={deviceLocation} onLocate={requestLocation}
+                locating={locating} locationMessage={locationMessage} onClear={clearSelection}
+                mapFallback={campusDirectionsUrl} enabled={routingEnabled} />}
+            </details>}
+          </section>}
+        </div>
 
         <section ref={resultsPanel} aria-labelledby="campus-places" className="scroll-mt-20 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-3">
@@ -482,10 +494,11 @@ export function CampusMateExperience({ university, universities, places, product
                 address={place.address || (place.kind === 'business' ? 'Exact location not published' : null)}
                 date={formatDate(place.start_time)} distance={distance} rating={place.rating} verified={place.verified}
                 photo={place.image_url} logo={place.logo_url}
-                active={selectedPlaceId === place.id} details={place.href} onJourney={() => choosePlace(place)} />;
+                active={selectedPlaceId === place.id} details={place.href} onJourney={place.address || getPlaceCoordinates(place) ? () => choosePlace(place) : undefined} />;
             })}
-          </div> : <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-card p-4 sm:p-5">
-            <div><p className="font-bold">No matching UniEco listings yet</p><p className="mt-1 text-xs text-muted-foreground">Try a different category or search the wider area.</p></div>
+          </div> : googleSearchCompleted || googlePlacesLoading ? null : <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-card p-4 sm:p-5">
+            <div><p className="font-bold">No matching UniEco listings yet</p><p className="mt-1 text-xs text-muted-foreground">Choose a category above to find nearby map listings.</p></div>
+            {activeFilter === 'all' && !searchQuery && <button type="button" onClick={() => updateCategory('Food & Drinks', 'food')} className="min-h-[44px] rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground">Find nearby food</button>}
             {searchEverywhereUrl && <a href={searchEverywhereUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border px-3 text-xs font-semibold hover:bg-muted"><ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Google Maps</a>}
           </div>}
           {visiblePlaces.length > resultsLimit && <Button type="button" variant="outline" className="min-h-[44px]" onClick={() => setResultsLimit(current => current + 12)}>Show more places</Button>}
@@ -511,24 +524,8 @@ export function CampusMateExperience({ university, universities, places, product
           </section>}
         </section>
 
-        <div id="campus-journey" ref={mapPanel} tabIndex={-1} className="scroll-mt-20 focus:outline-none">
-          {journeyDestination && <section aria-labelledby="selected-place-heading" className="space-y-4 rounded-3xl border bg-card p-4 sm:p-6">
-            <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="mb-1 text-[10px] font-bold uppercase tracking-[.15em] text-primary">Your selected place</p><h2 id="selected-place-heading" className="break-words text-xl font-extrabold tracking-tight">{journeyDestination.name}</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">{journeyDestination.address || 'Ask the business for its exact location.'}</p></div><button type="button" onClick={clearSelection} aria-label="Close selected place" className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-muted"><X className="h-4 w-4" aria-hidden="true" /></button></div>
-            <div className="flex flex-wrap gap-2">
-              {selectedPlace?.href && <Button asChild className="min-h-[44px] rounded-xl"><Link href={selectedPlace.href}>{selectedPlace.kind === 'event' ? 'View event' : 'Open shop'}<ArrowUpRight className="ml-1.5 h-4 w-4" aria-hidden="true" /></Link></Button>}
-              {destinationDirections && <Button asChild variant="outline" className="min-h-[44px] rounded-xl"><a href={destinationDirections} target="_blank" rel="noopener noreferrer"><Navigation className="mr-1.5 h-4 w-4" aria-hidden="true" /> Get directions</a></Button>}
-              {selectedGooglePlace && campusPlaceTelephone(selectedGooglePlace.phone) && <Button asChild variant="outline" className="min-h-[44px] rounded-xl"><a href={campusPlaceTelephone(selectedGooglePlace.phone)!}>Call business</a></Button>}
-            </div>
-            {selectedGooglePlace && <p className="text-xs leading-5 text-muted-foreground">Map listing only. Contact this business directly; it does not accept orders through UniEco.</p>}
-            {routingEnabled && <details open={previewOpen} onToggle={event => setPreviewOpen(event.currentTarget.open)} className="border-t pt-3">
-              <summary className="min-h-[44px] cursor-pointer py-3 text-sm font-semibold">Optional route preview</summary>
-              {previewOpen && <CampusJourneyPlanner key={journeyDestination.id} destination={journeyDestination}
-                startingPlaces={journeyStarts} deviceLocation={deviceLocation} onLocate={requestLocation}
-                locating={locating} locationMessage={locationMessage} onClear={clearSelection}
-                mapFallback={campusDirectionsUrl} enabled={routingEnabled} />}
-            </details>}
-          </section>}
-        </div>
+        {activeFilter !== 'event' && <CampusMateCatalog universityId={university.id} products={products}
+          unavailable={productsUnavailable} category={activeFilter} query={searchQuery} />}
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <Link href={'/university/' + university.slug} className="inline-flex min-h-[44px] items-center gap-1.5 text-sm font-semibold text-primary">View campus profile <ArrowUpRight className="h-4 w-4" aria-hidden="true" /></Link>
