@@ -77,7 +77,7 @@ export interface ReviewResponse {
 
 export interface ReviewWithResponse extends Review {
   reviewer: {
-    public_nickname: string | null;
+    display_name: string | null;
     avatar_url: string | null;
   } | null;
   response: ReviewResponse | null;

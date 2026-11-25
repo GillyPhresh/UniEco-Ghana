@@ -1,5 +1,7 @@
 'use client';
 
+import { publicDisplayName } from '@/lib/community/public-display-name';
+
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -90,7 +92,7 @@ export function SiteHeader({ feedNavigation }: { feedNavigation?: ReactNode } = 
     router.push(value ? `/search?q=${encodeURIComponent(value)}` : '/search');
   };
 
-  const publicName = user?.profile?.public_nickname?.trim() || 'Campus member';
+  const publicName = publicDisplayName(user?.profile);
   const initials = publicName
     .split(' ')
     .map((n) => n[0])

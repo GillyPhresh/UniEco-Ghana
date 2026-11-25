@@ -2,21 +2,23 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
 
+import { testModules } from './helpers/load-typescript.mjs';
+
 const read = (path) => fs.readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('profiles let users set a separate private account name and public nickname', () => {
+test('profiles let users set a nickname separately from the registered name', () => {
   const profile = read('app/profile/page.tsx');
   assert.match(profile, /public_nickname: nickname \|\| null/);
   assert.match(profile, /Public nickname/);
-  assert.match(profile, /Account name \(private\)/);
-  assert.match(profile, /Leave blank to appear as “Campus member”/);
+  assert.match(profile, /Registered name/);
+  assert.match(profile, /Leave blank to show your registered name/);
   assert.match(profile, /nickname\.length > 30/);
   assert.match(profile, /\.select\('id, public_nickname'\)/);
   assert.match(profile, /if \(!data\) throw new Error\('Your profile was not updated/);
   assert.match(profile, /setPublicNickname\(user\.profile\.public_nickname \|\| ''\)/);
 });
 
-test('migration grants users only their own nickname field and prevents public full-name fallback', () => {
+test('original nickname migration grants only the nickname update privilege', () => {
   const migration = read('supabase/migrations/20261119140000_0213_public_nicknames.sql');
   assert.match(migration, /ADD COLUMN IF NOT EXISTS public_nickname text/);
   assert.match(migration, /GRANT UPDATE \(public_nickname\) ON public\.profiles TO authenticated/);
@@ -40,20 +42,29 @@ test('public community profiles, posts, comments and chat lookup use the privacy
   assert.match(migration, /COALESCE\(p\.public_nickname,''\) ILIKE/);
 });
 
-test('signed-in navigation and dashboard show the chosen public nickname, never the private account name', () => {
-  const header = read('components/layout/site-header.tsx');
-  const dashboard = read('app/dashboard/page.tsx');
-  assert.match(header, /const publicName = user\?\.profile\?\.public_nickname\?\.trim\(\) \|\| 'Campus member'/);
-  assert.doesNotMatch(header, /user\.profile\?\.full_name/);
-  assert.match(dashboard, /user\.profile\?\.public_nickname\?\.trim\(\)/);
-  assert.doesNotMatch(dashboard, /user\.profile\?\.full_name/);
+test('personal names prefer the nickname, then the registered name, never contact data', () => {
+  const { publicDisplayName } = testModules()('lib/community/public-display-name.ts');
+  for (const [nickname, registered, expected] of [
+    ['  Kiki  ', 'Akua Mensah', 'Kiki'], [null, ' Akua Mensah ', 'Akua Mensah'],
+    ['   ', 'Akua Mensah', 'Akua Mensah'], [null, '', 'Unnamed user'],
+    [null, 'hidden@example.test', 'Unnamed user'], [null, '+233 555 123456', 'Unnamed user'],
+  ]) assert.equal(publicDisplayName({public_nickname: nickname, full_name: registered}), expected);
+  for (const page of ['app/profile/page.tsx', 'components/layout/site-header.tsx', 'app/dashboard/page.tsx'])
+    assert.match(read(page), /publicDisplayName\(user\?\.profile\)/);
 });
 
-test('public product and business reviews request nicknames rather than account names', () => {
+test('the following feed and student search use the same resolved identity', () => {
+  const sql = read('supabase/migrations/20261125120000_0216_public_display_name_fallback.sql');
+  assert.match(sql, /public_profile_display_name\(author\.id\)/);
+  assert.match(sql, /public_profile_display_name\(p\.id\) ILIKE/);
+  assert.doesNotMatch(sql, /Campus member|GRANT SELECT/i);
+});
+
+test('public product and business reviews only request resolved reviewer identities', () => {
   for (const path of ['lib/data/public-queries.ts', 'lib/data/student-client.ts', 'lib/data/vendor-client.ts',
     'app/marketplace/product/[id]/page.tsx', 'app/marketplace/service/[id]/page.tsx']) {
     const source = read(path);
-    assert.match(source, /reviewer:profiles!reviews_reviewer_id_fkey\(public_nickname, avatar_url\)/);
+    assert.match(source, /reviewer:review_public_identity/);
     assert.doesNotMatch(source, /reviewer:profiles!reviews_reviewer_id_fkey\(full_name, avatar_url\)/);
   }
 });

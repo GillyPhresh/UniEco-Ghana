@@ -105,7 +105,7 @@ function ProductDetailContent({ productId }: { productId: string }) {
         getSimilarProducts(p.id, p.business_id, 4),
         supabase
           .from('reviews')
-          .select('*, reviewer:profiles!reviews_reviewer_id_fkey(public_nickname, avatar_url)')
+          .select('*, reviewer:review_public_identity')
           .eq('product_id', p.id)
           .eq('is_approved', true)
           .order('created_at', { ascending: false })

@@ -91,7 +91,7 @@ function ServiceDetailContent({ serviceId }: { serviceId: string }) {
         v
           ? supabase
               .from('reviews')
-              .select('*, reviewer:profiles!reviews_reviewer_id_fkey(public_nickname, avatar_url)')
+              .select('*, reviewer:review_public_identity')
               .eq('vendor_id', v.id)
               .eq('service_id', s.id)
               .eq('is_approved', true)

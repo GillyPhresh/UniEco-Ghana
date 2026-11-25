@@ -160,6 +160,8 @@ export default function SignUpPage() {
                 </Button>
               </div>}
 
+              <p className="text-xs text-muted-foreground">Your registered name is public until you choose a nickname in Profile.</p>
+
               <Button
                 variant="outline"
                 className="min-h-12 w-full"

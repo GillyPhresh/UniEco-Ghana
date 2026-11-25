@@ -1,5 +1,7 @@
 'use client';
 
+import { publicDisplayName } from '@/lib/community/public-display-name';
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -118,7 +120,7 @@ function DashboardContent() {
 
   if (!user) return null;
 
-  const publicName = user.profile?.public_nickname?.trim() || 'Campus member';
+  const publicName = publicDisplayName(user?.profile);
   const firstName = publicName.split(' ')[0];
   const uniName = user.profile?.university_id
     ? user.studentProfile?.program_of_study

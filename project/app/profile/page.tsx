@@ -1,5 +1,7 @@
 'use client';
 
+import { publicDisplayName } from '@/lib/community/public-display-name';
+
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -263,7 +265,7 @@ function ProfileContent() {
     router.push('/');
   };
 
-  const initials = (user?.profile?.public_nickname || 'Campus member')
+  const initials = publicDisplayName(user?.profile)
     .split(' ')
     .map((n) => n[0])
     .slice(0, 2)
@@ -277,14 +279,14 @@ function ProfileContent() {
         {/* Profile header card */}
         <div className="mb-8 flex flex-col items-start gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm sm:flex-row sm:items-center">
           <Avatar className="h-20 w-20 border-2 border-primary/20">
-            <AvatarImage src={avatarUrl} alt={user?.profile?.public_nickname || 'Profile'} />
+            <AvatarImage src={avatarUrl} alt={publicDisplayName(user?.profile)} />
             <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
               {initials}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <h1 className="font-display text-2xl font-bold text-foreground">
-              {user?.profile?.public_nickname || 'Campus member'}
+              {publicDisplayName(user?.profile)}
             </h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -420,13 +422,13 @@ function ProfileContent() {
                 <div className="space-y-2">
                   <Label htmlFor="publicNickname">Public nickname</Label>
                   <Input id="publicNickname" autoComplete="nickname" minLength={2} maxLength={30} value={publicNickname} onChange={(e) => setPublicNickname(e.target.value)} placeholder="Choose how others see you" />
-                  <p className="text-xs text-muted-foreground">Shown on your public profile, campus posts, comments, reviews, and chats. Your account name stays private for payments and support. Leave blank to appear as “Campus member”.</p>
+                  <p className="text-xs text-muted-foreground">Shown on your public profile, campus posts, comments, reviews, and chats. Leave blank to show your registered name.</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName">Account name (private)</Label>
+                  <Label htmlFor="fullName">Registered name</Label>
                   <Input id="fullName" autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Used privately for account, payment, and management records—not public profile display.</p>
+                  <p className="text-xs text-muted-foreground">This is your public name unless you choose a nickname.</p>
                 </div>
 
                 <div className="space-y-2">

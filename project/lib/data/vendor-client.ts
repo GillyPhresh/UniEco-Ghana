@@ -548,7 +548,7 @@ export async function getVendorReviews(vendorId: string): Promise<ReviewWithResp
     .from('reviews')
     .select(`
       *,
-      reviewer:profiles!reviews_reviewer_id_fkey(public_nickname, avatar_url),
+      reviewer:review_public_identity,
       response:review_responses(*)
     `)
     .eq('vendor_id', vendorId)

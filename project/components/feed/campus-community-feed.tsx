@@ -186,7 +186,7 @@ function writeCachedFeed(cacheKey: string, posts: CommunityPost[]) {
 function friendlyRole(role: string) {
   if (role === 'student_vendor') return 'Student vendor';
   if (role === 'external_vendor') return 'Vendor';
-  return role === 'student' ? 'Student' : 'Campus member';
+  return role === 'student' ? 'Student' : 'Member';
 }
 
 function initials(name: string) {

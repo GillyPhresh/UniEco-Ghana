@@ -164,12 +164,12 @@ function ReviewsContent() {
                   <Avatar className="h-10 w-10 shrink-0">
                     <AvatarImage src={review.reviewer?.avatar_url || ''} />
                     <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
-                      {review.reviewer?.public_nickname?.charAt(0).toUpperCase() || 'C'}
+                      {review.reviewer?.display_name?.charAt(0).toUpperCase() || 'C'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-foreground">{review.reviewer?.public_nickname || 'Campus member'}</p>
+                      <p className="text-sm font-semibold text-foreground">{review.reviewer?.display_name || 'Unnamed user'}</p>
                       <span className="text-xs text-muted-foreground">
                         {new Date(review.created_at).toLocaleDateString('en-GH', { year: 'numeric', month: 'short', day: 'numeric' })}
                       </span>
@@ -234,7 +234,7 @@ function ReviewsContent() {
                 <div className="flex items-center gap-2">
                   <RatingStars rating={Number(respondingTo.rating)} size={14} showValue={false} />
                   <span className="text-xs text-muted-foreground">
-                    by {respondingTo.reviewer?.public_nickname || 'Campus member'}
+                    by {respondingTo.reviewer?.display_name || 'Unnamed user'}
                   </span>
                 </div>
                 {respondingTo.comment && <p className="mt-2 text-sm text-muted-foreground">{respondingTo.comment}</p>}

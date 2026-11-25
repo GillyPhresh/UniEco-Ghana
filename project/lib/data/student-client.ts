@@ -189,7 +189,7 @@ export async function getMyReviews(): Promise<ReviewWithDetails[]> {
     .from('reviews')
     .select(`
       *,
-      reviewer:profiles!reviews_reviewer_id_fkey(public_nickname, avatar_url),
+      reviewer:review_public_identity,
       vendor:vendors!reviews_vendor_id_fkey(business_name, business_slug)
     `)
     .eq('reviewer_id', user.id)
