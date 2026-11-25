@@ -95,6 +95,19 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
     return invalidateRead;
   }, [load, invalidateRead]);
   useEffect(() => {
+    if (loading || loadingMore) return;
+    const refreshEdition = () => {
+      if (document.visibilityState === 'visible' && window.scrollY < 160 && offset.current <= pageSize)
+        void load(false, true);
+    };
+    const timer = window.setInterval(refreshEdition, 300_000);
+    document.addEventListener('visibilitychange', refreshEdition);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshEdition);
+    };
+  }, [load, loading, loadingMore]);
+  useEffect(() => {
     let active = true;
     const supabase = createClient();
     void Promise.all([

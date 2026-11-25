@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     const report = [];
     const enqueue = async ({ source, state, leads, verifiedArticleKeys }: (typeof outcomes)[number]) => {
       const fresh = leads.filter((lead) => lead.published_at && lead.published_at >= freshAfter)
-        .sort((a, b) => (b.published_at || '').localeCompare(a.published_at || '')).slice(0, 2);
+        .sort((a, b) => (b.published_at || '').localeCompare(a.published_at || '')).slice(0, 5);
       let added = 0;
       let published = 0;
       let error = false;

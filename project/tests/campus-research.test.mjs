@@ -102,6 +102,14 @@ test('scheduler publishes only one matching item, preserves rejections and never
   history = [old];
   assert.equal((await queueResearchLeads(db, publisher, [lead], { verifiedArticleKeys: verified, now })).published, 1);
   assert.deepEqual(writes[0].checks, { id: old.id, source_id: publisher.registration.id, status: 'pending', updated_at: old.updated_at });
+  const next = { ...lead, canonical_url: site + 'news/another-campus-award', source_item_key: 'c'.repeat(64) };
+  for (const previous of [{ ...old, status: 'approved' }, { ...old, status: 'rejected' }, { ...old, title: 'Edited by reviewer' }]) {
+    history = [previous];
+    writes.length = 0;
+    const result = await queueResearchLeads(db, publisher, [lead, next], { verifiedArticleKeys: [...verified, next.source_item_key], now });
+    assert.equal(result.published, 1);
+    assert.deepEqual(writes.map(row => [row.canonical_url, row.status]), [[next.canonical_url, 'approved']]);
+  }
 });
 
 test('only approved HTTPS publisher hosts can be attempted; mixed public/private DNS fails closed', () => {

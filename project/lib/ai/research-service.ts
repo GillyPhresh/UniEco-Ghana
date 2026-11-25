@@ -131,18 +131,23 @@ export async function queueResearchLeads(db: SupabaseClient, source: ResearchSou
     & { id: string; status: string; updated_at: string }>;
   const seen = new Set(history.flatMap((item) => publicSourceUrl(item.canonical_url) ? [articleIdentity(item.canonical_url)] : []));
   const verified = new Set(automation?.verifiedArticleKeys || []);
-  const eligible = automation && leads.find((lead) => canAutomaticallyPublish(source, lead, verified, automation.now));
+  const unchangedPending = (lead: ResearchLead) => {
+    const matching = history.filter((row) => publicSourceUrl(row.canonical_url) && articleIdentity(row.canonical_url) === articleIdentity(lead.canonical_url));
+    const prior = matching.length === 1 ? matching[0] : undefined;
+    return prior?.status === 'pending' && prior.source_item_key === lead.source_item_key && prior.canonical_url === lead.canonical_url
+      && prior.title === lead.title && prior.excerpt === lead.excerpt && prior.category === lead.category
+      && prior.media_url === lead.media_url && prior.media_type === lead.media_type
+      && Date.parse(prior.published_at || '') === Date.parse(lead.published_at || '') ? prior : undefined;
+  };
+  const eligible = automation && leads.find((lead) => canAutomaticallyPublish(source, lead, verified, automation.now)
+    && (!seen.has(articleIdentity(lead.canonical_url)) || unchangedPending(lead)));
   const approval = { status: 'approved', approved_by: null, approved_at: automation ? new Date(automation.now).toISOString() : null, review_reason: automatedReviewReason };
   let published = 0;
   if (eligible && seen.has(articleIdentity(eligible.canonical_url))) {
-    const matching = history.filter((row) => publicSourceUrl(row.canonical_url) && articleIdentity(row.canonical_url) === articleIdentity(eligible.canonical_url));
-    const prior = matching.length === 1 && matching[0];
+    const prior = unchangedPending(eligible);
     // Promote only an unchanged, exact research record. Respect any previous
     // rejection, manual copy or conflicting legacy import.
-    if (prior && prior.status === 'pending' && prior.source_item_key === eligible.source_item_key && prior.canonical_url === eligible.canonical_url
-      && prior.title === eligible.title && prior.excerpt === eligible.excerpt && prior.category === eligible.category
-      && prior.media_url === eligible.media_url && prior.media_type === eligible.media_type
-      && Date.parse(prior.published_at || '') === Date.parse(eligible.published_at || '')) {
+    if (prior) {
       const { data, error } = await db.from('campus_feed_items').update({ ...approval, updated_at: approval.approved_at })
         .eq('id', prior.id).eq('source_id', registration.id).eq('status', 'pending').eq('updated_at', prior.updated_at).select('id');
       if (error) throw new Error('Automatic campus publication could not be saved.');
