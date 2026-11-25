@@ -1,7 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {testModules} from './helpers/load-typescript.mjs';
 const read = file => readFileSync(new URL('../'+file, import.meta.url),'utf8');
+
+test('the first worker claim does not interrupt an open sheet, but an actual update reloads', (t)=>{
+  let changed, reloads=0, cleanup;
+  const worker={controller:null, addEventListener:(name,cb)=>{if(name==='controllerchange')changed=cb},removeEventListener:()=>{},register:async()=>({update:async()=>{},addEventListener:()=>{}})};
+  const nav = Object.getOwnPropertyDescriptor(globalThis,'navigator');
+  const win = Object.getOwnPropertyDescriptor(globalThis,'window');
+  Object.defineProperty(globalThis,'navigator',{configurable:true,value:{serviceWorker:worker}});
+  Object.defineProperty(globalThis,'window',{configurable:true,value:{location:{reload:()=>reloads++}}});
+  t.after(()=>{cleanup?.();for(const [key,old] of [['window',win],['navigator',nav]]){if(old)Object.defineProperty(globalThis,key,old);else delete globalThis[key]}});
+  testModules({react:{useEffect:cb=>{cleanup=cb()}}})('components/pwa/service-worker-register.tsx').ServiceWorkerRegister();
+  worker.controller={};changed();changed();assert.equal(reloads,0);
+  worker.controller={};changed();assert.equal(reloads,1);
+});
 
 test('Home has a social tab bar without rendering the marketplace bar twice',()=>{
   const header=read('components/layout/site-header.tsx');

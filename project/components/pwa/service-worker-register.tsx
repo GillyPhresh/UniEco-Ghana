@@ -7,7 +7,15 @@ export function ServiceWorkerRegister() {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
 
-    const refreshAfterWorkerUpdate = () => window.location.reload();
+    // The first worker claims the already-current document. Reloading here
+    // would discard a newly opened composer, comments sheet or share dialog.
+    let lastController = navigator.serviceWorker.controller;
+    const refreshAfterWorkerUpdate = () => {
+      const controller = navigator.serviceWorker.controller;
+      const replacing = Boolean(lastController && controller && lastController !== controller);
+      lastController = controller;
+      if (replacing) window.location.reload();
+    };
     navigator.serviceWorker.addEventListener('controllerchange', refreshAfterWorkerUpdate);
 
     const register = async () => {
