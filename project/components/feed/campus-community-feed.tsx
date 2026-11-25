@@ -17,7 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuRadioG
   DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   ArrowUpRight, Bookmark, Building2, CalendarDays, CheckCircle2, ChevronDown, CircleAlert, Download, Film, FileText,
-  Flag, Home, ImagePlus, Loader2, MapPin, Newspaper, Play, Plus, RefreshCw, Search, ShoppingBag, SquarePlus, UsersRound, X, type LucideIcon,
+  Flag, Home, ImagePlus, Loader2, MapPin, Newspaper, RefreshCw, Search, ShoppingBag, SquarePlus, UsersRound, X, type LucideIcon,
 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter,
@@ -26,7 +26,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { CommunityPostActions, emptyCommunitySocialState, type CommunityMutation, type CommunitySocialState } from '@/components/feed/community-post-actions';
 import { CampusPostMedia } from '@/components/feed/campus-post-media';
-import { appendCampusFeed, getCampusMoments, pageCampusFeed, type FeedScope } from '@/lib/community/feed-experience';
+import { appendCampusFeed, pageCampusFeed, type FeedScope } from '@/lib/community/feed-experience';
 import { MAX_ATTACHMENT_BYTES, VIDEO_PREPARATION_TIMEOUT_MS, VIDEO_FILE_EXTENSION, readableSize, safeFileName, withRequestTimeout } from '@/lib/community/media-client';
 
 export type CommunityPost = {
@@ -289,7 +289,6 @@ export function CampusCommunityFeed() {
   mountedKey.current = viewKey;
   const currentView = dataKey === viewKey;
   const visiblePosts = currentView ? posts : [];
-  const moments = getCampusMoments(visiblePosts.slice(0, PAGE_SIZE));
   const leadPhoto = visiblePosts[0]?.media_type === 'image' ? visiblePosts[0].id : null;
   const loadingView = loading || !currentView;
 
@@ -712,35 +711,12 @@ export function CampusCommunityFeed() {
 
         <section ref={timelineRef} className="mx-auto w-full min-w-0 max-w-[36rem] scroll-mt-[var(--site-header-height)]" aria-labelledby="campus-community-heading">
           <h1 id="campus-community-heading" className="sr-only">Campus feed</h1>
-          <section aria-label="Campus moments" className="border-b border-border/70">
-            <div className="flex snap-x gap-2 overflow-x-auto px-3 pb-3 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-3 sm:px-2">
-              {showPostEntry && <button type="button" onClick={openComposer} aria-label="Create a campus post"
-                className="group flex w-[4.75rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-lg text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                <span className="relative block h-16 w-16 rounded-full p-0.5">
-                  <Avatar className="h-full w-full border border-border">
-                    {user?.profile?.avatar_url && <AvatarImage src={getPublicAvatarUrl(user.profile.avatar_url)} alt="" />}
-                    <AvatarFallback className="bg-muted text-sm font-bold text-foreground">{user ? initials(user.profile?.public_nickname || 'You') : <ImagePlus className="h-5 w-5" />}</AvatarFallback>
-                  </Avatar>
-                  <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full bg-foreground text-background ring-2 ring-background"><Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden="true" /></span>
-                </span>
-                <span className="w-full truncate">Your moment</span>
-              </button>}
-              {moments.map(post => <button key={post.id} type="button" onClick={() => focusPost(post.id)}
-                aria-label={`View ${post.author_name}’s ${post.media_type === 'image' ? 'photo' : 'video'} in the feed`}
-                className="group flex w-[4.75rem] shrink-0 snap-start flex-col items-center gap-1.5 rounded-lg text-center text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
-                <span className="relative block h-16 w-16 rounded-full bg-[conic-gradient(from_205deg,#e2a139,#e65e59,#b6378e,#e2a139)] p-[2px]">
-                  <span className="relative block h-full w-full overflow-hidden rounded-full border-2 border-background bg-muted">
-                    {post.media_url && post.media_type === 'image' ? <img src={post.media_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-                      : <Avatar className="h-full w-full"><AvatarImage src={getPublicAvatarUrl(post.author_avatar_url)} alt="" loading="lazy" /><AvatarFallback className="bg-muted text-sm font-bold">{initials(post.author_name)}</AvatarFallback></Avatar>}
-                    {post.media_type === 'video' && <span className="absolute inset-0 grid place-items-center bg-black/15 text-white"><Play className="h-4 w-4 fill-current drop-shadow" aria-hidden="true" /></span>}
-                  </span>
-                </span>
-                <span className="w-full truncate px-0.5">{post.author_name.split(/\s+/)[0]}</span>
-              </button>)}
-              {!showPostEntry && !moments.length && loadingView && [0,1,2,3].map(index => <span key={index} aria-hidden="true" className="h-16 w-16 shrink-0 rounded-full bg-muted motion-safe:animate-pulse" />)}
-              {!moments.length && !loadingView && <p className="my-auto px-2 text-xs text-muted-foreground">Campus moments will appear here.</p>}
-            </div>
-          </section>
+          <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <h2 className="text-lg font-bold">Campus posts</h2>
+            {showPostEntry && <Button type="button" onClick={openComposer} aria-label="Create a campus post" className="min-h-11 rounded-full">
+              <SquarePlus aria-hidden="true" className="mr-2 h-4 w-4" /> Create post
+            </Button>}
+          </header>
 
           <div className="space-y-2 sm:space-y-4">
             {(showingCachedPosts || loadError) && visiblePosts.length > 0 && <div className="flex items-center justify-between gap-2 bg-muted/70 px-4 py-2 text-xs text-muted-foreground sm:rounded-xl" role="status">

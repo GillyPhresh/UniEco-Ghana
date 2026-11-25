@@ -21,8 +21,8 @@ test('homepage is a real community feed and keeps the university directory separ
   assert.match(feed, /href="\/universities"/);
   assert.match(feed, /href="\/updates"/);
   assert.match(feed, /Campus feed/);
-  assert.match(feed, /aria-label="Campus moments"/);
-  assert.match(feed, /post\.media_url && post\.media_type === 'image'/);
+  assert.match(feed, /Campus posts/);
+  assert.doesNotMatch(feed, /getCampusMoments|Your moment/);
   assert.match(feed, /get_campus_community_feed/);
 });
 
@@ -40,7 +40,7 @@ test('the Home timeline uses a compact header, thumb navigation and an accessibl
   assert.match(feed, /scroll-mt-\[var\(--site-header-height,4rem\)\]/);
   assert.match(header, /data-home-feed-header/);
   assert.doesNotMatch(nav, /data-home-feed-bottom-navigation|unieco:open-post-composer/);
-  assert.match(feed, /onClick=\{openComposer\} aria-label="Create a campus post"[^]*?Your moment/);
+  assert.match(feed, /onClick=\{openComposer\} aria-label="Create a campus post"[^]*?Create post/);
   assert.match(nav, /label: 'Shop'/);
   assert.match(nav, /label: 'Mate'/);
   assert.match(viewport, /querySelector\('\[data-home-feed-header\]'\)/);

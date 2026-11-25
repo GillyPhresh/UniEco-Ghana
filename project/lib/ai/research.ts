@@ -180,10 +180,10 @@ export function parsePublisherArticle(raw: string, page: string, source: Researc
     try { harvest(JSON.parse(text)); } catch { /* Malformed publisher metadata is not evidence. */ }
   });
   $('script, style, template, noscript, nav, footer, form').remove();
-  const titles = [$('main h1, article h1, article .post-content .title').first().text(), meta($, ['og:title', 'twitter:title']), $('h1').first().text()];
+  const titles = [$('article h1, article .post-content .title').first().text(), meta($, ['og:title', 'twitter:title']), $('main h1, h1').first().text()];
   const post = structured[0];
   if (structured.some((entry) => entry.isAccessibleForFree === false || entry.isAccessibleForFree === 'false')) return null;
-  if (typeof post?.headline === 'string') titles.splice(1, 0, post.headline);
+  if (typeof post?.headline === 'string') titles.unshift(post.headline);
   const observedTitle = titles.map(headline).find(Boolean);
   const title = observedTitle || lead.title;
   const content = $('article, [itemprop="articleBody"], .post-content, .entry-content, .news-detail, main').first();
@@ -303,7 +303,16 @@ export async function scanResearchSource(source: ResearchSource, stop?: AbortSig
   for (let start = 0; start < selected.length; start += 2) enriched.push(...await Promise.all(selected.slice(start, start + 2).map(enrich)));
   const unique = new Map<string, ResearchLead>();
   for (const lead of enriched) if (lead) unique.set(articleIdentity(lead.canonical_url), lead);
-  const leads = Array.from(unique.values());
+  // Some publishers serve identical template text on many different paths.
+  // Do not arbitrarily choose one of those paths as the source of a story.
+  const leads = distinctArticleLeads(Array.from(unique.values()));
   return { state: leads.length ? 'found' : succeeded ? 'no_updates' : 'unreachable', leads,
     verifiedArticleKeys: leads.filter((lead) => verified.get(lead.source_item_key) === lead).map((lead) => lead.source_item_key) };
+}
+
+export function distinctArticleLeads(rows: ResearchLead[]) {
+  const key = (row: ResearchLead) => JSON.stringify([row.title, row.excerpt].map(s => s.normalize('NFKC').toLowerCase().replace(/\s+/g, ' ').trim()));
+  const counts = new Map<string, number>();
+  for (const row of rows) counts.set(key(row), (counts.get(key(row)) || 0) + 1);
+  return rows.filter(row => counts.get(key(row)) === 1);
 }

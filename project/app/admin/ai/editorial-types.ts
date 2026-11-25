@@ -32,10 +32,20 @@ export const coverageLabels: Record<Outcome['state'], string> = {
 };
 
 export async function editorialRequest<T>(action: string, data: Record<string, unknown> = {}, signal?: AbortSignal): Promise<T> {
-  const response = await fetch('/api/admin/ai', {
-    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...data }), signal,
-  });
-  const result = await response.json() as T & { error?: string };
-  if (!response.ok) throw new Error(result.error || 'The request could not be completed.');
-  return result;
+  const batch = new AbortController();
+  const abort = () => batch.abort();
+  if (signal?.aborted) abort();
+  signal?.addEventListener('abort', abort, { once: true });
+  const timer = action === 'discover' ? setTimeout(abort, 45_000) : undefined;
+  try {
+    const response = await fetch('/api/admin/ai', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action, ...data }), signal: batch.signal,
+    });
+    const result = await response.json() as T & { error?: string };
+    if (!response.ok) throw new Error(result.error || 'The request could not be completed.');
+    return result;
+  } finally {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', abort);
+  }
 }

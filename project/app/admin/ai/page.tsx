@@ -69,6 +69,7 @@ function EditorialDesk() {
     } catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not load the editorial desk.'); }
   }, []);
   useEffect(() => {
+    if (window.location.hash === '#review') setTab('review');
     void refresh();
     return () => controller.current?.abort();
   }, [refresh]);
@@ -91,6 +92,7 @@ function EditorialDesk() {
     setScan({ done: checked, total, active: true, status: 'Checking publishers…' });
     try {
       while (!task.signal.aborted) {
+        setScan({ done: checked, total, active: true, status: 'Reading publishers from ' + (sources.find(s => s.id === scope)?.label || sources[offset]?.label || 'the next batch') + '…' });
         const data = await editorialRequest<{ outcomes: Outcome[]; total: number; nextOffset: number | null }>('discover',
           { ...(scope === 'all' ? {} : { sourceId: scope }), offset }, task.signal);
         if (task.signal.aborted) break;

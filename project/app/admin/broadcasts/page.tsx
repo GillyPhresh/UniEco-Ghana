@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { AdminRouteGuard, AdminLayout } from '@/components/admin/admin-layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ function Content() {
   const [loading, setLoading] = useState(true);
   const [broadcasts, setBroadcasts] = useState<AdminBroadcast[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [form, setForm] = useState({
     title: '', body: '', broadcast_type: 'announcement',
@@ -137,6 +139,10 @@ function Content() {
           return next;
         });
       }
+      if (result.feedStatus !== 'approved' && result.feedStatus !== 'pending') {
+        toast.info(result.feedStatus === 'rejected' ? 'This story was previously rejected. It has not been requeued.' : 'Review status not confirmed. Check Campus Updates review.');
+        return;
+      }
       toast.success(result.feedStatus === 'approved'
         ? 'This story is already public on Campus Updates.'
         : 'Queued for Campus Updates review. It will appear publicly after approval. No extra notification was sent.');
@@ -147,6 +153,15 @@ function Content() {
     }
   };
 
+  const seen = new Set<string>();
+  const latest = broadcasts.filter(b => {
+    const source = b.target_filters?.source_url;
+    if (b.broadcast_type !== 'update' || typeof source !== 'string' || !source || !['sent','cancelled'].includes(b.status)) return true;
+    const key = JSON.stringify([source, b.target_audience, b.target_filters, [...b.channels].sort()]);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
   const STATUS_ICONS: Record<BroadcastStatus, typeof Clock> = {
     draft: Clock, scheduled: Clock, pending_approval: Eye,
     approved: Check, sending: Send, sent: Check, cancelled: X,
@@ -164,6 +179,12 @@ function Content() {
         <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" /> New broadcast</Button>
       </div>
 
+      <div className="flex flex-wrap items-center gap-3 text-sm">
+        <Link className="font-semibold text-primary underline" href="/admin/ai#review">Review and publish to Campus Updates</Link>
+        {latest.length < broadcasts.length && <Button variant="outline" size="sm" aria-expanded={showHistory} onClick={() => setShowHistory(v => !v)}>
+          {showHistory ? 'Hide earlier attempts' : 'Show earlier attempts (' + (broadcasts.length - latest.length) + ')'}
+        </Button>}
+      </div>
       {loading ? (
         <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>
       ) : loadError ? (
@@ -175,10 +196,12 @@ function Content() {
         <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">No broadcasts yet</CardContent></Card>
       ) : (
         <div className="space-y-2">
-          {broadcasts.map((b) => {
+          {(showHistory ? broadcasts : latest).map((b) => {
             const StatusIcon = STATUS_ICONS[b.status] || Clock;
             const baseStatusInfo = BROADCAST_STATUS_LABELS[b.status] || { label: b.status, color: 'muted' };
-            const statusInfo = b.status === 'sending' ? { ...baseStatusInfo, label: 'Queued' } : baseStatusInfo;
+            const statusInfo = b.status === 'sending' ? { ...baseStatusInfo, label: 'Queued' }
+              : b.status === 'sent' && b.failed_count > 0 ? { label: b.sent_count > 0 ? 'Partly delivered' : 'Delivery failed', color: b.sent_count > 0 ? 'warning' : 'error' }
+              : baseStatusInfo;
             const sourceUrl = typeof b.target_filters?.source_url === 'string' ? b.target_filters.source_url : '';
             const canQueuePublicReview = b.broadcast_type === 'update' && /^https:\/\//i.test(sourceUrl) && b.status !== 'cancelled' && !queuedForReview.has(sourceUrl);
             return (

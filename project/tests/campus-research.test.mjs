@@ -27,6 +27,12 @@ const yamfo = school('college-of-health-yamfo', 1, {
 });
 const [publisher] = buildResearchCatalog([yamfo], []);
 const headline = 'College holds its student research forum';
+test('repeated publisher templates at different URLs are not offered as news', () => {
+  const { distinctArticleLeads } = use('lib/ai/research.ts');
+  const a = { title: 'Integrity, Creativity, & Excellence', excerpt: 'Repeated preview', canonical_url: site + 'a' };
+  const article = { ...a, title: 'Students win engineering prize', canonical_url: site + 'c' };
+  assert.deepEqual(distinctArticleLeads([a, { ...a, canonical_url: site + 'b' }, article]), [article]);
+});
 const story = site + 'news/student-research-forum';
 
 function articleFixture() {
