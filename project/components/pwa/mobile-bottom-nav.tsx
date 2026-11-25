@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
-  if (HIDDEN_SECTIONS.some((section) => withinSection(pathname, section))) return null;
+  if (pathname === '/' || HIDDEN_SECTIONS.some((section) => withinSection(pathname, section))) return null;
 
   return (
     <nav

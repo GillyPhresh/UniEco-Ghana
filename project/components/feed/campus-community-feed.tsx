@@ -289,7 +289,8 @@ export function CampusCommunityFeed() {
   const mountedKey = useRef(viewKey);
   mountedKey.current = viewKey;
   const currentView = dataKey === viewKey;
-  const visiblePosts = currentView ? posts : [];
+  const [clips, setClips] = useState(false);
+  const visiblePosts = currentView ? (clips ? posts.filter(post => post.media_type === 'video') : posts) : [];
   const leadPhoto = visiblePosts[0]?.media_type === 'image' ? visiblePosts[0].id : null;
   const loadingView = loading || !currentView;
 
@@ -685,12 +686,13 @@ export function CampusCommunityFeed() {
               {scopes.map(item => <DropdownMenuRadioItem key={item.id} value={item.id} className="min-h-11">{item.label}</DropdownMenuRadioItem>)}
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
+            {['Marketplace','Campus Mate','Updates'].map((name,index)=><DropdownMenuItem key={name} asChild className="min-h-11"><Link href={['/marketplace','/campus-mate','/updates'][index]}>{name}</Link></DropdownMenuItem>)}
             <DropdownMenuItem onSelect={refresh} disabled={refreshing || loadingView} className="min-h-11 gap-2"><RefreshCw className="h-4 w-4" aria-hidden="true" /> Refresh feed</DropdownMenuItem>
             {user && <DropdownMenuItem asChild className="min-h-11 gap-2"><Link href="/community/saved"><Bookmark className="h-4 w-4" aria-hidden="true" /> Saved posts</Link></DropdownMenuItem>}
             {!installed && <DropdownMenuItem disabled={installBusy} onSelect={() => void installApp()} className="min-h-11 gap-2"><Download className="h-4 w-4" aria-hidden="true" /> Install UniEco app</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>
-      } />
+      } feedControls={{create: showPostEntry ? openComposer : undefined, clips, select: next => {setClips(next); window.scrollTo({top:0,behavior:'instant'});}}} />
       <main id="main-content" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd} onTouchCancel={handleTouchCancel}>
       <Suspense fallback={null}><FeedPostLocation onChange={setLinkedPostId} /></Suspense>
       <div className="mx-auto grid w-full max-w-[77rem] sm:px-6 lg:grid-cols-[minmax(9rem,13rem)_minmax(0,36rem)] lg:justify-center lg:gap-10 xl:grid-cols-[minmax(10rem,13rem)_minmax(0,36rem)_minmax(13rem,16rem)]">
@@ -712,8 +714,9 @@ export function CampusCommunityFeed() {
 
         <section ref={timelineRef} className="mx-auto w-full min-w-0 max-w-[36rem] scroll-mt-[var(--site-header-height)]" aria-labelledby="campus-community-heading">
           <h1 id="campus-community-heading" className="sr-only">Campus feed</h1>
-          {!authLoading && user && <CampusStories key={user.id} userId={user.id} canPost={canPost} />}
-          <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          {!clips && !authLoading && user && <CampusStories key={user.id} userId={user.id} canPost={canPost} avatar={getPublicAvatarUrl(user.profile?.avatar_url)} />}
+          {clips && <h2 className="px-3 py-2 text-xl font-bold">Campus clips</h2>}
+          <header className="hidden items-center justify-between gap-3 border-b border-border px-4 py-3 lg:flex">
             <h2 className="text-lg font-bold">Campus posts</h2>
             {showPostEntry && <Button type="button" onClick={openComposer} aria-label="Create a campus post" className="min-h-11 rounded-full">
               <SquarePlus aria-hidden="true" className="mr-2 h-4 w-4" /> Create post
@@ -731,6 +734,7 @@ export function CampusCommunityFeed() {
                 <CircleAlert className="h-7 w-7 text-muted-foreground" /><h2 className="font-semibold">Couldn’t load the feed</h2>
                 <Button variant="outline" onClick={refresh} className="mt-2 min-h-11 rounded-full">Try again</Button>
               </div>
+              : clips && !visiblePosts.length ? <p className="p-6 text-center text-muted-foreground">{hasMore?'Looking through more posts for videos…':'No video posts in this feed yet.'}</p>
               : !visiblePosts.length ? <div className="flex min-h-56 flex-col items-center justify-center gap-2 bg-card px-5 text-center sm:rounded-2xl sm:border">
                 <span className="grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary">{scope === 'following' ? <UsersRound className="h-6 w-6" /> : <ImagePlus className="h-6 w-6" />}</span>
                 <h2 className="mt-1 text-lg font-bold">{scope === 'following' ? 'Nothing from your follows yet' : 'No posts here yet'}</h2>

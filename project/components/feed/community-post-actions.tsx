@@ -13,6 +13,8 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { copyTextToClipboard } from '@/lib/utils/copy-to-clipboard';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getPublicAvatarUrl } from '@/lib/storage/avatar-url';
+import { Repeat2 } from 'lucide-react';
+import { PostShareSheet } from './post-share-sheet';
 
 export type CommunitySocialState = {
   like_count: number;
@@ -88,7 +90,8 @@ export function CommunityPostActions({
   onReport?: () => void;
   onDelete?: () => void;
 }) {
-  const { user } = useAuth();
+  const { user, registrationAccess } = useAuth();
+  const [shareMode,setShareMode]=useState<'share'|'repost'|null>(null);
   const [state, setState] = useState(initialState ?? emptyCommunitySocialState);
   const stateRef = useRef(state);
   const mutation = useRef<'like' | 'bookmark' | 'follow' | null>(null);
@@ -275,9 +278,10 @@ export function CommunityPostActions({
   const topLevel = comments.filter((comment) => !comment.parent_comment_id);
 
   const postCaption = (caption || '').trim();
+  const repostTarget = textOnly && /^Reposted on UniEco: https?:\/\/[^/\s]+\/\?post=([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})$/i.exec(postCaption);
   const longCaption = !textOnly && postCaption.length > 158;
   const captionText = longCaption && !captionExpanded ? `${postCaption.slice(0, 153).trimEnd()}…` : postCaption;
-  const iconAction = 'inline-flex h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-md text-foreground transition-opacity hover:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
+  const iconAction = 'inline-flex h-11 min-w-11 px-1 shrink-0 touch-manipulation items-center justify-center rounded-md text-foreground transition-opacity hover:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-65';
   const myPost = user?.id === authorId;
 
   const menu = (
@@ -296,22 +300,24 @@ export function CommunityPostActions({
 
   return (
     <>
-      {renderHeader(menu)}
-      {textOnly && postCaption && <p className="whitespace-pre-wrap break-words px-4 pb-4 pt-1 text-[15px] leading-relaxed sm:px-5">{postCaption}</p>}
+      {renderHeader(<>{user && !myPost && <button type="button" aria-pressed={state.following_author} disabled={Boolean(busy)} onClick={()=>void toggle('follow')} className="min-h-11 px-1 text-sm font-semibold"><span className="rounded-lg bg-muted px-3 py-1.5">{state.following_author?'Following':'Follow'}</span></button>}{menu}</>)}
+      {shareMode && <PostShareSheet mode={shareMode} postId={postId} canSend={!!user} close={()=>setShareMode(null)} copy={()=>sharePost(true)} external={()=>sharePost()}/>}
+      {repostTarget?<Link href={'/?post='+repostTarget[1]} className="mx-3 mb-2 flex min-h-14 items-center gap-3 rounded-xl border px-4 font-semibold"><Repeat2/> View original post</Link>:textOnly && postCaption && <p className="whitespace-pre-wrap break-words px-4 pb-4 pt-1 text-[15px] leading-relaxed sm:px-5">{postCaption}</p>}
       {renderMedia(likeFromPhoto)}
       <div className="px-3 pb-3 sm:pb-4">
         <div className="-mx-1 flex items-center" role="group" aria-label="Post actions">
           <button type="button" onClick={() => void toggle('like')} disabled={Boolean(busy)} aria-label={state.liked_by_me ? 'Unlike post' : 'Like post'} aria-pressed={state.liked_by_me} className={`${iconAction} ${state.liked_by_me ? '!text-rose-500' : ''}`}>
             <Heart className={`h-[23px] w-[23px] ${state.liked_by_me ? 'fill-current' : ''}`} strokeWidth={1.85} />
+            {state.like_count>0 && <span className="pl-1 text-xs font-bold">{state.like_count}</span>}
           </button>
-          <button type="button" onClick={openComments} aria-label="View comments" className={iconAction}><MessageCircle className="h-[23px] w-[23px]" strokeWidth={1.85} /></button>
-          <button type="button" onClick={() => void sharePost()} aria-label="Share post" className={iconAction}><Send className="h-[22px] w-[22px] -translate-x-px" strokeWidth={1.85} /></button>
+          <button type="button" onClick={openComments} aria-label="View comments" className={iconAction}><MessageCircle className="h-[23px] w-[23px]" strokeWidth={1.85} />{state.comment_count>0 && <span className="pl-1 text-xs font-bold">{state.comment_count}</span>}</button>
+          {registrationAccess?.can_publish && <button type="button" onClick={()=>setShareMode('repost')} aria-label="Repost to your feed" className={iconAction}><Repeat2 size={24}/></button>}
+          <button type="button" onClick={() => setShareMode('share')} aria-label="Share post" className={iconAction}><Send className="h-[22px] w-[22px] -translate-x-px" strokeWidth={1.85} /></button>
           <button type="button" onClick={() => void toggle('bookmark')} disabled={Boolean(busy)} aria-label={state.bookmarked_by_me ? 'Remove from saved posts' : 'Save post'} aria-pressed={state.bookmarked_by_me} className={`${iconAction} ml-auto`}>
             <Bookmark className={`h-[22px] w-[22px] ${state.bookmarked_by_me ? 'fill-current' : ''}`} strokeWidth={1.85} />
           </button>
         </div>
         <div className="space-y-1 text-sm leading-relaxed">
-          {state.like_count > 0 && <p aria-live="polite" className="font-semibold">{new Intl.NumberFormat('en-GH').format(state.like_count)} {state.like_count === 1 ? 'like' : 'likes'}</p>}
           {!textOnly && postCaption && <p className="whitespace-pre-wrap break-words">
             <Link href={`/community/member/${authorId}`} className="mr-1.5 font-semibold hover:underline">{authorName}</Link>{captionText}
             {longCaption && <> <button type="button" onClick={() => setCaptionExpanded(!captionExpanded)} aria-expanded={captionExpanded} className="inline-flex min-h-7 items-center rounded px-1 font-medium text-muted-foreground hover:text-foreground">{captionExpanded ? 'less' : 'more'}</button></>}
