@@ -16,8 +16,6 @@ export function useServiceWorkerUpdate(): UpdateState {
     if (typeof window === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
 
-    let refreshing = false;
-
     const checkForUpdate = async () => {
       try {
         const reg = await navigator.serviceWorker.getRegistration();
@@ -29,13 +27,7 @@ export function useServiceWorkerUpdate(): UpdateState {
       }
     };
 
-    const onControllerChange = () => {
-      if (refreshing) return;
-      refreshing = true;
-      window.location.reload();
-    };
-
-    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+    // ServiceWorkerRegister owns controller changes: first claim must not reload.
 
     // Check for updates on load and when page becomes visible
     checkForUpdate();
@@ -64,7 +56,6 @@ export function useServiceWorkerUpdate(): UpdateState {
     const interval = setInterval(checkForUpdate, 1000 * 60 * 5);
 
     return () => {
-      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
       document.removeEventListener('visibilitychange', onVisibility);
       clearInterval(interval);
     };

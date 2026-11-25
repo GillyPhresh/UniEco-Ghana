@@ -5,6 +5,7 @@ import {testModules} from './helpers/load-typescript.mjs';
 const read = file => readFileSync(new URL('../'+file, import.meta.url),'utf8');
 
 test('the first worker claim does not interrupt an open sheet, but an actual update reloads', (t)=>{
+  assert.doesNotMatch(read('hooks/use-sw-update.ts'), /addEventListener\(['"]controllerchange/);
   let changed, reloads=0, cleanup;
   const worker={controller:null, addEventListener:(name,cb)=>{if(name==='controllerchange')changed=cb},removeEventListener:()=>{},register:async()=>({update:async()=>{},addEventListener:()=>{}})};
   const nav = Object.getOwnPropertyDescriptor(globalThis,'navigator');
