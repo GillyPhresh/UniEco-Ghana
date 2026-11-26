@@ -112,7 +112,7 @@ test('concurrent flyers wait for real source photos instead of silently caching 
 test('unknown schools receive a neutral labeled illustration rather than a Legon landmark', async () => {
   const { resolveFlyerVisual } = testModules()('lib/ai/flyer-media.ts');
   const result = await resolveFlyerVisual({ id: 'unknown', title: 'Campus notice', excerpt: '', university_name: 'Unknown College' }, false);
-  assert.equal(result.background.description, 'Illustrative photo · Education setting');
+  assert.equal(result.background.description, 'Editorial illustration');
   assert.doesNotMatch(result.background.credit + result.background.description, /Legon|Balme|Maxx/);
 });
 

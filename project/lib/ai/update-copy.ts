@@ -1,6 +1,16 @@
+export function headlineText(value: string) {
+  const named: Record<string,string> = {amp:'&',quot:'"',apos:"'",nbsp:' ',rsquo:'’',lsquo:'‘',ldquo:'“',rdquo:'”',ndash:'–',mdash:'—',hellip:'…'};
+  const decode = (text:string) => text.replace(/&(#x[\da-f]{1,6}|#\d{1,7}|[a-z]{2,8});/gi,(raw,key:string)=>{
+    if (!key.startsWith('#')) return named[key.toLowerCase()] ?? raw;
+    const n = key[1].toLowerCase()==='x' ? parseInt(key.slice(2),16) : Number(key.slice(1));
+    return n >= 32 && n <= 0x10ffff && !(n >= 0xd800 && n <= 0xdfff) ? String.fromCodePoint(n) : ' ';
+  });
+  return decode(decode(value)).replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g,' ').trim();
+}
+
 export function oneLine(value: unknown, limit: number, fallback = '') {
   if (typeof value !== 'string') return fallback;
-  const clean = value.replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim();
+  const clean = headlineText(value).replace(/\s+/g, ' ').trim();
   if (!clean) return fallback;
   const characters = Array.from(clean);
   if (characters.length <= limit) return clean;
@@ -24,7 +34,7 @@ export function updateSummary(value: unknown, title: string, max = 430) {
 export function updateCategory(value: string) {
   return ({
     opportunities: 'Student opportunity', events: 'Campus event', research: 'Research',
-    notices: 'Campus notice', campus_life: 'Campus life', news: 'Campus news',
+    notices: 'Notice', campus_life: 'Campus life', news: 'News',
   } as Record<string, string>)[value] || 'Campus update';
 }
 

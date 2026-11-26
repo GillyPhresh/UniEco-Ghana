@@ -5,7 +5,7 @@ import { findFlyerPhotoEvidence, type ReusablePhoto } from './flyer-image-eviden
 import { fetchPublisher, publisherDeadline } from './publisher-fetch';
 import { allowsPublisherPath, loadPublisherPolicy } from './publisher-policy';
 import { articleIdentity, officialPublisherUrl, publisherHost } from './public-source-url';
-import { bundledArticlePhoto, flyerCampusAsset } from './flyer-campus-art';
+import { bundledArticlePhoto } from './flyer-campus-art';
 
 export type FlyerPhoto = { src: string; description: string; credit: string; attributionRequired?: boolean };
 export type FlyerVisual = { background: FlyerPhoto; portraits: Array<FlyerPhoto & { name: string }> };
@@ -85,48 +85,11 @@ function publisherVisuals(story: Story): Promise<PublisherVisual> {
   return task;
 }
 
-const localPhotos = {
-  campus: { path: 'lecture-room.jpg', description: 'Illustrative photo · Education setting', credit: 'mitbg000 / Pexels' },
-  robotics: { path: 'robotics.jpg', description: 'Illustrative photo · Robotics workbench', credit: 'Tanha Tamanna Syed / Pexels' },
-  lab: { path: 'laboratory.jpg', description: 'Illustrative photo · Laboratory equipment', credit: 'Tima Miroshnichenko / Pexels' },
-  lecture: { path: 'lecture-room.jpg', description: 'Illustrative photo · Lecture room', credit: 'mitbg000 / Pexels' },
-} as const;
-type LocalPhoto = keyof typeof localPhotos;
-const localArt = new Map<LocalPhoto, Promise<FlyerPhoto>>();
-
-export function flyerContextPhoto(title: string, excerpt = '', category?: string): LocalPhoto {
-  const topic = title + ' ' + excerpt;
-  if (/\b(?:robotics?|mechatronics)\b/i.test(topic)) return 'robotics';
-  if (/\b(?:laborator(?:y|ies)|microscop\w*|biotechnolog\w*|chemistry|biomedical)\b/i.test(topic)) return 'lab';
-  if (category === 'events' || /\b(?:public lecture|webinar|seminar|classroom|symposium)\b/i.test(topic)) return 'lecture';
-  return 'campus';
-}
-
-function localPhoto(key: LocalPhoto) {
-  const cached = localArt.get(key);
-  if (cached) return cached;
-  const { path, description, credit } = localPhotos[key];
-  const photo = readFile(join(process.cwd(), 'public', 'assets', 'flyers', path))
-    .then((bytes) => ({ src: jpeg(bytes), description, credit }));
-  localArt.set(key, photo);
-  return photo;
-}
-
 export async function resolveFlyerVisual(story: Story, allowPublisher = true): Promise<FlyerVisual> {
   const featured = allowPublisher ? await publisherVisuals(story) : noPhotos;
   if (featured.background) return { background: featured.background, portraits: featured.portraits };
-  if (story.source_kind === 'news') return { background: await editorialNewsArtwork(), portraits: [] };
-  if (story.source_kind === 'opportunities') return { background: await editorialScholarshipArtwork(), portraits: [] };
-  const campus = flyerCampusAsset(story);
-  if (campus) {
-    try {
-      const bytes = await sharp(await readFile(join(process.cwd(), 'public', campus.path)), { limitInputPixels: 24_000_000, pages: 1 })
-        .rotate().resize(1080, 852, { fit: 'cover' }).jpeg({ quality: 84 }).toBuffer();
-      return { background: { src: jpeg(bytes), description: 'Campus file photo · ' + campus.name, credit: campus.credit }, portraits: featured.portraits };
-    } catch { /* A missing school asset is never replaced with another school's landmark. */ }
-  }
-  const context = flyerContextPhoto(story.title, story.excerpt, story.category);
-  return { background: await localPhoto(context).catch(() => localPhoto('campus')), portraits: featured.portraits };
+  const opportunity = story.source_kind === 'opportunities' || story.category === 'opportunities';
+  return { background: await (opportunity ? editorialScholarshipArtwork() : editorialNewsArtwork()), portraits: [] };
 }
 
 let editorialArtwork: Promise<FlyerPhoto> | undefined;
@@ -140,8 +103,6 @@ function editorialNewsArtwork() {
       <rect x="132" y="196" width="250" height="10" rx="5" fill="#f5f4ec" opacity=".4"/><path d="M710 264h182v232H710z" fill="#f5f4ec" opacity=".94"/>
       <path d="M748 310h106M748 344h106M748 378h80M748 412h106M748 446h68" stroke="#155b45" stroke-width="12" stroke-linecap="round" opacity=".8"/>
       <path d="M646 535h294" stroke="#f1c453" stroke-width="8" stroke-linecap="round"/><circle cx="646" cy="535" r="17" fill="#f1c453"/>
-      <text x="132" y="626" fill="#fff" font-family="Arial,sans-serif" font-size="35" font-weight="700" letter-spacing="8">UNIECO NEWS DESK</text>
-      <text x="132" y="674" fill="#d4e5dc" font-family="Arial,sans-serif" font-size="22" letter-spacing="4">SOURCE-LINKED REPORTING</text>
     </svg>`);
     const bytes = await sharp(svg, { limitInputPixels: 2_000_000 }).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
     return { src: jpeg(bytes), description: 'Editorial illustration', credit: 'UniEco Ghana' };
@@ -160,8 +121,6 @@ function editorialScholarshipArtwork() {
       <path d="M345 300h390v225H345z" fill="#fff"/><path d="M540 300v225" stroke="#d5bd61" stroke-width="12"/>
       <path d="M405 360h90M405 405h90M585 360h95M585 405h95M405 470h275" stroke="#0d604a" stroke-width="17" stroke-linecap="round" opacity=".86"/>
       <path d="M410 204 540 120l130 84" fill="none" stroke="#efc94f" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
-      <text x="110" y="688" fill="#fff" font-family="Arial,sans-serif" font-size="48" font-weight="700" letter-spacing="7">SCHOLARSHIP OPPORTUNITY</text>
-      <text x="112" y="744" fill="#d8e9df" font-family="Arial,sans-serif" font-size="25" letter-spacing="4">CHECK ELIGIBILITY WITH THE OFFICIAL PROVIDER</text>
     </svg>`);
     const bytes = await sharp(svg, { limitInputPixels: 2_000_000 }).jpeg({ quality: 86, mozjpeg: true }).toBuffer();
     return { src: jpeg(bytes), description: 'Editorial illustration', credit: 'UniEco Ghana' };

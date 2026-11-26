@@ -19,8 +19,8 @@ test('newsroom search tokens cannot introduce a PostgREST operator and lead artw
   const photo = read('components/feed/campus-update-photo.tsx');
   assert.match(photo, /api\/campus-feed\/alert-card\?id=/);
   assert.match(photo, /&format=photo/);
-  assert.match(photo, /Campus file photo/);
-  assert.match(photo, /unoptimized=\{!fallback\}/);
+  assert.doesNotMatch(photo, /newsroomCampusArt|Campus file photo/);
+  assert.match(photo, /unoptimized priority/);
   assert.match(feed, /query\.or\(/);
   assert.doesNotMatch(feed, /sticky top-/);
   assert.match(read('components/pwa/install-prompt.tsx'), /const isReadingUpdates = pathname === '\/updates' \|\| pathname.startsWith\('\/updates\/'\)/);

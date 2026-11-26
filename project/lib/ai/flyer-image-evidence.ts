@@ -1,5 +1,5 @@
 import { load } from 'cheerio/slim';
-import { oneLine } from './update-copy';
+import { headlineText, oneLine } from './update-copy';
 import { articleIdentity, officialPublisherUrl, publisherHost, sourceLink } from './public-source-url';
 import { blocksPublisherImagePreview } from './publisher-image-policy';
 
@@ -8,7 +8,7 @@ export type PhotoEvidence = { background?: ReusablePhoto; portraits: Array<Reusa
 type Entry = Record<string, unknown>;
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : [value]).slice(0, 12);
 const record = (value: unknown): Entry | undefined => value && typeof value === 'object' && !Array.isArray(value) ? value as Entry : undefined;
-const normalize = (value: string) => value.normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const normalize = (value: string) => headlineText(value).normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
 const hasType = (node: Entry, ...values: string[]) => list(node['@type']).some((type) => typeof type === 'string' && values.includes(type.replace(/^https?:\/\/schema\.org\//i, '')));
 const publicRole = /\b(?:professor|vice.chancellor|chancellor|rector|dean|registrar|lecturer|director|minister|principal|spokesperson|president)\b/i;
 const protectedRole = /\b(?:student|pupil|intern|minor|junior|child|trainee)\b/i;
@@ -81,7 +81,9 @@ export function findFlyerPhotoEvidence(raw: string, article: URL, title: string,
   // image URL from a visitor or treat a byline as a pictured subject.
   if (!background && published) {
     const headline = $('article h1, main h1, h1').first().text();
-    const content = $('article, [itemprop="articleBody"], .post-content, .entry-content, main').first();
+    const articleBody = $('article h1, main h1, h1').filter((_,node)=>normalize($(node).text())===normalize(title)).first().closest('article');
+    const body = $('[itemprop="articleBody"], .post-content, .entry-content').first();
+    const content = articleBody.length ? articleBody : body.length ? body : $('article, main').first();
     const readable = content.find('p').toArray().some(node => oneLine($(node).text(), 300).length >= 60);
     const blockedReuse = /(?:no reproduction|reproduction (?:is )?prohibited|do not (?:reproduce|republish))\b/i.test(content.text());
     if ((articleNode || normalize(headline) === normalize(title)) && readable && !blockedReuse) {
@@ -94,6 +96,7 @@ export function findFlyerPhotoEvidence(raw: string, article: URL, title: string,
       const imageKey = (value: string) => { const url = new URL(value); url.search = ''; return url.href.replace(/-\d+x\d+(?=\.[a-z]+$)/i, ''); };
       const bodyImages = content.find('img').slice(0, 32).toArray().flatMap(node => {
         const el = $(node);
+        if(el.closest('aside, nav, footer, .related, .related-posts, .recommended, .sidebar, [class*="related-post"]').length) return [];
         return [el.attr('data-src'), el.attr('data-lazy-src'), el.attr('data-original'), el.attr('src')]
           .map(safeImage).filter((url): url is string => Boolean(url));
       });

@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { PublisherDesk } from './publisher-desk';
+import type { WireItem } from '@/lib/ai/publisher-wire';
 import { ArrowRight, ArrowUpRight, Building2, ChevronDown, CircleAlert, ExternalLink, Loader2, Newspaper, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
@@ -10,7 +13,7 @@ import { CampusUpdatePhoto } from '@/components/feed/campus-update-photo';
 import { ReaderRecommendations } from '@/components/feed/reader-recommendations';
 import { schoolSourceId } from '@/lib/ai/research-catalog';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
-import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
+import { headlineText, updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
 import { newsroomFields, newsroomPageSize as pageSize, newsroomSearchTokens, type FeedItem } from '@/lib/ai/newsroom';
 
 type FeedSource = { source_id: string; source_label: string; university_name: string; source_kind: 'campus' | 'opportunities' | 'news' };
@@ -20,7 +23,15 @@ const categories = [
   ['all', 'Top stories'], ['news', 'News'], ['events', 'Events'], ['opportunities', 'Opportunities'],
   ['research', 'Research'], ['notices', 'Notices'], ['campus_life', 'Campus life'],
 ] as const;
-export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
+export function CampusUpdates({ initialItems,wire,asOf }: { initialItems?: FeedItem[]; wire:WireItem[];asOf:number }) {
+  const router=useRouter();
+  useEffect(()=>{
+    let last=Date.now();
+    const refresh=()=>{if(document.visibilityState==='visible' && Date.now()-last>=900_000){last=Date.now();router.refresh();}};
+    const timer=window.setInterval(refresh,60_000);
+    document.addEventListener('visibilitychange',refresh);
+    return ()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',refresh);};
+  },[router]);
   const [items, setItems] = useState<FeedItem[]>(initialItems || []);
   const [sources, setSources] = useState<FeedSource[]>([]);
   const [campuses, setCampuses] = useState<CampusOption[]>([]);
@@ -67,7 +78,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
       if (requestId !== newestRequest.current) return;
       if (queryError) throw queryError;
       const page = ((data || []) as Omit<FeedItem, 'source_kind'>[]).map((item) => ({
-        ...item, source_kind: sourceKinds.current.get(item.source_id),
+        ...item, title:headlineText(item.title), source_kind: sourceKinds.current.get(item.source_id),
       }));
       setItems((current) => append ? Array.from(new Map([...current, ...page].map((item) => [item.id, item])).values()) : page);
       offset.current = append ? from + page.length : page.length;
@@ -176,6 +187,7 @@ export function CampusUpdates({ initialItems }: { initialItems?: FeedItem[] }) {
         <ChevronDown aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2" />
       </div>
     </form>
+    {campus==='all' && <PublisherDesk wire={wire} asOf={asOf} category={category} search={querySearch} />}
     {!campus.startsWith('no-feed:') && <ReaderRecommendations key={campus} source={campus === 'all' ? null : campus} sourceLabel={selectedLabel} />}
     {error && <div role="alert" className="my-4 flex flex-wrap items-center gap-3 border-l-4 border-destructive bg-muted px-4 py-3 text-sm">
       <CircleAlert className="h-5 w-5 shrink-0 text-destructive" /><p className="flex-1">{items.length ? 'Some updates could not be fetched.' : 'Updates could not load.'}</p>

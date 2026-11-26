@@ -4,7 +4,7 @@ import { testModules } from './helpers/load-typescript.mjs';
 
 const use = testModules();
 const { licensedPhoto, findFlyerPhotoEvidence } = use('lib/ai/flyer-image-evidence.ts');
-const { flyerContextPhoto } = use('lib/ai/flyer-media.ts');
+const { resolveFlyerVisual } = use('lib/ai/flyer-media.ts');
 const article = new URL('https://news.campus.edu.gh/news/design-award');
 const title = 'Professor Ama Mensah wins national design award';
 const excerpt = 'Professor Daniel Asare spoke at the ceremony. Kofi Adjei attended.';
@@ -50,11 +50,10 @@ test('two named public subjects can appear, but no byline, guessed face or priva
   ]) assert.deepEqual(findFlyerPhotoEvidence(blocked, article, title, excerpt), { portraits: [] });
 });
 
-test('fallback artwork matches a broad topic, never an inferred person or an exact event', () => {
-  assert.equal(flyerContextPhoto('Robotics team brings home trophy'), 'robotics');
-  assert.equal(flyerContextPhoto('New laboratory equipment is available'), 'lab');
-  assert.equal(flyerContextPhoto('Campus activities this week', '', 'events'), 'lecture');
-  assert.equal(flyerContextPhoto('Scholarship application open'), 'campus');
+test('known campus without article evidence never substitutes its landmark or a stock person', async () => {
+  const v=await resolveFlyerVisual({id:'one',source_id:'academic-city',university_name:'Academic City University',title:'Robotics prize',excerpt:''},false);
+  assert.equal(v.background.description,'Editorial illustration');
+  assert.deepEqual(v.portraits,[]);
 });
 
 test('a cached JPEG is still unavailable after its story is withdrawn', async () => {

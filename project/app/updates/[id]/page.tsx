@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
 import { siteConfig } from '@/lib/constants/site';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
-import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
+import { headlineText, updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
 import { newsroomFields, type FeedItem } from '@/lib/ai/newsroom';
 
 export const dynamic = 'force-dynamic';
@@ -28,7 +28,7 @@ async function getUpdate(id: string): Promise<FeedItem | null> {
   if (error || !data) return null;
   const { data: source } = await supabase.from('campus_feed_public_sources')
     .select('source_kind').eq('source_id', data.source_id).maybeSingle();
-  return { ...data, source_kind: source?.source_kind } as FeedItem;
+  return { ...data, title:headlineText(data.title), source_kind: source?.source_kind } as FeedItem;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
