@@ -7,6 +7,8 @@ export const wires = [
   {publisher:'BBC News', feed:'https://feeds.bbci.co.uk/news/world/rss.xml', hosts:['bbc.co.uk','bbc.com'], desk:'World'},
   {publisher:'MyJoyOnline', feed:'https://www.myjoyonline.com/feed/', hosts:['myjoyonline.com'], desk:'Ghanaian press'},
   {publisher:'BBC News', feed:'https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml', hosts:['bbc.co.uk','bbc.com'], desk:'Culture'},
+  {publisher:'Opportunities for Youth', feed:'https://opportunitiesforyouth.org/feed/', hosts:['opportunitiesforyouth.org'], desk:'Opportunity reports'},
+  {publisher:'DAAD Ghana', feed:'https://www.daad-ghana.org/en/feed/', hosts:['daad-ghana.org'], desk:'Opportunity reports'},
 ] as const;
 export type WireItem = {title:string; url:string; published:string; desk:string; publisher:string};
 const horizon = 48*3600_000;
@@ -17,7 +19,8 @@ export function parseWire(xml:string,spec:typeof wires[number]): WireItem[] {
     const item=$(node), url=sourceLink(item.children('link').text(),spec.feed,spec.hosts);
     const title=oneLine(item.children('title').text(),245),time=Date.parse(item.children('pubDate').text());
     if(!url || url.pathname==='/' || title.length<12 || !Number.isFinite(time)) return [];
-    const tags=item.children('category').map((_,e)=>$(e).text()).get().join(' ');
+    if(spec.desk==='Opportunity reports' && !/scholarship|fellowship|internship|apprenticeship|call for applications/i.test(title))return [];
+    const tags=spec.desk==='Opportunity reports' ? '' : item.children('category').map((_,e)=>$(e).text()).get().join(' ');
     const desk=/\b(showbiz|entertainment|music|celebrities)\b/i.test(tags)?'Culture':/\b(sport[s]?|football)\b/i.test(tags)?'Sport':spec.desk;
     return [{title,url:cleanArticleUrl(url).href,published:new Date(time).toISOString(),publisher:spec.publisher,desk}];
   });

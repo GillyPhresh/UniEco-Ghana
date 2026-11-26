@@ -11,6 +11,10 @@ test('RSS links stay on the publisher and double-encoded headlines display as te
   const [s,...rest]=parseWire(xml,wires[0]);
   assert.deepEqual(rest,[]);assert.equal(s.title,'Ghana’s winning team');assert.equal(s.desk,'Sport');assert.equal(s.url,'https://3news.com/story/');
   assert.deepEqual(parseWire('<!DOCTYPE rss>'+xml,wires[0]),[]);
+  const ofy=wires.find(s=>s.publisher==='Opportunities for Youth');
+  const fund=xml.replaceAll('3news.com','opportunitiesforyouth.org');
+  assert.deepEqual(parseWire(fund,ofy),[]);
+  assert.equal(parseWire(fund.replaceAll('winning team','scholarship call'),ofy)[0].desk,'Opportunity reports');
 });
 test('balanced recent edition without stale, duplicate, or future headlines even when a feed fails',()=>{
   const row=(i,age=0)=>({title:'Headline '+i,url:'https://3news.com/'+i,published:new Date(now-age).toISOString(),publisher:'3News',desk:'Ghana'});

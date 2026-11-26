@@ -12,5 +12,7 @@ const reads = wires.map(source=>unstable_cache(async()=>{
 },['publisher-headline-wire-v1',source.feed],{revalidate:900}));
 export async function getPublisherWire(){
   const groups=await Promise.all(reads.map(read=>read().catch(()=>[])));
-  return assembleWire(groups);
+  const news=assembleWire(groups.map(g=>g.filter(x=>x.desk!=='Opportunity reports')));
+  const opportunities=assembleWire(groups.map(g=>g.filter(x=>x.desk==='Opportunity reports')),Date.now(),4);
+  return [...news,...opportunities];
 }
