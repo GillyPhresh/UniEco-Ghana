@@ -13,6 +13,13 @@ const rendering = new Map<string, Promise<ArrayBuffer>>();
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
+  const publisherKey=params.get('publisher');
+  if(publisherKey!==null){
+    if(publisherKey.length>2048 || !publisherKey.startsWith('https://'))return unavailable();
+    const {publisherCard}=await import('@/lib/ai/publisher-card.server');
+    const item=await publisherCard(publisherKey);
+    return item ? cardResponse(item,params) : unavailable();
+  }
   const id = params.get('id') || '';
   if (!campusFeedUuid.test(id)) return unavailable();
   const supabase = await createClient();
@@ -24,6 +31,10 @@ export async function GET(request: Request) {
     .select('source_kind').eq('source_id', data.source_id).maybeSingle();
   if (sourceError || !source) return new Response('Flyer temporarily unavailable.', { status: 503, headers });
   const flyerItem = { ...data, source_kind: source.source_kind };
+  return cardResponse(flyerItem,params);
+}
+
+async function cardResponse(flyerItem:import('@/lib/ai/flyer').FlyerItem,params:URLSearchParams) {
   // Always check visibility before serving a cached raster, including a
   // previously copied flyer link after an editor has unpublished the story.
   const format = params.get('format') === 'photo' ? 'photo' : params.get('format') === 'jpeg' ? 'jpeg' : 'png';
@@ -46,6 +57,9 @@ export async function GET(request: Request) {
     }
     const bytes = stored?.bytes || await task;
     if (!bytes) throw new Error('Missing flyer');
+    if(params.has('publisher') && format==='photo' && completed.get(key)?.photoKind!=='story'){
+      return new Response(null,{status:204,headers});
+    }
     const extension = format === 'png' ? 'png' : 'jpg';
     return new Response(bytes, {
       headers: { ...headers, 'Content-Type': format === 'png' ? 'image/png' : 'image/jpeg',

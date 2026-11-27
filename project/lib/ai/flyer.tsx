@@ -121,7 +121,8 @@ export async function renderUpdatePhoto(data: FlyerItem) {
 }
 
 export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOptions = {}) {
-  const [logo, visual, fonts] = await Promise.all([updateFlyerLogoData(), resolveFlyerVisual(data, !options.draft), flyerFonts()]);
+  const licensedOnly=data.source_kind==='news'||data.source_kind==='opportunities'||data.source_id==='publisher-wire';
+  const [logo, visual, fonts] = await Promise.all([updateFlyerLogoData(), resolveFlyerVisual({...data,licensedOnly}, !options.draft), flyerFonts()]);
   const title = oneLine(data.title, 220, 'Campus update');
   const summary = updateSummary(data.excerpt, data.title, title.length > 135 ? 82 : 138);
   const source = oneLine(data.source_label, 85, 'Original publisher');
@@ -142,8 +143,13 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
 
   const card = new ImageResponse(
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
-      <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#192d27' }}>
-        <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
+      <div style={{ ...row, height: licensedOnly && visual.background.description==='Editorial illustration' ? 480 : leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#103d34' }}>
+        {licensedOnly && visual.background.description==='Editorial illustration'
+          ? <div style={{...col,position:'absolute',top:202,left:76,right:76,color:'#f8f3dc',borderLeft:'8px solid #edbf4b',paddingLeft:28}}>
+              <span style={{fontSize:24,letterSpacing:5}}>UNIECO GHANA  /  UPDATES</span>
+              <span style={{fontSize:52,fontWeight:700,marginTop:12}}>{source}</span>
+            </div>
+          : <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />}
         {logo && <div style={{ position: 'absolute', top: 34, left: 40, width: 142, height: 122, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 7, borderRadius: 12, background: 'rgba(255,255,255,0.22)' }}>
           <img src={logo} alt="UniEco Ghana" width="128" height="108" style={{ objectFit: 'contain', opacity: 0.9 }} />
         </div>}

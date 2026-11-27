@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-type Props = { id: string; title: string; preload?: boolean; compact?: boolean; shareOnly?: boolean };
+type Props = { id: string; title: string; publisher?:boolean; preload?: boolean; compact?: boolean; shareOnly?: boolean };
 const filename = 'unieco-campus-update.jpg';
 const maxFileBytes = 3 * 1024 * 1024;
 
@@ -17,7 +17,7 @@ function supportsFileShare(file?: File) {
   } catch { return false; }
 }
 
-export function CampusUpdateActions({ id, title, preload = false, compact = false, shareOnly = false }: Props) {
+export function CampusUpdateActions({ id, title, publisher=false, preload = false, compact = false, shareOnly = false }: Props) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
@@ -26,7 +26,7 @@ export function CampusUpdateActions({ id, title, preload = false, compact = fals
   const [preview, setPreview] = useState('');
   const requestRef = useRef<AbortController | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
-  const flyerUrl = '/api/campus-feed/alert-card?id=' + encodeURIComponent(id) + '&format=jpeg';
+  const flyerUrl = '/api/campus-feed/alert-card?'+(publisher?'publisher=':'id=') + encodeURIComponent(id) + '&format=jpeg';
   const file = prepared?.id === id ? prepared.file : null;
 
   const prepare = useCallback(() => {
@@ -93,7 +93,7 @@ export function CampusUpdateActions({ id, title, preload = false, compact = fals
   };
 
   const copyLink = async () => {
-    const url = new URL('/updates/' + encodeURIComponent(id), window.location.origin).href;
+    const url = publisher ? id : new URL('/updates/' + encodeURIComponent(id), window.location.origin).href;
     try { await navigator.clipboard.writeText(url); toast.success('Story link copied.'); }
     catch { setManualUrl(url); }
   };
@@ -114,7 +114,7 @@ export function CampusUpdateActions({ id, title, preload = false, compact = fals
       }}>
         <DialogHeader className="pr-10">
           <DialogTitle>Share flyer</DialogTitle>
-          <DialogDescription>Share this update as a JPEG or download it to attach in another app.</DialogDescription>
+          <DialogDescription>Share this update as a JPEG or download it to attach in another app.{publisher && ' Publisher previews are not always licensed for export; in that case the flyer shows the headline and source.'}</DialogDescription>
         </DialogHeader>
         {preview && <figure className="flex justify-center overflow-hidden rounded-lg bg-muted p-1.5">
           {/* The preview is the exact local File being shared, not a second remote image. */}

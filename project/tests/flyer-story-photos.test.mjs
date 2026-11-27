@@ -80,7 +80,8 @@ test('a bundled gallery asset can represent a story only after its exact source 
 });
 
 test('concurrent flyers wait for real source photos instead of silently caching generic fallbacks', async () => {
-  const raster = await sharp({ create: { width: 900, height: 600, channels: 3, background: '#348571' } }).jpeg().toBuffer();
+  // MyJoyOnline's GRIDCo lead is a genuine 500 × 308 editorial photograph.
+  const raster = await sharp({ create: { width: 500, height: 308, channels: 3, background: '#348571' } }).jpeg().toBuffer();
   let active = 0;
   let peak = 0;
   const visited = [];

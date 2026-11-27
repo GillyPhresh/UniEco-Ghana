@@ -80,10 +80,11 @@ export function findFlyerPhotoEvidence(raw: string, article: URL, title: string,
   // attribution. This is not a CC license grant. Never accept an arbitrary
   // image URL from a visitor or treat a byline as a pictured subject.
   if (!background && published) {
-    const headline = $('article h1, main h1, h1').first().text();
-    const articleBody = $('article h1, main h1, h1').filter((_,node)=>normalize($(node).text())===normalize(title)).first().closest('article');
+    const heading = $('h1').filter((_,node)=>normalize($(node).text())===normalize(title)).first();
+    const headline = heading.text();
+    const articleBody = heading.closest('article, .article-body');
     const body = $('[itemprop="articleBody"], .post-content, .entry-content').first();
-    const content = articleBody.length ? articleBody : body.length ? body : $('article, main').first();
+    const content = articleBody.length ? articleBody : body.length ? body : $('article, main, .article-body').first();
     const readable = content.find('p').toArray().some(node => oneLine($(node).text(), 300).length >= 60);
     const blockedReuse = /(?:no reproduction|reproduction (?:is )?prohibited|do not (?:reproduce|republish))\b/i.test(content.text());
     if ((articleNode || normalize(headline) === normalize(title)) && readable && !blockedReuse) {

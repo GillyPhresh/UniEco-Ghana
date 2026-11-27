@@ -262,7 +262,7 @@ function NewsHeadline({ item, summary = false }: { item: FeedItem; summary?: boo
     {excerpt && <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{excerpt}</p>}
     <div className="mt-1 flex flex-wrap items-center gap-x-2">
       {summary && original && <a href={original.href} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer" className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary hover:underline">Original source <ExternalLink className="h-3.5 w-3.5" /></a>}
-      <CampusUpdateActions id={item.id} title={item.title} compact shareOnly />
+      <CampusUpdateActions id={item.id} title={item.title} compact />
     </div>
   </article>;
 }

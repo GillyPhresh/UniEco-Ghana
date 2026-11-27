@@ -10,7 +10,11 @@ export const wires = [
   {publisher:'Opportunities for Youth', feed:'https://opportunitiesforyouth.org/feed/', hosts:['opportunitiesforyouth.org'], desk:'Opportunity reports'},
   {publisher:'DAAD Ghana', feed:'https://www.daad-ghana.org/en/feed/', hosts:['daad-ghana.org'], desk:'Opportunity reports'},
 ] as const;
-export type WireItem = {title:string; url:string; published:string; desk:string; publisher:string};
+export type WireItem = {title:string; url:string; published:string; desk:string; publisher:string; thumbnail?:string};
+const feedImageHosts:Record<string,readonly string[]> = {
+  '3News':['media.3news.com','3news.com'], 'BBC News':['ichef.bbci.co.uk'],
+  'MyJoyOnline':['myjoyonline.com'], 'Opportunities for Youth':['opportunitiesforyouth.org'], 'DAAD Ghana':['daad-ghana.org'],
+};
 const horizon = 48*3600_000;
 export function parseWire(xml:string,spec:typeof wires[number]): WireItem[] {
   if(/<!DOCTYPE|<!ENTITY/i.test(xml)) return [];
@@ -22,7 +26,11 @@ export function parseWire(xml:string,spec:typeof wires[number]): WireItem[] {
     if(spec.desk==='Opportunity reports' && !/scholarship|fellowship|internship|apprenticeship|call for applications/i.test(title))return [];
     const tags=spec.desk==='Opportunity reports' ? '' : item.children('category').map((_,e)=>$(e).text()).get().join(' ');
     const desk=/\b(showbiz|entertainment|music|celebrities)\b/i.test(tags)?'Culture':/\b(sport[s]?|football)\b/i.test(tags)?'Sport':spec.desk;
-    return [{title,url:cleanArticleUrl(url).href,published:new Date(time).toISOString(),publisher:spec.publisher,desk}];
+    const raw=item.children().toArray().find(n=>n.name==='media:thumbnail' ||
+      (n.name==='media:content'||n.name==='enclosure') && (/^image\//i.test($(n).attr('type')||'') || $(n).attr('medium')==='image'));
+    const image=raw && sourceLink($(raw).attr('url'),url.href,feedImageHosts[spec.publisher]||[]);
+    const thumbnail=image && /\.(?:jpe?g|png|webp|avif)$/i.test(image.pathname) ? image.href : undefined;
+    return [{title,url:cleanArticleUrl(url).href,published:new Date(time).toISOString(),publisher:spec.publisher,desk,...(thumbnail?{thumbnail}:{})}];
   });
 }
 // Interleave sources so a busy publisher can't displace the other desks.

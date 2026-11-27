@@ -68,7 +68,7 @@ test('the main share action sends JPEG files and never substitutes a story link'
   assert.match(actions, /const filename = 'unieco-campus-update\.jpg'/);
   assert.match(actions, /download=\{filename\}/);
   assert.match(feed, /<CampusUpdateActions/);
-  assert.match(feed, /<CampusUpdateActions id=\{item\.id\} title=\{item\.title\} compact shareOnly/);
+  assert.match(feed, /<CampusUpdateActions id=\{item\.id\} title=\{item\.title\} compact \/>/);
 });
 
 test('public and management views cover the full university directory without claiming missing official sources', () => {

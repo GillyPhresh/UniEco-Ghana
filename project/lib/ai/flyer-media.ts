@@ -9,7 +9,7 @@ import { bundledArticlePhoto } from './flyer-campus-art';
 
 export type FlyerPhoto = { src: string; description: string; credit: string; attributionRequired?: boolean };
 export type FlyerVisual = { background: FlyerPhoto; portraits: Array<FlyerPhoto & { name: string }> };
-type Story = { id: string; source_id?: string; source_label?: string; university_name?: string; canonical_url?: string;
+type Story = { id: string; licensedOnly?: boolean; source_id?: string; source_label?: string; university_name?: string; canonical_url?: string;
   source_kind?: 'campus' | 'opportunities' | 'news'; media_url?: string | null; media_type?: 'image' | 'video' | null;
   title: string; excerpt: string; category?: string };
 type PublisherVisual = Pick<Partial<FlyerVisual>, 'background'> & Pick<FlyerVisual, 'portraits'>;
@@ -30,7 +30,7 @@ async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherV
   });
   if (!page.indexable || page.imagesAllowed === false || articleIdentity(page.url) !== articleIdentity(article.href)) return noPhotos;
   const evidence = findFlyerPhotoEvidence(page.bytes.toString('utf8'), new URL(page.url), story.title, story.excerpt,
-    { mediaUrl: story.media_type === 'image' ? story.media_url : null, publisher: story.source_label || story.university_name || article.hostname });
+    story.licensedOnly ? undefined : { mediaUrl: story.media_type === 'image' ? story.media_url : null, publisher: story.source_label || story.university_name || article.hostname });
   const retrieve = async (photo: ReusablePhoto, portrait = false): Promise<FlyerPhoto | undefined> => {
     try {
       if (!allowsPath(new URL(photo.url))) return undefined;
@@ -47,7 +47,7 @@ async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherV
       const image = sharp(bytes, { limitInputPixels: 16_000_000, pages: 1, failOn: 'warning' });
       const meta = await image.metadata();
       if (!meta.format || !formats.includes(meta.format) || !meta.width || !meta.height
-        || meta.width < (portrait ? 170 : 600) || meta.height < (portrait ? 170 : 380) || (meta.pages || 1) > 1) return undefined;
+        || meta.width < (portrait ? 170 : 480) || meta.height < (portrait ? 170 : 270) || (meta.pages || 1) > 1) return undefined;
       const raster = await image.timeout({ seconds: 2 }).rotate()
         .resize(portrait ? 300 : 1080, portrait ? 300 : 728, { fit: 'cover', position: portrait ? 'attention' : 'centre' })
         .jpeg({ quality: 84, mozjpeg: true }).toBuffer();
@@ -68,7 +68,7 @@ async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherV
 function publisherVisuals(story: Story): Promise<PublisherVisual> {
   const article = officialPublisherUrl(story.canonical_url);
   if (!story.source_id || !article || article.pathname === '/') return Promise.resolve(noPhotos);
-  const key = JSON.stringify([story.id, article.href, story.title, story.excerpt, story.media_url, story.media_type, story.source_label]);
+  const key = JSON.stringify([story.id, article.href, story.title, story.excerpt, story.media_url, story.media_type, story.source_label,!!story.licensedOnly]);
   const cached = saved.get(key);
   if (cached && cached.until > Date.now()) return Promise.resolve(cached.data);
   const existing = pending.get(key);
