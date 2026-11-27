@@ -47,27 +47,11 @@ research inventory without a defined source and publication policy.
 
 ### Flyer photographs and portraits
 
-- For a matching official `.edu.gh` article, the flyer can use a same-host
-  Schema.org `ImageObject` declared in that article's `image` field. The exact
-  image must carry its own CC0 or CC BY 4.0 license URL and creator credit.
-  An ordinary photo in an article, Open Graph tag or search result does not
-  establish permission to redistribute it.
-- Up to two circles are shown only for a named, public-role `Person` explicitly
-  identified in the article's `about` or `mentions` relationship, named in its
-  title or excerpt, and accompanied by a credited, reusable portrait. The
-  article byline is never used as a subject, and the app doesn't search by face
-  or assume two people with a similar name are the same.
-- If reuse or identity cannot be confirmed, the flyer uses a clearly marked
-  context photo and leaves out the unverified portrait. Bundled fallback
-  credits: [Maxx Sas — Balme Library](https://www.pexels.com/photo/university-of-ghana-balme-library-in-accra-36079525/)
-  [Tanha Tamanna Syed — robotics workbench](https://www.pexels.com/photo/robotics-kit-components-on-a-workbench-35652403/),
-  [Tima Miroshnichenko — laboratory equipment](https://www.pexels.com/photo/close-up-photo-of-laboratory-apparatuses-5428263/),
-  and [mitbg000 — lecture room](https://www.pexels.com/photo/rows-of-desks-and-chairs-in-a-classroom-19199263/),
-  used as cropped context under the [Pexels License](https://www.pexels.com/license/).
-- Public renders use the same DNS-checked, robots-aware fetcher as research,
-  cap image size and dimensions, strip metadata, and degrade to bundled photos
-  if the publisher is unavailable. A released article must still exist in the
-  public view on every request. A file already downloaded cannot be recalled.
+- In **UniEco AI → Review → Review all pending updates**, check the sources, remove any stories you do not want, then confirm and publish the selection. The selection covers all pages of the current publisher filter. Review conflicts stay unconfirmed. Publishing an edition sends no notifications and grants no photo permissions.
+- In **Manage flyer photo** on a review item or in a super admin’s **Share** dialog, inspect the exact photo and original report. Enter the photographer or agency credit and a reference to the licence or written permission covering social-media redistribution. Confirming authorises that image on that article only. Withdraw permission from the same control.
+- Exports can also use an article-bound image with supported image-level Creative Commons terms and attribution. A thumbnail or an Open Graph tag alone does not grant permission. A missing or unavailable cleared photo produces a branded headline edition rather than an unrelated picture.
+- Portraits must identify the subject and have reuse evidence. The article byline is not evidence that its author appears in a photo.
+- Future renders check source visibility and recorded permissions before using cached images. Already downloaded images cannot be recalled.
 
 ## Running and checking production
 

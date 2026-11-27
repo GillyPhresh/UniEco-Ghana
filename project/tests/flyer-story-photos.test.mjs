@@ -158,6 +158,7 @@ test('the public photo endpoint uses only approved stored media and rechecks vis
       assert.equal(data.source_kind, 'news');
       return new Response(new Uint8Array([0xff, 0xd8, 0xff, 0xd9]));
     } },
+    '@/lib/ai/photo-permissions.server': { photoCredit: async () => undefined },
   })('app/api/campus-feed/alert-card/route.tsx').GET;
   const request = new Request('https://www.uniecoghana.com/api/campus-feed/alert-card?id=' + id + '&format=photo&image=https://evil.example/photo.jpg');
   const response = await get(request);

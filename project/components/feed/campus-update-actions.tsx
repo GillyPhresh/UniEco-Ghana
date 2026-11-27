@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Download, Link2, Loader2, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth/auth-context';
+import { FlyerPhotoPermission } from './flyer-photo-permission';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -18,6 +20,10 @@ function supportsFileShare(file?: File) {
 }
 
 export function CampusUpdateActions({ id, title, publisher=false, preload = false, compact = false, shareOnly = false }: Props) {
+  const {user}=useAuth();
+  const editor=user?.role==='super_admin';
+  const [revision,setRevision]=useState(0);
+  const [photoKind,setPhotoKind]=useState('');
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [manualUrl, setManualUrl] = useState('');
@@ -26,7 +32,7 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
   const [preview, setPreview] = useState('');
   const requestRef = useRef<AbortController | null>(null);
   const anchorRef = useRef<HTMLDivElement>(null);
-  const flyerUrl = '/api/campus-feed/alert-card?'+(publisher?'publisher=':'id=') + encodeURIComponent(id) + '&format=jpeg';
+  const flyerUrl = '/api/campus-feed/alert-card?'+(publisher?'publisher=':'id=') + encodeURIComponent(id) + '&format=jpeg'+(revision?'&v='+revision:'');
   const file = prepared?.id === id ? prepared.file : null;
 
   const prepare = useCallback(() => {
@@ -42,6 +48,7 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
         const blob = await response.blob();
         if (!blob.size || blob.size > maxFileBytes) throw new Error();
         if (!task.signal.aborted) {
+          setPhotoKind(response.headers.get('X-UniEco-Photo-Type')||'');
           setPrepared({ id, file: new File([blob], filename, { type: 'image/jpeg' }) });
           setStatus('idle');
         }
@@ -52,6 +59,8 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
       }
     })();
   }, [file, flyerUrl, id]);
+
+  useEffect(()=>{if(open && !file)prepare();},[open,file,prepare]);
 
   useEffect(() => () => { requestRef.current?.abort(); requestRef.current = null; }, [id]);
   useEffect(() => {
@@ -100,7 +109,7 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
 
   return <div ref={anchorRef} className="min-w-0">
     <div className="flex flex-wrap gap-2" aria-label="Share or save this update">
-      <Button type="button" variant={compact ? 'ghost' : 'outline'} className={compact ? 'h-11 px-2' : 'min-h-11'} disabled={busy} onClick={() => void share()}>
+      <Button type="button" variant={compact ? 'ghost' : 'outline'} className={compact ? 'h-11 px-2' : 'min-h-11'} disabled={busy} onClick={() => editor ? setOpen(true) : void share()}>
         <Share2 className="mr-2 h-4 w-4" aria-hidden="true" />Share
       </Button>
       {!shareOnly && <Button asChild variant={compact ? 'ghost' : 'outline'} className={compact ? 'h-11 px-2' : 'min-h-11'}>
@@ -108,13 +117,13 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
       </Button>}
     </div>
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="sm:max-w-[29rem]" onCloseAutoFocus={(event) => {
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-[29rem]" onCloseAutoFocus={(event) => {
         const trigger = anchorRef.current?.querySelector('button');
         if (trigger) { event.preventDefault(); trigger.focus(); }
       }}>
         <DialogHeader className="pr-10">
           <DialogTitle>Share flyer</DialogTitle>
-          <DialogDescription>Share this update as a JPEG or download it to attach in another app.{publisher && ' Publisher previews are not always licensed for export; in that case the flyer shows the headline and source.'}</DialogDescription>
+          <DialogDescription>{file && photoKind==='story'?'Source photo edition.':file?'Headline edition · no cleared source photo was available.':'Preparing the shareable image.'} Share or download the JPEG below.</DialogDescription>
         </DialogHeader>
         {preview && <figure className="flex justify-center overflow-hidden rounded-lg bg-muted p-1.5">
           {/* The preview is the exact local File being shared, not a second remote image. */}
@@ -132,6 +141,7 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
           <Button type="button" variant="ghost" className="h-11" onClick={() => void copyLink()}><Link2 className="mr-2 h-4 w-4" />Copy story link</Button>
         </div>
         {manualUrl && <label className="grid min-w-0 gap-1 text-xs">Copy this story link<input readOnly className="w-full min-w-0 rounded border bg-background p-2" value={manualUrl} onFocus={(event) => event.currentTarget.select()} /></label>}
+        {editor&&<FlyerPhotoPermission key={id} id={id} onSaved={()=>{requestRef.current?.abort();requestRef.current=null;setPrepared(null);setRevision(v=>v+1);}}/>}
       </DialogContent>
     </Dialog>
   </div>;

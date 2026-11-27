@@ -23,6 +23,11 @@ export function parseWire(xml:string,spec:typeof wires[number]): WireItem[] {
     const item=$(node), url=sourceLink(item.children('link').text(),spec.feed,spec.hosts);
     const title=oneLine(item.children('title').text(),245),time=Date.parse(item.children('pubDate').text());
     if(!url || url.pathname==='/' || title.length<12 || !Number.isFinite(time)) return [];
+    // Keep publisher boilerplate, sponsored material and index pages out of an editorial edition.
+    if(/^(?:home(?:page)?|latest news|news room|breaking news|integrity,? creativity,? (?:and|&) excellence)$/i.test(title)
+      || /^(?:advertorial|sponsored(?: post| content)?|paid partnership)\s*[:|–-]/i.test(title)
+      || item.children('category').toArray().some(e=>/^(?:sponsored|advertorial|paid content)$/i.test($(e).text().trim()))
+      || /^\/(?:tag|category|author|search|feed)(?:\/|$)/i.test(url.pathname))return [];
     if(spec.desk==='Opportunity reports' && !/scholarship|fellowship|internship|apprenticeship|call for applications/i.test(title))return [];
     const tags=spec.desk==='Opportunity reports' ? '' : item.children('category').map((_,e)=>$(e).text()).get().join(' ');
     const desk=/\b(showbiz|entertainment|music|celebrities)\b/i.test(tags)?'Culture':/\b(sport[s]?|football)\b/i.test(tags)?'Sport':spec.desk;

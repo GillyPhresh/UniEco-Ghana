@@ -21,14 +21,19 @@ export async function GET(request: Request) {
   const db = createResearchClient();
   if (!db) return privateJson({ error: 'Campus previews are unavailable.' }, 503);
   const { data, error } = await db.from('campus_feed_items')
-    .select('id,title,excerpt,source_id,source_label,university_name,published_at,category,media_url,media_type')
+    .select('id,title,excerpt,source_id,source_label,university_name,published_at,category,media_url,media_type,canonical_url')
     .eq('id', id).maybeSingle();
   if (error || !data) return privateJson({ error: 'Preview not available.' }, 404);
   const { data: source, error: sourceError } = await db.from('campus_feed_sources')
     .select('source_kind').eq('id', data.source_id).maybeSingle();
   if (sourceError || !source) return privateJson({ error: 'Preview source is unavailable.' }, 503);
   const flyerItem = { ...data, source_kind: source.source_kind };
-  if (format === 'flyer') return renderUpdateFlyer(flyerItem, { draft: true });
+  if (format === 'flyer') {
+    const {photoCredit}=await import('@/lib/ai/photo-permissions.server');
+    const {withWirePhoto}=await import('@/lib/ai/story-photo-wire.server');
+    const current=await withWirePhoto(flyerItem);
+    return renderUpdateFlyer({...current,clearedCredit:await photoCredit(current)}, { draft: true });
+  }
   if (!data.media_url || data.media_type !== 'image') return privateJson({ error: 'No photo to preview.' }, 404);
   const release = acquireResearchSlot('preview:' + auth.userId);
   if (!release) return privateJson({ error: 'Image preview is busy. Try again shortly.' }, 429);

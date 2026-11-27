@@ -14,7 +14,7 @@ test('homepage is a real community feed and keeps the university directory separ
   assert.match(feed, /Across Ghana/);
   assert.match(feed, /My campus/);
   assert.match(feed, /Following/);
-  assert.match(feed, /hasUniversity \? 'university' : 'all'/);
+  assert.match(feed, /resolveFeedScope\(selectedScope, hasUniversity, canFollow, Boolean\(linkedPostId\)\)/);
   assert.match(feed, /onTouchStart=\{handleTouchStart\} onTouchMove=\{handleTouchMove\} onTouchEnd=\{handleTouchEnd\}/);
   assert.match(feed, /pullReadyRef\.current && window\.scrollY <= 0/);
   assert.doesNotMatch(page, /overflow-hidden/);

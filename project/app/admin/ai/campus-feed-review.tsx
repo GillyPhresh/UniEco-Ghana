@@ -10,6 +10,8 @@ import { Button } from '@/components/ui/button';
 import { publicSourceUrl } from '@/lib/ai/public-source-url';
 import { updateCategory, updateDate, updateSummary } from '@/lib/ai/update-copy';
 import { editorialRequest, type SourceOption } from './editorial-types';
+import { ReviewEdition } from './review-edition';
+import { FlyerPhotoPermission } from '@/components/feed/flyer-photo-permission';
 import { DecisionReasonPicker, decisionReasonOptions } from '@/components/admin/decision-reason-picker';
 
 type ReviewItem = {
@@ -61,6 +63,7 @@ export function CampusFeedReview({ sources, onDecision }: { sources: SourceOptio
         </select>
       </label>
     </div>
+    {status==='pending'&&<ReviewEdition key={scope} scope={scope} onDone={()=>{refresh();onDecision();}}/>}
     {error ? <p role="alert" className="rounded-lg border border-destructive/20 p-3 text-sm">{error}</p>
       : !result ? <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading review queue…</p>
       : !result.items.length ? <p className="rounded-xl border border-dashed p-5 text-sm text-muted-foreground">No {status === 'pending' ? 'updates waiting for review' : status + ' updates'} in this selection.</p>
@@ -124,7 +127,7 @@ function ReviewCard({ item, onDecision }: { item: ReviewItem; onDecision: () => 
     {photo === 'shown' && <Image unoptimized src={base + '&format=photo'} width={900} height={600} alt={'Preview from ' + item.source_label}
       className="max-h-72 w-full rounded-lg border bg-muted object-contain" onError={() => setPhoto('unavailable')} />}
     {photo === 'unavailable' && <p className="text-xs text-muted-foreground">The photo could not be previewed. Check the original source directly.</p>}
-    {item.media_type && <p className="text-xs text-muted-foreground">Public updates link back to the publisher’s media. UniEco does not copy or rehost it.</p>}
+    {(pending||published)&&<FlyerPhotoPermission id={item.id}/>}
     {(pending || published) && <div className="space-y-2 border-t pt-3">
       {!item.published_at && pending && <p className="text-xs font-medium text-muted-foreground">No publication date was supplied. Make sure this update is still relevant before publishing.</p>}
       {pending && <label className="flex items-start gap-2 text-sm font-medium"><input type="checkbox" className="mt-1" checked={verified} onChange={(event) => setVerified(event.target.checked)} disabled={busy || !source} />I checked the publisher, accuracy, dates and campus.</label>}

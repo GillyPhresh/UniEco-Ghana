@@ -27,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CommunityPostActions, emptyCommunitySocialState, type CommunityMutation, type CommunitySocialState } from '@/components/feed/community-post-actions';
 import { CampusPostMedia } from '@/components/feed/campus-post-media';
 import { CampusStories } from '@/components/feed/campus-stories';
-import { appendCampusFeed, pageCampusFeed, type FeedScope } from '@/lib/community/feed-experience';
+import { appendCampusFeed, pageCampusFeed, resolveFeedScope, type FeedScope } from '@/lib/community/feed-experience';
 import { MAX_ATTACHMENT_BYTES, VIDEO_PREPARATION_TIMEOUT_MS, VIDEO_FILE_EXTENSION, readableSize, safeFileName, withRequestTimeout } from '@/lib/community/media-client';
 
 export type CommunityPost = {
@@ -282,8 +282,7 @@ export function CampusCommunityFeed() {
   const canFollow = Boolean(user && registrationAccess?.allowed && ['student', 'student_vendor', 'external_vendor', 'university_admin'].includes(user.role));
   const universityId = user?.profile?.university_id;
   const hasUniversity = Boolean(universityId);
-  const allowedScope = (selectedScope === 'university' && !hasUniversity) || (selectedScope === 'following' && !canFollow) ? null : selectedScope;
-  const scope = linkedPostId ? 'all' : allowedScope ?? (hasUniversity ? 'university' : 'all');
+  const scope = resolveFeedScope(selectedScope, hasUniversity, canFollow, Boolean(linkedPostId));
   const feedCacheKey = `unieco:community-feed:v2:${user?.id ?? 'guest'}:${scope}:${universityId ?? 'none'}`;
   const viewKey = `${feedCacheKey}:${linkedPostId ?? ''}`;
   const mountedKey = useRef(viewKey);

@@ -1,5 +1,12 @@
 export type FeedScope = 'all' | 'university' | 'following';
 
+export function resolveFeedScope(selection: FeedScope | null, hasUniversity: boolean, canFollow: boolean, linkedPost: boolean): FeedScope {
+  if (linkedPost) return 'all';
+  if (selection === 'university' && hasUniversity) return 'university';
+  if (selection === 'following' && canFollow) return 'following';
+  return 'all';
+}
+
 type FeedEntry = { id: string; author_id: string; created_at: string; media_type: string; media_url: string | null };
 
 export function getCampusMoments<T extends FeedEntry>(posts: readonly T[], limit = 7): T[] {

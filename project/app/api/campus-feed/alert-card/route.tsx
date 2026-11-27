@@ -31,10 +31,18 @@ export async function GET(request: Request) {
     .select('source_kind').eq('source_id', data.source_id).maybeSingle();
   if (sourceError || !source) return new Response('Flyer temporarily unavailable.', { status: 503, headers });
   const flyerItem = { ...data, source_kind: source.source_kind };
+  if(source.source_kind!=='campus' && (!data.media_url || data.media_type!=='image')){
+    const {withWirePhoto}=await import('@/lib/ai/story-photo-wire.server');
+    return cardResponse(await withWirePhoto(flyerItem),params);
+  }
   return cardResponse(flyerItem,params);
 }
 
 async function cardResponse(flyerItem:import('@/lib/ai/flyer').FlyerItem,params:URLSearchParams) {
+  if(flyerItem.media_type==='image' && flyerItem.media_url){
+    const {photoCredit}=await import('@/lib/ai/photo-permissions.server');
+    flyerItem={...flyerItem,clearedCredit:await photoCredit(flyerItem)};
+  }
   // Always check visibility before serving a cached raster, including a
   // previously copied flyer link after an editor has unpublished the story.
   const format = params.get('format') === 'photo' ? 'photo' : params.get('format') === 'jpeg' ? 'jpeg' : 'png';

@@ -2,6 +2,7 @@ import { load } from 'cheerio/slim';
 import { headlineText, oneLine } from './update-copy';
 import { articleIdentity, officialPublisherUrl, publisherHost, sourceLink } from './public-source-url';
 import { blocksPublisherImagePreview } from './publisher-image-policy';
+import { photoHosts } from './story-photo';
 
 export type ReusablePhoto = { url: string; credit: string; license: 'CC0' | 'CC BY 4.0' | 'Publisher image' };
 export type PhotoEvidence = { background?: ReusablePhoto; portraits: Array<ReusablePhoto & { name: string }> };
@@ -26,7 +27,7 @@ export function licensedPhoto(value: unknown, article: URL): ReusablePhoto | und
   if (/^\/publicdomain\/zero\/1\.0(?:\/(?:deed(?:\.[\w-]+)?|legalcode)?)?$/.test(legal.pathname)) license = 'CC0';
   else if (/^\/licenses\/by\/4\.0(?:\/(?:deed(?:\.[\w-]+)?|legalcode)?)?$/.test(legal.pathname)) license = 'CC BY 4.0';
   else return undefined;
-  const url = sourceLink(image.contentUrl || image.url, article.href, [publisherHost(article.hostname)]);
+  const url = sourceLink(image.contentUrl || image.url, article.href, photoHosts(article));
   if (!url || !imageSuffix.test(url.pathname) || /\b(?:logo|avatar-placeholder|pixel|tracking|favicon)\b/i.test(url.pathname) || url.search) return undefined;
   const creator = record(image.creator);
   const credit = oneLine(image.creditText || creator?.name || image.copyrightHolder && record(image.copyrightHolder)?.name, 64);

@@ -6,10 +6,11 @@ import { fetchPublisher, publisherDeadline } from './publisher-fetch';
 import { allowsPublisherPath, loadPublisherPolicy } from './publisher-policy';
 import { articleIdentity, officialPublisherUrl, publisherHost } from './public-source-url';
 import { bundledArticlePhoto } from './flyer-campus-art';
+import { storyAsset } from './story-photo';
 
 export type FlyerPhoto = { src: string; description: string; credit: string; attributionRequired?: boolean };
 export type FlyerVisual = { background: FlyerPhoto; portraits: Array<FlyerPhoto & { name: string }> };
-type Story = { id: string; licensedOnly?: boolean; source_id?: string; source_label?: string; university_name?: string; canonical_url?: string;
+type Story = { id: string; clearedCredit?:string|null; licensedOnly?: boolean; source_id?: string; source_label?: string; university_name?: string; canonical_url?: string;
   source_kind?: 'campus' | 'opportunities' | 'news'; media_url?: string | null; media_type?: 'image' | 'video' | null;
   title: string; excerpt: string; category?: string };
 type PublisherVisual = Pick<Partial<FlyerVisual>, 'background'> & Pick<FlyerVisual, 'portraits'>;
@@ -21,6 +22,20 @@ const pending = new Map<string, Promise<PublisherVisual>>();
 const saved = new Map<string, { until: number; data: PublisherVisual }>();
 
 async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherVisual> {
+  const cleared=story.clearedCredit && storyAsset(story);
+  if(cleared && story.clearedCredit){
+    // The approved asset is pinned to this exact story and thumbnail. Do not substitute another URL or redirect.
+    const asset=new URL(cleared.url), hosts=[publisherHost(asset.hostname)], signal=publisherDeadline(12_000);
+    const policy=await loadPublisherPolicy(asset.href,hosts,signal);
+    const page=await fetchPublisher(asset.href,hosts,{signal,maxBytes:4*1024*1024,mimeTypes,
+      allowsPath:url=>url.href===asset.href && allowsPublisherPath(policy,url),timeoutMs:7000});
+    if(!page.indexable || page.imagesAllowed===false)return noPhotos;
+    const image=sharp(page.bytes,{limitInputPixels:16_000_000,pages:1,failOn:'warning'});
+    const meta=await image.metadata();
+    if(!meta.format || !formats.includes(meta.format)||!meta.width||!meta.height||meta.width<170||meta.height<100||(meta.pages||1)>1)return noPhotos;
+    const bytes=await image.timeout({seconds:2}).rotate().resize({width:1080,height:852,fit:'inside',withoutEnlargement:true}).jpeg({quality:89}).toBuffer();
+    return {background:{src:jpeg(bytes),description:'Publisher photo',credit:story.clearedCredit},portraits:[]};
+  }
   const hosts = [publisherHost(article.hostname)];
   const signal = publisherDeadline(16_000);
   const policy = await loadPublisherPolicy(article.href, hosts, signal);
@@ -33,14 +48,18 @@ async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherV
     story.licensedOnly ? undefined : { mediaUrl: story.media_type === 'image' ? story.media_url : null, publisher: story.source_label || story.university_name || article.hostname });
   const retrieve = async (photo: ReusablePhoto, portrait = false): Promise<FlyerPhoto | undefined> => {
     try {
-      if (!allowsPath(new URL(photo.url))) return undefined;
+      const assetUrl=new URL(photo.url);
+      const assetHosts=[publisherHost(assetUrl.hostname)];
+      const assetPolicy=assetHosts[0]===hosts[0]?policy:await loadPublisherPolicy(assetUrl.href,assetHosts,signal);
+      const permitsAsset=(url:URL)=>url.href===assetUrl.href && allowsPublisherPath(assetPolicy,url);
+      if (!permitsAsset(assetUrl)) return undefined;
       const bundled = bundledArticlePhoto(photo.url);
       let bytes: Buffer | undefined;
       if (bundled) {
         try { bytes = await readFile(join(process.cwd(), 'public', bundled)); } catch { /* Try the publisher below. */ }
       }
       if (!bytes) {
-        const asset = await fetchPublisher(photo.url, hosts, { maxBytes: 4 * 1024 * 1024, mimeTypes, signal, allowsPath, timeoutMs: 6_000 });
+        const asset = await fetchPublisher(photo.url, assetHosts, { maxBytes: 4 * 1024 * 1024, mimeTypes, signal, allowsPath:permitsAsset, timeoutMs: 6_000 });
         if (!asset.indexable || asset.imagesAllowed === false || articleIdentity(asset.url) !== articleIdentity(photo.url)) return undefined;
         bytes = asset.bytes;
       }
@@ -68,7 +87,7 @@ async function fetchStoryVisuals(article: URL, story: Story): Promise<PublisherV
 function publisherVisuals(story: Story): Promise<PublisherVisual> {
   const article = officialPublisherUrl(story.canonical_url);
   if (!story.source_id || !article || article.pathname === '/') return Promise.resolve(noPhotos);
-  const key = JSON.stringify([story.id, article.href, story.title, story.excerpt, story.media_url, story.media_type, story.source_label,!!story.licensedOnly]);
+  const key = JSON.stringify([story.id, article.href, story.title, story.excerpt, story.media_url, story.media_type, story.source_label,!!story.licensedOnly,story.clearedCredit]);
   const cached = saved.get(key);
   if (cached && cached.until > Date.now()) return Promise.resolve(cached.data);
   const existing = pending.get(key);

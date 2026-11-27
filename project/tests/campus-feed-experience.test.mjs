@@ -3,8 +3,17 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { testModules } from './helpers/load-typescript.mjs';
 
-const { appendCampusFeed, pageCampusFeed, getCampusMoments, chooseFeedPlayback, isFeedDoubleTap, feedAspectRatio } =
+const { appendCampusFeed, pageCampusFeed, getCampusMoments, chooseFeedPlayback, isFeedDoubleTap, feedAspectRatio, resolveFeedScope } =
   testModules()('lib/community/feed-experience.ts');
+
+test('Across Ghana stays selected when a campus profile loads; narrower feeds require an explicit eligible choice', () => {
+  for (const hasUniversity of [false, true]) for (const canFollow of [false, true]) {
+    assert.equal(resolveFeedScope(null, hasUniversity, canFollow, false), 'all');
+    assert.equal(resolveFeedScope('university', hasUniversity, canFollow, false), hasUniversity ? 'university' : 'all');
+    assert.equal(resolveFeedScope('following', hasUniversity, canFollow, false), canFollow ? 'following' : 'all');
+    assert.equal(resolveFeedScope('university', hasUniversity, canFollow, true), 'all');
+  }
+});
 
 test('direct links do not change the chronological cursor or make the feed stop after a full page', () => {
   const rows = [{ id: 'new', created_at: '2026-11-16' }, { id: 'next', created_at: '2026-11-15' }];
