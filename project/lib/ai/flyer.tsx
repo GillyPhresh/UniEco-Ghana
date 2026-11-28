@@ -135,25 +135,21 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
   const portraitNames = portraits.map((portrait) => oneLine(portrait.name, 46)).join(' · ');
   const titleSize = title.length > 172 ? 39 : title.length > 134 ? 43 : title.length > 98 ? 48 : title.length > 62 ? 53 : 59;
   const format = options.format || 'png';
-  const headlineEdition=licensedOnly && visual.background.description==='Editorial illustration';
-  const dimensions=headlineEdition ? {width:1080,height:1080} : updateCardSize;
+  const photoKind = visual.background.description === 'Publisher photo' ? 'story'
+    : visual.background.description === 'Illustrative photo' ? 'illustrative' : 'illustration';
   const filename = (options.draft ? 'unieco-draft-update' : 'unieco-campus-update') + (format === 'jpeg' ? '.jpg' : '.png');
   const headers = {
     'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
-    'X-UniEco-Photo-Type': visual.background.description === 'Publisher photo' ? 'story' : 'fallback',
+    'X-UniEco-Photo-Type': photoKind,
     'Content-Disposition': (options.download ? 'attachment' : 'inline') + '; filename="' + filename + '"',
     ...(options.draft ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
   };
 
   const card = new ImageResponse(
     <div style={{ ...col, width: '100%', height: '100%', fontFamily: 'Noto Sans', color: newsInk, background: '#eeeeec' }}>
-      <div style={{ ...row, height: headlineEdition ? 224 : leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#103d34' }}>
-        {headlineEdition
-          ? <div style={{...col,position:'absolute',top:44,left:202,right:44,color:'#f8f3dc',borderLeft:'5px solid #edbf4b',paddingLeft:28}}>
-              <span style={{fontSize:19,letterSpacing:4}}>UNIECO GHANA  /  UPDATES</span>
-              <span style={{fontSize:46,fontWeight:700}}>The Daily Brief</span>
-            </div>
-          : <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />}
+      <div style={{ ...row, height: leadHeight, width: '100%', position: 'relative', flexShrink: 0, background: '#103d34' }}>
+        <img src={visual.background.src} alt="" width={1080} height={leadHeight} style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
+        {photoKind !== 'story' && <span style={{ position:'absolute', bottom:66, right:40, padding:'8px 15px', fontSize:22, color:'#fff', background:'#18382e' }}>{photoKind === 'illustrative' ? 'Illustrative photo · not the reported scene' : 'UniEco editorial illustration'}</span>}
         {logo && <div style={{ position: 'absolute', top: 34, left: 40, width: 142, height: 122, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 7, borderRadius: 12, background: 'rgba(255,255,255,0.22)' }}>
           <img src={logo} alt="UniEco Ghana" width="128" height="108" style={{ objectFit: 'contain', opacity: 0.9 }} />
         </div>}
@@ -169,15 +165,15 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
           {data.published_at && Number.isFinite(Date.parse(data.published_at)) &&
             <span style={{ padding: '4px 11px', background: '#fff', color: newsRed, fontSize: 19, fontWeight: 700 }}>{updateDate(data.published_at, 'long').toUpperCase()}</span>}
         </div>
-        {!headlineEdition && <svg aria-hidden="true" width={132} height={108} viewBox="0 0 132 108" style={{ position: 'absolute', left: 48, bottom: -4 }}>
+        <svg aria-hidden="true" width={132} height={108} viewBox="0 0 132 108" style={{ position: 'absolute', left: 48, bottom: -4 }}>
           <path fill={newsRed} d="M0 0h42v34c0 28-12 49-36 68L0 87c12-11 18-23 18-36H0V0zm58 0h42v34c0 28-12 49-36 68l-6-15c12-11 18-23 18-36H58V0z" />
-        </svg>}
+        </svg>
       </div>
       <div style={{ ...col, flex: 1, minHeight: 0, width: '100%', padding: '24px 100px 21px', backgroundImage: 'linear-gradient(145deg, #fafaf9 0%, #e9e9e7 100%)' }}>
         <div style={{ ...row, alignItems: 'center', marginBottom: 14 }}>
           <span style={{ padding: '5px 13px', fontSize: 25, fontWeight: 700, color: '#fff', background: newsRed }}>{updateCategory(data.category).toUpperCase()}</span>
         </div>
-        <span style={{ fontSize: headlineEdition ? titleSize + 12 : titleSize, fontWeight: headlineEdition ? 700 : 400, lineHeight: 1.13, letterSpacing: -0.8, wordBreak: 'break-word' }}>{title}</span>
+        <span style={{ fontSize: titleSize, fontWeight: 400, lineHeight: 1.13, letterSpacing: -0.8, wordBreak: 'break-word' }}>{title}</span>
         {summary && <span style={{ marginTop: 12, fontSize: 26, color: '#444444', lineHeight: 1.2, wordBreak: 'break-word' }}>{summary}</span>}
         <div style={{ ...col, alignItems: 'flex-end', justifyContent: 'flex-end', flexGrow: 1, width: '100%', minHeight: 88, marginTop: 12, gap: 4, textAlign: 'right' }}>
             {portraitNames && <span style={{ fontSize: 18, color: newsInk }}>Pictured: {portraitNames}</span>}
@@ -199,7 +195,7 @@ export async function renderUpdateFlyer(data: FlyerItem, options: UpdateFlyerOpt
         </div>
         <span style={{ fontSize: 13, color: '#474747' }}>{photoNote}{visual.background.credit}{portraitCredits ? ' · Portraits: ' + portraitCredits : ''}{requiresCreditLink ? ' · CC BY 4.0 · Full credits on UniEco' : ''}</span>
       </div>
-    </div>, { ...dimensions, headers, ...(fonts.length ? { fonts } : {}) },
+    </div>, { ...updateCardSize, headers, ...(fonts.length ? { fonts } : {}) },
   );
   if (format === 'png') return card;
   const bytes = await sharp(Buffer.from(await card.arrayBuffer()), { limitInputPixels: updateCardSize.width * updateCardSize.height })

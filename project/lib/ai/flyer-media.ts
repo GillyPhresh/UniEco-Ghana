@@ -7,6 +7,7 @@ import { allowsPublisherPath, loadPublisherPolicy } from './publisher-policy';
 import { articleIdentity, officialPublisherUrl, publisherHost } from './public-source-url';
 import { bundledArticlePhoto } from './flyer-campus-art';
 import { storyAsset } from './story-photo';
+import { marketPhotography } from '../marketplace/photography';
 
 export type FlyerPhoto = { src: string; description: string; credit: string; attributionRequired?: boolean };
 export type FlyerVisual = { background: FlyerPhoto; portraits: Array<FlyerPhoto & { name: string }> };
@@ -107,11 +108,39 @@ function publisherVisuals(story: Story): Promise<PublisherVisual> {
 export async function resolveFlyerVisual(story: Story, allowPublisher = true): Promise<FlyerVisual> {
   const featured = allowPublisher ? await publisherVisuals(story) : noPhotos;
   if (featured.background) return { background: featured.background, portraits: featured.portraits };
+  if (story.licensedOnly) {
+    const photo = await topicPhoto(story.title);
+    if (photo) return { background: photo, portraits: [] };
+  }
   const opportunity = story.source_kind === 'opportunities' || story.category === 'opportunities';
   return { background: await (opportunity ? editorialScholarshipArtwork() : editorialNewsArtwork()), portraits: [] };
 }
 
 let editorialArtwork: Promise<FlyerPhoto> | undefined;
+// Local, credited still-life photos only. Never pass off a person or campus
+// from another report as the subject of this story.
+const topicPhotos: [RegExp, keyof typeof marketPhotography][] = [
+  [/\b(BECE|WASSCE|WAEC|exams?|examinations?|scholarships?|bursar(?:y|ies)|fellowships?)\b/i, 'print'],
+  [/\b(computers?|software|coding|cybersecurity|artificial intelligence|robotics)\b/i, 'tech'],
+  [/\b(groceries|vegetables?|peppers?)\b/i, 'shop'],
+  [/\b(cuisine|cooking|culinary|restaurants?)\b/i, 'food'],
+  [/\b(textiles?|fashion|clothing|garments?)\b/i, 'fashion'],
+  [/\b(cosmetics?|makeup)\b/i, 'beauty'],
+];
+const topicRasters = new Map<string, Promise<FlyerPhoto | undefined>>();
+function topicPhoto(title: string) {
+  const key = topicPhotos.find(([pattern]) => pattern.test(title))?.[1];
+  if (!key) return undefined;
+  const existing = topicRasters.get(key);
+  if (existing) return existing;
+  const asset = marketPhotography[key];
+  const task = sharp(join(process.cwd(), 'public', asset.image), { limitInputPixels: 24_000_000 })
+    .resize(1080,852,{fit:'cover'}).jpeg({quality:86}).toBuffer()
+    .then(bytes => ({src:jpeg(bytes), description:'Illustrative photo', credit:asset.creator+' / Pexels'}))
+    .catch(() => { topicRasters.delete(key); return undefined; });
+  topicRasters.set(key, task);
+  return task;
+}
 function editorialNewsArtwork() {
   editorialArtwork ??= (async () => {
     const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="852" viewBox="0 0 1080 852">

@@ -12,6 +12,15 @@ const html = ({ image = '/images/ceremony.jpg', heading = title, canonical = art
    <article><h1>${heading}</h1><p>${paragraph}</p>${body ? `<img src="${image}">` : ''}</article>`;
 const published = { publisher: 'Test University', mediaUrl: 'https://campus.edu.gh/images/ceremony.jpg' };
 
+test('syndicated headlines can use image-level credits from a separate exact-match metadata record',()=>{
+  const report={'@type':'NewsArticle',headline:title,image:published.mediaUrl};
+  const photo={'@type':'ImageObject',contentUrl:published.mediaUrl,creditText:'News desk photographer',license:'https://creativecommons.org/licenses/by/4.0/'};
+  const resolve=(...photos)=>findFlyerPhotoEvidence('<script type="application/ld+json">'+JSON.stringify({'@graph':[report,...photos]})+'</script>',article,title,'').background;
+  assert.equal(resolve(photo)?.credit,photo.creditText);
+  assert.equal(resolve({...photo,contentUrl:published.mediaUrl+'-other'}),undefined);
+  assert.equal(resolve(photo,{...photo,license:'All rights reserved'}),undefined);
+});
+
 test('a published story uses its current article photo with honest attribution, without inventing a CC license', () => {
   const result = findFlyerPhotoEvidence(html(), article, title, paragraph, published);
   assert.deepEqual(result.background, { url: published.mediaUrl, credit: published.publisher, license: 'Publisher image' });

@@ -76,7 +76,20 @@ export function findFlyerPhotoEvidence(raw: string, article: URL, title: string,
       ? nodes.find((item) => item['@id'] === current['@id'] && item !== current && Object.keys(item).length > 1)
       : current;
   };
-  let background = articleNode && list(articleNode.image).map((value) => licensedPhoto(resolve(value), article)).find(Boolean);
+  // Some publishers put the asset URL on NewsArticle and the image-specific
+  // licence on a separate ImageObject in the same graph. Join only an exact,
+  // unique asset match; never transfer a page-wide or neighbouring image licence.
+  const articlePhoto = (value: unknown) => {
+    const direct = licensedPhoto(resolve(value), article);
+    if (direct) return direct;
+    if (typeof value !== 'string') return undefined;
+    const asset = sourceLink(value, article.href, photoHosts(article));
+    if (!asset) return undefined;
+    const matches = nodes.filter(node => hasType(node, 'ImageObject') &&
+      sourceLink(node.contentUrl || node.url, article.href, photoHosts(article))?.href === asset.href);
+    return matches.length === 1 ? licensedPhoto(matches[0], article) : undefined;
+  };
+  let background = articleNode && list(articleNode.image).map(articlePhoto).find(Boolean);
   // A public, moderated story may use its publisher's own article image with
   // attribution. This is not a CC license grant. Never accept an arbitrary
   // image URL from a visitor or treat a byline as a pictured subject.

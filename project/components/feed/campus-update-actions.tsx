@@ -123,7 +123,7 @@ export function CampusUpdateActions({ id, title, publisher=false, preload = fals
       }}>
         <DialogHeader className="pr-10">
           <DialogTitle>Share flyer</DialogTitle>
-          <DialogDescription>{file && photoKind==='story'?'Source photo edition.':file?'Headline edition · no cleared source photo was available.':'Preparing the shareable image.'} Share or download the JPEG below.</DialogDescription>
+          <DialogDescription>{!file ? 'Preparing the shareable image.' : photoKind === 'story' ? 'Includes the original report’s photo.' : photoKind === 'illustrative' ? 'Includes a credited illustrative photo, not the reported scene.' : 'Includes a UniEco editorial illustration.'} Share or download the JPEG below.</DialogDescription>
         </DialogHeader>
         {preview && <figure className="flex justify-center overflow-hidden rounded-lg bg-muted p-1.5">
           {/* The preview is the exact local File being shared, not a second remote image. */}

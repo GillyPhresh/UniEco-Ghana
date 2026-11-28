@@ -46,10 +46,22 @@ test('real raster export uses the exact cleared source photo and prints its cred
  assert.deepEqual(reads,[story.media_url]);assert.equal(response.headers.get('X-UniEco-Photo-Type'),'story');
  const pixel=await img.extract({left:540,top:400,width:1,height:1}).raw().toBuffer();assert.ok(pixel[0]>195&&pixel[1]<85);
 });
-test('no cleared photo yields a square, shareable headline edition',async()=>{
+test('every desk exports a portrait JPEG with the resolved visual embedded, even without a source photo',async()=>{
  const use=testModules({'./publisher-policy':{loadPublisherPolicy:async()=>{throw Error('No verified image')}}});
- const r=await use('lib/ai/flyer.tsx').renderUpdateFlyer(story,{format:'jpeg'});
- const m=await sharp(Buffer.from(await r.arrayBuffer())).metadata();assert.deepEqual([m.format,m.width,m.height],['jpeg',1080,1080]);assert.equal(r.headers.get('X-UniEco-Photo-Type'),'fallback');
+ for(const [title,category,kind] of [['World leaders meet','news','illustration'],['Premature BECE: assessment of candidates','news','illustrative'],['Graduate scholarship in Ghana','opportunities','illustrative'],['Campus notice','events','illustration']]){
+   const item={...story,title,category,clearedCredit:null};
+   const r=await use('lib/ai/flyer.tsx').renderUpdateFlyer(item,{format:'jpeg',download:true});
+   const img=sharp(Buffer.from(await r.arrayBuffer()));
+   const m=await img.metadata();assert.deepEqual([m.format,m.width,m.height],['jpeg',1080,1440]);
+   assert.equal(r.headers.get('X-UniEco-Photo-Type'),kind);
+   assert.match(r.headers.get('Content-Disposition'),/attachment/);
+   const visual=await use('lib/ai/flyer-media.ts').resolveFlyerVisual({...item,licensedOnly:true},false);
+   const expected=sharp(Buffer.from(visual.background.src.split(',')[1],'base64'));
+   const region={left:220,top:220,width:580,height:360};
+   const sample=image=>image.extract(region).resize(8,8).removeAlpha().raw().toBuffer();
+   const [a,b]=await Promise.all([sample(img),sample(expected)]);
+   assert.ok(a.every((v,i)=>Math.abs(v-b[i])<12),'the exported hero must match the selected visual');
+ }
 });
 test('batch counts conflicts accurately and stops on loss of management access',async()=>{
  const {publishEdition}=testModules()('lib/ai/publish-edition.ts');
